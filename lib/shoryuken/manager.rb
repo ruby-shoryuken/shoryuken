@@ -1,6 +1,7 @@
 require 'yaml'
 require 'aws-sdk'
 require 'celluloid'
+require 'multi_json'
 
 require 'shoryuken/version'
 require 'shoryuken/manager'
@@ -71,7 +72,9 @@ module Shoryuken
       processor = @ready.pop
       @busy << processor
 
-      processor.async.process(queue, sqs_msg)
+      payload = MultiJson.decode(sqs_msg.body)
+
+      processor.async.process(queue, sqs_msg, payload)
     end
 
     def skip_and_dispatch(queue)

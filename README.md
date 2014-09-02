@@ -1,6 +1,12 @@
 # Shoryuken
 
-Shoryuken is an [AWS SQS](https://aws.amazon.com/sqs/) client inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+Shoryuken is an [AWS SQS](https://aws.amazon.com/sqs/) thread based client inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+
+## Why another gem?
+
+> [Wouldn't it be awesome if Sidekiq supported {MongoDB, postgresql, mysql, ...} for persistence?](https://github.com/mperham/sidekiq/wiki/FAQ#wouldnt-it-be-awesome-if-sidekiq-supported-mongodb-postgresql-mysql--for-persistence)
+
+The Sidekiq point to not support other databases is fair enough. So Shoryuken uses the same Sidekiq thread implementation, but for AWS SQS.
 
 ## Installation
 
@@ -18,7 +24,27 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Worker class
+
+```ruby
+class HelloWorker
+  include Shoryuken::Worker
+
+  shoryuken_options queue: 'my_queue1'
+
+  def perform(sqs_msg, firstname, lastname)
+    puts "Hello #{firstname} #{lastname}"
+
+    sqs_msg.delete
+  end
+end
+```
+
+### Enqueue a message
+
+```ruby
+HelloWorker.perform_async('Pablo', 'Cantero')
+```
 
 ## Contributing
 

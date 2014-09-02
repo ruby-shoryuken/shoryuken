@@ -1,3 +1,5 @@
+require 'multi_json'
+
 module Shoryuken
   class Processor
     include Celluloid
@@ -7,8 +9,13 @@ module Shoryuken
       @manager = manager
     end
 
-    def process(queue, sqs_msg)
-      HelloWorker.new.perform(sqs_msg)
+    def process(queue, sqs_msg, payload)
+      klass  = constantize(payload['class'])
+      worker = klass.new
+
+      defer do
+        worker.perform(sqs_msg, *payload['args'])
+      end
 
       @manager.processor_done(current_actor)
     end

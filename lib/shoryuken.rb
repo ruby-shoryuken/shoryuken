@@ -8,6 +8,8 @@ require 'shoryuken/util'
 require 'shoryuken/manager'
 require 'shoryuken/processor'
 require 'shoryuken/fetcher'
+require 'shoryuken/client'
+require 'shoryuken/worker'
 require 'shoryuken/hello_worker'
 
 module Shoryuken

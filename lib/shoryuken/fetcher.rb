@@ -7,12 +7,12 @@ module Shoryuken
       @manager = manager
     end
 
-    def retrieve_work(queue)
-      queue.receive_message
+    def receive_message(queue)
+      Shoryuken::Client.receive_message(queue)
     end
 
     def fetch(queue)
-      if sqs_msg = retrieve_work(queue)
+      if sqs_msg = receive_message(queue)
         logger.info "Message found #{sqs_msg}"
 
         @manager.assign(queue, sqs_msg)

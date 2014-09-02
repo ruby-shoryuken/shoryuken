@@ -7,21 +7,6 @@ config = YAML.load File.read(File.join(File.expand_path('../..', __FILE__), 'sho
 
 AWS.config(config['aws'])
 
-sqs = AWS::SQS.new
-
-queue1 = sqs.queues.named("my_queue1")
-queue2 = sqs.queues.named("my_queue2")
-
-class Hello
-  include Celluloid
-
-  def enqueue(queue, msg)
-    puts "Pushing: #{msg}"
-    queue.send_message(msg)
-  end
-end
-
 10.times do |i|
-  Hello.new.async.enqueue(queue1, "queue1: #{i} - #{Time.now}")
-  Hello.new.async.enqueue(queue2, "queue2: #{i} - #{Time.now}")
+  Shoryuken::HelloWorker.perform_async("Pablo #{i}", 'Cantero')
 end
