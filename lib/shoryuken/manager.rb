@@ -41,6 +41,15 @@ module Shoryuken
       logger.info 'Bye'
 
       @done = true
+
+      @fetcher.terminate if @fetcher.alive?
+
+      @ready.each do |processor|
+        processor.terminate if processor.alive?
+      end
+      @ready.clear
+
+      after(0) { signal(:shutdown) }
     end
 
     def processor_done(processor)
@@ -57,9 +66,11 @@ module Shoryuken
 
       @busy.delete processor
 
-      @ready << Processor.new_link(current_actor)
+      unless stopped?
+        @ready << Processor.new_link(current_actor)
 
-      dispatch
+        dispatch
+      end
     end
 
     def stopped?
