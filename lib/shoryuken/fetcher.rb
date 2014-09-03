@@ -12,14 +12,22 @@ module Shoryuken
     end
 
     def fetch(queue)
-      if sqs_msg = receive_message(queue)
-        logger.info "Message found #{sqs_msg}"
+      watchdog('Fetcher#fetch died') do
+        begin
+          if sqs_msg = receive_message(queue)
+            logger.info "Message found #{sqs_msg}"
 
-        @manager.async.assign(queue, sqs_msg)
-      else
-        logger.info "No message for #{queue}"
+            @manager.async.assign(queue, sqs_msg)
+          else
+            logger.info "No message for #{queue}"
 
-        after(0) { @manager.skip_and_dispatch(queue) }
+            after(0) { @manager.skip_and_dispatch(queue) }
+          end
+        rescue => ex
+          logger.error("Error fetching message: #{ex}")
+          logger.error(ex.backtrace.first)
+          after(0) { @manager.skip_and_dispatch(queue) }
+        end
       end
     end
   end
