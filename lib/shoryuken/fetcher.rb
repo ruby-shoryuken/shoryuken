@@ -15,7 +15,7 @@ module Shoryuken
       if sqs_msg = receive_message(queue)
         logger.info "Message found #{sqs_msg}"
 
-        @manager.assign(queue, sqs_msg)
+        @manager.async.assign(queue, sqs_msg)
       else
         logger.info "No message for #{queue}"
 

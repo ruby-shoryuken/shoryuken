@@ -56,13 +56,18 @@ module Shoryuken
       logger.info "Process done #{processor}"
 
       @busy.delete processor
-      @ready << processor
+
+      if stopped?
+        processor.terminate if processor.alive?
+      else
+        @ready << processor
+      end
 
       dispatch
     end
 
-    def processor_died(processor)
-      logger.info "Process died #{processor}"
+    def processor_died(processor, reason)
+      logger.info "Process died, reason: #{reason}"
 
       @busy.delete processor
 

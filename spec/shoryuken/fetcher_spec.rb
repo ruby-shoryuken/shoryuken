@@ -7,6 +7,10 @@ describe Shoryuken::Fetcher do
 
   subject { described_class.new(manager) }
 
+  before do
+    allow(manager).to receive(:async).and_return(manager)
+  end
+
   describe '#fetch' do
     it 'calls skip_and_dispatch when not found' do
       allow(queue).to receive(:receive_message).and_return(nil)

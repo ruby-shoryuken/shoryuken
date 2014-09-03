@@ -17,7 +17,7 @@ module Shoryuken
         worker.perform(sqs_msg, *payload['args'])
       end
 
-      @manager.processor_done(current_actor)
+      @manager.async.processor_done(current_actor)
     end
   end
 end

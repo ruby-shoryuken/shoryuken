@@ -7,6 +7,10 @@ describe Shoryuken::Processor do
 
   subject { described_class.new(manager) }
 
+  before do
+    allow(manager).to receive(:async).and_return(manager)
+  end
+
   describe '#process' do
     class HelloWorker1
       def perform(sqs_msg); end
