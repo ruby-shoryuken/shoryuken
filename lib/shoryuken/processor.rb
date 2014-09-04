@@ -10,7 +10,7 @@ module Shoryuken
     end
 
     def process(queue, sqs_msg, payload)
-      klass  = constantize(payload['class'])
+      klass  = payload['class'].constantize
       worker = klass.new
 
       defer do
@@ -18,6 +18,8 @@ module Shoryuken
       end
 
       @manager.async.processor_done(current_actor)
+    rescue
+      sqs_msg.delete
     end
   end
 end

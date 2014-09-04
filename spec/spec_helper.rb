@@ -4,12 +4,12 @@ Bundler.setup
 require 'pry-byebug'
 require 'shoryuken'
 
-config_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
+options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
 
-if File.exist? config_file
-  $config = YAML.load File.read(config_file)
+if File.exist? options_file
+  $options = YAML.load File.read(options_file)
 
-  AWS.config($config['aws'])
+  AWS.config $options['aws']
 end
 
 Shoryuken::Util.logger.level = Logger::ERROR

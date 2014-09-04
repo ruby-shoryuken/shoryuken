@@ -17,11 +17,11 @@ module Shoryuken
 
     trap_exit :processor_died
 
-    def initialize(config)
+    def initialize(options)
       @sqs = AWS::SQS.new
 
-      @count   = config['concurrency'] || 25
-      @queues  = config['queues'].map { |name| @sqs.queues.named(name) }
+      @count   = options['concurrency'] || 25
+      @queues  = options['queues'].map { |name| @sqs.queues.named(name) }
 
       @done = false
 

@@ -2,13 +2,12 @@
 
 require 'yaml'
 require 'shoryuken'
+require 'shoryuken/cli'
 
-config = YAML.load File.read(File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml'))
-
-AWS.config(config['aws'])
+options = YAML.load File.read(File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml'))
 
 begin
-  Shoryuken::Launcher.new(config).run
+  Shoryuken::CLI.instance.run(options)
 rescue => e
   raise e if $DEBUG
   STDERR.puts e.message
