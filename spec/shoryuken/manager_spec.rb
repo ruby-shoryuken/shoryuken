@@ -1,7 +1,13 @@
 require 'spec_helper'
 
 describe Shoryuken::Manager do
+  let(:fetcher) { Shoryuken::Fetcher.new(manager) }
   let(:manager) { described_class.new($config) }
+
+
+  before do
+    manager.fetcher = fetcher
+  end
 
   describe 'Consuming messages', slow: :true do
     before do

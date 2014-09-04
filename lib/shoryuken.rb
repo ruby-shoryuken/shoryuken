@@ -11,6 +11,7 @@ require 'shoryuken/fetcher'
 require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/hello_worker'
+require 'shoryuken/launcher'
 
 module Shoryuken
 end

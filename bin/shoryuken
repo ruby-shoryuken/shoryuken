@@ -7,6 +7,13 @@ config = YAML.load File.read(File.join(File.expand_path('../..', __FILE__), 'sho
 
 AWS.config(config['aws'])
 
-Shoryuken::Manager.new(config).start
+begin
+  Shoryuken::Launcher.new(config).run
+rescue => e
+  raise e if $DEBUG
+  STDERR.puts e.message
+  STDERR.puts e.backtrace.join("\n")
+  exit 1
+end
 
 sleep

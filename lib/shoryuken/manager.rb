@@ -13,17 +13,15 @@ module Shoryuken
     include Celluloid
     include Util
 
-    # Processor.new_link
+    attr_accessor :fetcher
+
     trap_exit :processor_died
 
     def initialize(config)
-      AWS.config(config['aws'])
-
       @sqs = AWS::SQS.new
 
       @count   = config['concurrency'] || 25
       @queues  = config['queues'].map { |name| @sqs.queues.named(name) }
-      @fetcher = Fetcher.new(current_actor)
 
       @done = false
 
