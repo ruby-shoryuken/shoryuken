@@ -14,12 +14,8 @@ module Shoryuken
       @launcher = Shoryuken::Launcher.new(options).run
 
       %w[INT QUIT HUP TERM].each do |signal|
-        trap(signal) { stop }
+        # trap(signal) { @launcher.stop }
       end
-    end
-
-    def stop
-      @launcher.stop
     end
 
     private
