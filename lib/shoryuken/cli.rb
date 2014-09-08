@@ -39,7 +39,7 @@ module Shoryuken
     private
 
     def handle_signal(sig)
-      Shoryuken.logger.debug "Got #{sig} signal"
+      Shoryuken.logger.info "Got #{sig} signal"
 
       raise Interrupt
     end

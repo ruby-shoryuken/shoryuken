@@ -17,7 +17,7 @@ module Shoryuken
     def stop
       watchdog('Launcher#stop') do
         @done = true
-        @fetcher.terminate if fetcher.alive?
+        @fetcher.terminate if @fetcher.alive?
 
         @manager.async.stop
       end

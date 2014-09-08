@@ -24,4 +24,8 @@ module Shoryuken
   def self.options
     @options ||= DEFAULTS.dup
   end
+
+  def self.logger
+    Shoryuken::Util.logger
+  end
 end
