@@ -17,8 +17,8 @@ module Shoryuken
     trap_exit :processor_died
 
     def initialize
-      @count   = Shoryuken.options[:concurrency] || 25
-      @queues  = Shoryuken.options[:queues].map { |name| Shoryuken::Client.queues(name) }
+      @count  = Shoryuken.options[:concurrency] || 25
+      @queues = Shoryuken.options[:queues].dup
 
       @done = false
 
@@ -51,7 +51,7 @@ module Shoryuken
       end
     end
 
-    def processor_done(processor)
+    def processor_done(queue, processor)
       watchdog('Manager#processor_done died') do
         logger.info "Process done #{processor}"
 
@@ -63,7 +63,7 @@ module Shoryuken
           @ready << processor
         end
 
-        dispatch
+        dispatch_found(queue)
       end
     end
 
@@ -96,7 +96,11 @@ module Shoryuken
       end
     end
 
-    def skip_and_dispatch(queue)
+    def dispatch_not_found(queue)
+      dispatch
+    end
+
+    def dispatch_found(queue)
       dispatch
     end
 
@@ -106,7 +110,6 @@ module Shoryuken
       @fetcher.async.fetch(retrieve_queue)
     end
 
-    private
 
     def retrieve_queue
       queue = @queues.shift

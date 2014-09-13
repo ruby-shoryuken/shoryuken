@@ -21,12 +21,12 @@ module Shoryuken
           else
             logger.info "No message for #{queue}"
 
-            after(0) { @manager.skip_and_dispatch(queue) }
+            @manager.async.dispatch_not_found(queue)
           end
         rescue => ex
           logger.error("Error fetching message: #{ex}")
           logger.error(ex.backtrace.first)
-          after(0) { @manager.skip_and_dispatch(queue) }
+          @manager.async.dispatch
         end
       end
     end

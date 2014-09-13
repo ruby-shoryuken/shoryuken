@@ -1,14 +1,16 @@
 require 'spec_helper'
 
 describe Shoryuken::Processor do
-  let(:manager) { double Shoryuken::Manager }
-  let(:queue)   { double 'Queue', arn: 'arn:aws:sqs:us-east-1:123456789000:yo' }
-  let(:sqs_msg) { double 'SQS msg' }
+  let(:manager)   { double Shoryuken::Manager }
+  let(:sqs_queue) { double 'Queue' }
+  let(:queue)     { 'yo' }
+  let(:sqs_msg)   { double 'SQS msg' }
 
   subject { described_class.new(manager) }
 
   before do
     allow(manager).to receive(:async).and_return(manager)
+    allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
 
   describe '#process' do
@@ -21,9 +23,9 @@ describe Shoryuken::Processor do
     end
 
     it 'skips when worker not found' do
-      allow(queue).to receive(:arn).and_return 'arn:aws:sqs:us-east-1:123456789000:notfound'
+      queue = 'notfound'
 
-      expect(manager).to receive(:processor_done).with(subject)
+      expect(manager).to receive(:processor_done).with(queue, subject)
 
       expect(sqs_msg).to_not receive(:delete)
 
@@ -33,7 +35,7 @@ describe Shoryuken::Processor do
     it 'performs with auto delete' do
       YoWorker.get_shoryuken_options['auto_delete'] = true
 
-      expect(manager).to receive(:processor_done).with(subject)
+      expect(manager).to receive(:processor_done).with(queue, subject)
 
       expect_any_instance_of(YoWorker).to receive(:perform).with(sqs_msg)
 
@@ -45,7 +47,7 @@ describe Shoryuken::Processor do
     it 'performs without auto delete' do
       YoWorker.get_shoryuken_options['auto_delete'] = false
 
-      expect(manager).to receive(:processor_done).with(subject)
+      expect(manager).to receive(:processor_done).with(queue, subject)
 
       expect_any_instance_of(YoWorker).to receive(:perform).with(sqs_msg)
 
