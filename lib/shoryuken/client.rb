@@ -1,18 +1,10 @@
-require 'multi_json'
 
 module Shoryuken
   class Client
-    def self.push(item)
-      queue = queue_by_name(item['class'].shoryuken_options['queue'])
-
-      payload = MultiJson.encode(item)
-
-      queue.send_message(payload)
-    end
+    @@queues = {}
 
     def self.queue_by_name(name)
-      @queues ||= {}
-      @queues[name.to_s] ||= sqs.queues.named(name)
+      @@queues[name.to_s] ||= sqs.queues.named(name)
     end
 
     def self.receive_message(queue, options = {})

@@ -9,17 +9,17 @@ module Shoryuken
       @manager = manager
     end
 
-    def process(queue, sqs_msg, payload)
-      klass  = payload['class'].constantize
-      worker = klass.new
-
-      defer do
-        worker.perform(sqs_msg, *payload['args'])
+    def process(queue, sqs_msg)
+      if worker_class = Shoryuken.workers[queue.arn.split(':').last]
+        defer do
+          worker_class.new.perform(sqs_msg)
+          sqs_msg.delete if worker_class.get_shoryuken_options['auto_delete']
+        end
+      else
+        Shoryuken.logger.error "Worker not found for queue '#{queue.arn}'"
       end
 
       @manager.async.processor_done(current_actor)
-    rescue
-      sqs_msg.delete
     end
   end
 end

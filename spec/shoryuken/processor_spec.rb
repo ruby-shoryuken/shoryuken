@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Shoryuken::Processor do
   let(:manager) { double Shoryuken::Manager }
-  let(:queue)   { double 'Queue' }
+  let(:queue)   { double 'Queue', arn: 'arn:aws:sqs:us-east-1:123456789000:yo' }
   let(:sqs_msg) { double 'SQS msg' }
 
   subject { described_class.new(manager) }
@@ -12,30 +12,46 @@ describe Shoryuken::Processor do
   end
 
   describe '#process' do
-    class HelloWorker1
+    class YoWorker
+      include Shoryuken::Worker
+
+      shoryuken_options queue: 'yo'
+
       def perform(sqs_msg); end
     end
 
-    class HelloWorker2
-      def perform(sqs_msg, firstname, lastname); end
-    end
-
-    it 'calls worker' do
-      expect(manager).to receive(:processor_done).with(subject)
-
-      expect_any_instance_of(HelloWorker1).to receive(:perform).with(sqs_msg)
-
-      subject.process(queue, sqs_msg, { 'class' => 'HelloWorker1', 'args' => [] })
-    end
-
-    it 'calls worker passing args' do
-      firstname, lastname = %w[Pablo Cantero]
+    it 'skips when worker not found' do
+      allow(queue).to receive(:arn).and_return 'arn:aws:sqs:us-east-1:123456789000:notfound'
 
       expect(manager).to receive(:processor_done).with(subject)
 
-      expect_any_instance_of(HelloWorker2).to receive(:perform).with(sqs_msg, firstname, lastname)
+      expect(sqs_msg).to_not receive(:delete)
 
-      subject.process(queue, sqs_msg, { 'class' => 'HelloWorker2', 'args' => [firstname, lastname] })
+      subject.process(queue, sqs_msg)
+    end
+
+    it 'performs with auto delete' do
+      YoWorker.get_shoryuken_options['auto_delete'] = true
+
+      expect(manager).to receive(:processor_done).with(subject)
+
+      expect_any_instance_of(YoWorker).to receive(:perform).with(sqs_msg)
+
+      expect(sqs_msg).to receive(:delete)
+
+      subject.process(queue, sqs_msg)
+    end
+
+    it 'performs without auto delete' do
+      YoWorker.get_shoryuken_options['auto_delete'] = false
+
+      expect(manager).to receive(:processor_done).with(subject)
+
+      expect_any_instance_of(YoWorker).to receive(:perform).with(sqs_msg)
+
+      expect(sqs_msg).to_not receive(:delete)
+
+      subject.process(queue, sqs_msg)
     end
   end
 end

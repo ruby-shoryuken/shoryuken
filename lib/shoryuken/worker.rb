@@ -5,12 +5,10 @@ module Shoryuken
     end
 
     module ClassMethods
-      def perform_async(*args)
-        Shoryuken::Client.push('class' => self, 'args' => args)
-      end
-
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
+
+        Shoryuken.register_worker(@shoryuken_options['queue'], self)
       end
 
       def get_shoryuken_options # :nodoc:
