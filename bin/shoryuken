@@ -1,13 +1,10 @@
 #!/usr/bin/env ruby
 
-require 'yaml'
 require 'shoryuken'
 require 'shoryuken/cli'
 
-options = YAML.load File.read(File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml'))
-
 begin
-  Shoryuken::CLI.instance.run(options)
+  Shoryuken::CLI.instance.run(ARGV)
 rescue => e
   raise e if $DEBUG
   STDERR.puts e.message

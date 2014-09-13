@@ -17,8 +17,8 @@ module Shoryuken
     trap_exit :processor_died
 
     def initialize(options)
-      @count   = options['concurrency'] || 25
-      @queues  = options['queues'].map { |name| Shoryuken::Client.queues(name) }
+      @count   = options[:concurrency] || 25
+      @queues  = options[:queues].map { |name| Shoryuken::Client.queues(name) }
 
       @done = false
 

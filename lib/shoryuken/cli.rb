@@ -2,13 +2,14 @@ $stdout.sync = true
 
 require 'singleton'
 require 'optparse'
+require 'erb'
 
 module Shoryuken
   class CLI
     include Util
     include Singleton
 
-    def run(options)
+    def run(args)
       self_read, self_write = IO.pipe
 
       %w(INT TERM USR1 USR2 TTIN).each do |sig|
@@ -17,13 +18,13 @@ module Shoryuken
         end
       end
 
-      setup_options(options)
+      setup_options(args)
 
-      AWS.config options['aws']
+      AWS.config Shoryuken.options[:aws] if Shoryuken.options[:aws]
 
       require Shoryuken.options[:require] if Shoryuken.options[:require]
 
-      launcher = Shoryuken::Launcher.new(options)
+      launcher = Shoryuken::Launcher.new(Shoryuken.options)
 
       begin
         launcher.run
@@ -51,9 +52,9 @@ module Shoryuken
           opts[:require] = arg
         end
 
-        # o.on '-C', '--config PATH', "path to YAML config file" do |arg|
-          # opts[:config_file] = arg
-        # end
+        o.on '-C', '--config PATH', "path to YAML config file" do |arg|
+          opts[:config_file] = arg
+        end
 
         # o.on '-L', '--logfile PATH', "path to writable logfile" do |arg|
           # opts[:logfile] = arg
@@ -84,10 +85,23 @@ module Shoryuken
       raise Interrupt
     end
 
-    def setup_options(options)
-      Shoryuken.options.merge!(options).deep_symbolize_keys
+    def setup_options(args)
+      options = parse_options(args)
 
-      Shoryuken.options.merge!(parse_options(ARGV))
+      config = options[:config_file] ? parse_config(options[:config_file]) : {}
+
+      Shoryuken.options.merge!(config).deep_symbolize_keys
+
+      Shoryuken.options.merge!(options)
+    end
+
+    def parse_config(cfile)
+      opts = {}
+      if File.exist?(cfile)
+        opts = YAML.load(ERB.new(IO.read(cfile)).result)
+      end
+
+      opts
     end
   end
 end
