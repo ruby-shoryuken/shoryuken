@@ -1,6 +1,7 @@
 $stdout.sync = true
 
 require 'singleton'
+require 'optparse'
 
 module Shoryuken
   class CLI
@@ -20,6 +21,8 @@ module Shoryuken
 
       AWS.config options['aws']
 
+      require Shoryuken.options[:require] if Shoryuken.options[:require]
+
       launcher = Shoryuken::Launcher.new(options)
 
       begin
@@ -34,9 +37,46 @@ module Shoryuken
         launcher.stop
         exit(0)
       end
+
+
     end
 
     private
+
+    def parse_options(argv)
+      opts = {}
+
+      @parser = OptionParser.new do |o|
+        o.on '-r', '--require [PATH|DIR]', 'Location of workers or files to require' do |arg|
+          opts[:require] = arg
+        end
+
+        # o.on '-C', '--config PATH', "path to YAML config file" do |arg|
+          # opts[:config_file] = arg
+        # end
+
+        # o.on '-L', '--logfile PATH', "path to writable logfile" do |arg|
+          # opts[:logfile] = arg
+        # end
+
+        # o.on '-P', '--pidfile PATH', "path to pidfile" do |arg|
+          # opts[:pidfile] = arg
+        # end
+
+        o.on '-V', '--version', 'Print version and exit' do |arg|
+          puts "Shoryuken #{Shoryuken::VERSION}"
+          exit(0)
+        end
+      end
+
+      @parser.banner = 'shoryuken [options]'
+      @parser.on_tail '-h', '--help', 'Show help' do
+        logger.info @parser
+        exit 1
+      end
+      @parser.parse!(argv)
+      opts
+    end
 
     def handle_signal(sig)
       Shoryuken.logger.info "Got #{sig} signal"
@@ -46,6 +86,8 @@ module Shoryuken
 
     def setup_options(options)
       Shoryuken.options.merge!(options).deep_symbolize_keys
+
+      Shoryuken.options.merge!(parse_options(ARGV))
     end
   end
 end

@@ -40,5 +40,3 @@ module Shoryuken
     Shoryuken::Util.logger
   end
 end
-
-require 'shoryuken/echo_worker'
