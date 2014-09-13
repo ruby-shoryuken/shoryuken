@@ -54,11 +54,11 @@ aws:
   secret_access_key:  ...
   region:             us-east-1
   receive_message:
-    wait_time_seconds: 20
     max_number_of_messages: 1
     attributes:
       - receive_count
       - sent_at
+delay: 25
 queues:
   - shoryuken
 

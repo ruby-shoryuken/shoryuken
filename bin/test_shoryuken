@@ -9,4 +9,6 @@ AWS.config(config['aws'])
 
 10.times do |i|
   Shoryuken::Client.queues('shoryuken').send_message("Yo #{i}")
+  Shoryuken::Client.queues('uppercut').send_message("Yo #{i}")
+  Shoryuken::Client.queues('sidekiq').send_message("Yo #{i}")
 end

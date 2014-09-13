@@ -18,7 +18,7 @@ module Shoryuken
 
     def initialize
       @count  = Shoryuken.options[:concurrency] || 25
-      @queues = Shoryuken.options[:queues].dup
+      @queues = Shoryuken.queues.dup
 
       @done = false
 
@@ -53,7 +53,7 @@ module Shoryuken
 
     def processor_done(queue, processor)
       watchdog('Manager#processor_done died') do
-        logger.info "Process done #{processor}"
+        logger.info "Process done for queue '#{queue}'"
 
         @busy.delete processor
 
@@ -63,7 +63,9 @@ module Shoryuken
           @ready << processor
         end
 
-        dispatch_found(queue)
+        async.work_found!(queue)
+
+        dispatch
       end
     end
 
@@ -96,47 +98,43 @@ module Shoryuken
       end
     end
 
-    def dispatch_not_found(queue)
+    def work_not_found!(queue)
       if (actual = current_queue_weight(queue)) > 1
-        logger.info "Temporally decreasing queue '#{queue}' weight to #{actual - 1}"
+        logger.info "Temporally decreasing queue '#{queue}' weight to #{actual - 1}, original: #{original_queue_weight(queue)}"
 
         @queues.delete_at @queues.find_index(queue)
       end
-
-      dispatch
     end
 
-    def dispatch_found(queue)
+    def work_found!(queue)
       if (original = original_queue_weight(queue)) > (actual = current_queue_weight(queue))
-        logger.info "Increasing queue '#{queue}' weight to #{actual + 1}, max: #{original}"
+        logger.info "Increasing queue '#{queue}' weight to #{actual + 1}, original: #{original}"
 
         @queues << queue
       end
-
-      dispatch
     end
 
     def dispatch
       return if stopped?
 
-      @fetcher.async.fetch(retrieve_queue)
+      @fetcher.async.fetch(next_queue)
     end
 
     private
 
     def current_queue_weight(queue)
-      queue_weight(@queues)
+      queue_weight(@queues, queue)
     end
 
     def original_queue_weight(queue)
-      queue_weight(Shoryuken.queues)
+      queue_weight(Shoryuken.queues, queue)
     end
 
-    def queue_weight(queue)
-      @queues.count { |q| q == queue }
+    def queue_weight(queues, queue)
+      queues.count { |q| q == queue }
     end
 
-    def retrieve_queue
+    def next_queue
       queue = @queues.shift
       @queues << queue
 

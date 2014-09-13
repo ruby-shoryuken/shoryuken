@@ -13,7 +13,7 @@ describe Shoryuken::Manager do
       $received_messages = 0
     end
 
-    class CoolWorker
+    class ShoryukenWorker
       include Shoryuken::Worker
 
       shoryuken_options queue: 'shoryuken', auto_delete: true
@@ -24,7 +24,7 @@ describe Shoryuken::Manager do
     end
 
     it 'consumes a message' do
-      Shoryuken::Client.queues('shoryuken').send_message('Be cool')
+      Shoryuken::Client.queues('shoryuken').send_message('shoooooorykennnn')
 
       manager.start
 

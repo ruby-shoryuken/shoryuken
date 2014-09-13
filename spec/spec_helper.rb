@@ -13,7 +13,7 @@ if File.exist? options_file
 
   Shoryuken.options.merge!(options)
 
-  Shoryuken.options[:queues] = ['shoryuken']
+  Shoryuken.queues << 'shoryuken'
 end
 
 Shoryuken.logger.level = Logger::ERROR

@@ -43,7 +43,7 @@ module Shoryuken
     private
 
     def write_pid
-      if path = options[:pidfile]
+      if path = Shoryuken.options[:pidfile]
         File.open(path, 'w') do |f|
           f.puts Process.pid
         end
@@ -131,7 +131,7 @@ module Shoryuken
     end
 
     def parse_queues
-      Shoryuken.config[:queues].each { |queue_and_weight| parse_queue(opts, *queue_and_weight) }
+      Shoryuken.options[:queues].each { |queue_and_weight| parse_queue *queue_and_weight }
     end
 
     def parse_queue(queue, weight = nil)
