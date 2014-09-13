@@ -30,12 +30,10 @@ Or install it yourself as:
 class HelloWorker
   include Shoryuken::Worker
 
-  shoryuken_options queue: 'my_queue1'
+  shoryuken_options queue: 'hello', auto_delete: true
 
-  def perform(sqs_msg, firstname, lastname)
-    puts "Hello #{firstname} #{lastname}"
-
-    sqs_msg.delete
+  def perform(sqs_msg)
+    puts "Hello #{sqs_msg.body}"
   end
 end
 ```
@@ -43,7 +41,7 @@ end
 ### Enqueue a message
 
 ```ruby
-HelloWorker.perform_async('Pablo', 'Cantero')
+Shoryuken::Client.queues('hello').send_message('Pablo')
 ```
 
 ## Contributing
