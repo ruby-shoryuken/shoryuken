@@ -97,10 +97,22 @@ module Shoryuken
     end
 
     def dispatch_not_found(queue)
+      if (actual = current_queue_weight(queue)) > 1
+        logger.info "Temporally decreasing queue '#{queue}' weight to #{actual - 1}"
+
+        @queues.delete_at @queues.find_index(queue)
+      end
+
       dispatch
     end
 
     def dispatch_found(queue)
+      if (original = original_queue_weight(queue)) > (actual = current_queue_weight(queue))
+        logger.info "Increasing queue '#{queue}' weight to #{actual + 1}, max: #{original}"
+
+        @queues << queue
+      end
+
       dispatch
     end
 
@@ -110,6 +122,19 @@ module Shoryuken
       @fetcher.async.fetch(retrieve_queue)
     end
 
+    private
+
+    def current_queue_weight(queue)
+      queue_weight(@queues)
+    end
+
+    def original_queue_weight(queue)
+      queue_weight(Shoryuken.queues)
+    end
+
+    def queue_weight(queue)
+      @queues.count { |q| q == queue }
+    end
 
     def retrieve_queue
       queue = @queues.shift
