@@ -8,7 +8,7 @@ module Shoryuken
     end
 
     def receive_message(queue)
-      Shoryuken::Client.receive_message(queue, Shoryuken.options[:receive_message_options])
+      Shoryuken::Client.receive_message queue, Shoryuken.options[:aws][:receive_message]
     end
 
     def fetch(queue)

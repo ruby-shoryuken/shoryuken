@@ -7,9 +7,13 @@ require 'shoryuken'
 options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
 
 if File.exist? options_file
-  $options = YAML.load(File.read(options_file)).deep_symbolize_keys
+  options = YAML.load(File.read(options_file)).deep_symbolize_keys
 
-  AWS.config $options[:aws]
+  AWS.config options[:aws]
+
+  Shoryuken.options.merge!(options)
+
+  Shoryuken.options[:queues] = ['shoryuken']
 end
 
 Shoryuken.logger.level = Logger::ERROR

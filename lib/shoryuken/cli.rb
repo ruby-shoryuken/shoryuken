@@ -22,8 +22,9 @@ module Shoryuken
       initialize_logger
       initialize_aws
       require_workers
+      write_pid
 
-      launcher = Shoryuken::Launcher.new(Shoryuken.options)
+      launcher = Shoryuken::Launcher.new
 
       begin
         launcher.run
@@ -37,17 +38,23 @@ module Shoryuken
         launcher.stop
         exit(0)
       end
-
-
     end
 
     private
+
+    def write_pid
+      if path = options[:pidfile]
+        File.open(path, 'w') do |f|
+          f.puts Process.pid
+        end
+      end
+    end
 
     def parse_options(argv)
       opts = {}
 
       @parser = OptionParser.new do |o|
-        o.on '-r', '--require [PATH|DIR]', 'Location of workers or files to require' do |arg|
+        o.on '-r', '--require [PATH|DIR]', 'Location of the worker' do |arg|
           opts[:require] = arg
         end
 
@@ -59,9 +66,9 @@ module Shoryuken
           opts[:logfile] = arg
         end
 
-        # o.on '-P', '--pidfile PATH', "path to pidfile" do |arg|
-        # opts[:pidfile] = arg
-        # end
+        o.on '-P', '--pidfile PATH', "path to pidfile" do |arg|
+          opts[:pidfile] = arg
+        end
 
         o.on '-v', '--verbose', 'Print more verbose output' do |arg|
           opts[:verbose] = arg
@@ -96,6 +103,8 @@ module Shoryuken
       Shoryuken.options.merge!(config).deep_symbolize_keys
 
       Shoryuken.options.merge!(options)
+
+      parse_queues
     end
 
     def parse_config(cfile)
@@ -119,6 +128,14 @@ module Shoryuken
 
     def require_workers
       require Shoryuken.options[:require] if Shoryuken.options[:require]
+    end
+
+    def parse_queues
+      Shoryuken.config[:queues].each { |queue_and_weight| parse_queue(opts, *queue_and_weight) }
+    end
+
+    def parse_queue(queue, weight = nil)
+      [weight.to_i, 1].max.times { Shoryuken.queues << queue }
     end
   end
 end

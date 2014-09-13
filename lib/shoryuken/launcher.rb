@@ -5,8 +5,8 @@ module Shoryuken
 
     trap_exit :actor_died
 
-    def initialize(options)
-      @manager = Shoryuken::Manager.new_link(options)
+    def initialize
+      @manager = Shoryuken::Manager.new_link
       @fetcher = Shoryuken::Fetcher.new_link(@manager)
 
       @done = false

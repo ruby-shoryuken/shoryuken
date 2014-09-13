@@ -16,9 +16,9 @@ module Shoryuken
 
     trap_exit :processor_died
 
-    def initialize(options)
-      @count   = options[:concurrency] || 25
-      @queues  = options[:queues].map { |name| Shoryuken::Client.queues(name) }
+    def initialize
+      @count   = Shoryuken.options[:concurrency] || 25
+      @queues  = Shoryuken.options[:queues].map { |name| Shoryuken::Client.queues(name) }
 
       @done = false
 
@@ -97,15 +97,22 @@ module Shoryuken
     end
 
     def skip_and_dispatch(queue)
-      dispatch(@queues - [queue])
+      dispatch
     end
 
-    def dispatch(queues = [])
+    def dispatch
       return if stopped?
 
-      queues = @queues if queues.to_a.empty?
+      @fetcher.async.fetch(retrieve_queue)
+    end
 
-      @fetcher.async.fetch(queues.sample)
+    private
+
+    def retrieve_queue
+      queue = @queues.shift
+      @queues << queue
+
+      queue
     end
   end
 end

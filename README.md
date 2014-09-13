@@ -44,6 +44,33 @@ end
 Shoryuken::Client.queues('hello').send_message('Pablo')
 ```
 
+### Configuration
+
+Sample configuration file `shoryuken.yml`.
+
+```yaml
+aws:
+  access_key_id:      ...
+  secret_access_key:  ...
+  region:             us-east-1
+  receive_message:
+    wait_time_seconds: 20
+    max_number_of_messages: 1
+    attributes:
+      - receive_count
+      - sent_at
+queues:
+  - shoryuken
+
+```
+
+### Start Shoryuken
+
+```shell
+bundle exec shoryuken -r worker.rb -c shoryuken.yml
+```
+
+
 ## Contributing
 
 1. Fork it ( https://github.com/phstc/shoryuken/fork )

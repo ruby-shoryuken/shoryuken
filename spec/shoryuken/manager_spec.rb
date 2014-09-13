@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Shoryuken::Manager do
   let(:fetcher) { Shoryuken::Fetcher.new(manager) }
-  let(:manager) { described_class.new($options) }
+  let(:manager) { described_class.new }
 
   before do
     manager.fetcher = fetcher

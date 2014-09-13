@@ -25,6 +25,8 @@ module Shoryuken
   #   'my_queue2' => Worker2 }
   @@workers = {}
 
+  @@queues = []
+
   def self.options
     @options ||= DEFAULTS.dup
   end
@@ -35,6 +37,10 @@ module Shoryuken
 
   def self.workers
     @@workers
+  end
+
+  def self.queues
+    @@queues
   end
 
   def self.logger
