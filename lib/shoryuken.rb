@@ -12,6 +12,7 @@ require 'shoryuken/fetcher'
 require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/launcher'
+require 'shoryuken/logging'
 
 module Shoryuken
   DEFAULTS = {
@@ -37,6 +38,6 @@ module Shoryuken
   end
 
   def self.logger
-    Shoryuken::Util.logger
+    Shoryuken::Logging.logger
   end
 end

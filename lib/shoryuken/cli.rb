@@ -19,10 +19,9 @@ module Shoryuken
       end
 
       setup_options(args)
-
-      AWS.config Shoryuken.options[:aws] if Shoryuken.options[:aws]
-
-      require Shoryuken.options[:require] if Shoryuken.options[:require]
+      initialize_logger
+      initialize_aws
+      require_workers
 
       launcher = Shoryuken::Launcher.new(Shoryuken.options)
 
@@ -52,17 +51,21 @@ module Shoryuken
           opts[:require] = arg
         end
 
-        o.on '-C', '--config PATH', "path to YAML config file" do |arg|
+        o.on '-C', '--config PATH', 'path to YAML config file' do |arg|
           opts[:config_file] = arg
         end
 
-        # o.on '-L', '--logfile PATH', "path to writable logfile" do |arg|
-          # opts[:logfile] = arg
-        # end
+        o.on '-L', '--logfile PATH', 'path to writable logfile' do |arg|
+          opts[:logfile] = arg
+        end
 
         # o.on '-P', '--pidfile PATH', "path to pidfile" do |arg|
-          # opts[:pidfile] = arg
+        # opts[:pidfile] = arg
         # end
+
+        o.on '-v', '--verbose', 'Print more verbose output' do |arg|
+          opts[:verbose] = arg
+        end
 
         o.on '-V', '--version', 'Print version and exit' do |arg|
           puts "Shoryuken #{Shoryuken::VERSION}"
@@ -102,6 +105,20 @@ module Shoryuken
       end
 
       opts
+    end
+
+    def initialize_logger
+      Shoryuken::Logging.initialize_logger(Shoryuken.options[:logfile]) if Shoryuken.options[:logfile]
+
+      Shoryuken.logger.level = Logger::DEBUG if Shoryuken.options[:verbose]
+    end
+
+    def initialize_aws
+      AWS.config Shoryuken.options[:aws] if Shoryuken.options[:aws]
+    end
+
+    def require_workers
+      require Shoryuken.options[:require] if Shoryuken.options[:require]
     end
   end
 end
