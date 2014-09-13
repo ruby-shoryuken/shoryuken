@@ -29,7 +29,7 @@ module Shoryuken
   end
 
   def self.register_worker(queue, clazz)
-    @@workers[queue] ||= clazz
+    @@workers[queue] = clazz
   end
 
   def self.workers

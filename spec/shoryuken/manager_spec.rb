@@ -4,39 +4,38 @@ describe Shoryuken::Manager do
   let(:fetcher) { Shoryuken::Fetcher.new(manager) }
   let(:manager) { described_class.new($options) }
 
-
   before do
     manager.fetcher = fetcher
   end
 
   describe 'Consuming messages', slow: :true do
     before do
-      $cool_worker_messages = []
+      $received_messages = 0
     end
 
     class CoolWorker
       include Shoryuken::Worker
 
-      def perform(sqs_msg, cool_message)
-        $cool_worker_messages << cool_message
+      shoryuken_options queue: 'shoryuken', auto_delete: true
 
-        sqs_msg.delete
+      def perform(sqs_msg)
+        $received_messages += 1
       end
     end
 
     it 'consumes a message' do
-      CoolWorker.perform_async('Yo')
+      Shoryuken::Client.queues('shoryuken').send_message('Be cool')
 
       manager.start
 
       10.times do
-        break unless $cool_worker_messages.empty?
+        break if $received_messages > 0
         sleep 1
       end
 
       manager.stop
 
-      expect($cool_worker_messages.first).to eq 'Yo'
+      expect($received_messages).to eq 1
     end
   end
 end

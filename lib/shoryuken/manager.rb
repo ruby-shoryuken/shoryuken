@@ -17,10 +17,8 @@ module Shoryuken
     trap_exit :processor_died
 
     def initialize(options)
-      @sqs = AWS::SQS.new
-
       @count   = options['concurrency'] || 25
-      @queues  = options['queues'].map { |name| @sqs.queues.named(name) }
+      @queues  = options['queues'].map { |name| Shoryuken::Client.queues(name) }
 
       @done = false
 

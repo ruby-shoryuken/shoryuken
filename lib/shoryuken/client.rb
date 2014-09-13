@@ -3,7 +3,7 @@ module Shoryuken
   class Client
     @@queues = {}
 
-    def self.queue_by_name(name)
+    def self.queues(name)
       @@queues[name.to_s] ||= sqs.queues.named(name)
     end
 
