@@ -98,9 +98,9 @@ module Shoryuken
     def setup_options(args)
       options = parse_options(args)
 
-      config = options[:config_file] ? parse_config(options[:config_file]) : {}
+      config = options[:config_file] ? parse_config(options[:config_file]).deep_symbolize_keys : {}
 
-      Shoryuken.options.merge!(config).deep_symbolize_keys
+      Shoryuken.options.merge!(config)
 
       Shoryuken.options.merge!(options)
 
