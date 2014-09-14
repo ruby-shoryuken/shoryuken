@@ -149,7 +149,6 @@ module Shoryuken
       # add back queue if it wasn't already added
       unless @queues.include? queue
         @queues << queue
-        dispatch
       end
     end
 
