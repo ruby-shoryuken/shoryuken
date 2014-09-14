@@ -15,11 +15,7 @@ describe Shoryuken::Manager do
 
       expect(subject.instance_variable_get('@queues')).to eq [queue1, queue1, queue2]
 
-      subject.work_not_found!(queue1)
-
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
-
-      subject.work_not_found!(queue1)
+      subject.pause_queue!(queue1)
 
       expect(subject.instance_variable_get('@queues')).to eq [queue2]
     end
@@ -37,16 +33,16 @@ describe Shoryuken::Manager do
       Shoryuken.queues << queue2
 
       expect(subject.instance_variable_get('@queues')).to eq [queue1, queue1, queue1, queue2]
-      3.times { subject.work_not_found!(queue1) }
+      subject.pause_queue!(queue1)
       expect(subject.instance_variable_get('@queues')).to eq [queue2]
 
-      subject.work_found!(queue1)
+      subject.rebalance_queue_weight!(queue1)
       expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1]
 
-      subject.work_found!(queue1)
+      subject.rebalance_queue_weight!(queue1)
       expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1, queue1]
 
-      subject.work_found!(queue1)
+      subject.rebalance_queue_weight!(queue1)
       expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1, queue1, queue1]
     end
 
@@ -66,14 +62,12 @@ describe Shoryuken::Manager do
       fetcher = double('Fetcher').as_null_object
       subject.fetcher = fetcher
 
-      expect(fetcher).to receive(:fetch)
-
-      2.times { subject.work_not_found!(queue1) }
+      subject.pause_queue!(queue1)
       expect(subject.instance_variable_get('@queues')).to eq [queue2]
 
       sleep 0.5
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
+      expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1]
     end
   end
 end

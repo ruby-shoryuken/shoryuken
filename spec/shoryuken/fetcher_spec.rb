@@ -17,7 +17,7 @@ describe Shoryuken::Fetcher do
     it 'calls skip_and_dispatch when not found' do
       allow(sqs_queue).to receive(:receive_message).and_return(nil)
 
-      expect(manager).to receive(:work_not_found!).with(queue)
+      expect(manager).to receive(:pause_queue!).with(queue)
       expect(manager).to receive(:dispatch)
 
       subject.fetch(queue)
@@ -26,6 +26,7 @@ describe Shoryuken::Fetcher do
     it 'assigns messages' do
       allow(sqs_queue).to receive(:receive_message).and_return(sqs_msg)
 
+      expect(manager).to receive(:rebalance_queue_weight!).with(queue)
       expect(manager).to receive(:assign).with(queue, sqs_msg)
 
       subject.fetch(queue)

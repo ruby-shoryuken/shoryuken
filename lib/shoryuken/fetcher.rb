@@ -19,11 +19,13 @@ module Shoryuken
           if sqs_msg = receive_message(queue)
             logger.info "Message found for queue '#{queue}'"
 
+            @manager.async.rebalance_queue_weight!(queue)
+
             @manager.async.assign(queue, sqs_msg)
           else
             logger.info "No message found for queue '#{queue}'"
 
-            @manager.async.work_not_found!(queue)
+            @manager.async.pause_queue!(queue)
 
             after(0) { @manager.dispatch }
           end

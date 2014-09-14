@@ -33,7 +33,7 @@ describe Shoryuken::Manager do
         sleep 1
       end
 
-      manager.stop
+      # manager.stop
 
       expect($received_messages).to eq 1
     end

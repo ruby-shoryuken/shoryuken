@@ -66,8 +66,6 @@ module Shoryuken
           @ready << processor
         end
 
-        async.work_found!(queue)
-
         dispatch
       end
     end
@@ -92,7 +90,7 @@ module Shoryuken
 
     def assign(queue, sqs_msg)
       watchdog("Manager#assign died") do
-        logger.info "Assigning #{sqs_msg}"
+        logger.info "Assigning #{sqs_msg.id}"
 
         processor = @ready.pop
         @busy << processor
@@ -101,26 +99,8 @@ module Shoryuken
       end
     end
 
-    def work_not_found!(queue)
-      watchdog('Manager#work_not_found! died') do
-        return unless @queues.include? queue
-
-        current = current_queue_weight(queue)
-
-        if current - 1 > 0
-          logger.info "Temporally decreasing queue '#{queue}' weight to #{current - 1}, original: #{original_queue_weight(queue)}"
-        else
-          logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds"
-        end
-
-        @queues.delete_at @queues.find_index(queue)
-
-        after(Shoryuken.options[:delay].to_f) { async.add_queue(queue) }
-      end
-    end
-
-    def work_found!(queue)
-      watchdog('Manager#work_found! died') do
+    def rebalance_queue_weight!(queue)
+      watchdog('Manager#rebalance_queue_weight! died') do
         if (original = original_queue_weight(queue)) > (current = current_queue_weight(queue))
           if current + 1 > original
             logger.info "Increasing queue '#{queue}' weight to #{current + 1}, original: #{original}"
@@ -133,21 +113,36 @@ module Shoryuken
       end
     end
 
+    def pause_queue!(queue)
+      return unless @queues.include? queue
+
+      logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds"
+
+      @queues.delete(queue)
+
+      after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
+    end
+
+
     def dispatch
+      logger.debug { "Ready size: #{@ready.size}" }
+      logger.debug { "Busy size: #{@busy.size}" }
+      logger.debug { "Queues: #{@queues.inspect}" }
+
       return if stopped?
 
       if queue = next_queue
         @fetcher.async.fetch(queue)
       else
-        after(Shoryuken.options[:delay].to_f) { dispatch }
+        after(Shoryuken.options[:delay].to_f) { async.dispatch }
       end
     end
 
     private
 
-    def add_queue(queue)
-      # add back queue if it wasn't already added
+    def restart_queue!(queue)
       unless @queues.include? queue
+        logger.info "Restarting queue '#{queue}'"
         @queues << queue
       end
     end
