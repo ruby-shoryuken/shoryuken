@@ -99,28 +99,54 @@ module Shoryuken
     end
 
     def work_not_found!(queue)
-      if (actual = current_queue_weight(queue)) > 1
-        logger.info "Temporally decreasing queue '#{queue}' weight to #{actual - 1}, original: #{original_queue_weight(queue)}"
+      watchdog('Manager#work_not_found! died') do
+        return unless @queues.include? queue
+
+        current = current_queue_weight(queue)
+
+        if current - 1 > 0
+          logger.info "Temporally decreasing queue '#{queue}' weight to #{current - 1}, original: #{original_queue_weight(queue)}"
+        else
+          logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds"
+        end
 
         @queues.delete_at @queues.find_index(queue)
+
+        after(Shoryuken.options[:delay].to_f) { async.add_queue(queue) }
       end
     end
 
     def work_found!(queue)
-      if (original = original_queue_weight(queue)) > (actual = current_queue_weight(queue))
-        logger.info "Increasing queue '#{queue}' weight to #{actual + 1}, original: #{original}"
+      watchdog('Manager#work_found! died') do
+        if (original = original_queue_weight(queue)) > (current = current_queue_weight(queue))
+          if current + 1 > original
+            logger.info "Increasing queue '#{queue}' weight to #{current + 1}, original: #{original}"
+          else
+            logger.info "Queue '#{queue}' is back to its normal weight #{original}"
+          end
 
-        @queues << queue
+          @queues << queue
+        end
       end
     end
 
     def dispatch
       return if stopped?
 
-      @fetcher.async.fetch(next_queue)
+      if queue = next_queue
+        @fetcher.async.fetch(queue)
+      end
     end
 
     private
+
+    def add_queue(queue)
+      # add back queue if it wasn't already added
+      unless @queues.include? queue
+        @queues << queue
+        dispatch
+      end
+    end
 
     def current_queue_weight(queue)
       queue_weight(@queues, queue)
@@ -135,6 +161,8 @@ module Shoryuken
     end
 
     def next_queue
+      return nil if @queues.empty?
+
       queue = @queues.shift
       @queues << queue
 

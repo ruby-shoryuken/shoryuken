@@ -18,6 +18,7 @@ describe Shoryuken::Fetcher do
       allow(sqs_queue).to receive(:receive_message).and_return(nil)
 
       expect(manager).to receive(:work_not_found!).with(queue)
+      expect(manager).to receive(:dispatch)
 
       subject.fetch(queue)
     end

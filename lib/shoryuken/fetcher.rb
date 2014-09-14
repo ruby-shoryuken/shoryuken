@@ -25,7 +25,7 @@ module Shoryuken
 
             @manager.async.work_not_found!(queue)
 
-            after((Shoryuken.options[:delay] || 0).to_i) { @manager.dispatch }
+            after(0) { @manager.dispatch }
           end
         rescue => ex
           logger.error("Error fetching message: #{ex}")

@@ -27,5 +27,6 @@ RSpec.configure do |config|
     Shoryuken.queues.clear
     Shoryuken.queues << 'shoryuken'
     Shoryuken.options[:concurrency] = 1
+    Shoryuken.options[:delay]       = 60
   end
 end
