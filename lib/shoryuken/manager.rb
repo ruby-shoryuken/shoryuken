@@ -138,6 +138,8 @@ module Shoryuken
 
       if queue = next_queue
         @fetcher.async.fetch(queue)
+      else
+        after(Shoryuken.options[:delay].to_f) { dispatch }
       end
     end
 
