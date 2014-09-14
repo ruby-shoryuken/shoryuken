@@ -32,22 +32,25 @@ module Shoryuken
       @ready.each { dispatch }
     end
 
-    def stop
+    def stop(options = {})
       watchdog('Manager#stop died') do
-        logger.info 'Bye'
+        shutdown = options[:shutdown]
+        timeout  = options[:timeout]
 
         @done = true
 
         @fetcher.terminate if @fetcher.alive?
+
+        logger.info { "Shutting down #{@ready.size} quiet workers" }
 
         @ready.each do |processor|
           processor.terminate if processor.alive?
         end
         @ready.clear
 
-        # return after(0) { signal(:shutdown) } if @busy.empty?
+        return after(0) { signal(:shutdown) } if @busy.empty?
 
-        after(0) { signal(:shutdown) }
+        hard_shutdown_in(timeout) if shutdown
       end
     end
 
@@ -167,6 +170,26 @@ module Shoryuken
       @queues << queue
 
       queue
+    end
+
+    def hard_shutdown_in(delay)
+      logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
+      logger.info { "Waiting for #{@busy.size} busy workers" }
+
+      after(delay) do
+        watchdog("Manager#hard_shutdown_in died") do
+          # We've reached the timeout and we still have busy workers.
+          # They must die but their messages shall live on.
+          logger.info { "Still waiting for #{@busy.size} busy workers" }
+
+          @busy.each do |processor|
+            t = processor.bare_object.actual_work_thread
+            t.raise Shutdown if processor.alive?
+          end
+
+          after(0) { signal(:shutdown) }
+        end
+      end
     end
   end
 end

@@ -5,13 +5,15 @@ module Shoryuken
 
     trap_exit :actor_died
 
+    attr_accessor :manager
+
     def initialize
       @manager = Shoryuken::Manager.new_link
-      @fetcher = Shoryuken::Fetcher.new_link(@manager)
+      @fetcher = Shoryuken::Fetcher.new_link(manager)
 
       @done = false
 
-      @manager.fetcher = @fetcher
+      manager.fetcher = @fetcher
     end
 
     def stop
@@ -19,20 +21,21 @@ module Shoryuken
         @done = true
         @fetcher.terminate if @fetcher.alive?
 
-        @manager.async.stop
+        manager.async.stop(shutdown: true, timeout: Shoryuken.options[:timeout])
+        manager.wait(:shutdown)
       end
     end
 
     def run
       watchdog('Launcher#run') do
-        @manager.async.start
+        manager.async.start
       end
     end
 
     def actor_died(actor, reason)
       return if @done
-      Shoryuken.logger.warn('Shoryuken died due to the following error, cannot recover, process exiting')
-      exit(1)
+      Shoryuken.logger.warn 'Shoryuken died due to the following error, cannot recover, process exiting'
+      exit 1
     end
   end
 end

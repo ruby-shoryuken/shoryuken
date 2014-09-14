@@ -16,7 +16,7 @@ module Shoryuken
           sqs_msg.delete if worker_class.get_shoryuken_options['auto_delete']
         end
       else
-        Shoryuken.logger.error "Worker not found for queue '#{queue}'"
+        logger.error "Worker not found for queue '#{queue}'"
       end
 
       @manager.async.processor_done(queue, current_actor)

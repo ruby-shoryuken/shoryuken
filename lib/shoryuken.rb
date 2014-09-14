@@ -19,7 +19,8 @@ module Shoryuken
     concurrency: 25,
     queues: [],
     receive_message_options: {},
-    delay: 0
+    delay: 0,
+    timeout: 8
   }
 
   # { 'my_queue1' => Worker1
