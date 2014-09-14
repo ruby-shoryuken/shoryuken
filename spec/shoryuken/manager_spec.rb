@@ -1,41 +1,50 @@
 require 'spec_helper'
 
 describe Shoryuken::Manager do
-  let(:fetcher) { Shoryuken::Fetcher.new(manager) }
-  let(:manager) { described_class.new }
+  describe 'Auto Scaling' do
+    it 'decreases weight' do
+      queue1 = 'shoryuken'
+      queue2 = 'uppercut'
 
-  before do
-    manager.fetcher = fetcher
-  end
+      Shoryuken.queues.clear
+      # [shoryuken, 2]
+      # [uppercut,  1]
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue2
 
-  describe 'Consuming messages', slow: :true do
-    before do
-      $received_messages = 0
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue1, queue2]
+
+      subject.work_not_found!(queue1)
+
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
+
+      subject.work_not_found!(queue1)
+
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
     end
 
-    class ShoryukenWorker
-      include Shoryuken::Worker
+    it 'increases weight' do
+      queue1 = 'shoryuken'
+      queue2 = 'uppercut'
 
-      shoryuken_options queue: 'shoryuken', auto_delete: true
+      Shoryuken.queues.clear
+      # [shoryuken, 3]
+      # [uppercut,  1]
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue2
 
-      def perform(sqs_msg)
-        $received_messages += 1
-      end
-    end
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue1, queue1, queue2]
+      3.times { subject.work_not_found!(queue1) }
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
 
-    it 'consumes a message' do
-      Shoryuken::Client.queues('shoryuken').send_message('shoooooorykennnn')
+      subject.work_found!(queue1)
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2, queue1]
 
-      manager.start
-
-      10.times do
-        break if $received_messages > 0
-        sleep 1
-      end
-
-      manager.stop
-
-      expect($received_messages).to eq 1
+      subject.work_found!(queue1)
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2, queue1, queue1]
     end
   end
 end
