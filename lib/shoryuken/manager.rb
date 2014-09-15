@@ -72,6 +72,8 @@ module Shoryuken
         dispatch
 
         if @waiting.size > 0
+          logger.debug { "Queue '#{queue}' is getting hot, moving back one processor from waiting to ready" }
+
           @ready << @waiting.pop
           dispatch
         end
@@ -133,17 +135,17 @@ module Shoryuken
 
 
     def dispatch
-      logger.debug { "Ready size: #{@ready.size}" }
-      logger.debug { "Busy size: #{@busy.size}" }
-      logger.debug { "Waiting size: #{@waiting.size}" }
-      logger.debug { "Queues: #{@queues.inspect}" }
-
       return if stopped?
 
       if queue = next_queue
+        logger.debug { "Ready size: #{@ready.size}" }
+        logger.debug { "Busy size: #{@busy.size}" }
+        logger.debug { "Waiting size: #{@waiting.size}" }
+        logger.debug { "Queues: #{@queues.inspect}" }
+
         @fetcher.async.fetch(queue)
       else
-        @waiting << @ready.pop if @ready.size > 0
+        @waiting << @ready.pop
       end
     end
 
@@ -154,10 +156,11 @@ module Shoryuken
         logger.info "Restarting queue '#{queue}'"
         @queues << queue
 
-        if @waiting.size > 0
+        if @ready.empty? && @waiting.size > 0
           @ready << @waiting.pop
-          dispatch
         end
+
+        dispatch
       end
     end
 
