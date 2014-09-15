@@ -24,7 +24,9 @@ module Shoryuken
 
       @busy  = []
       @waiting = []
-      @ready = @count.times.map { Processor.new_link(current_actor) }
+      @waiting = @count.times.map { Processor.new_link(current_actor) }
+
+      @ready = @queues.uniq.map { |_| @waiting.pop }
     end
 
     def start
