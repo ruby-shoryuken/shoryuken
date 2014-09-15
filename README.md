@@ -1,12 +1,46 @@
 # Shoryuken
 
+![](shoryuken.jpg)
+
 Shoryuken is an [AWS SQS](https://aws.amazon.com/sqs/) thread based client inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+
+## Key features
+
+### Load balancing
+
+Yeah, Shoryuken load balances the messages consumption, for example:
+
+Given this configuration:
+
+```yaml
+concurrency: 25,
+delay: 60,
+queues:
+  - [shoryuken, 6]
+  - [uppercut, 2]
+  - [sidekiq, 1]
+```
+
+And supposing all the queues are full of messages, the configuration above will make Shoryuken to process "shoryuken" messages 3 times more than "uppercut" and 6 times more than "sidekiq",
+splitting the work among the 25 available processors.
+
+If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq” messages.
+
+If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until/if it reaches the weight of 5 again.
+
+If all queues are empty, all processors will be changed to the  waiting state and the queues will be checked every `delay: 60`. If any queue gets a new message, Shoryuken will bring back the processors to the ready state one by one again.
 
 ## Why another gem?
 
 > [Wouldn't it be awesome if Sidekiq supported {MongoDB, postgresql, mysql, ...} for persistence?](https://github.com/mperham/sidekiq/wiki/FAQ#wouldnt-it-be-awesome-if-sidekiq-supported-mongodb-postgresql-mysql--for-persistence)
+> Not really....
+> If you want a queueing system that uses X, use a queuing system that uses X!...
 
 The Sidekiq point to not support other databases is fair enough. So Shoryuken uses the same Sidekiq thread implementation, but for AWS SQS.
+
+## Resque compatible?
+
+Shoryuken isn't Resque compatible, it passes the [original SQS message](http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/SQS/ReceivedMessage.html) to the workers.
 
 ## Installation
 
@@ -38,7 +72,7 @@ class HelloWorker
 end
 ```
 
-### Enqueue a message
+### Sending a message
 
 ```ruby
 Shoryuken::Client.queues('hello').send_message('Pablo')
@@ -59,9 +93,11 @@ aws:
       - receive_count
       - sent_at
 delay: 25
+timeout: 8
 queues:
-  - shoryuken
-
+  - [shoryuken, 5]
+  - [uppercut, 2]
+  - [sidekiq, 1]
 ```
 
 ### Start Shoryuken
