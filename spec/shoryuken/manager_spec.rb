@@ -67,7 +67,7 @@ describe Shoryuken::Manager do
 
       sleep 0.5
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
+      expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1]
     end
   end
 end

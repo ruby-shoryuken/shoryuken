@@ -156,11 +156,10 @@ module Shoryuken
         logger.info "Restarting queue '#{queue}'"
         @queues << queue
 
-        if @ready.empty? && @waiting.size > 0
+        if @waiting.size > 0
           @ready << @waiting.pop
+          dispatch
         end
-
-        dispatch unless @ready.empty?
       end
     end
 
