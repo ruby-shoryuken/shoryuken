@@ -21,3 +21,5 @@ tmp
 *.a
 mkmf.log
 shoryuken.yml
+shoryuken.pid
+shoryuken.log
