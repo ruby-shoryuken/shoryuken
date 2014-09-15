@@ -160,7 +160,7 @@ module Shoryuken
           @ready << @waiting.pop
         end
 
-        dispatch
+        dispatch unless @ready.empty?
       end
     end
 
