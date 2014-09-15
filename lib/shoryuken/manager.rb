@@ -23,6 +23,7 @@ module Shoryuken
       @done = false
 
       @busy  = []
+      @waiting = []
       @ready = @count.times.map { Processor.new_link(current_actor) }
     end
 
@@ -67,6 +68,11 @@ module Shoryuken
         end
 
         dispatch
+
+        if @waiting.size > 0
+          @ready << @waiting.pop
+          dispatch
+        end
       end
     end
 
@@ -127,6 +133,7 @@ module Shoryuken
     def dispatch
       logger.debug { "Ready size: #{@ready.size}" }
       logger.debug { "Busy size: #{@busy.size}" }
+      logger.debug { "Waiting size: #{@waiting.size}" }
       logger.debug { "Queues: #{@queues.inspect}" }
 
       return if stopped?
@@ -134,7 +141,7 @@ module Shoryuken
       if queue = next_queue
         @fetcher.async.fetch(queue)
       else
-        after(Shoryuken.options[:delay].to_f) { async.dispatch }
+        @waiting << @ready.pop if @ready.size > 0
       end
     end
 
@@ -144,6 +151,11 @@ module Shoryuken
       unless @queues.include? queue
         logger.info "Restarting queue '#{queue}'"
         @queues << queue
+
+        if @waiting.size > 0
+          @ready << @waiting.pop
+          dispatch
+        end
       end
     end
 
