@@ -99,6 +99,15 @@ module Shoryuken
         Shoryuken.logger.info "Received USR1, no longer accepting new work"
         launcher.manager.async.stop
       when 'TTIN'
+        Thread.list.each do |thread|
+          Shoryuken.logger.info "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}"
+          if thread.backtrace
+            Shoryuken.logger.info thread.backtrace.join("\n")
+          else
+            Shoryuken.logger.info "<no backtrace available>"
+          end
+        end
+
         Shoryuken.logger.info "Ready processors: #{launcher.manager.instance_variable_get(:@ready).size}"
         Shoryuken.logger.info "Busy processors: #{launcher.manager.instance_variable_get(:@busy).size}"
 
@@ -107,15 +116,6 @@ module Shoryuken
           weights
         end.each do |queue, weight|
           Shoryuken.logger.info "Current queue '#{queue}' weight: #{weight}"
-        end
-
-        Thread.list.each do |thread|
-          Shoryuken.logger.info "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}"
-          if thread.backtrace
-            Shoryuken.logger.info thread.backtrace.join("\n")
-          else
-            Shoryuken.logger.info "<no backtrace available>"
-          end
         end
       else
         raise Interrupt
