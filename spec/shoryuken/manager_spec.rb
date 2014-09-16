@@ -13,7 +13,7 @@ describe Shoryuken::Manager do
       Shoryuken.queues << queue1
       Shoryuken.queues << queue2
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue1, queue2]
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
 
       subject.pause_queue!(queue1)
 
@@ -32,7 +32,7 @@ describe Shoryuken::Manager do
       Shoryuken.queues << queue1
       Shoryuken.queues << queue2
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue1, queue1, queue2]
+      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
       subject.pause_queue!(queue1)
       expect(subject.instance_variable_get('@queues')).to eq [queue2]
 

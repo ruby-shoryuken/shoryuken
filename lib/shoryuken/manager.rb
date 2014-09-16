@@ -18,7 +18,7 @@ module Shoryuken
 
     def initialize
       @count  = Shoryuken.options[:concurrency] || 25
-      @queues = Shoryuken.queues.dup
+      @queues = Shoryuken.queues.dup.uniq
 
       @done = false
 
@@ -26,7 +26,7 @@ module Shoryuken
       @waiting = []
       @waiting = @count.times.map { Processor.new_link(current_actor) }
 
-      @ready = @queues.uniq.map { |_| @waiting.pop }
+      @ready = @queues.map { |_| @waiting.pop }
     end
 
     def start
@@ -70,13 +70,6 @@ module Shoryuken
         end
 
         dispatch
-
-        if @waiting.size > 0
-          logger.debug { "Queue '#{queue}' is getting hot, moving back one processor from waiting to ready" }
-
-          @ready << @waiting.pop
-          dispatch
-        end
       end
     end
 
@@ -119,6 +112,14 @@ module Shoryuken
           end
 
           @queues << queue
+        end
+
+
+        if @waiting.size > 0
+          logger.debug { "Queue '#{queue}' returned a message, moving back one processor from waiting to ready" }
+
+          @ready << @waiting.pop
+          dispatch
         end
       end
     end
