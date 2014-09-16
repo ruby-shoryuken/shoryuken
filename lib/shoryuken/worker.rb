@@ -7,8 +7,11 @@ module Shoryuken
     module ClassMethods
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
+        queue = @shoryuken_options['queue']
+        queue = queue.call if queue.respond_to? :call
 
-        Shoryuken.register_worker(@shoryuken_options['queue'], self)
+
+        Shoryuken.register_worker(queue, self)
       end
 
       def get_shoryuken_options # :nodoc:
