@@ -56,6 +56,15 @@ module Shoryuken
       opts = {}
 
       @parser = OptionParser.new do |o|
+        o.on '-c', '--concurrency INT', "processor threads to use" do |arg|
+          opts[:concurrency] = Integer(arg)
+        end
+
+        o.on '-q', '--queue QUEUE[,WEIGHT]...', 'Queues to process with optional weights' do |arg|
+          queues_and_weights = arg.scan(/([\w\.-]+),?(\d*)/)
+          parse_queues opts, queues_and_weights
+        end
+
         o.on '-r', '--require [PATH|DIR]', 'Location of the worker' do |arg|
           opts[:require] = arg
         end

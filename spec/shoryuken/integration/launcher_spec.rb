@@ -1,16 +1,15 @@
 require 'spec_helper'
 
-describe Shoryuken::Manager do
+describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
-    let(:fetcher) { Shoryuken::Fetcher.new(manager) }
-    let(:manager) { described_class.new }
-
     before do
-      manager.fetcher = fetcher
+      subject.run
+
+      $received_messages = 0
     end
 
-    before do
-      $received_messages = 0
+    after do
+      subject.stop
     end
 
     class ShoryukenWorker
@@ -24,16 +23,12 @@ describe Shoryuken::Manager do
     end
 
     it 'consumes a message' do
-      Shoryuken::Client.queues('shoryuken').send_message('shoooooorykennnn')
-
-      manager.start
+      Shoryuken::Client.queues('shoryuken').send_message('Yo')
 
       10.times do
         break if $received_messages > 0
-        sleep 1
+        sleep 0.5
       end
-
-      # manager.stop
 
       expect($received_messages).to eq 1
     end
