@@ -6,9 +6,13 @@ require 'shoryuken'
 
 options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
 
-$options = YAML.load(File.read(options_file)).deep_symbolize_keys
+$options = {}
 
-AWS.config $options[:aws]
+if File.exists? options_file
+  $options = YAML.load(File.read(options_file)).deep_symbolize_keys
+
+  AWS.config $options[:aws]
+end
 
 Shoryuken.logger.level = Logger::ERROR
 
@@ -29,5 +33,7 @@ RSpec.configure do |config|
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1
     Shoryuken.options[:timeout]     = 1
+
+    Shoryuken.options[:aws] = {}
   end
 end
