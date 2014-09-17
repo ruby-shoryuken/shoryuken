@@ -26,9 +26,9 @@ splitting the work among the 25 available processors.
 
 If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq” messages.
 
-If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until/if it reaches the weight of 5 again.
+If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until it reaches the weight of 5 again.
 
-If all queues are empty, all processors will be changed to the  waiting state and the queues will be checked every `delay: 60`. If any queue gets a new message, Shoryuken will bring back the processors to the ready state one by one again.
+If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 60`. If any queue gets a new message, Shoryuken will bring back the processors one by one to the ready state.
 
 ## Why another gem?
 
@@ -36,7 +36,7 @@ If all queues are empty, all processors will be changed to the  waiting state an
 > Not really....
 > If you want a queueing system that uses X, use a queuing system that uses X!...
 
-The Sidekiq point to not support other databases is fair enough. So Shoryuken uses the same Sidekiq thread implementation, but for AWS SQS.
+The Sidekiq point to not support other databases is fair enough. Shoryuken uses the same Sidekiq thread implementation, but for AWS SQS.
 
 ## Resque compatible?
 
@@ -65,6 +65,7 @@ class HelloWorker
   include Shoryuken::Worker
 
   shoryuken_options queue: 'hello', auto_delete: true
+  # shoryuken_options queue: ->{ "#{ENV['environment']_hello" }, auto_delete: true
 
   def perform(sqs_msg)
     puts "Hello #{sqs_msg.body}"
@@ -88,7 +89,6 @@ aws:
   secret_access_key:  ...
   region:             us-east-1
   receive_message:
-    max_number_of_messages: 1
     attributes:
       - receive_count
       - sent_at
