@@ -1,4 +1,5 @@
 require 'bundler/gem_tasks'
+$stdout.sync = true
 
 task :console do
   require 'pry'
@@ -28,9 +29,13 @@ task :push_test, :size do |t, args|
 
   AWS.config(config['aws'])
 
-  (args[:size] || 1).to_i.times do |i|
-    Shoryuken::Client.queues('shoryuken').send_message("shoryuken #{i}")
-    Shoryuken::Client.queues('uppercut').send_message("uppercut #{i}")
-    Shoryuken::Client.queues('sidekiq').send_message("sidekiq #{i}")
-  end
+  (args[:size] || 1).to_i.times.map do |i|
+    Thread.new do
+      Shoryuken::Client.queues('shoryuken').send_message("shoryuken #{i}")
+      Shoryuken::Client.queues('uppercut').send_message("uppercut #{i}")
+      Shoryuken::Client.queues('sidekiq').send_message("sidekiq #{i}")
+
+      puts "Push test ##{i + 1}"
+    end
+  end.each &:join
 end
