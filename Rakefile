@@ -4,7 +4,7 @@ task :console do
   require 'pry'
   require 'shoryuken'
 
-  config_file = File.join File.expand_path('../..', __FILE__), 'shoryuken.yml'
+  config_file = File.join File.expand_path('..', __FILE__), 'shoryuken.yml'
 
   if File.exist? config_file
     config = YAML.load File.read(config_file)
