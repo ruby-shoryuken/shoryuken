@@ -6,6 +6,6 @@ class ShoryukenWorker
   def perform(sqs_msg)
     puts "Shoryuken: '#{sqs_msg.body}'"
 
-    sleep rand(1..10)
+    sleep rand(0..1)
   end
 end

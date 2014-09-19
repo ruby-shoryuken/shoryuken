@@ -23,16 +23,13 @@ module Shoryuken
       @done = false
 
       @busy  = []
-      @waiting = []
-      @waiting = @count.times.map { Processor.new_link(current_actor) }
-
-      @ready = @queues.map { |_| @waiting.pop }
+      @ready = @count.times.map { Processor.new_link(current_actor) }
     end
 
     def start
       logger.info 'Starting'
 
-      @ready.each { dispatch }
+      dispatch
     end
 
     def stop(options = {})
@@ -68,8 +65,6 @@ module Shoryuken
         else
           @ready << processor
         end
-
-        dispatch
       end
     end
 
@@ -81,8 +76,6 @@ module Shoryuken
 
         unless stopped?
           @ready << Processor.new_link(current_actor)
-
-          dispatch
         end
       end
     end
@@ -113,14 +106,6 @@ module Shoryuken
 
           @queues << queue
         end
-
-
-        if @waiting.size > 0
-          logger.debug { "Queue '#{queue}' returned a message, moving back one processor from waiting to ready" }
-
-          @ready << @waiting.pop
-          dispatch
-        end
       end
     end
 
@@ -141,12 +126,21 @@ module Shoryuken
       if queue = next_queue
         logger.debug { "Ready size: #{@ready.size}" }
         logger.debug { "Busy size: #{@busy.size}" }
-        logger.debug { "Waiting size: #{@waiting.size}" }
         logger.debug { "Queues: #{@queues.inspect}" }
 
-        @fetcher.async.fetch(queue)
+        if @ready.empty?
+          logger.debug { 'Pausing fetcher, no queue available' }
+
+          after(1) { async.dispatch }
+
+          return
+        end
+
+        @fetcher.async.fetch(queue, @ready.size)
       else
-        @waiting << @ready.pop
+        logger.debug { 'Pausing fetcher, no queue available' }
+
+        @fetcher_paused = true
       end
     end
 
@@ -157,8 +151,12 @@ module Shoryuken
         logger.info "Restarting queue '#{queue}'"
         @queues << queue
 
-        if @waiting.size > 0
-          @ready << @waiting.pop
+        if @fetcher_paused
+          logger.debug { 'Restarting fetcher' }
+
+          @fetcher_paused = false
+
+
           dispatch
         end
       end
