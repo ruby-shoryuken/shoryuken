@@ -129,7 +129,7 @@ module Shoryuken
         logger.debug { "Queues: #{@queues.inspect}" }
 
         if @ready.empty?
-          logger.debug { 'Pausing fetcher, no queue available' }
+          logger.debug { 'Pausing fetcher, no processors available' }
 
           after(1) { async.dispatch }
 
