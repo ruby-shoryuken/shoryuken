@@ -112,7 +112,7 @@ module Shoryuken
     def pause_queue!(queue)
       return unless @queues.include? queue
 
-      logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds"
+      logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because the queue is empty"
 
       @queues.delete(queue)
 
@@ -128,7 +128,7 @@ module Shoryuken
       logger.debug { "Queues: #{@queues.inspect}" }
 
       if @ready.empty?
-        logger.debug { 'Pausing fetcher, no processors available' }
+        logger.debug { 'Pausing fetcher, because all processors are busy' }
 
         after(1) { dispatch }
 
@@ -138,7 +138,7 @@ module Shoryuken
       if queue = next_queue
         @fetcher.async.fetch(queue, @ready.size)
       else
-        logger.debug { 'Pausing fetcher, no queue available' }
+        logger.debug { 'Pausing fetcher, because all queues are paused' }
 
         @fetcher_paused = true
       end
@@ -149,6 +149,7 @@ module Shoryuken
     def restart_queue!(queue)
       unless @queues.include? queue
         logger.info "Restarting queue '#{queue}'"
+
         @queues << queue
 
         if @fetcher_paused

@@ -23,6 +23,7 @@ module Shoryuken
       setup_options(args)
       initialize_logger
       validate!
+      daemonize
       initialize_aws
       require_workers
       write_pid
@@ -45,6 +46,37 @@ module Shoryuken
 
     private
 
+    def daemonize
+      return unless Shoryuken.options[:daemon]
+
+      raise ArgumentError, "You really should set a logfile if you're going to daemonize" unless Shoryuken.options[:logfile]
+
+      files_to_reopen = []
+      ObjectSpace.each_object(File) do |file|
+        files_to_reopen << file unless file.closed?
+      end
+
+      Process.daemon(true, true)
+
+      files_to_reopen.each do |file|
+        begin
+          file.reopen file.path, "a+"
+          file.sync = true
+        rescue ::Exception
+        end
+      end
+
+      [$stdout, $stderr].each do |io|
+        File.open(Shoryuken.options[:logfile], 'ab') do |f|
+          io.reopen(f)
+        end
+        io.sync = true
+      end
+      $stdin.reopen('/dev/null')
+
+      initialize_logger
+    end
+
     def write_pid
       if path = Shoryuken.options[:pidfile]
         File.open(path, 'w') do |f|
@@ -59,6 +91,10 @@ module Shoryuken
       @parser = OptionParser.new do |o|
         o.on '-c', '--concurrency INT', "processor threads to use" do |arg|
           opts[:concurrency] = Integer(arg)
+        end
+
+        o.on '-d', '--daemon', 'Daemonize process' do |arg|
+          opts[:daemon] = arg
         end
 
         o.on '-q', '--queue QUEUE[,WEIGHT]...', 'Queues to process with optional weights' do |arg|
