@@ -123,6 +123,10 @@ module Shoryuken
     def dispatch
       return if stopped?
 
+      logger.debug { "Ready size: #{@ready.size}" }
+      logger.debug { "Busy size: #{@busy.size}" }
+      logger.debug { "Queues: #{@queues.inspect}" }
+
       if @ready.empty?
         logger.debug { 'Pausing fetcher, no processors available' }
 
@@ -132,10 +136,6 @@ module Shoryuken
       end
 
       if queue = next_queue
-        logger.debug { "Ready size: #{@ready.size}" }
-        logger.debug { "Busy size: #{@busy.size}" }
-        logger.debug { "Queues: #{@queues.inspect}" }
-
         @fetcher.async.fetch(queue, @ready.size)
       else
         logger.debug { 'Pausing fetcher, no queue available' }
