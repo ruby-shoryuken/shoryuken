@@ -6,7 +6,7 @@ module Shoryuken
 
     module ClassMethods
       def shoryuken_options(opts = {})
-        @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
+        @shoryuken_options = get_shoryuken_options.merge(stringify_keys(Hash(opts)))
         queue = @shoryuken_options['queue']
         queue = queue.call if queue.respond_to? :call
 

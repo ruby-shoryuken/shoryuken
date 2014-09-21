@@ -8,7 +8,7 @@ module Shoryuken
     end
 
     def self.receive_message(queue, options = {})
-      queues(queue).receive_message(options || {})
+      queues(queue).receive_message(Hash(options))
     end
 
     def self.reset!

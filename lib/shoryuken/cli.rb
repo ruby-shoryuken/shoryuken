@@ -22,6 +22,7 @@ module Shoryuken
 
       setup_options(args)
       initialize_logger
+      validate!
       initialize_aws
       require_workers
       write_pid
@@ -156,6 +157,10 @@ module Shoryuken
       Shoryuken::Logging.initialize_logger(Shoryuken.options[:logfile]) if Shoryuken.options[:logfile]
 
       Shoryuken.logger.level = Logger::DEBUG if Shoryuken.options[:verbose]
+    end
+
+    def validate!
+      raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
     end
 
     def initialize_aws

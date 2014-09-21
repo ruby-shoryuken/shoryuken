@@ -8,8 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = Shoryuken::VERSION
   spec.authors       = ["Pablo Cantero"]
   spec.email         = ["pablo@pablocantero.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
+  spec.description = spec.summary = %q{Super efficient AWS SQS processor for Ruby}
   spec.homepage      = "https://github.com/phstc/shoryuken"
   spec.license       = "MIT"
 
