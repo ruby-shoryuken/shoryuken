@@ -11,5 +11,9 @@ module Shoryuken
     def logger
       Shoryuken.logger
     end
+
+    def elapsed(started_at)
+      (Time.now - started_at) * 1000
+    end
   end
 end

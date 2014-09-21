@@ -13,6 +13,9 @@ require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/launcher'
 require 'shoryuken/logging'
+require 'shoryuken/middleware/chain'
+require 'shoryuken/middleware/server/auto_delete'
+require 'shoryuken/middleware/server/logging'
 
 module Shoryuken
   DEFAULTS = {
@@ -47,5 +50,20 @@ module Shoryuken
 
   def self.logger
     Shoryuken::Logging.logger
+  end
+
+  # Shoryuken.configure_server do |config|
+  #   config.server_middleware do |chain|
+  #     chain.add MyServerHook
+  #   end
+  # end
+  def self.configure_server
+    yield self
+  end
+
+  def self.server_middleware
+    @server_chain ||= Processor.default_middleware
+    yield @server_chain if block_given?
+    @server_chain
   end
 end

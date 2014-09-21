@@ -4,7 +4,7 @@ describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager }
   let(:sqs_queue) { double 'Queue' }
   let(:queue)     { 'yo' }
-  let(:sqs_msg)   { double 'SQS msg' }
+  let(:sqs_msg)   { double 'SQS msg', id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e' }
 
   subject { described_class.new(manager) }
 
@@ -30,6 +30,40 @@ describe Shoryuken::Processor do
       expect(sqs_msg).to_not receive(:delete)
 
       subject.process(queue, sqs_msg)
+    end
+
+    context 'when custom middleware' do
+      class WorkerCalledMiddleware
+        def call(worker, queue, sqs_msg)
+          worker.called(sqs_msg, queue)
+          yield
+        end
+      end
+
+      before do
+        Shoryuken.configure_server do |config|
+          config.server_middleware do |chain|
+            chain.add WorkerCalledMiddleware
+          end
+        end
+      end
+
+      after do
+        Shoryuken.configure_server do |config|
+          config.server_middleware do |chain|
+            chain.remove WorkerCalledMiddleware
+          end
+        end
+      end
+
+      it 'invokes middleware' do
+        expect(manager).to receive(:processor_done).with(queue, subject)
+
+        expect_any_instance_of(YoWorker).to receive(:perform).with(sqs_msg)
+        expect_any_instance_of(YoWorker).to receive(:called).with(sqs_msg, queue)
+
+        subject.process(queue, sqs_msg)
+      end
     end
 
     it 'performs with auto delete' do

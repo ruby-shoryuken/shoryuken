@@ -15,7 +15,7 @@ module Shoryuken
 
     def fetch(queue, available_processors)
       watchdog('Fetcher#fetch died') do
-        beginning_time = Time.now
+        started_at = Time.now
 
         logger.info "Looking for new messages queue '#{queue}'"
 
@@ -35,7 +35,7 @@ module Shoryuken
 
           @manager.async.dispatch
 
-          logger.debug "Fetcher#fetch('#{queue}') completed in #{(Time.now - beginning_time) * 1000} ms"
+          logger.debug "Fetcher#fetch('#{queue}') completed in #{elapsed(started_at)} ms"
         rescue => ex
           logger.error("Error fetching message: #{ex}")
           logger.error(ex.backtrace.first)

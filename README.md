@@ -110,6 +110,24 @@ queues:
 bundle exec shoryuken -r worker.rb -C shoryuken.yml
 ```
 
+### Middleware
+
+```ruby
+class MyServerHook
+  def call(worker_instance, queue, sqs_msg)
+    puts 'Before work'
+    yield
+    puts 'After work'
+  end
+end
+
+Shoryuken.configure_server do |config|
+  config.server_middleware do |chain|
+    chain.add MyServerHook
+    # chain.remove MyServerHook
+  end
+end
+```
 
 ## Contributing
 
