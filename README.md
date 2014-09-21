@@ -2,7 +2,7 @@
 
 ![](shoryuken.jpg)
 
-Shoryuken is an [AWS SQS](https://aws.amazon.com/sqs/) thread based client inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+Shoryuken is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based processor inspired by [Sidekiq](https://github.com/mperham/sidekiq).
 
 ## Key features
 
@@ -21,14 +21,18 @@ queues:
   - [sidekiq, 1]
 ```
 
-And supposing all the queues are full of messages, the configuration above will make Shoryuken to process "shoryuken" messages 3 times more than "uppercut" and 6 times more than "sidekiq",
+And supposing all the queues are full of messages, the configuration above will make Shoryuken to process "shoryuken" 3 times more than "uppercut" and 6 times more than "sidekiq",
 splitting the work among the 25 available processors.
 
-If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq” messages.
+If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq”.
 
 If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until it reaches the weight of 5 again.
 
 If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 60`. If any queue gets a new message, Shoryuken will bring back the processors one by one to the ready state.
+
+### Fetch in batches
+
+To be more efficient (performance/cost), Shoryuken retrieves SQS messages in batches, the batch size is based on `ready_processors > 10 ? 10 : ready_processors`, [SQS limits the batch by 10](http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/SQS/Queue.html#receive_message-instance_method).
 
 ## Why another gem?
 
@@ -103,7 +107,7 @@ queues:
 ### Start Shoryuken
 
 ```shell
-bundle exec shoryuken -r worker.rb -c shoryuken.yml
+bundle exec shoryuken -r worker.rb -C shoryuken.yml
 ```
 
 
