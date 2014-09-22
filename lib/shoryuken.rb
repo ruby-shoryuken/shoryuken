@@ -19,10 +19,10 @@ require 'shoryuken/middleware/server/logging'
 
 module Shoryuken
   DEFAULTS = {
-    concurrency: 25,
+    concurrency: 50,
     queues: [],
     receive_message_options: {},
-    delay: 0,
+    delay: 25,
     timeout: 8
   }
 

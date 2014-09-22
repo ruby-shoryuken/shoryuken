@@ -13,8 +13,8 @@ Yeah, Shoryuken load balances the messages consumption, for example:
 Given this configuration:
 
 ```yaml
-concurrency: 25,
-delay: 60,
+concurrency: 50,
+delay: 25,
 queues:
   - [shoryuken, 6]
   - [uppercut, 2]
@@ -22,13 +22,13 @@ queues:
 ```
 
 And supposing all the queues are full of messages, the configuration above will make Shoryuken to process "shoryuken" 3 times more than "uppercut" and 6 times more than "sidekiq",
-splitting the work among the 25 available processors.
+splitting the work among the 50 available processors.
 
-If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq”.
+If the “shoryuken" queue gets empty, Shoryuken will keep using the 50 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq”.
 
 If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until it reaches the weight of 5 again.
 
-If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 60`. If any queue gets a new message, Shoryuken will bring back the processors one by one to the ready state.
+If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 25`. If any queue gets a new message, Shoryuken will bring back the processors one by one to the ready state.
 
 ### Fetch in batches
 
@@ -96,7 +96,8 @@ aws:
     attributes:
       - receive_count
       - sent_at
-delay: 25
+concurrency: 50,
+delay: 25,
 timeout: 8
 queues:
   - [shoryuken, 6]

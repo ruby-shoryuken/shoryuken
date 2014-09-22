@@ -17,7 +17,7 @@ module Shoryuken
     trap_exit :processor_died
 
     def initialize
-      @count  = Shoryuken.options[:concurrency] || 25
+      @count  = Shoryuken.options[:concurrency] || 50
       @queues = Shoryuken.queues.dup.uniq
 
       @done = false
