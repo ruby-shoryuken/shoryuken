@@ -2,7 +2,7 @@
 
 ![](shoryuken.jpg)
 
-Shoryuken is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based processor inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+Shoryuken is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor inspired by [Sidekiq](https://github.com/mperham/sidekiq).
 
 ## Key features
 
@@ -32,7 +32,7 @@ If all queues get empty, all processors will be changed to the waiting state and
 
 ### Fetch in batches
 
-To be more efficient (performance/cost), Shoryuken retrieves SQS messages in batches, the batch size is based on `ready_processors > 10 ? 10 : ready_processors`, [SQS limits the batch by 10](http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/SQS/Queue.html#receive_message-instance_method).
+To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches.
 
 ## Why another gem?
 
@@ -99,7 +99,7 @@ aws:
 delay: 25
 timeout: 8
 queues:
-  - [shoryuken, 5]
+  - [shoryuken, 6]
   - [uppercut, 2]
   - [sidekiq, 1]
 ```

@@ -8,6 +8,7 @@ module Shoryuken
     end
 
     def receive_message(queue, limit)
+      # AWS limits the batch size by 10
       limit = limit > 10 ? 10 : limit
 
       Shoryuken::Client.receive_message queue, Shoryuken.options[:aws][:receive_message].to_h.merge(limit: limit)
