@@ -2,7 +2,7 @@
 
 ![](shoryuken.jpg)
 
-Shoryuken is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+Shoryuken _sho-ryu-ken_ is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor inspired by [Sidekiq](https://github.com/mperham/sidekiq).
 
 ## Key features
 
@@ -13,7 +13,7 @@ Yeah, Shoryuken load balances the messages consumption, for example:
 Given this configuration:
 
 ```yaml
-concurrency: 50,
+concurrency: 25,
 delay: 25,
 queues:
   - [shoryuken, 6]
@@ -22,9 +22,9 @@ queues:
 ```
 
 And supposing all the queues are full of messages, the configuration above will make Shoryuken to process "shoryuken" 3 times more than "uppercut" and 6 times more than "sidekiq",
-splitting the work among the 50 available processors.
+splitting the work among the 25 available processors.
 
-If the “shoryuken" queue gets empty, Shoryuken will keep using the 50 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq”.
+If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq”.
 
 If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until it reaches the weight of 5 again.
 
@@ -96,7 +96,7 @@ aws:
     attributes:
       - receive_count
       - sent_at
-concurrency: 50,
+concurrency: 25,
 delay: 25,
 timeout: 8
 queues:
