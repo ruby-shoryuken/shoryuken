@@ -14,7 +14,8 @@ if File.exists? options_file
   AWS.config $options[:aws]
 end
 
-Shoryuken.logger.level = Logger::ERROR
+Shoryuken.logger.level = Logger::UNKNOWN
+Celluloid.logger.level = Logger::UNKNOWN
 
 RSpec.configure do |config|
   config.filter_run_excluding slow: true unless ENV['SPEC_ALL']
