@@ -16,12 +16,12 @@ module Shoryuken
       manager.fetcher = @fetcher
     end
 
-    def stop
+    def stop(options = {})
       watchdog('Launcher#stop') do
         @done = true
         @fetcher.terminate if @fetcher.alive?
 
-        manager.async.stop(shutdown: true, timeout: Shoryuken.options[:timeout])
+        manager.async.stop(shutdown: !!options[:shutdown], timeout: Shoryuken.options[:timeout])
         manager.wait(:shutdown)
       end
     end

@@ -34,9 +34,6 @@ module Shoryuken
 
     def stop(options = {})
       watchdog('Manager#stop died') do
-        shutdown = options[:shutdown]
-        timeout  = options[:timeout]
-
         @done = true
 
         @fetcher.terminate if @fetcher.alive?
@@ -50,7 +47,11 @@ module Shoryuken
 
         return after(0) { signal(:shutdown) } if @busy.empty?
 
-        hard_shutdown_in(timeout) if shutdown
+        if options[:shutdown]
+          hard_shutdown_in(options[:timeout])
+        else
+          soft_shutdown(options[:timeout])
+        end
       end
     end
 
@@ -147,6 +148,8 @@ module Shoryuken
     private
 
     def restart_queue!(queue)
+      return if stopped?
+
       unless @queues.include? queue
         logger.info "Restarting queue '#{queue}'"
 
@@ -184,19 +187,29 @@ module Shoryuken
       queue
     end
 
+    def soft_shutdown(delay)
+      logger.info { "[soft shutdown] Waiting for #{@busy.size} busy workers" }
+
+      if @busy.size > 0
+        after(delay) { soft_shutdown(delay) }
+      else
+        after(0) { signal(:shutdown) }
+      end
+    end
+
     def hard_shutdown_in(delay)
+      logger.info { "[hard shutdown] Waiting for #{@busy.size} busy workers" }
       logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
-      logger.info { "Waiting for #{@busy.size} busy workers" }
 
       after(delay) do
         watchdog("Manager#hard_shutdown_in died") do
-          # We've reached the timeout and we still have busy workers.
-          # They must die but their messages shall live on.
-          logger.info { "Still waiting for #{@busy.size} busy workers" }
+          if @busy.size > 0
+            logger.info { "Hard shutting down #{@busy.size} busy workers" }
 
-          @busy.each do |processor|
-            t = processor.bare_object.actual_work_thread
-            t.raise Shutdown if processor.alive?
+            @busy.each do |processor|
+              t = processor.bare_object.actual_work_thread
+              t.raise Shutdown if processor.alive?
+            end
           end
 
           after(0) { signal(:shutdown) }

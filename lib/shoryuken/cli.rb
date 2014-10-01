@@ -38,8 +38,8 @@ module Shoryuken
           handle_signal(signal)
         end
       rescue Interrupt
+        launcher.stop(shutdown: true)
         Shoryuken.logger.info 'Shutting down'
-        launcher.stop
         exit(0)
       end
     end
@@ -142,8 +142,13 @@ module Shoryuken
 
       case sig
       when 'USR1'
-        Shoryuken.logger.info "Received USR1, no longer accepting new work"
-        launcher.manager.async.stop
+        Shoryuken.logger.info "Received USR1, shutting down"
+
+        launcher.stop
+
+        Shoryuken.logger.info 'Shutting down'
+
+        exit(0)
       when 'TTIN'
         Thread.list.each do |thread|
           Shoryuken.logger.info "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}"
