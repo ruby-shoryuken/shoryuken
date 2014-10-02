@@ -4,7 +4,7 @@ describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager }
   let(:sqs_queue) { double 'Queue' }
   let(:queue)     { 'yo' }
-  let(:sqs_msg)   { double 'SQS msg', id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e' }
+  let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e' }
 
   subject { described_class.new(manager) }
 
