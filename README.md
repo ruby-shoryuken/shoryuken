@@ -2,7 +2,7 @@
 
 ![](shoryuken.jpg)
 
-Shoryuken _sho-ryu-ken_ is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor inspired by [Sidekiq](https://github.com/mperham/sidekiq).
+Shoryuken _sho-ryu-ken_ is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor.
 
 ## Key features
 
@@ -24,23 +24,15 @@ queues:
 And supposing all the queues are full of messages, the configuration above will make Shoryuken to process "shoryuken" 3 times more than "uppercut" and 6 times more than "sidekiq",
 splitting the work among the 25 available processors.
 
-If the “shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process “uppercut” (2 times more than “sidekiq”) and “sidekiq”.
+If the "shoryuken" queue gets empty, Shoryuken will keep using the 25 processors, but only to process "uppercut" (2 times more than "sidekiq") and "sidekiq".
 
-If the “shoryuken” queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until it reaches the weight of 5 again.
+If the "shoryuken" queue gets a new message, Shoryuken will smoothly increase back the "shoryuken" weight one by one until it reaches the weight of 5 again.
 
 If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 25`. If any queue gets a new message, Shoryuken will bring back the processors one by one to the ready state.
 
 ### Fetch in batches
 
 To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches.
-
-## Why another gem?
-
-> [Wouldn't it be awesome if Sidekiq supported {MongoDB, postgresql, mysql, ...} for persistence?](https://github.com/mperham/sidekiq/wiki/FAQ#wouldnt-it-be-awesome-if-sidekiq-supported-mongodb-postgresql-mysql--for-persistence)
-> Not really....
-> If you want a queueing system that uses X, use a queuing system that uses X!...
-
-The Sidekiq point to not support other databases is fair enough. Shoryuken uses the same Sidekiq thread implementation, but for AWS SQS.
 
 ## Resque compatible?
 
@@ -129,6 +121,10 @@ Shoryuken.configure_server do |config|
   end
 end
 ```
+
+## Credits
+
+[Mike Perham](https://github.com/mperham), creator of [Sidekiq](https://github.com/mperham/sidekiq), and [everybody who contributed to it](https://github.com/mperham/sidekiq/graphs/contributors). Shoryuken wouldn't exist as it is without those contributions.
 
 ## Contributing
 
