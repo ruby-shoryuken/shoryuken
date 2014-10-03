@@ -39,8 +39,7 @@ module Shoryuken
         end
       rescue Interrupt
         launcher.stop(shutdown: true)
-        Shoryuken.logger.info 'Shutting down'
-        exit(0)
+        exit 0
       end
     end
 
@@ -124,7 +123,7 @@ module Shoryuken
 
         o.on '-V', '--version', 'Print version and exit' do |arg|
           puts "Shoryuken #{Shoryuken::VERSION}"
-          exit(0)
+          exit 0
         end
       end
 
@@ -142,13 +141,11 @@ module Shoryuken
 
       case sig
       when 'USR1'
-        Shoryuken.logger.info "Received USR1, shutting down"
+        Shoryuken.logger.info "Received USR1, will soft shutdown down"
 
         launcher.stop
 
-        Shoryuken.logger.info 'Shutting down'
-
-        exit(0)
+        exit 0
       when 'TTIN'
         Thread.list.each do |thread|
           Shoryuken.logger.info "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}"
@@ -169,6 +166,8 @@ module Shoryuken
           Shoryuken.logger.info "Current queue '#{queue}' weight: #{weight}"
         end
       else
+        Shoryuken.logger.info "Received #{sig}, will shutdown down"
+
         raise Interrupt
       end
     end

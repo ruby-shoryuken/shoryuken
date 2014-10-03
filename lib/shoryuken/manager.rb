@@ -188,7 +188,7 @@ module Shoryuken
     end
 
     def soft_shutdown(delay)
-      logger.info { "[soft shutdown] Waiting for #{@busy.size} busy workers" }
+      logger.info { "Waiting for #{@busy.size} busy workers" }
 
       if @busy.size > 0
         after(delay) { soft_shutdown(delay) }
@@ -198,7 +198,7 @@ module Shoryuken
     end
 
     def hard_shutdown_in(delay)
-      logger.info { "[hard shutdown] Waiting for #{@busy.size} busy workers" }
+      logger.info { "Waiting for #{@busy.size} busy workers" }
       logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
       after(delay) do
