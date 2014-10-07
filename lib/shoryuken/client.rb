@@ -16,11 +16,6 @@ module Shoryuken
         queues(queue_name).receive_message(Hash(options))
       end
 
-      def reset!
-        # for test purposes
-        @@queues = {}
-      end
-
       def sqs
         @sqs ||= AWS::SQS.new
       end
