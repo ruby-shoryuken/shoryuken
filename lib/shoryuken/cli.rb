@@ -88,7 +88,7 @@ module Shoryuken
       opts = {}
 
       @parser = OptionParser.new do |o|
-        o.on '-c', '--concurrency INT', "processor threads to use" do |arg|
+        o.on '-c', '--concurrency INT', 'Processor threads to use' do |arg|
           opts[:concurrency] = Integer(arg)
         end
 
@@ -105,15 +105,15 @@ module Shoryuken
           opts[:require] = arg
         end
 
-        o.on '-C', '--config PATH', 'path to YAML config file' do |arg|
+        o.on '-C', '--config PATH', 'Path to YAML config file' do |arg|
           opts[:config_file] = arg
         end
 
-        o.on '-L', '--logfile PATH', 'path to writable logfile' do |arg|
+        o.on '-L', '--logfile PATH', 'Path to writable logfile' do |arg|
           opts[:logfile] = arg
         end
 
-        o.on '-P', '--pidfile PATH', "path to pidfile" do |arg|
+        o.on '-P', '--pidfile PATH', 'Path to pidfile' do |arg|
           opts[:pidfile] = arg
         end
 
