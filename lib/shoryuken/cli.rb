@@ -160,7 +160,7 @@ module Shoryuken
         busy   = launcher.manager.instance_variable_get(:@busy).size
         queues = launcher.manager.instance_variable_get(:@queues)
 
-        Shoryuken.logger.info "Ready: #{ready}, Busy: #{busy}, Queues: #{unparse_queues(queues)}"
+        Shoryuken.logger.info "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}"
       else
         Shoryuken.logger.info "Received #{sig}, will shutdown down"
 
