@@ -124,9 +124,7 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      logger.debug { "Ready size: #{@ready.size}" }
-      logger.debug { "Busy size: #{@busy.size}" }
-      logger.debug { "Queues: #{@queues.inspect}" }
+      logger.debug "Ready: #{@ready.size}, Busy: #{@busy.size}, Queues: #{unparse_queues(@queues)}"
 
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }

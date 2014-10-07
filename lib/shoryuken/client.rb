@@ -1,23 +1,29 @@
-
 module Shoryuken
   class Client
     @@queues = {}
+    @@visibility_timeouts = {}
 
-    def self.queues(name)
-      @@queues[name.to_s] ||= sqs.queues.named(name)
-    end
+    class << self
+      def queues(queue_name)
+        @@queues[queue_name.to_s] ||= sqs.queues.named(queue_name)
+      end
 
-    def self.receive_message(queue, options = {})
-      queues(queue).receive_message(Hash(options))
-    end
+      def visibility_timeout(queue_name)
+        @@visibility_timeouts[queue_name.to_s] ||= queues(queue_name).visibility_timeout
+      end
 
-    def self.reset!
-      # for test purposes
-      @@queues = {}
-    end
+      def receive_message(queue_name, options = {})
+        queues(queue_name).receive_message(Hash(options))
+      end
 
-    def self.sqs
-      @sqs ||= AWS::SQS.new
+      def reset!
+        # for test purposes
+        @@queues = {}
+      end
+
+      def sqs
+        @sqs ||= AWS::SQS.new
+      end
     end
   end
 end

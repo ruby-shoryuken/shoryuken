@@ -156,15 +156,11 @@ module Shoryuken
           end
         end
 
-        Shoryuken.logger.info "Ready processors: #{launcher.manager.instance_variable_get(:@ready).size}"
-        Shoryuken.logger.info "Busy processors: #{launcher.manager.instance_variable_get(:@busy).size}"
+        ready  = launcher.manager.instance_variable_get(:@ready).size
+        busy   = launcher.manager.instance_variable_get(:@busy).size
+        queues = launcher.manager.instance_variable_get(:@queues)
 
-        launcher.manager.instance_variable_get(:@queues).inject({}) do |weights, queue|
-          weights[queue] = weights[queue].to_i + 1
-          weights
-        end.each do |queue, weight|
-          Shoryuken.logger.info "Current queue '#{queue}' weight: #{weight}"
-        end
+        Shoryuken.logger.info "Ready: #{ready}, Busy: #{busy}, Queues: #{unparse_queues(queues)}"
       else
         Shoryuken.logger.info "Received #{sig}, will shutdown down"
 

@@ -15,5 +15,12 @@ module Shoryuken
     def elapsed(started_at)
       (Time.now - started_at) * 1000
     end
+
+    def unparse_queues(queues)
+      queues.inject({}) do |queue_and_weights, name|
+        queue_and_weights[name] = queue_and_weights[name].to_i + 1
+        queue_and_weights
+      end.to_a
+    end
   end
 end
