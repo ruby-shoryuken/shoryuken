@@ -8,8 +8,8 @@ describe Shoryuken::Client do
 
   before do
     allow(described_class).to receive(:sqs).and_return(sqs)
-    sqs.stub(queues: queue_collection)
-    queue_collection.stub(named: queue)
+    allow(sqs).to receive(:queues).and_return(queue_collection)
+    allow(queue_collection).to receive(:named).and_return(queue)
   end
 
   describe '.queues' do
@@ -23,8 +23,6 @@ describe Shoryuken::Client do
 
   describe '.visibility_timeout' do
     it 'memoizes visibility_timeout' do
-      expect(queue_collection).to receive(:named).once.with(queue_name).and_return(queue)
-
       expect(queue).to receive(:visibility_timeout).once.and_return(30)
 
       expect(Shoryuken::Client.visibility_timeout(queue_name)).to eq 30
