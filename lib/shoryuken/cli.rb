@@ -97,8 +97,8 @@ module Shoryuken
         end
 
         o.on '-q', '--queue QUEUE[,WEIGHT]...', 'Queues to process with optional weights' do |arg|
-          queues_and_weights = arg.scan(/([\w\.-]+),?(\d*)/)
-          parse_queues opts, queues_and_weights
+          queue, weight = arg.split(',')
+          parse_queue queue, weight
         end
 
         o.on '-r', '--require [PATH|DIR]', 'Location of the worker' do |arg|
