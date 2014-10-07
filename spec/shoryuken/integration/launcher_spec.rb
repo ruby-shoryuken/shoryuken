@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'shoryuken/launcher'
 
 describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do

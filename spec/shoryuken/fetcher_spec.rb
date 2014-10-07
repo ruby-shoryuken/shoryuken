@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'shoryuken/fetcher'
 
 describe Shoryuken::Fetcher do
   let(:manager)   { double Shoryuken::Manager }

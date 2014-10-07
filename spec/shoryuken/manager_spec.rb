@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'shoryuken/manager'
 
 describe Shoryuken::Manager do
   describe 'Auto Scaling' do

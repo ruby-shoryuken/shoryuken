@@ -24,13 +24,5 @@ module Shoryuken
 
       @manager.async.processor_done(queue, current_actor)
     end
-
-    def self.default_middleware
-      Middleware::Chain.new do |m|
-        m.add Middleware::Server::Logging
-        m.add Middleware::Server::AutoDelete
-        # m.add Middleware::Server::RetryJobs
-      end
-    end
   end
 end

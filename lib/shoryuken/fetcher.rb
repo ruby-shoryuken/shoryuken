@@ -36,10 +36,10 @@ module Shoryuken
 
           @manager.async.dispatch
 
-          logger.debug "Fetcher#fetch('#{queue}') completed in #{elapsed(started_at)} ms"
+          logger.debug { "Fetcher#fetch('#{queue}') completed in #{elapsed(started_at)} ms" }
         rescue => ex
-          logger.error("Error fetching message: #{ex}")
-          logger.error(ex.backtrace.first)
+          logger.error "Error fetching message: #{ex}"
+          logger.error ex.backtrace.first
 
           @manager.async.dispatch
         end

@@ -1,9 +1,3 @@
-require 'yaml'
-require 'aws-sdk'
-require 'celluloid'
-
-require 'shoryuken/version'
-require 'shoryuken/manager'
 require 'shoryuken/processor'
 require 'shoryuken/fetcher'
 

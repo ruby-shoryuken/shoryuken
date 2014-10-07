@@ -1,17 +1,12 @@
 require 'yaml'
 require 'aws-sdk'
-require 'celluloid'
 require 'time'
 
 require 'shoryuken/version'
 require 'shoryuken/core_ext'
 require 'shoryuken/util'
-require 'shoryuken/manager'
-require 'shoryuken/processor'
-require 'shoryuken/fetcher'
 require 'shoryuken/client'
 require 'shoryuken/worker'
-require 'shoryuken/launcher'
 require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
@@ -21,15 +16,12 @@ module Shoryuken
   DEFAULTS = {
     concurrency: 25,
     queues: [],
-    receive_message_options: {},
+    aws: {},
     delay: 25,
     timeout: 8
   }
 
-  # { 'my_queue1' => Worker1
-  #   'my_queue2' => Worker2 }
   @@workers = {}
-
   @@queues = []
 
   def self.options
@@ -62,8 +54,19 @@ module Shoryuken
   end
 
   def self.server_middleware
-    @server_chain ||= Processor.default_middleware
+    @server_chain ||= default_server_middleware
     yield @server_chain if block_given?
     @server_chain
+  end
+
+
+  private
+
+  def self.default_server_middleware
+    Middleware::Chain.new do |m|
+      m.add Middleware::Server::Logging
+      m.add Middleware::Server::AutoDelete
+      # TODO m.add Middleware::Server::RetryJobs
+    end
   end
 end

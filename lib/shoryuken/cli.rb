@@ -24,10 +24,12 @@ module Shoryuken
       initialize_logger
       validate!
       daemonize
+      write_pid
       initialize_aws
       require_workers
-      write_pid
+      load_celluloid
 
+      require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
 
       begin
@@ -44,6 +46,18 @@ module Shoryuken
     end
 
     private
+
+    def load_celluloid
+      raise "Celluloid cannot be required until here, or it will break Shoryuken's daemonization" if defined?(::Celluloid) && Shoryuken.options[:daemon]
+
+      # Celluloid can't be loaded until after we've daemonized
+      # because it spins up threads and creates locks which get
+      # into a very bad state if forked.
+      require 'celluloid/autostart'
+      Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
+
+      require 'shoryuken/manager'
+    end
 
     def daemonize
       return unless Shoryuken.options[:daemon]
