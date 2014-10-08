@@ -137,6 +137,10 @@ Shoryuken.configure_server do |config|
 end
 ```
 
+## More Information
+
+Please check the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
+
 ## Credits
 
 [Mike Perham](https://github.com/mperham), creator of [Sidekiq](https://github.com/mperham/sidekiq), and [everybody who contributed to it](https://github.com/mperham/sidekiq/graphs/contributors). Shoryuken wouldn't exist as it is without those contributions.
