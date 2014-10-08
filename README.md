@@ -77,9 +77,9 @@ Sample configuration file `shoryuken.yml`.
 
 ```yaml
 aws:
-  access_key_id:      ...
-  secret_access_key:  ...
-  region:             us-east-1
+  access_key_id:      ...       # or <%= ENV['AWS_ACCESS_KEY_ID'] %>
+  secret_access_key:  ...       # or <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
+  region:             us-east-1 # or <%= ENV['AWS_REGION'] %>
   receive_message:
     attributes:
       - receive_count
