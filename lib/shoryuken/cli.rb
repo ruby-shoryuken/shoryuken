@@ -26,8 +26,8 @@ module Shoryuken
       daemonize
       write_pid
       initialize_aws
-      require_workers
       load_celluloid
+      require_workers
 
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new

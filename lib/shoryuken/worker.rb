@@ -10,7 +10,6 @@ module Shoryuken
         queue = @shoryuken_options['queue']
         queue = queue.call if queue.respond_to? :call
 
-
         Shoryuken.register_worker(queue, self)
       end
 
