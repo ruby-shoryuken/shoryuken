@@ -34,10 +34,6 @@ If all queues get empty, all processors will be changed to the waiting state and
 
 To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches.
 
-## Resque compatible?
-
-Shoryuken isn't Resque compatible, it passes the [original SQS message](http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/SQS/ReceivedMessage.html) to the workers.
-
 ## Installation
 
 Add this line to your application's Gemfile:
