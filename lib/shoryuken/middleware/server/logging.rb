@@ -9,6 +9,8 @@ module Shoryuken
             begin
               started_at = Time.now
 
+              logger.inf("started at #{started}")
+
               yield
 
               total_time = elapsed(started_at)
