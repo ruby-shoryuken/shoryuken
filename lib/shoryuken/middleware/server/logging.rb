@@ -9,7 +9,7 @@ module Shoryuken
             begin
               started_at = Time.now
 
-              logger.inf("started at #{started}")
+              logger.info { "started at #{started_at}" }
 
               yield
 
@@ -20,9 +20,9 @@ module Shoryuken
               end
 
               logger.info { "completed in: #{total_time} ms" }
-            rescue Exception
+            rescue => e
               logger.info { "failed in: #{elapsed(started_at)} ms" }
-              raise
+              raise e
             end
           end
         end
