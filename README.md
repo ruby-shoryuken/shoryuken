@@ -4,6 +4,8 @@
 
 Shoryuken _sho-ryu-ken_ is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor.
 
+[![Build Status](https://travis-ci.org/phstc/shoryuken.svg)](https://travis-ci.org/phstc/shoryuken)
+
 ## Key features
 
 ### Load balancing
