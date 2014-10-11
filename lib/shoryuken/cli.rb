@@ -210,6 +210,12 @@ module Shoryuken
     end
 
     def validate!
+      if Shoryuken.options[:aws][:access_key_id].nil? && Shoryuken.options[:aws][:secret_access_key].nil?
+        if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
+          raise ArgumentError, 'No AWS credentials supplied'
+        end
+      end
+
       raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
     end
 
