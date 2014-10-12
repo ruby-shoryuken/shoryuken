@@ -25,7 +25,6 @@ module Shoryuken
       validate!
       daemonize
       write_pid
-      initialize_aws
       load_celluloid
       require_workers
 
@@ -216,10 +215,26 @@ module Shoryuken
         end
       end
 
+
+      initialize_aws
+
+      Shoryuken.queues.uniq.each do |queue_name|
+        # validate all queues and AWS credentials consequently
+        begin
+          Shoryuken::Client.queues(queue_name)
+        rescue AWS::SQS::Errors::NonExistentQueue => e
+          raise ArgumentError, "Queue #{queue_name} does not exist"
+        rescue => e
+          raise
+        end
+      end
+
       raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
     end
 
     def initialize_aws
+      # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+      # when not explicit supplied
       AWS.config Shoryuken.options[:aws] if Shoryuken.options[:aws]
     end
 
