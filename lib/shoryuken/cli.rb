@@ -195,13 +195,12 @@ module Shoryuken
       parse_queues
     end
 
-    def parse_config(cfile)
-      opts = {}
-      if File.exist?(cfile)
-        opts = YAML.load(ERB.new(IO.read(cfile)).result)
+    def parse_config(config_file)
+      if File.exist?(config_file)
+        YAML.load(ERB.new(IO.read(config_file)).result)
+      else
+        raise ArgumentError, "Config file #{config_file} does not exist"
       end
-
-      opts
     end
 
     def initialize_logger
