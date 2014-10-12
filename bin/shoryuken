@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'shoryuken'
-require 'shoryuken/cli'
+require_relative '../lib/shoryuken/cli'
 
 begin
   Shoryuken::CLI.instance.run(ARGV)

@@ -4,6 +4,8 @@ require 'singleton'
 require 'optparse'
 require 'erb'
 
+require 'shoryuken'
+
 module Shoryuken
   class CLI
     include Util
