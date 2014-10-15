@@ -105,7 +105,7 @@ module Shoryuken
     end
 
     def pause_queue!(queue)
-      return unless @queues.include? queue
+      return if !@queues.include?(queue) || Shoryuken.options[:delay].to_f <= 0
 
       logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because the queue is empty"
 

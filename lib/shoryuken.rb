@@ -17,7 +17,7 @@ module Shoryuken
     concurrency: 25,
     queues: [],
     aws: {},
-    delay: 25,
+    delay: 0,
     timeout: 8
   }
 

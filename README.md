@@ -86,9 +86,8 @@ aws:
     attributes:
       - receive_count
       - sent_at
-concurrency: 25,
-delay: 25,
-timeout: 8
+concurrency: 25,  # The number of allocated threads to process messages. Default 25
+delay: 25,        # The delay to pause a queue when it's empty. Default 0
 queues:
   - [shoryuken, 6]
   - [uppercut, 2]
