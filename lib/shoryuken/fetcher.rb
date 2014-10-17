@@ -24,10 +24,9 @@ module Shoryuken
           if (sqs_msgs = Array(receive_message(queue, available_processors))).any?
             logger.info "Found #{sqs_msgs.size} messages for '#{queue}'"
 
-            sqs_msgs.each do |sqs_msg|
-              @manager.async.assign(queue, sqs_msg)
-              @manager.async.rebalance_queue_weight!(queue)
-            end
+            sqs_msgs.each { |sqs_msg| @manager.async.assign(queue, sqs_msg) }
+
+            @manager.async.rebalance_queue_weight!(queue)
           else
             logger.info "No message found for '#{queue}'"
 
