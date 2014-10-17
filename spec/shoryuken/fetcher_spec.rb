@@ -1,10 +1,11 @@
 require 'spec_helper'
+require 'shoryuken/manager'
 require 'shoryuken/fetcher'
 
 describe Shoryuken::Fetcher do
   let(:manager)   { double Shoryuken::Manager }
   let(:sqs_queue) { double 'sqs_queue' }
-  let(:queue)     { 'shoryuken' }
+  let(:queue)     { 'shoryuken2' }
   let(:sqs_msg)   { double 'SQS msg'}
 
   subject { described_class.new(manager) }
@@ -14,8 +15,17 @@ describe Shoryuken::Fetcher do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
 
+
+  class Shoryuken2Worker
+    include Shoryuken::Worker
+
+    shoryuken_options queue: 'shoryuken2'
+
+    def perform(sqs_msg); end
+  end
+
   describe '#fetch' do
-    it 'calls pause_queue! when not found' do
+    it 'calls pause when no message' do
       allow(sqs_queue).to receive(:receive_message).with(limit: 1).and_return([])
 
       expect(manager).to receive(:pause_queue!).with(queue)
@@ -29,6 +39,18 @@ describe Shoryuken::Fetcher do
 
       expect(manager).to receive(:rebalance_queue_weight!).with(queue)
       expect(manager).to receive(:assign).with(queue, sqs_msg)
+      expect(manager).to receive(:dispatch)
+
+      subject.fetch(queue, 5)
+    end
+
+    it 'assigns messages in batch' do
+      Shoryuken2Worker.get_shoryuken_options['batch'] = true
+
+      allow(sqs_queue).to receive(:receive_message).with(limit: described_class::FETCH_LIMIT).and_return(sqs_msg)
+
+      expect(manager).to receive(:rebalance_queue_weight!).with(queue)
+      expect(manager).to receive(:assign).with(queue, [sqs_msg])
       expect(manager).to receive(:dispatch)
 
       subject.fetch(queue, 5)

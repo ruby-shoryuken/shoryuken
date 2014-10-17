@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'shoryuken/manager'
 require 'shoryuken/launcher'
 
 describe Shoryuken::Launcher do

@@ -3,13 +3,15 @@ module Shoryuken
     include Celluloid
     include Util
 
+    FETCH_LIMIT = 10
+
     def initialize(manager)
       @manager = manager
     end
 
     def receive_message(queue, limit)
       # AWS limits the batch size by 10
-      limit = limit > 10 ? 10 : limit
+      limit = limit > FETCH_LIMIT ? FETCH_LIMIT : limit
 
       Shoryuken::Client.receive_message queue, Shoryuken.options[:aws][:receive_message].to_h.merge(limit: limit)
     end
@@ -21,10 +23,18 @@ module Shoryuken
         logger.info "Looking for new messages '#{queue}'"
 
         begin
-          if (sqs_msgs = Array(receive_message(queue, available_processors))).any?
+          batch = !!Shoryuken.workers[queue].get_shoryuken_options['batch']
+
+          limit = batch ? FETCH_LIMIT : available_processors
+
+          if (sqs_msgs = Array(receive_message(queue, limit))).any?
             logger.info "Found #{sqs_msgs.size} messages for '#{queue}'"
 
-            sqs_msgs.each { |sqs_msg| @manager.async.assign(queue, sqs_msg) }
+            if batch
+              @manager.async.assign(queue, sqs_msgs)
+            else
+              sqs_msgs.each { |sqs_msg| @manager.async.assign(queue, sqs_msg) }
+            end
 
             @manager.async.rebalance_queue_weight!(queue)
           else
