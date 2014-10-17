@@ -219,12 +219,12 @@ module Shoryuken
 
       initialize_aws
 
-      Shoryuken.queues.uniq.each do |queue_name|
+      Shoryuken.queues.uniq.each do |queue|
         # validate all queues and AWS credentials consequently
         begin
-          Shoryuken::Client.queues(queue_name)
+          Shoryuken::Client.queues queue
         rescue AWS::SQS::Errors::NonExistentQueue => e
-          raise ArgumentError, "Queue #{queue_name} does not exist"
+          raise ArgumentError, "Queue '#{queue}' does not exist"
         rescue => e
           raise
         end

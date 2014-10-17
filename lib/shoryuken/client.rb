@@ -4,16 +4,16 @@ module Shoryuken
     @@visibility_timeouts = {}
 
     class << self
-      def queues(queue_name)
-        @@queues[queue_name.to_s] ||= sqs.queues.named(queue_name)
+      def queues(queue)
+        @@queues[queue.to_s] ||= sqs.queues.named(queue)
       end
 
-      def visibility_timeout(queue_name)
-        @@visibility_timeouts[queue_name.to_s] ||= queues(queue_name).visibility_timeout
+      def visibility_timeout(queue)
+        @@visibility_timeouts[queue.to_s] ||= queues(queue).visibility_timeout
       end
 
-      def receive_message(queue_name, options = {})
-        queues(queue_name).receive_message(Hash(options))
+      def receive_message(queue, options = {})
+        queues(queue).receive_message(Hash(options))
       end
 
       def sqs
