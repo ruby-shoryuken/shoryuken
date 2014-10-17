@@ -51,7 +51,7 @@ module Shoryuken
 
     def processor_done(queue, processor)
       watchdog('Manager#processor_done died') do
-        logger.info "Process done for queue '#{queue}'"
+        logger.info "Process done for '#{queue}'"
 
         @busy.delete processor
 
@@ -93,11 +93,7 @@ module Shoryuken
     def rebalance_queue_weight!(queue)
       watchdog('Manager#rebalance_queue_weight! died') do
         if (original = original_queue_weight(queue)) > (current = current_queue_weight(queue))
-          if current + 1 > original
-            logger.info "Increasing queue '#{queue}' weight to #{current + 1}, original: #{original}"
-          else
-            logger.info "Queue '#{queue}' is back to its normal weight #{original}"
-          end
+          logger.info "Increasing '#{queue}' weight to #{current + 1}, max: #{original}"
 
           @queues << queue
         end
@@ -107,7 +103,7 @@ module Shoryuken
     def pause_queue!(queue)
       return if !@queues.include?(queue) || Shoryuken.options[:delay].to_f <= 0
 
-      logger.info "Pausing queue '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because the queue is empty"
+      logger.info "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty"
 
       @queues.delete(queue)
 
@@ -118,7 +114,7 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      logger.debug "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{unparse_queues(@queues)}"
+      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{unparse_queues(@queues)}" }
 
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
@@ -143,7 +139,7 @@ module Shoryuken
       return if stopped?
 
       unless @queues.include? queue
-        logger.info "Restarting queue '#{queue}'"
+        logger.info "Restarting '#{queue}'"
 
         @queues << queue
 

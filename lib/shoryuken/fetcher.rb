@@ -18,25 +18,25 @@ module Shoryuken
       watchdog('Fetcher#fetch died') do
         started_at = Time.now
 
-        logger.info "Looking for new messages queue '#{queue}'"
+        logger.info "Looking for new messages '#{queue}'"
 
         begin
           if (sqs_msgs = Array(receive_message(queue, available_processors))).any?
-            logger.info "Message found for queue '#{queue}'"
+            logger.info "Found #{sqs_msgs.size} messages for '#{queue}'"
 
             sqs_msgs.each do |sqs_msg|
-              @manager.async.rebalance_queue_weight!(queue)
               @manager.async.assign(queue, sqs_msg)
+              @manager.async.rebalance_queue_weight!(queue)
             end
           else
-            logger.info "No message found for queue '#{queue}'"
+            logger.info "No message found for '#{queue}'"
 
             @manager.async.pause_queue!(queue)
           end
 
           @manager.async.dispatch
 
-          logger.debug { "Fetcher#fetch('#{queue}') completed in #{elapsed(started_at)} ms" }
+          logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
         rescue => ex
           logger.error "Error fetching message: #{ex}"
           logger.error ex.backtrace.first
