@@ -5,7 +5,7 @@ module Shoryuken
         def call(worker, queue, sqs_msg)
           yield
 
-          sqs_msg.delete if worker.class.get_shoryuken_options['auto_delete']
+          Array(sqs_msg).each(&:delete) if worker.class.get_shoryuken_options['auto_delete']
         end
       end
     end

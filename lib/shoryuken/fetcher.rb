@@ -31,7 +31,7 @@ module Shoryuken
             logger.info "Found #{sqs_msgs.size} messages for '#{queue}'"
 
             if batch
-              @manager.async.assign(queue, sqs_msgs)
+              @manager.async.assign(queue, patch_sqs_msgs!(sqs_msgs))
             else
               sqs_msgs.each { |sqs_msg| @manager.async.assign(queue, sqs_msg) }
             end
@@ -53,6 +53,18 @@ module Shoryuken
           @manager.async.dispatch
         end
       end
+
+    end
+    private
+
+    def patch_sqs_msgs!(sqs_msgs)
+      sqs_msgs.instance_eval do
+        def id
+          "batch-with-#{size}-messages"
+        end
+      end
+
+      sqs_msgs
     end
   end
 end
