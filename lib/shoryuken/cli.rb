@@ -244,7 +244,7 @@ module Shoryuken
     end
 
     def parse_queues
-      Shoryuken.options[:queues].each { |queue_and_weight| parse_queue *queue_and_weight }
+      Shoryuken.options[:queues].to_a.each { |queue_and_weight| parse_queue *queue_and_weight }
     end
 
     def parse_queue(queue, weight = nil)
