@@ -1,7 +1,7 @@
 module Shoryuken
   module Middleware
     module Server
-      class AutoDelete
+      class Delete
         def call(worker, queue, sqs_msg)
           yield
 

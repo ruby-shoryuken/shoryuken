@@ -65,7 +65,7 @@ module Shoryuken
   def self.default_server_middleware
     Middleware::Chain.new do |m|
       m.add Middleware::Server::Logging
-      m.add Middleware::Server::AutoDelete
+      m.add Middleware::Server::Delete
       # TODO m.add Middleware::Server::RetryJobs
     end
   end
