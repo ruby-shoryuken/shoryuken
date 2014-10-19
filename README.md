@@ -82,12 +82,13 @@ aws:
   access_key_id:      ...       # or <%= ENV['AWS_ACCESS_KEY_ID'] %>
   secret_access_key:  ...       # or <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
   region:             us-east-1 # or <%= ENV['AWS_REGION'] %>
-  receive_message:
+  receive_message:              # See http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/SQS/Queue.html#receive_message-instance_method
+    # wait_time_seconds: N      # The number of seconds to wait for new messages when polling. Defaults to the #wait_time_seconds defined on the queue
     attributes:
       - receive_count
       - sent_at
 concurrency: 25,  # The number of allocated threads to process messages. Default 25
-delay: 25,        # The delay to pause a queue when it's empty. Default 0
+delay: 25,        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
   - [shoryuken, 6]
   - [uppercut, 2]
