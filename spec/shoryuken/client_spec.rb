@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Shoryuken::Client do
   let(:sqs)              { double 'SQS' }
   let(:queue_collection) { double 'Queues Collection' }
-  let(:sqs_queue)        { double 'Queue' }
+  let(:sqs_queue)        { double 'SQS Queue' }
   let(:queue)            { 'shoryuken' }
 
   before do
