@@ -58,8 +58,8 @@ Or install it yourself as:
 class HelloWorker
   include Shoryuken::Worker
 
-  shoryuken_options queue: 'hello', auto_delete: true
-  # shoryuken_options queue: ->{ "#{ENV['environment']_hello" }, auto_delete: true
+  shoryuken_options queue: 'hello', delete: true
+  # shoryuken_options queue: ->{ "#{ENV['environment']_hello" }, delete: true
 
   def perform(sqs_msg)
     puts "Hello #{sqs_msg.body}"
