@@ -5,6 +5,10 @@ require 'shoryuken/launcher'
 describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
     before do
+      Shoryuken.options[:aws] ||= {}
+      Shoryuken.options[:aws][:receive_message] ||= {}
+      Shoryuken.options[:aws][:receive_message][:wait_time_seconds] = 5
+
       subject.run
 
       $received_messages = 0
