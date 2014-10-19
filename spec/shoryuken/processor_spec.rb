@@ -67,8 +67,8 @@ describe Shoryuken::Processor do
       end
     end
 
-    it 'performs with auto delete' do
-      YoWorker.get_shoryuken_options['auto_delete'] = true
+    it 'performs with delete' do
+      YoWorker.get_shoryuken_options['delete'] = true
 
       expect(manager).to receive(:processor_done).with(queue, subject)
 
@@ -79,8 +79,8 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'performs without auto delete' do
-      YoWorker.get_shoryuken_options['auto_delete'] = false
+    it 'performs without delete' do
+      YoWorker.get_shoryuken_options['delete'] = false
 
       expect(manager).to receive(:processor_done).with(queue, subject)
 

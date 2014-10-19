@@ -17,7 +17,7 @@ describe Shoryuken::Launcher do
     class ShoryukenWorker
       include Shoryuken::Worker
 
-      shoryuken_options queue: 'shoryuken', auto_delete: true
+      shoryuken_options queue: 'shoryuken', delete: true
 
       def perform(sqs_msg)
         $received_messages = Array(sqs_msg).size

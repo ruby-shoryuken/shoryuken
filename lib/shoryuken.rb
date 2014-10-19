@@ -9,7 +9,7 @@ require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
-require 'shoryuken/middleware/server/auto_delete'
+require 'shoryuken/middleware/server/delete'
 require 'shoryuken/middleware/server/logging'
 
 module Shoryuken
