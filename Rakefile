@@ -1,6 +1,7 @@
 require 'bundler/gem_tasks'
 $stdout.sync = true
 
+desc 'Open Shoryuken pry console'
 task :console do
   require 'pry'
   require 'shoryuken'
@@ -21,6 +22,7 @@ task :console do
   Pry.start
 end
 
+desc 'Push test messages to shoryuken, uppercut and sidekiq'
 task :push_test, :size do |t, args|
   require 'yaml'
   require 'shoryuken'
