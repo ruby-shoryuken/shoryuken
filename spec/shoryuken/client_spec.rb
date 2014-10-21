@@ -21,6 +21,20 @@ describe Shoryuken::Client do
     end
   end
 
+  describe '.send_message' do
+    it 'enqueues a message' do
+      expect(sqs_queue).to receive(:send_message).with('test', {})
+
+      described_class.send_message(queue, 'test')
+    end
+
+    it 'enqueues a message with options' do
+      expect(sqs_queue).to receive(:send_message).with('test2', delay_seconds: 60)
+
+      described_class.send_message(queue, 'test2', delay_seconds: 60)
+    end
+  end
+
   describe '.visibility_timeout' do
     it 'memoizes visibility_timeout' do
       expect(sqs_queue).to receive(:visibility_timeout).once.and_return(30)

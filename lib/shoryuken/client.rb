@@ -16,6 +16,10 @@ module Shoryuken
         queues(queue).receive_message(Hash(options))
       end
 
+      def send_message(queue, body, options = {})
+        queues(queue).send_message(body, options)
+      end
+
       def sqs
         @sqs ||= AWS::SQS.new
       end

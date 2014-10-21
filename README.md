@@ -70,7 +70,14 @@ end
 ### Sending a message
 
 ```ruby
+HelloWorker.perform_async('Pablo')
+# or
 Shoryuken::Client.queues('hello').send_message('Pablo')
+
+# delaying a message
+HelloWorker.perform_async('Pablo', delay_seconds: 60)
+# or
+Shoryuken::Client.queues('hello').send_message('Pablo', delay_seconds: 60)
 ```
 
 ### Configuration

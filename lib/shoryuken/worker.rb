@@ -5,6 +5,10 @@ module Shoryuken
     end
 
     module ClassMethods
+      def perform_async(body, options = {})
+        Shoryuken::Client.send_message(get_shoryuken_options['queue'], body, options)
+      end
+
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(Hash(opts)))
         queue = @shoryuken_options['queue']
