@@ -18,21 +18,21 @@ Given this configuration:
 concurrency: 25,
 delay: 25,
 queues:
-  - [high_priority_queue, 6]
-  - [default_queue, 2]
-  - [low_priority_queue, 1]
+  - [high_priority, 6]
+  - [default, 2]
+  - [low_priority, 1]
 ```
 
-And supposing all the queues are full of messages, the configuration above will make Shoryuken to process **high_priority_queue** 3 times more than **default_queue** and 6 times more than **low_priority_queue**,
+And supposing all the queues are full of messages, the configuration above will make Shoryuken to process `high_priority` 3 times more than `default` and 6 times more than `low_priority`,
 splitting the work among the 25 available processors.
 
-If **high_priority_queue** gets empty, Shoryuken will keep using the 25 processors, but only to process **default_queue** (2 times more than **low_priority_queue**) and **low_priority_queue**.
+If `high_priority` gets empty, Shoryuken will keep using the 25 processors, but only to process `default` (2 times more than `low_priority`) and `low_priority`.
 
-If **high_priority_queue** receives a new message, Shoryuken will smoothly increase back the **high_priority_queue** weight one by one until it reaches the weight of 5 again.
+If `high_priority` receives a new message, Shoryuken will smoothly increase back the `high_priority` weight one by one until it reaches the weight of 6 again, which is the maximum configured for `high_priority`.
 
 If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 25`. If any queue receives a new message, Shoryuken will start processing again.
 
-*You can set `delay: 0` to continuously check the queues even if they are empty.*
+*You can set `delay: 0` to continuously check the queues without pausing even if they are empty.*
 
 ### Fetch in batches
 
@@ -60,11 +60,11 @@ Or install it yourself as:
 class HelloWorker
   include Shoryuken::Worker
 
-  shoryuken_options queue: 'hello_queue', delete: true
-  # shoryuken_options queue: ->{ "#{ENV['environment']_hello_queue" }, delete: true
+  shoryuken_options queue: 'default', delete: true
+  # shoryuken_options queue: ->{ "#{ENV['environment']_default" }, delete: true
 
   def perform(sqs_msg)
-    puts "Hello #{sqs_msg.body}"
+    puts "HelloWorker: #{sqs_msg.body}"
   end
 end
 ```
@@ -74,12 +74,12 @@ end
 ```ruby
 HelloWorker.perform_async('Pablo')
 # or
-Shoryuken::Client.queues('hello_queue').send_message('Pablo')
+Shoryuken::Client.queues('default').send_message('Pablo')
 
 # delaying a message
 HelloWorker.perform_async('Pablo', delay_seconds: 60)
 # or
-Shoryuken::Client.queues('hello_queue').send_message('Pablo', delay_seconds: 60)
+Shoryuken::Client.queues('default').send_message('Pablo', delay_seconds: 60)
 ```
 
 ### Configuration
@@ -99,9 +99,9 @@ aws:
 concurrency: 25,  # The number of allocated threads to process messages. Default 25
 delay: 25,        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
-  - [high_priority_queue, 6]
-  - [default_queue, 2]
-  - [low_priority_queue, 1]
+  - [high_priority, 6]
+  - [default, 2]
+  - [low_priority, 1]
 ```
 
 ### Start Shoryuken

@@ -22,7 +22,7 @@ task :console do
   Pry.start
 end
 
-desc 'Push test messages to high_priority_queue, default_queue and low_priority_queue'
+desc 'Push test messages to high_priority, default and low_priority'
 task :push_test, :size do |t, args|
   require 'yaml'
   require 'shoryuken'
@@ -31,13 +31,17 @@ task :push_test, :size do |t, args|
 
   AWS.config(config['aws'])
 
+  Shoryuken::Client.sqs.queues.create('default')
+  Shoryuken::Client.sqs.queues.create('high_priority')
+  Shoryuken::Client.sqs.queues.create('low_priority')
+
   (args[:size] || 1).to_i.times.map do |i|
     Thread.new do
       puts "Pushing test ##{i}"
 
-      Shoryuken::Client.queues('high_priority_queue').send_message("test #{i}")
-      Shoryuken::Client.queues('default_queue').send_message("test #{i}")
-      Shoryuken::Client.queues('low_priority_queue').send_message("test #{i}")
+      Shoryuken::Client.queues('high_priority').send_message("test #{i}")
+      Shoryuken::Client.queues('default').send_message("test #{i}")
+      Shoryuken::Client.queues('low_priority').send_message("test #{i}")
     end
   end.each &:join
 end
