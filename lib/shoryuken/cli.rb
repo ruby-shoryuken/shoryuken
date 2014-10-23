@@ -16,7 +16,7 @@ module Shoryuken
     def run(args)
       self_read, self_write = IO.pipe
 
-      %w(INT TERM USR1 USR2 TTIN).each do |sig|
+      %w[INT TERM USR1 USR2 TTIN].each do |sig|
         trap sig do
           self_write.puts(sig)
         end
@@ -24,11 +24,11 @@ module Shoryuken
 
       setup_options(args)
       initialize_logger
+      require_workers
       validate!
       daemonize
       write_pid
       load_celluloid
-      require_workers
 
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
@@ -210,12 +210,17 @@ module Shoryuken
     end
 
     def validate!
+      raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
+
+      if queue_without_worker = Shoryuken.queues.find { |queue| Shoryuken.workers[queue].nil? }
+        raise ArgumentError, "No worker supplied for #{queue_without_worker}"
+      end
+
       if Shoryuken.options[:aws][:access_key_id].nil? && Shoryuken.options[:aws][:secret_access_key].nil?
         if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
           raise ArgumentError, 'No AWS credentials supplied'
         end
       end
-
 
       initialize_aws
 
@@ -229,8 +234,6 @@ module Shoryuken
           raise
         end
       end
-
-      raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
     end
 
     def initialize_aws
