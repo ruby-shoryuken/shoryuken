@@ -22,7 +22,7 @@ task :console do
   Pry.start
 end
 
-desc 'Push test messages to shoryuken, uppercut and sidekiq'
+desc 'Push test messages to high_priority_queue, default_queue and low_priority_queue'
 task :push_test, :size do |t, args|
   require 'yaml'
   require 'shoryuken'
@@ -33,11 +33,11 @@ task :push_test, :size do |t, args|
 
   (args[:size] || 1).to_i.times.map do |i|
     Thread.new do
-      Shoryuken::Client.queues('shoryuken').send_message("shoryuken #{i}")
-      Shoryuken::Client.queues('uppercut').send_message("uppercut #{i}")
-      Shoryuken::Client.queues('sidekiq').send_message("sidekiq #{i}")
+      puts "Pushing test ##{i}"
 
-      puts "Push test ##{i + 1}"
+      Shoryuken::Client.queues('high_priority_queue').send_message("test #{i}")
+      Shoryuken::Client.queues('default_queue').send_message("test #{i}")
+      Shoryuken::Client.queues('low_priority_queue').send_message("test #{i}")
     end
   end.each &:join
 end

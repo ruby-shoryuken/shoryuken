@@ -1,5 +1,5 @@
 $stdout.sync = true
 
-require_relative 'shoryuken_worker'
-require_relative 'uppercut_worker'
-require_relative 'sidekiq_worker'
+require_relative 'high_priority_worker'
+require_relative 'default_worker'
+require_relative 'low_priority_worker'
