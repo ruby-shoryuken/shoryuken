@@ -24,7 +24,7 @@ queues:
 ```
 
 And supposing all the queues are full of messages, the configuration above will make Shoryuken to process `high_priority` 3 times more than `default` and 6 times more than `low_priority`,
-splitting the work among the 25 available processors `concurrency: 25`.
+splitting the work among the `concurrency: 25` available processors.
 
 If `high_priority` gets empty, Shoryuken will keep using the 25 processors, but only to process `default` (2 times more than `low_priority`) and `low_priority`.
 
