@@ -9,8 +9,8 @@ require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
-require 'shoryuken/middleware/server/delete'
-require 'shoryuken/middleware/server/logging'
+require 'shoryuken/middleware/server/auto_delete'
+require 'shoryuken/middleware/server/timestamps'
 
 module Shoryuken
   DEFAULTS = {
@@ -64,8 +64,8 @@ module Shoryuken
 
   def self.default_server_middleware
     Middleware::Chain.new do |m|
-      m.add Middleware::Server::Logging
-      m.add Middleware::Server::Delete
+      m.add Middleware::Server::Timestamps
+      m.add Middleware::Server::AutoDelete
       # TODO m.add Middleware::Server::RetryJobs
     end
   end
