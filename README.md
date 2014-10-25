@@ -57,17 +57,18 @@ Or install it yourself as:
 ### Worker class
 
 ```ruby
-class HelloWorker
+class MyWorker
   include Shoryuken::Worker
 
   shoryuken_options queue: 'default', delete: true
-  # shoryuken_options queue: 'default', body_parser: :json
-  # shoryuken_options queue: 'default', body_parser: ->(sqs_msg){ REXML::Document.new(sqs_msg.body) }
-  # shoryuken_options queue: 'default', body_parser: JSON
   # shoryuken_options queue: ->{ "#{ENV['environment']_default" }
 
+  # shoryuken_options body_parser: :json
+  # shoryuken_options body_parser: ->(sqs_msg){ REXML::Document.new(sqs_msg.body) }
+  # shoryuken_options body_parser: JSON
+
   def perform(sqs_msg, body)
-    puts "HelloWorker: #{body}"
+    puts body
   end
 end
 ```
@@ -75,12 +76,12 @@ end
 ### Sending a message
 
 ```ruby
-HelloWorker.perform_async('Pablo')
+MyWorker.perform_async('Pablo')
 # or
 Shoryuken::Client.queues('default').send_message('Pablo')
 
 # delaying a message
-HelloWorker.perform_async('Pablo', delay_seconds: 60)
+MyWorker.perform_async('Pablo', delay_seconds: 60)
 # or
 Shoryuken::Client.queues('default').send_message('Pablo', delay_seconds: 60)
 ```
