@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'shoryuken/processor'
+require 'shoryuken/manager'
 
 describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager }
@@ -21,16 +22,6 @@ describe Shoryuken::Processor do
       shoryuken_options queue: 'yo'
 
       def perform(sqs_msg); end
-    end
-
-    it 'skips when worker not found' do
-      queue = 'notfound'
-
-      expect(manager).to receive(:processor_done).with(queue, subject)
-
-      expect(sqs_msg).to_not receive(:delete)
-
-      subject.process(queue, sqs_msg)
     end
 
     context 'when custom middleware' do
