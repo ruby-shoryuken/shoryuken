@@ -24,5 +24,4 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "aws-sdk"
   spec.add_dependency "celluloid"
-  spec.add_dependency "multi_json"
 end

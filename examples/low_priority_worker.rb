@@ -1,11 +1,11 @@
 class LowPriorityWorker
   include Shoryuken::Worker
 
-  shoryuken_options queue: 'low_priority', delete: true
+  shoryuken_options queue: 'low_priority', delete: true, batch: true
 
-  def perform(sqs_msg)
-    puts "LowPriorityWorker: '#{sqs_msg.body}'"
-
-    sleep rand(0..1)
+  def perform(sqs_msgs, bodies)
+    bodies.each_with_index do |body, index|
+      puts "LowPriorityWorker (#{index}): '#{body}'"
+    end
   end
 end

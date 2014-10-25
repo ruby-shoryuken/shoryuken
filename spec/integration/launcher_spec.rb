@@ -11,20 +11,28 @@ describe Shoryuken::Launcher do
 
       subject.run
 
-      $received_messages = 0
+      ShoryukenWorker.received_messages = 0
     end
 
-    after do
-      subject.stop
-    end
+    after { subject.stop }
 
     class ShoryukenWorker
       include Shoryuken::Worker
 
+      @@received_messages = 0
+
       shoryuken_options queue: 'shoryuken', delete: true
 
-      def perform(sqs_msg)
-        $received_messages = Array(sqs_msg).size
+      def perform(sqs_msg, body)
+        @@received_messages = Array(sqs_msg).size
+      end
+
+      def self.received_messages
+        @@received_messages
+      end
+
+      def self.received_messages=(received_messages)
+        @@received_messages = received_messages
       end
     end
 
@@ -34,11 +42,11 @@ describe Shoryuken::Launcher do
       Shoryuken::Client.queues('shoryuken').send_message('Yo')
 
       10.times do
-        break if $received_messages > 0
+        break if ShoryukenWorker.received_messages > 0
         sleep 0.2
       end
 
-      expect($received_messages).to eq 1
+      expect(ShoryukenWorker.received_messages).to eq 1
     end
 
     it 'consumes a batch' do
@@ -47,12 +55,12 @@ describe Shoryuken::Launcher do
       Shoryuken::Client.queues('shoryuken').batch_send *(['Yo'] * 10)
 
       10.times do
-        break if $received_messages > 0
+        break if ShoryukenWorker.received_messages > 0
         sleep 0.2
       end
 
       # the fetch result is uncertain, should be greater than 1, but hard to tell the exact size
-      expect($received_messages).to be > 1
+      expect(ShoryukenWorker.received_messages).to be > 1
     end
   end
 end

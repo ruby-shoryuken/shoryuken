@@ -2,7 +2,8 @@ module Shoryuken
   module Middleware
     module Server
       class Delete
-        def call(worker, queue, sqs_msg)
+
+        def call(worker, queue, sqs_msg, body)
           yield
 
           # auto_delete is deprecated

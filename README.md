@@ -61,10 +61,13 @@ class HelloWorker
   include Shoryuken::Worker
 
   shoryuken_options queue: 'default', delete: true
-  # shoryuken_options queue: ->{ "#{ENV['environment']_default" }, delete: true
+  # shoryuken_options queue: 'default', body_parser: :json
+  # shoryuken_options queue: 'default', body_parser: ->(sqs_msg){ REXML::Document.new(sqs_msg.body) }
+  # shoryuken_options queue: 'default', body_parser: JSON
+  # shoryuken_options queue: ->{ "#{ENV['environment']_default" }
 
-  def perform(sqs_msg)
-    puts "HelloWorker: #{sqs_msg.body}"
+  def perform(sqs_msg, body)
+    puts "HelloWorker: #{body}"
   end
 end
 ```

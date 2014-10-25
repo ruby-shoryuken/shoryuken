@@ -2,8 +2,8 @@ require 'bundler/setup'
 Bundler.setup
 
 require 'pry-byebug'
-require 'shoryuken'
 require 'celluloid'
+require 'shoryuken'
 
 options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
 
@@ -17,6 +17,14 @@ end
 
 Shoryuken.logger.level = Logger::UNKNOWN
 Celluloid.logger.level = Logger::UNKNOWN
+
+class TestWorker
+  include Shoryuken::Worker
+
+  shoryuken_options queue: 'default'
+
+  def perform(sqs_msg, body); end
+end
 
 RSpec.configure do |config|
   config.filter_run_excluding slow: true unless ENV['SPEC_ALL']
@@ -38,5 +46,8 @@ RSpec.configure do |config|
     Shoryuken.options[:timeout]     = 1
 
     Shoryuken.options[:aws] = {}
+
+    TestWorker.get_shoryuken_options.clear
+    TestWorker.get_shoryuken_options['queue'] = 'default'
   end
 end

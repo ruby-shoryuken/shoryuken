@@ -20,7 +20,7 @@ describe Shoryuken::Middleware::Chain do
     expect(CustomMiddleware).to eq subject.entries.last.klass
   end
 
-  it 'executes middleware' do
+  it 'invokes a middleware' do
     recorder = []
     subject.add CustomMiddleware, 'Pablo', recorder
 
@@ -31,8 +31,7 @@ describe Shoryuken::Middleware::Chain do
   end
 
   class NonYieldingMiddleware
-    def call(*args)
-    end
+    def call(*args); end
   end
 
   it 'allows middleware to abruptly stop processing rest of chain' do
@@ -44,5 +43,27 @@ describe Shoryuken::Middleware::Chain do
     subject.invoke { final_action = true }
     expect(final_action).to eq nil
     expect(recorder).to eq []
+  end
+
+  class DeprecatedMiddleware
+    def call(worker_instance, queue, sqs_msg)
+      @@success = true
+    end
+
+    def self.success?
+      !!@@success
+    end
+  end
+
+  it 'patches deprecated middleware' do
+    subject.clear
+
+    expect(Shoryuken.logger).to receive(:warn).with("[DEPRECATION] DeprecatedMiddleware#call(worker_instance, queue, sqs_msg) is deprecated. Please use DeprecatedMiddleware#call(worker_instance, queue, sqs_msg, body)")
+
+    subject.add DeprecatedMiddleware
+
+    subject.invoke TestWorker, 'test', double('SQS msg', body: 'test'), 'test'
+
+    expect(DeprecatedMiddleware.success?).to eq true
   end
 end
