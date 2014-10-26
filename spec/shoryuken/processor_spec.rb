@@ -4,7 +4,7 @@ require 'shoryuken/manager'
 
 describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager, processor_done: nil }
-  let(:sqs_queue) { double 'SQS Queue', visibility_timeout: 30 }
+  let(:sqs_queue) { double AWS::SQS::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
   let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test' }
 
@@ -132,7 +132,7 @@ describe Shoryuken::Processor do
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
-      expect(sqs_msg).to receive(:delete)
+      expect(sqs_queue).to receive(:batch_delete).with(sqs_msg)
 
       subject.process(queue, sqs_msg)
     end
@@ -144,7 +144,7 @@ describe Shoryuken::Processor do
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
-      expect(sqs_msg).to_not receive(:delete)
+      expect(sqs_queue).to_not receive(:batch_delete)
 
       subject.process(queue, sqs_msg)
     end
