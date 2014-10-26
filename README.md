@@ -77,7 +77,7 @@ class MyWorker
 end
 ```
 
-[Worker options Wiki](https://github.com/phstc/shoryuken/wiki/Worker-options).
+[Check the Worker options documention](https://github.com/phstc/shoryuken/wiki/Worker-options).
 
 ### Sending a message
 
@@ -104,7 +104,7 @@ class MyMiddleware
 end
 ```
 
-[Middleware Wiki](https://github.com/phstc/shoryuken/wiki/Middleware).
+[Check the Middleware documentation](https://github.com/phstc/shoryuken/wiki/Middleware).
 
 ### Configuration
 
