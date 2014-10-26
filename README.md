@@ -44,6 +44,10 @@ Add this line to your application's Gemfile:
 
     gem 'shoryuken'
 
+**Require Shoryuken from GitHub to get the latest changes:**
+
+    gem 'shoryuken', github: 'phstc/shoryuken', branch: 'master'
+
 And then execute:
 
     $ bundle
