@@ -44,7 +44,7 @@ Add this line to your application's Gemfile:
 
     gem 'shoryuken'
 
-**Require Shoryuken from GitHub to get the latest changes:**
+**Require Shoryuken from GitHub to get the latest updates:**
 
     gem 'shoryuken', github: 'phstc/shoryuken', branch: 'master'
 
@@ -77,6 +77,8 @@ class MyWorker
 end
 ```
 
+[Worker options Wiki](https://github.com/phstc/shoryuken/wiki/Worker-options).
+
 ### Sending a message
 
 ```ruby
@@ -89,6 +91,20 @@ MyWorker.perform_async('Pablo', delay_seconds: 60)
 # or
 Shoryuken::Client.queues('default').send_message('Pablo', delay_seconds: 60)
 ```
+
+### Midleware
+
+```ruby
+class MyMiddleware
+  def call(worker_instance, queue, sqs_msg, body)
+    puts 'Before work'
+    yield
+    puts 'After work'
+  end
+end
+```
+
+[Middleware Wiki](https://github.com/phstc/shoryuken/wiki/Middleware).
 
 ### Configuration
 
@@ -137,64 +153,6 @@ shoryuken [options]
     ...
 ```
 
-### Middleware
-
-```ruby
-class MyMiddleware
-  def call(worker_instance, queue, sqs_msg, body)
-    puts 'Before work'
-    yield
-    puts 'After work'
-  end
-end
-
-Shoryuken.configure_server do |config|
-  config.server_middleware do |chain|
-    chain.add MyServerHook
-    # chain.remove MyServerHook
-  end
-end
-```
-
-You can omit the `yield` call in case you want to reject a message consumption.
-
-```ruby
-class RejectInvalidMessagesMiddleware
-  def call(worker_instance, queue, sqs_msg, body)
-    if valid?(sqs_msg)
-      # will process the message
-      yield
-    else
-      # will not process the message
-      Shoryuken.logger.info "sqs_msg '#{sqs_msg.id}' is invalid and was rejected"
-      sqs_msg.delete
-    end
-  end
-end
-```
-
-Be careful with [batchable workers](https://github.com/phstc/shoryuken/wiki/Worker-options#batch), because when they are used the `sqs_msg` and `body` arguments are arrays.
-
-```ruby
-class DoSomethingMiddleware
-  def call(worker_instance, queue, sqs_msg, body)
-    # if you want to skip batchable workers
-    # if sqs_msg.is_a? Array
-    #   yield
-    #   return
-    # end
-
-    # if you want to process batchable and not batchabled in the same way
-    Array(sqs_msg).each_with_index do |current_sqs_msg, index|
-      current_body = body[index]
-
-      # do_something(current_sqs_msg, current_body)
-    end
-
-    yield
-  end
-end
-```
 
 ## More Information
 
