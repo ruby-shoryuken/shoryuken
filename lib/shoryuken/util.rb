@@ -13,6 +13,7 @@ module Shoryuken
     end
 
     def elapsed(started_at)
+      # elapsed in ms
       (Time.now - started_at) * 1000
     end
 

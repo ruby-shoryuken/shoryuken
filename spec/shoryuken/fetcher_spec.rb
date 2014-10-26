@@ -6,7 +6,7 @@ describe Shoryuken::Fetcher do
   let(:manager)   { double Shoryuken::Manager }
   let(:sqs_queue) { double 'sqs_queue' }
   let(:queue)     { 'default' }
-  let(:sqs_msg)   { double 'SQS msg'}
+  let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test' }
 
   subject { described_class.new(manager) }
 
