@@ -44,7 +44,7 @@ Add this line to your application's Gemfile:
 
     gem 'shoryuken'
 
-**Require Shoryuken from GitHub to get the latest updates:**
+Or to get the latest updates:
 
     gem 'shoryuken', github: 'phstc/shoryuken', branch: 'master'
 
