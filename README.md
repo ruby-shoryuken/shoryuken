@@ -30,13 +30,12 @@ If `high_priority` gets empty, Shoryuken will keep using the 25 processors, but 
 
 If `high_priority` receives a new message, Shoryuken will smoothly increase back the `high_priority` weight one by one until it reaches the weight of 6 again, which is the maximum configured for `high_priority`.
 
-If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 25`. If any queue receives a new message, Shoryuken will start processing again.
+If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 25`. If any queue receives a new message, Shoryuken will start processing again. [Check the delay option documentation for more information](https://github.com/phstc/shoryuken/wiki/Shoryuken-options#delay).
 
-*You can set `delay: 0` to continuously check the queues without pausing even if they are empty.*
 
 ### Fetch in batches
 
-To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches.
+To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches, so a single SQS request can fetch up to 10 messages.
 
 ## Installation
 
