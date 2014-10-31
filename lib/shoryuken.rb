@@ -1,5 +1,5 @@
 require 'yaml'
-require 'aws-sdk'
+require 'aws-sdk-v1'
 require 'time'
 
 require 'shoryuken/version'
