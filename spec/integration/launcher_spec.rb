@@ -21,7 +21,7 @@ describe Shoryuken::Launcher do
 
       @@received_messages = 0
 
-      shoryuken_options queue: 'shoryuken', delete: true
+      shoryuken_options queue: 'shoryuken', auto_delete: true
 
       def perform(sqs_msg, body)
         @@received_messages = Array(sqs_msg).size

@@ -63,7 +63,7 @@ Or install it yourself as:
 class MyWorker
   include Shoryuken::Worker
 
-  shoryuken_options queue: 'default', delete: true
+  shoryuken_options queue: 'default', auto_delete: true
   # shoryuken_options queue: ->{ "#{ENV['environment']_default" }
 
   # shoryuken_options body_parser: :json

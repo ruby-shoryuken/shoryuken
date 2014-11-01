@@ -10,7 +10,7 @@ describe Shoryuken::Middleware::Server::AutoDelete do
   end
 
   it 'deletes a message' do
-    TestWorker.get_shoryuken_options['delete'] = true
+    TestWorker.get_shoryuken_options['auto_delete'] = true
 
     expect(sqs_queue).to receive(:batch_delete).with(sqs_msg)
 
@@ -18,7 +18,7 @@ describe Shoryuken::Middleware::Server::AutoDelete do
   end
 
   it 'deletes a batch' do
-    TestWorker.get_shoryuken_options['delete'] = true
+    TestWorker.get_shoryuken_options['auto_delete'] = true
 
     sqs_msg2 = double 'SQS msg', body: 'test'
     sqs_msg3 = double 'SQS msg', body: 'test'
@@ -31,7 +31,7 @@ describe Shoryuken::Middleware::Server::AutoDelete do
   end
 
   it 'does not delete a message' do
-    TestWorker.get_shoryuken_options['delete'] = false
+    TestWorker.get_shoryuken_options['auto_delete'] = false
 
     expect(sqs_queue).to_not receive(:batch_delete)
 

@@ -126,7 +126,7 @@ describe Shoryuken::Processor do
     end
 
     it 'performs with delete' do
-      TestWorker.get_shoryuken_options['delete'] = true
+      TestWorker.get_shoryuken_options['auto_delete'] = true
 
       expect(manager).to receive(:processor_done).with(queue, subject)
 
@@ -138,7 +138,7 @@ describe Shoryuken::Processor do
     end
 
     it 'performs without delete' do
-      TestWorker.get_shoryuken_options['delete'] = false
+      TestWorker.get_shoryuken_options['auto_delete'] = false
 
       expect(manager).to receive(:processor_done).with(queue, subject)
 
