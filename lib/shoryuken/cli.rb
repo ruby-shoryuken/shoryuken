@@ -22,6 +22,7 @@ module Shoryuken
         end
       end
 
+      load_rails
       setup_options(args)
       initialize_logger
       require_workers
@@ -59,6 +60,23 @@ module Shoryuken
       Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
 
       require 'shoryuken/manager'
+    end
+
+    def load_rails
+      # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
+
+      require 'rails'
+      if ::Rails::VERSION::MAJOR < 4
+        require File.expand_path("config/environment.rb")
+        ::Rails.application.eager_load!
+      else
+        # Painful contortions, see 1791 for discussion
+        require File.expand_path("config/application.rb")
+        ::Rails::Application.initializer "shoryuken.eager_load" do
+          ::Rails.application.config.eager_load = true
+        end
+        require File.expand_path("config/environment.rb")
+      end
     end
 
     def daemonize
