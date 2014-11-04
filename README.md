@@ -127,6 +127,14 @@ queues:
   - [low_priority, 1]
 ```
 
+### Rails Integration
+
+You can tell Shoryuken to load your Rails application by passing the `-R` or `--rails` flag to the "shoryuken" command.
+
+If you load Rails, and assuming your workers are located in the `app/workers` directory, they will be auto-loaded. This means you don't need to require them explicitly with `-r`.
+
+This feature works for Rails 4+, but needs to be confirmed for older versions.
+
 ### Start Shoryuken
 
 ```shell
@@ -144,6 +152,7 @@ shoryuken [options]
     -q, --queue QUEUE[,WEIGHT]...    Queues to process with optional weights
     -r, --require [PATH|DIR]         Location of the worker
     -C, --config PATH                Path to YAML config file
+    -R, --rails                      Attempts to load the containing Rails project
     -L, --logfile PATH               Path to writable logfile
     -P, --pidfile PATH               Path to pidfile
     -v, --verbose                    Print more verbose output
