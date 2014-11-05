@@ -17,6 +17,8 @@ module Shoryuken
       end
 
       def send_message(queue, body, options = {})
+        body = JSON.dump(body) if body.is_a?(Hash)
+
         queues(queue).send_message(body, options)
       end
 

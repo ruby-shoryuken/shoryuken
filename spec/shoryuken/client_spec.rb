@@ -33,6 +33,22 @@ describe Shoryuken::Client do
 
       described_class.send_message(queue, 'test2', delay_seconds: 60)
     end
+
+    it 'parses as JSON by default' do
+      msg = { field: 'test', other_field: 'other' }
+
+      expect(sqs_queue).to receive(:send_message).with(JSON.dump(msg), {})
+
+      described_class.send_message(queue, msg)
+    end
+
+    it 'parses as JSON by default and keep the options' do
+      msg = { field: 'test', other_field: 'other' }
+
+      expect(sqs_queue).to receive(:send_message).with(JSON.dump(msg), { delay_seconds:  60 })
+
+      described_class.send_message(queue, msg, delay_seconds: 60)
+    end
   end
 
   describe '.visibility_timeout' do

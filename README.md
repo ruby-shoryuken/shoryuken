@@ -82,6 +82,7 @@ end
 
 ```ruby
 MyWorker.perform_async('Pablo')
+MyWorker.perform_async(field: 'test', other_field: 'other') # it converts Hash into JSON by default
 # or
 Shoryuken::Client.queues('default').send_message('Pablo')
 

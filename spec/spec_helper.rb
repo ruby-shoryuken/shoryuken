@@ -4,6 +4,7 @@ Bundler.setup
 require 'pry-byebug'
 require 'celluloid'
 require 'shoryuken'
+require 'json'
 
 options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
 
