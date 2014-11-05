@@ -22,7 +22,10 @@ module Shoryuken
         end
       end
 
-      setup_options(args)
+      setup_options(args) do |cli_options|
+        # this needs to happen before configuration is parsed, since it may depend on Rails env
+        load_rails if cli_options[:rails]
+      end
       initialize_logger
       require_workers
       validate!
@@ -59,6 +62,25 @@ module Shoryuken
       Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
 
       require 'shoryuken/manager'
+    end
+
+    def load_rails
+      # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
+
+      require 'rails'
+      if ::Rails::VERSION::MAJOR < 4
+        require File.expand_path("config/environment.rb")
+        ::Rails.application.eager_load!
+      else
+        # Painful contortions, see 1791 for discussion
+        require File.expand_path("config/application.rb")
+        ::Rails::Application.initializer "shoryuken.eager_load" do
+          ::Rails.application.config.eager_load = true
+        end
+        require File.expand_path("config/environment.rb")
+      end
+
+      logger.info "Loaded Rails"
     end
 
     def daemonize
@@ -125,6 +147,10 @@ module Shoryuken
           opts[:config_file] = arg
         end
 
+        o.on '-R', '--rails', 'Load Rails' do |arg|
+          opts[:rails] = arg
+        end
+
         o.on '-L', '--logfile PATH', 'Path to writable logfile' do |arg|
           opts[:logfile] = arg
         end
@@ -186,6 +212,9 @@ module Shoryuken
 
     def setup_options(args)
       options = parse_options(args)
+
+      # yield parsed options in case we need to do more setup before configuration is parsed
+      yield(options) if block_given?
 
       config = options[:config_file] ? parse_config(options[:config_file]).deep_symbolize_keys : {}
 
