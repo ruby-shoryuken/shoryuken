@@ -16,7 +16,7 @@ describe Shoryuken::Processor do
   end
 
   describe '#process' do
-    it 'parses the body into JSON' do
+    it 'parsers the body into JSON' do
       TestWorker.get_shoryuken_options['body_parser'] = :json
 
       body = { 'test' => 'hi' }
@@ -28,7 +28,7 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'parses the body calling the proc' do
+    it 'parsers the body calling the proc' do
       TestWorker.get_shoryuken_options['body_parser'] = Proc.new { |sqs_msg| "*#{sqs_msg.body}*" }
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, '*test*')
@@ -38,7 +38,7 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'parses the body as text' do
+    it 'parsers the body as text' do
       TestWorker.get_shoryuken_options['body_parser'] = :text
 
       body = 'test'
@@ -50,7 +50,7 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'parses calling `.parse`' do
+    it 'parsers calling `.parse`' do
       TestWorker.get_shoryuken_options['body_parser'] = JSON
 
       body = { 'test' => 'hi' }
@@ -77,7 +77,7 @@ describe Shoryuken::Processor do
     end
 
     context 'when `object_type: nil`' do
-      it 'parses the body as text' do
+      it 'parsers the body as text' do
         TestWorker.get_shoryuken_options['body_parser'] = nil
 
         body = 'test'

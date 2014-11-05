@@ -34,7 +34,7 @@ describe Shoryuken::Client do
       described_class.send_message(queue, 'test2', delay_seconds: 60)
     end
 
-    it 'parses as JSON by default' do
+    it 'parsers as JSON by default' do
       msg = { field: 'test', other_field: 'other' }
 
       expect(sqs_queue).to receive(:send_message).with(JSON.dump(msg), {})
@@ -42,7 +42,7 @@ describe Shoryuken::Client do
       described_class.send_message(queue, msg)
     end
 
-    it 'parses as JSON by default and keep the options' do
+    it 'parsers as JSON by default and keep the options' do
       msg = { field: 'test', other_field: 'other' }
 
       expect(sqs_queue).to receive(:send_message).with(JSON.dump(msg), { delay_seconds:  60 })
