@@ -66,6 +66,10 @@ module Shoryuken
     Middleware::Chain.new do |m|
       m.add Middleware::Server::Timing
       m.add Middleware::Server::AutoDelete
+      if defined?(::ActiveRecord::Base)
+        require 'shoryuken/middleware/server/active_record'
+        m.add Middleware::Server::ActiveRecord
+      end
       # TODO m.add Middleware::Server::RetryJobs
     end
   end

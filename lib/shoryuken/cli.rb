@@ -80,7 +80,7 @@ module Shoryuken
         require File.expand_path("config/environment.rb")
       end
 
-      logger.info "Loaded Rails"
+      logger.info "Rails environment loaded"
     end
 
     def daemonize
