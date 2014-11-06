@@ -23,5 +23,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry-byebug"
 
   spec.add_dependency "aws-sdk-v1"
-  spec.add_dependency "celluloid"
+  spec.add_dependency "celluloid", "~> 0.15.2"
 end
