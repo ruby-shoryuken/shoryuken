@@ -20,7 +20,7 @@ module Shoryuken
       watchdog('Fetcher#fetch died') do
         started_at = Time.now
 
-        logger.info "Looking for new messages '#{queue}'"
+        logger.debug "Looking for new messages '#{queue}'"
 
         begin
           batch = !!Shoryuken.workers[queue].get_shoryuken_options['batch']
@@ -38,7 +38,7 @@ module Shoryuken
 
             @manager.async.rebalance_queue_weight!(queue)
           else
-            logger.info "No message found for '#{queue}'"
+            logger.debug "No message found for '#{queue}'"
 
             @manager.async.pause_queue!(queue)
           end
