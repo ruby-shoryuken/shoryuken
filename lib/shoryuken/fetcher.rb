@@ -20,7 +20,7 @@ module Shoryuken
       watchdog('Fetcher#fetch died') do
         started_at = Time.now
 
-        logger.debug "Looking for new messages '#{queue}'"
+        logger.debug "Looking for new messages in '#{queue}'"
 
         begin
           batch = !!Shoryuken.workers[queue].get_shoryuken_options['batch']
