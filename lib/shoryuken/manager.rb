@@ -103,7 +103,7 @@ module Shoryuken
     def pause_queue!(queue)
       return if !@queues.include?(queue) || Shoryuken.options[:delay].to_f <= 0
 
-      logger.info "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty"
+      logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty"
 
       @queues.delete(queue)
 
@@ -139,7 +139,7 @@ module Shoryuken
       return if stopped?
 
       unless @queues.include? queue
-        logger.info "Restarting '#{queue}'"
+        logger.debug "Restarting '#{queue}'"
 
         @queues << queue
 
