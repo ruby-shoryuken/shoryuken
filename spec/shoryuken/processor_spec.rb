@@ -6,7 +6,7 @@ describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager, processor_done: nil }
   let(:sqs_queue) { double AWS::SQS::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
-  let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test' }
+  let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test', message_attributes: {} }
 
   subject { described_class.new(manager) }
 
@@ -147,6 +147,27 @@ describe Shoryuken::Processor do
       expect(sqs_queue).to_not receive(:batch_delete)
 
       subject.process(queue, sqs_msg)
+    end
+
+    context 'when shoryuken_class header' do
+      let(:sqs_msg) { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test', message_attributes: {
+        'shoryuken_class' => {
+          string_value: TestWorker.to_s,
+          data_type: 'String'
+        }
+      } }
+
+      it 'performs without delete' do
+        Shoryuken.workers.clear # unregister TestWorker
+
+        expect(manager).to receive(:processor_done).with(queue, subject)
+
+        expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+
+        expect(sqs_queue).to_not receive(:batch_delete)
+
+        subject.process(queue, sqs_msg)
+      end
     end
   end
 end

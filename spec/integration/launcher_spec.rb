@@ -11,12 +11,32 @@ describe Shoryuken::Launcher do
 
       subject.run
 
-      ShoryukenWorker.received_messages = 0
+      StandardWorker.received_messages = 0
     end
 
     after { subject.stop }
 
-    class ShoryukenWorker
+    class CommandWorker
+      include Shoryuken::Worker
+
+      @@received_messages = 0
+
+      shoryuken_options queue: 'shoryuken_command', auto_delete: true
+
+      def perform(sqs_msg, body)
+        @@received_messages = Array(sqs_msg).size
+      end
+
+      def self.received_messages
+        @@received_messages
+      end
+
+      def self.received_messages=(received_messages)
+        @@received_messages = received_messages
+      end
+    end
+
+    class StandardWorker
       include Shoryuken::Worker
 
       @@received_messages = 0
@@ -36,31 +56,42 @@ describe Shoryuken::Launcher do
       end
     end
 
+    it 'consumes as a command worker' do
+      CommandWorker.perform_async('Yo')
+
+      10.times do
+        break if CommandWorker.received_messages > 0
+        sleep 0.2
+      end
+
+      expect(CommandWorker.received_messages).to eq 1
+    end
+
     it 'consumes a message' do
-      ShoryukenWorker.get_shoryuken_options['batch'] = false
+      StandardWorker.get_shoryuken_options['batch'] = false
 
       Shoryuken::Client.queues('shoryuken').send_message('Yo')
 
       10.times do
-        break if ShoryukenWorker.received_messages > 0
+        break if StandardWorker.received_messages > 0
         sleep 0.2
       end
 
-      expect(ShoryukenWorker.received_messages).to eq 1
+      expect(StandardWorker.received_messages).to eq 1
     end
 
     it 'consumes a batch' do
-      ShoryukenWorker.get_shoryuken_options['batch'] = true
+      StandardWorker.get_shoryuken_options['batch'] = true
 
       Shoryuken::Client.queues('shoryuken').batch_send *(['Yo'] * 10)
 
       10.times do
-        break if ShoryukenWorker.received_messages > 0
+        break if StandardWorker.received_messages > 0
         sleep 0.2
       end
 
       # the fetch result is uncertain, should be greater than 1, but hard to tell the exact size
-      expect(ShoryukenWorker.received_messages).to be > 1
+      expect(StandardWorker.received_messages).to be > 1
     end
   end
 end
