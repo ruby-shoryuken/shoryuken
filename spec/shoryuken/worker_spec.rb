@@ -37,6 +37,7 @@ describe 'Shoryuken::Worker' do
       end
 
       expect(Shoryuken.workers['production_default']).to eq NewTestWorker
+      expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
     end
   end
 end

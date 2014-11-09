@@ -12,7 +12,10 @@ module Shoryuken
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(Hash(opts)))
         queue = @shoryuken_options['queue']
-        queue = queue.call if queue.respond_to? :call
+        if queue.respond_to? :call
+          queue = queue.call
+          @shoryuken_options['queue'] = queue
+        end
 
         Shoryuken.register_worker(queue, self)
       end
