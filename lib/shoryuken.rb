@@ -36,7 +36,7 @@ module Shoryuken
         if worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true
           raise ArgumentError, "Could not register #{clazz} for '#{queue}', "\
             "because #{worker_class} is already registered for this queue, "\
-            "and Shoryuken doesn't support mixing batchable and non batchable workers for the same queue"
+            "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
         end
       end
 

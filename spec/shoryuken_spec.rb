@@ -45,7 +45,7 @@ describe Shoryuken do
           def perform(sqs_msg, body); end
         end
       }.to raise_error("Could not register BatchableWorker for 'default', because TestWorker is already registered for this queue, " \
-                       "and Shoryuken doesn't support mixing batchable and non batchable workers for the same queue")
+                       "and Shoryuken doesn't support a batchable worker for a queue with multiple workers")
     end
   end
 end
