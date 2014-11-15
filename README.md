@@ -80,7 +80,7 @@ end
 
 ### Sending a message
 
-[Sending a message documentation](https://github.com/phstc/shoryuken/wiki/Sending-a-message)
+[Check the Sending a message documentation](https://github.com/phstc/shoryuken/wiki/Sending-a-message)
 
 ### Midleware
 
