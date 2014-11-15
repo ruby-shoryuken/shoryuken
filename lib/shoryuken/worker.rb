@@ -16,6 +16,20 @@ module Shoryuken
         Shoryuken::Client.send_message(get_shoryuken_options['queue'], body, options)
       end
 
+      def perform_in(interval, body, options = {})
+        interval = interval.to_f
+        now = Time.now.to_f
+        ts = (interval < 1_000_000_000 ? (now + interval).to_f : interval)
+
+        delay = (ts - now).ceil
+
+        raise 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
+
+        perform_async(body, options.merge(delay_seconds: delay))
+      end
+
+      alias_method :perform_at, :perform_in
+
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(Hash(opts)))
         queue = @shoryuken_options['queue']
