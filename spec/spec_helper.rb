@@ -41,8 +41,7 @@ RSpec.configure do |config|
     Shoryuken.options.merge!($options)
 
     Shoryuken.queues.clear
-    Shoryuken.queues << 'shoryuken'
-    Shoryuken.queues << 'shoryuken_command'
+
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1
     Shoryuken.options[:timeout]     = 1
@@ -52,6 +51,7 @@ RSpec.configure do |config|
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
 
+    Shoryuken.workers.clear
     Shoryuken.register_worker('default', TestWorker)
   end
 end

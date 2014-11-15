@@ -9,6 +9,12 @@ describe Shoryuken::Launcher do
       Shoryuken.options[:aws][:receive_message] ||= {}
       Shoryuken.options[:aws][:receive_message][:wait_time_seconds] = 5
 
+      Shoryuken.queues << 'shoryuken'
+      Shoryuken.queues << 'shoryuken_command'
+
+      Shoryuken.register_worker 'shoryuken',          StandardWorker
+      Shoryuken.register_worker 'shoryuken_command',  CommandWorker
+
       subject.run
 
       StandardWorker.received_messages = 0
@@ -61,7 +67,7 @@ describe Shoryuken::Launcher do
 
       10.times do
         break if CommandWorker.received_messages > 0
-        sleep 0.2
+        sleep 1
       end
 
       expect(CommandWorker.received_messages).to eq 1
@@ -74,7 +80,7 @@ describe Shoryuken::Launcher do
 
       10.times do
         break if StandardWorker.received_messages > 0
-        sleep 0.2
+        sleep 1
       end
 
       expect(StandardWorker.received_messages).to eq 1
@@ -87,7 +93,7 @@ describe Shoryuken::Launcher do
 
       10.times do
         break if StandardWorker.received_messages > 0
-        sleep 0.2
+        sleep 1
       end
 
       # the fetch result is uncertain, should be greater than 1, but hard to tell the exact size

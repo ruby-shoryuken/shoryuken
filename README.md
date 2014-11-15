@@ -80,17 +80,7 @@ end
 
 ### Sending a message
 
-```ruby
-MyWorker.perform_async('Pablo')
-MyWorker.perform_async(field: 'test', other_field: 'other') # it converts Hash into JSON by default
-# or
-Shoryuken::Client.queues('default').send_message('Pablo')
-
-# delaying a message
-MyWorker.perform_async('Pablo', delay_seconds: 60)
-# or
-Shoryuken::Client.queues('default').send_message('Pablo', delay_seconds: 60)
-```
+[Sending a message documentation](https://github.com/phstc/shoryuken/wiki/Sending-a-message)
 
 ### Midleware
 

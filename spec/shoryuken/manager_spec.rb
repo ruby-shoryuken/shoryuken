@@ -71,4 +71,37 @@ describe Shoryuken::Manager do
       expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1]
     end
   end
+
+  describe '#next_queue' do
+    it 'returns queues' do
+      queue1 = 'shoryuken'
+      queue2 = 'uppercut'
+
+      Shoryuken.queues.clear
+
+      Shoryuken.register_worker queue1, TestWorker
+      Shoryuken.register_worker queue2, TestWorker
+
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue2
+
+      expect(subject.send :next_queue).to eq queue1
+      expect(subject.send :next_queue).to eq queue2
+    end
+
+    it 'skips when no worker' do
+      queue1 = 'shoryuken'
+      queue2 = 'uppercut'
+
+      Shoryuken.queues.clear
+
+      Shoryuken.register_worker queue2, TestWorker
+
+      Shoryuken.queues << queue1
+      Shoryuken.queues << queue2
+
+      expect(subject.send :next_queue).to eq queue2
+      expect(subject.send :next_queue).to eq queue2
+    end
+  end
 end
