@@ -6,6 +6,13 @@ module Shoryuken
 
     module ClassMethods
       def perform_async(body, options = {})
+        options ||= {}
+        options[:message_attributes] ||= {}
+        options[:message_attributes]['shoryuken_class'] = {
+          string_value: self.to_s,
+          data_type: 'String'
+        }
+
         Shoryuken::Client.send_message(get_shoryuken_options['queue'], body, options)
       end
 

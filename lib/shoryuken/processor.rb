@@ -10,11 +10,10 @@ module Shoryuken
     end
 
     def process(queue, sqs_msg)
-      worker_class = Shoryuken.workers[queue]
-      defer do
-        body = get_body(worker_class, sqs_msg)
+      worker = Shoryuken.worker_loader.call(queue, sqs_msg)
 
-        worker = worker_class.new
+      defer do
+        body = get_body(worker.class, sqs_msg)
 
         Shoryuken.server_middleware.invoke(worker, queue, sqs_msg, body) do
           worker.perform(sqs_msg, body)
