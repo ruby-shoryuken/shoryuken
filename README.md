@@ -41,11 +41,15 @@ To be even more performance and cost efficient, Shoryuken fetches SQS messages i
 
 Add this line to your application's Gemfile:
 
-    gem 'shoryuken'
+```ruby
+gem 'shoryuken'
+```
 
 Or to get the latest updates:
 
-    gem 'shoryuken', github: 'phstc/shoryuken', branch: 'master'
+```ruby
+gem 'shoryuken', github: 'phstc/shoryuken', branch: 'master'
+```
 
 And then execute:
 
