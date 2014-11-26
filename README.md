@@ -82,7 +82,7 @@ end
 
 [Check the Sending a message documentation](https://github.com/phstc/shoryuken/wiki/Sending-a-message)
 
-### Midleware
+### Middleware
 
 ```ruby
 class MyMiddleware
