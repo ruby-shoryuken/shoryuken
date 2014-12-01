@@ -7,24 +7,6 @@ module Shoryuken
     # The queue from which this message was received.
     attr_reader :queue
 
-    # # The ID of the message.
-    # attr_reader :message_id
-
-    # # A string associated with this specific instance of receiving this message.
-    # attr_reader :receipt_handle
-
-    # # The message's contents.
-    # attr_reader :body
-
-    # # An MD5 digest of the message body.
-    # attr_reader :md5_of_body
-
-    # # The message attributes attached to the message.
-    # attr_reader :message_attributes
-
-    # # An MD5 digest of the message body.
-    # attr_reader :md5_of_message_attributes
-
     def initialize queue, struct
       @queue = queue
       @struct = struct
