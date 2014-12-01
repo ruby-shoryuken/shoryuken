@@ -252,10 +252,8 @@ module Shoryuken
         # validate all queues and AWS credentials consequently
         begin
           Shoryuken::Client.queues queue
-        rescue AWS::SQS::Errors::NonExistentQueue => e
+        rescue Aws::SQS::Errors::NonExistentQueue
           raise ArgumentError, "Queue '#{queue}' does not exist"
-        rescue => e
-          raise
         end
       end
     end
