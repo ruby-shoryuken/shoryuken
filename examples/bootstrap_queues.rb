@@ -6,7 +6,7 @@ config = YAML.load File.read(File.join(File.expand_path('..', __FILE__), 'shoryu
 
 Aws.config = config['aws']
 
-sqs = Aws::SQS::Client.new endpoint: 'http://eu-west-1.localhost:6059'
+sqs = Aws::SQS::Client.new
 
 default_queue_url = sqs.create_queue(queue_name: 'default').queue_url
 
