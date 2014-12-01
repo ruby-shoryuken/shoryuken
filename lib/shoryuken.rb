@@ -12,6 +12,8 @@ require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
 require 'shoryuken/middleware/server/timing'
+require 'shoryuken/received_message'
+require 'shoryuken/queue'
 
 module Shoryuken
   DEFAULTS = {

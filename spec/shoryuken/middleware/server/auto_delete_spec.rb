@@ -1,9 +1,16 @@
 require 'spec_helper'
 
 describe Shoryuken::Middleware::Server::AutoDelete do
-  let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test' }
   let(:queue)     { 'default' }
-  let(:sqs_queue) { double AWS::SQS::Queue }
+  let(:sqs_queue) { double Shoryuken::Queue }
+
+  let(:sqs_msg) do
+    Shoryuken::ReceivedMessage.new(
+      queue,
+      OpenStruct.new(
+        message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e',
+        body: 'test'))
+  end
 
   before do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
