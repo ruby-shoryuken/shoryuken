@@ -23,7 +23,7 @@ module Shoryuken
       end
 
       def sqs
-        @sqs ||= AWS::SQS.new
+        @sqs ||= Aws::SQS::Client.new
       end
     end
   end

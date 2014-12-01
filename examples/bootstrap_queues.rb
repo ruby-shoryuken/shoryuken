@@ -4,17 +4,25 @@ require 'shoryuken'
 # load SQS credentials
 config = YAML.load File.read(File.join(File.expand_path('..', __FILE__), 'shoryuken.yml'))
 
-AWS.config(config['aws'])
+Aws.config = config['aws']
 
-sqs = AWS::SQS.new
+sqs = Aws::SQS::Client.new endpoint: 'http://eu-west-1.localhost:6059'
 
-# create a queue and a respective dead letter queue
-# after 7 attempts SQS will move the message to the dead letter queue
+default_queue_url = sqs.create_queue(queue_name: 'default').queue_url
 
-dl_name = 'default_failures'
-dl = sqs.queues.create(dl_name)
+if sqs.config['endpoint'] =~ /amazonaws.com/
+  # create a dead letter queue
+  # after 7 attempts SQS will move the message to the dead letter queue
 
-options = {}
-options[:redrive_policy] = %Q{{"maxReceiveCount":"7", "deadLetterTargetArn":"#{dl.arn}"}"}
+  dead_letter_queue_url = sqs.create_queue(queue_name: 'default_failures').queue_url
 
-sqs.queues.create('default', options)
+  dead_letter_queue_arn = sqs.get_queue_attributes(
+    queue_url: dead_letter_queue_url,
+    attribute_names: %w(QueueArn)
+  ).attributes['QueueArn']
+
+  attributes = {}
+  attributes['RedrivePolicy'] = %Q{{"maxReceiveCount":"7", "deadLetterTargetArn":"#{dead_letter_queue_arn}"}}
+
+  sqs.set_queue_attributes queue_url: default_queue_url, attributes: attributes
+end

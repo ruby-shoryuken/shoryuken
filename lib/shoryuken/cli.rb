@@ -263,7 +263,7 @@ module Shoryuken
     def initialize_aws
       # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
       # when not explicit supplied
-      AWS.config Shoryuken.options[:aws] if Shoryuken.options[:aws]
+      Aws.config = Shoryuken.options[:aws] if Shoryuken.options[:aws]
     end
 
     def require_workers
