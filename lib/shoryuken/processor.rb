@@ -5,19 +5,30 @@ module Shoryuken
     include Celluloid
     include Util
 
-    def initialize(manager)
+    DEFAULT_HEARTBEAT = 5
+
+    def initialize(manager, heartbeat = DEFAULT_HEARTBEAT)
       @manager = manager
+      @heartbeat = heartbeat
     end
 
     def process(queue, sqs_msg)
       worker = Shoryuken.worker_loader.call(queue, sqs_msg)
 
-      defer do
-        body = get_body(worker.class, sqs_msg)
+      timer = every(@heartbeat) do
+        Client.queues(sqs_msg.queue).extend_invisibility(sqs_msg, @heartbeat)
+      end
 
-        Shoryuken.server_middleware.invoke(worker, queue, sqs_msg, body) do
-          worker.perform(sqs_msg, body)
+      begin
+        defer do
+          body = get_body(worker.class, sqs_msg)
+
+          Shoryuken.server_middleware.invoke(worker, queue, sqs_msg, body) do
+            worker.perform(sqs_msg, body)
+          end
         end
+      ensure
+        timer.cancel
       end
 
       @manager.async.processor_done(queue, current_actor)

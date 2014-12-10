@@ -6,6 +6,7 @@ describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager, processor_done: nil }
   let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
+  let(:heartbeat) { 0.5 }
 
   let(:sqs_msg) do
     Shoryuken::ReceivedMessage.new(
@@ -16,7 +17,7 @@ describe Shoryuken::Processor do
         message_attributes: { }))
   end
 
-  subject { described_class.new(manager) }
+  subject { described_class.new(manager, heartbeat) }
 
   before do
     allow(manager).to receive(:async).and_return(manager)
@@ -180,6 +181,47 @@ describe Shoryuken::Processor do
         expect(sqs_queue).to_not receive(:batch_delete)
 
         subject.process(queue, sqs_msg)
+      end
+    end
+
+    context 'when the worker takes a long time' do
+      it 'extends the message invisibility to prevent it from being dequeued concurrently' do
+        TestWorker.get_shoryuken_options['body_parser'] = Proc.new do |sqs_msg|
+          sleep heartbeat + 0.1
+          'test'
+        end
+
+        expect(sqs_queue).to receive(:extend_invisibility).with(sqs_msg, heartbeat).once
+        expect(manager).to receive(:processor_done).with(queue, subject)
+
+        allow(sqs_msg).to receive(:body).and_return('test')
+
+        subject.process(queue, sqs_msg)
+
+        sleep heartbeat + 0.1
+      end
+    end
+
+    context 'when the worker takes a short time' do
+      it 'does not extend the message invisibility' do
+        expect(sqs_queue).to receive(:extend_invisibility).with(sqs_msg, heartbeat).never
+        expect(manager).to receive(:processor_done).with(queue, subject)
+
+        allow(sqs_msg).to receive(:body).and_return('test')
+
+        subject.process(queue, sqs_msg)
+
+        sleep heartbeat + 0.1
+      end
+    end
+
+    context 'when the worker fails' do
+      it 'does not extend the message invisibility' do
+        expect(sqs_queue).to receive(:extend_invisibility).with(sqs_msg, heartbeat).never
+        expect_any_instance_of(TestWorker).to receive(:perform).and_raise 'worker failed'
+        expect { subject.process(queue, sqs_msg) }.to raise_error
+
+        sleep heartbeat + 0.1
       end
     end
   end

@@ -8,6 +8,13 @@ module Shoryuken
       attributes['QueueArn']
     end
 
+    def extend_invisibility(received_message, extension)
+      @sqs.change_message_visibility(
+        queue_url: url,
+        receipt_handle: received_message.receipt_handle,
+        visibility_timeout: extension)
+    end
+
     def receive_messages(options = {})
       @sqs.receive_message(options.merge(queue_url: url))
           .messages
