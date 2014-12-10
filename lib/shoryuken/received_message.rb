@@ -31,6 +31,8 @@ module Shoryuken
       # An MD5 digest of the message body.
       :md5_of_message_attributes
 
+    alias_method :id, :message_id
+
     private :attributes
 
     # The AWS account number (or the IP address, if anonymous access is allowed) of the sender.
