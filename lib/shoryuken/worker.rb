@@ -41,8 +41,24 @@ module Shoryuken
         Shoryuken.register_worker(queue, self)
       end
 
+      def auto_visibility_timeout?
+        !!get_shoryuken_options['auto_visibility_timeout']
+      end
+
+      def visibility_timeout_heartbeat
+        extended_visibility_timeout - 5
+      end
+
+      def extended_visibility_timeout
+        Shoryuken::Client.visibility_timeout(get_shoryuken_options['queue'])
+      end
+
       def get_shoryuken_options # :nodoc:
-        @shoryuken_options || { 'queue' => 'default', 'delete' => false, 'auto_delete' => false, 'batch' => false }
+        @shoryuken_options || { 'queue'                   => 'default',
+                                'delete'                  => false,
+                                'auto_delete'             => false,
+                                'auto_visibility_timeout' => false,
+                                'batch'                   => false }
       end
 
       def stringify_keys(hash) # :nodoc:
