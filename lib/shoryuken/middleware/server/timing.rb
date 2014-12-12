@@ -5,7 +5,12 @@ module Shoryuken
         include Util
 
         def call(worker, queue, sqs_msg, body)
-          Shoryuken::Logging.with_context("#{worker.class.to_s}/#{queue}/#{sqs_msg.id}") do
+          class_name = if defined?(::ActiveJob) && body['job_class'].present?
+                         "ActiveJob/#{body['job_class'].constantize}"
+                       else
+                         worker.class.to_s
+                       end
+          Shoryuken::Logging.with_context("#{class_name}/#{queue}/#{sqs_msg.id}") do
             begin
               started_at = Time.now
 

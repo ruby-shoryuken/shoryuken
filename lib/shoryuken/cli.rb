@@ -77,6 +77,7 @@ module Shoryuken
         ::Rails::Application.initializer "shoryuken.eager_load" do
           ::Rails.application.config.eager_load = true
         end
+        require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
         require File.expand_path("config/environment.rb")
       end
 

@@ -94,3 +94,5 @@ module Shoryuken
     end
   end
 end
+
+require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
