@@ -1,7 +1,5 @@
 # ActiveJob docs: http://edgeguides.rubyonrails.org/active_job_basics.html
 # Example adapters ref: https://github.com/rails/rails/tree/master/activejob/lib/active_job/queue_adapters
-# Ref: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/extensions/active_record.rb
-# Multiple queues ref: https://github.com/rails/rails/blob/master/activejob/lib/active_job/queue_adapters/sneakers_adapter.rb
 
 require 'shoryuken'
 
@@ -21,14 +19,6 @@ module ActiveJob
         def enqueue(job) #:nodoc:
           register_worker!(job)
 
-          # TODO refactor
-          message_attributes = {
-            'shoryuken_class' => {
-              string_value: JobWrapper.to_s,
-              data_type: 'String'
-            }
-          }
-
           Shoryuken::Client.send_message(job.queue_name, job.serialize, message_attributes: message_attributes)
         end
 
@@ -38,21 +28,24 @@ module ActiveJob
           delay = timestamp - Time.current.to_f
           raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
 
-          # TODO refactor
-          message_attributes = {
-            'shoryuken_class' => {
-              string_value: JobWrapper.to_s,
-              data_type: 'String'
-            }
-          }
-
-          Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay, message_attributes: message_attributes)
+          Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay,
+                                                                        message_attributes: message_attributes)
         end
+
 
         private
 
         def register_worker!(job)
           Shoryuken.register_worker(job.queue_name, JobWrapper)
+        end
+
+        def message_attributes
+          @message_attributes ||= {
+            'shoryuken_class' => {
+              string_value: JobWrapper.to_s,
+              data_type: 'String'
+            }
+          }
         end
       end
 
