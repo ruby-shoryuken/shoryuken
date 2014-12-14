@@ -5,7 +5,10 @@ module Shoryuken
         include Util
 
         def call(worker, queue, sqs_msg, body)
-          class_name = if defined?(::ActiveJob) && body['job_class'].present?
+          class_name = if defined?(::ActiveJob) \
+                        && !sqs_msg.is_a?(Array) \
+                        && sqs_msg.message_attributes['shoryuken_class'] \
+                        && sqs_msg.message_attributes['shoryuken_class'][:string_value] == ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper.to_s
                          "ActiveJob/#{body['job_class'].constantize}"
                        else
                          worker.class.to_s
