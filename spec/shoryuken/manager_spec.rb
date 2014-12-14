@@ -2,6 +2,12 @@ require 'spec_helper'
 require 'shoryuken/manager'
 
 describe Shoryuken::Manager do
+  subject do
+    condvar = double(:condvar)
+    allow(condvar).to receive(:signal).and_return(nil)
+    Shoryuken::Manager.new(condvar)
+  end
+
   describe 'Auto Scaling' do
     it 'decreases weight' do
       queue1 = 'shoryuken'

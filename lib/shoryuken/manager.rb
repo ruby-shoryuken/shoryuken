@@ -10,9 +10,10 @@ module Shoryuken
 
     trap_exit :processor_died
 
-    def initialize
+    def initialize(condvar)
       @count  = Shoryuken.options[:concurrency] || 25
       @queues = Shoryuken.queues.dup.uniq
+      @finished = condvar
 
       @done = false
 
@@ -195,7 +196,7 @@ module Shoryuken
       if @busy.size > 0
         after(delay) { soft_shutdown(delay) }
       else
-        after(0) { signal(:shutdown) }
+        @finished.signal
       end
     end
 
@@ -214,7 +215,7 @@ module Shoryuken
             end
           end
 
-          after(0) { signal(:shutdown) }
+          @finished.signal
         end
       end
     end
