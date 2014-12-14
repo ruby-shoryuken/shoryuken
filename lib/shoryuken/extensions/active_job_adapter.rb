@@ -19,20 +19,47 @@ module ActiveJob
     class ShoryukenAdapter
       class << self
         def enqueue(job) #:nodoc:
-          # TODO use job.queue_name
-          JobWrapper.perform_async(job.serialize)
+          register_worker!(job)
+
+          # TODO refactor
+          message_attributes = {
+            'shoryuken_class' => {
+              string_value: JobWrapper.to_s,
+              data_type: 'String'
+            }
+          }
+
+          Shoryuken::Client.send_message(job.queue_name, job.serialize, message_attributes: message_attributes)
         end
 
         def enqueue_at(job, timestamp) #:nodoc:
-          # TODO use job.queue_name
-          JobWrapper.perform_at(timestamp, job.serialize)
+          register_worker!(job)
+
+          delay = timestamp - Time.current.to_f
+          raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
+
+          # TODO refactor
+          message_attributes = {
+            'shoryuken_class' => {
+              string_value: JobWrapper.to_s,
+              data_type: 'String'
+            }
+          }
+
+          Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay, message_attributes: message_attributes)
+        end
+
+        private
+
+        def register_worker!(job)
+          Shoryuken.register_worker(job.queue_name, JobWrapper)
         end
       end
 
       class JobWrapper #:nodoc:
         include Shoryuken::Worker
 
-        shoryuken_options queue: 'default', body_parser: :json
+        shoryuken_options body_parser: :json, auto_delete: true
 
         def perform(sqs_msg, hash)
           Base.execute hash

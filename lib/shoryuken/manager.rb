@@ -172,15 +172,16 @@ module Shoryuken
       # get/remove the first queue in the list
       queue = @queues.shift
 
+      unless defined?(::ActiveJob)
+        unless Shoryuken.workers.include? queue
+          # when no worker registered pause the queue to avoid endless recursion
 
-      unless Shoryuken.workers.include? queue
-        # when no worker registered pause the queue to avoid endless recursion
+          logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered"
 
-        logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because of no workers registered"
+          after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
 
-        after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
-
-        return next_queue
+          return next_queue
+        end
       end
 
       # add queue back to the end of the list
