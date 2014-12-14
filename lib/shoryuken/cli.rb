@@ -243,8 +243,10 @@ module Shoryuken
     def validate!
       raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
 
-      Shoryuken.queues.each do |queue|
-        logger.warn "No worker supplied for '#{queue}'" unless Shoryuken.workers.include? queue
+      unless defined?(::ActiveJob)
+        Shoryuken.queues.each do |queue|
+          logger.warn "No worker supplied for '#{queue}'" unless Shoryuken.workers.include? queue
+        end
       end
 
       if Shoryuken.options[:aws][:access_key_id].nil? && Shoryuken.options[:aws][:secret_access_key].nil?
