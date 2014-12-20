@@ -246,12 +246,6 @@ module Shoryuken
         logger.warn "No worker supplied for '#{queue}'" unless Shoryuken.workers.include? queue
       end
 
-      if Shoryuken.options[:aws][:access_key_id].nil? && Shoryuken.options[:aws][:secret_access_key].nil?
-        if ENV['AWS_ACCESS_KEY_ID'].nil? && ENV['AWS_SECRET_ACCESS_KEY'].nil?
-          raise ArgumentError, 'No AWS credentials supplied'
-        end
-      end
-
       initialize_aws
 
       Shoryuken.queues.uniq.each do |queue|
