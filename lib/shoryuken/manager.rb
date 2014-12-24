@@ -40,7 +40,7 @@ module Shoryuken
         end
         @ready.clear
 
-        return after(0) { signal(:shutdown) } if @busy.empty?
+        return after(0) { @finished.signal } if @busy.empty?
 
         if options[:shutdown]
           hard_shutdown_in(options[:timeout])
