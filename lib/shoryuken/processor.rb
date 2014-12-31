@@ -5,19 +5,14 @@ module Shoryuken
     include Celluloid
     include Util
 
-    DEFAULT_HEARTBEAT = 5
-
-    def initialize(manager, heartbeat = DEFAULT_HEARTBEAT)
+    def initialize(manager)
       @manager = manager
-      @heartbeat = heartbeat
     end
 
     def process(queue, sqs_msg)
       worker = Shoryuken.worker_loader.call(queue, sqs_msg)
 
-      timer = every(@heartbeat) do
-        Client.queues(sqs_msg.queue).extend_invisibility(sqs_msg, @heartbeat)
-      end
+      timer = auto_visibility_timeout(queue, sqs_msg, worker.class)
 
       begin
         defer do
@@ -28,13 +23,29 @@ module Shoryuken
           end
         end
       ensure
-        timer.cancel
+        timer.cancel if timer
       end
 
       @manager.async.processor_done(queue, current_actor)
     end
 
     private
+
+    def auto_visibility_timeout(queue, sqs_msg, worker_class)
+      if worker_class.auto_visibility_timeout?
+        timer = every(worker_class.visibility_timeout_heartbeat) do
+          begin
+            logger.debug "Extending message #{worker_class}/#{queue}/#{sqs_msg.id} visibility timeout to #{worker_class.extended_visibility_timeout}"
+
+            sqs_msg.visibility_timeout = worker_class.extended_visibility_timeout
+          rescue => e
+            logger.error "Could not auto extend the message #{worker_class}/#{queue}/#{sqs_msg.id} visibility timeout. Error: #{e.message}"
+          end
+        end
+      end
+
+      timer
+    end
 
     def get_body(worker_class, sqs_msg)
       if sqs_msg.is_a? Array
