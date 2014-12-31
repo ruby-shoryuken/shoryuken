@@ -9,7 +9,7 @@ module Shoryuken
       @manager = manager
     end
 
-    def receive_message(queue, limit)
+    def receive_messages(queue, limit)
       # AWS limits the batch size by 10
       limit = limit > FETCH_LIMIT ? FETCH_LIMIT : limit
 
@@ -18,7 +18,7 @@ module Shoryuken
       options[:message_attribute_names] ||= []
       options[:message_attribute_names] << 'shoryuken_class'
 
-      Shoryuken::Client.receive_message queue, options
+      Shoryuken::Client.queue(queue).receive_messages options
     end
 
     def fetch(queue, available_processors)
@@ -32,7 +32,7 @@ module Shoryuken
 
           limit = batch ? FETCH_LIMIT : available_processors
 
-          if (sqs_msgs = Array(receive_message(queue, limit))).any?
+          if (sqs_msgs = Array(receive_messages(queue, limit))).any?
             logger.info "Found #{sqs_msgs.size} messages for '#{queue}'"
 
             if batch

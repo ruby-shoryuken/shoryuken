@@ -1,10 +1,22 @@
 require 'spec_helper'
 
 describe Shoryuken::Middleware::Server::Timing do
-  let(:sqs_msg) { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test' }
-  let(:queue)   { 'default' }
+  let(:queue) { 'default' }
+  let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 60 }
 
-  xit 'logs timing' do
+  let(:sqs_msg) do
+    Shoryuken::ReceivedMessage.new(
+      queue,
+      OpenStruct.new(
+        message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e',
+        body: 'test'))
+  end
+
+  before do
+    allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+  end
+
+  it 'logs timing' do
     expect(Shoryuken.logger).to receive(:info).with(/started at/)
     expect(Shoryuken.logger).to receive(:info).with(/completed in/)
 
@@ -13,7 +25,6 @@ describe Shoryuken::Middleware::Server::Timing do
 
   context 'when exceeded the `visibility_timeout`' do
     it 'logs exceeded' do
-      allow(Shoryuken::Client).to receive(:visibility_timeout).and_return(60)
       allow(subject).to receive(:elapsed).and_return(120000)
 
       expect(Shoryuken.logger).to receive(:info).with(/started at/)
