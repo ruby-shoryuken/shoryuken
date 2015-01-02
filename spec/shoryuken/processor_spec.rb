@@ -16,7 +16,7 @@ describe Shoryuken::Processor do
   end
 
   describe '#process' do
-    it 'parsers the body into JSON' do
+    it 'parses the body into JSON' do
       TestWorker.get_shoryuken_options['body_parser'] = :json
 
       body = { 'test' => 'hi' }
@@ -28,7 +28,7 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'parsers the body calling the proc' do
+    it 'parses the body calling the proc' do
       TestWorker.get_shoryuken_options['body_parser'] = Proc.new { |sqs_msg| "*#{sqs_msg.body}*" }
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, '*test*')
@@ -38,7 +38,7 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'parsers the body as text' do
+    it 'parses the body as text' do
       TestWorker.get_shoryuken_options['body_parser'] = :text
 
       body = 'test'
@@ -50,7 +50,7 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
-    it 'parsers calling `.parse`' do
+    it 'parses calling `.parse`' do
       TestWorker.get_shoryuken_options['body_parser'] = JSON
 
       body = { 'test' => 'hi' }
@@ -77,7 +77,7 @@ describe Shoryuken::Processor do
     end
 
     context 'when `object_type: nil`' do
-      it 'parsers the body as text' do
+      it 'parses the body as text' do
         TestWorker.get_shoryuken_options['body_parser'] = nil
 
         body = 'test'
@@ -167,6 +167,52 @@ describe Shoryuken::Processor do
         expect(sqs_queue).to_not receive(:batch_delete)
 
         subject.process(queue, sqs_msg)
+      end
+    end
+  end
+
+  describe '#auto_visibility_timeout' do
+    let(:heartbeat)          { sqs_queue.visibility_timeout - 5 }
+    let(:visibility_timeout) { sqs_queue.visibility_timeout }
+
+    before do
+      TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
+
+      allow(sqs_queue).to receive(:visibility_timeout).and_return(15)
+    end
+
+    context 'when the worker takes a long time', slow: true do
+      it 'extends the message invisibility to prevent it from being dequeued concurrently' do
+        TestWorker.get_shoryuken_options['body_parser'] = Proc.new do |sqs_msg|
+          sleep visibility_timeout
+          'test'
+        end
+
+        expect(sqs_msg).to receive(:visibility_timeout=).with(visibility_timeout).once
+        expect(manager).to receive(:processor_done).with(queue, subject)
+
+        allow(sqs_msg).to receive(:body).and_return('test')
+
+        subject.process(queue, sqs_msg)
+      end
+    end
+
+    context 'when the worker takes a short time' do
+      it 'does not extend the message invisibility' do
+        expect(sqs_msg).to receive(:visibility_timeout=).never
+        expect(manager).to receive(:processor_done).with(queue, subject)
+
+        allow(sqs_msg).to receive(:body).and_return('test')
+
+        subject.process(queue, sqs_msg)
+      end
+    end
+
+    context 'when the worker fails' do
+      it 'does not extend the message invisibility' do
+        expect(sqs_msg).to receive(:visibility_timeout=).never
+        expect_any_instance_of(TestWorker).to receive(:perform).and_raise 'worker failed'
+        expect { subject.process(queue, sqs_msg) }.to raise_error
       end
     end
   end

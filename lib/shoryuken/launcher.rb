@@ -8,7 +8,8 @@ module Shoryuken
     attr_accessor :manager
 
     def initialize
-      @manager = Shoryuken::Manager.new_link
+      @condvar = Celluloid::Condition.new
+      @manager = Shoryuken::Manager.new_link(@condvar)
       @fetcher = Shoryuken::Fetcher.new_link(manager)
 
       @done = false
@@ -22,7 +23,8 @@ module Shoryuken
         @fetcher.terminate if @fetcher.alive?
 
         manager.async.stop(shutdown: !!options[:shutdown], timeout: Shoryuken.options[:timeout])
-        manager.wait(:shutdown)
+        @condvar.wait
+        manager.terminate
       end
     end
 
