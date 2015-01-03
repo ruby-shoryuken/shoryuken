@@ -2,7 +2,7 @@
 
 ![](shoryuken.jpg)
 
-Shoryuken _sho-ryu-ken_ is a super efficient [AWS SQS](https://aws.amazon.com/sqs/) thread based message processor.
+Shoryuken _sho-ryu-ken_ is a super-efficient [AWS SQS](https://aws.amazon.com/sqs/) thread-based message processor.
 
 [![Build Status](https://travis-ci.org/phstc/shoryuken.svg)](https://travis-ci.org/phstc/shoryuken)
 
@@ -129,6 +129,32 @@ You can tell Shoryuken to load your Rails application by passing the `-R` or `--
 If you load Rails, and assuming your workers are located in the `app/workers` directory, they will be auto-loaded. This means you don't need to require them explicitly with `-r`.
 
 This feature works for Rails 4+, but needs to be confirmed for older versions.
+
+#### ActiveJob Support
+
+Yes, Shoryuken supports ActiveJob! This means that you can put your jobs in processor-agnostic `ActiveJob::Base` subclasses, and change processors whenever you want (or better yet, switch to Shoryuken from another processor easily!).
+
+It works as expected. Just put your job in `app/jobs`. Here's an example:
+
+```ruby
+class ProcessPhotoJob < ActiveJob::Base
+  queue_as :default
+
+  rescue_from ActiveJob::DeserializationError do |e|
+    Shoryuken.logger.error "#{e.inspect}. It was probably deleted before processing."
+  end
+
+  def perform(photo)
+    photo.process_image!
+  end
+end
+```
+
+Delayed mailers, ActiveRecord serialization, etc. all work.
+
+See [ActiveJob docs](http://edgeguides.rubyonrails.org/active_job_basics.html) for more info.
+
+*Note:* When queueing jobs to be performed in the future (e.g when setting the `wait` or `wait_until` ActiveJob options), SQS limits the amount of time to 15 minutes. Shoryuken will raise an exception if you attempt to schedule a job further into the future than this limit.
 
 ### Start Shoryuken
 

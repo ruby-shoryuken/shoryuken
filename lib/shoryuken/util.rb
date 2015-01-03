@@ -23,5 +23,17 @@ module Shoryuken
         queue_and_weights
       end.to_a
     end
+
+    def worker_name(worker_class, sqs_msg)
+      if defined?(::ActiveJob) \
+          && !sqs_msg.is_a?(Array) \
+          && sqs_msg.message_attributes['shoryuken_class'] \
+          && sqs_msg.message_attributes['shoryuken_class'][:string_value] == ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper.to_s
+
+        "ActiveJob/#{body['job_class'].constantize}"
+      else
+        worker_class.to_s
+      end
+    end
   end
 end

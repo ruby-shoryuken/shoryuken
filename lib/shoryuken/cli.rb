@@ -77,6 +77,7 @@ module Shoryuken
         ::Rails::Application.initializer "shoryuken.eager_load" do
           ::Rails.application.config.eager_load = true
         end
+        require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
         require File.expand_path("config/environment.rb")
       end
 
@@ -242,8 +243,10 @@ module Shoryuken
     def validate!
       raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
 
-      Shoryuken.queues.each do |queue|
-        logger.warn "No worker supplied for '#{queue}'" unless Shoryuken.workers.include? queue
+      unless defined?(::ActiveJob)
+        Shoryuken.queues.each do |queue|
+          logger.warn "No worker supplied for '#{queue}'" unless Shoryuken.workers.include? queue
+        end
       end
 
       initialize_aws
