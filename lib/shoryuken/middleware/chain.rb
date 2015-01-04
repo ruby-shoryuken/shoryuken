@@ -49,6 +49,10 @@ module Shoryuken
         yield self if block_given?
       end
 
+      def dup
+        self.class.new.tap { |new_chain| new_chain.entries.replace(entries) }
+      end
+
       def remove(klass)
         entries.delete_if { |entry| entry.klass == klass }
       end

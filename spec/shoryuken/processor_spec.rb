@@ -91,6 +91,8 @@ describe Shoryuken::Processor do
     end
 
     context 'when custom middleware' do
+      let(:queue) { 'worker_called_middleware' }
+
       class WorkerCalledMiddleware
         def call(worker, queue, sqs_msg, body)
           # called is defined with `allow(...).to receive(...)`
@@ -100,6 +102,14 @@ describe Shoryuken::Processor do
       end
 
       before do
+        class WorkerCalledMiddlewareWorker
+          include Shoryuken::Worker
+
+          shoryuken_options queue: 'worker_called_middleware'
+
+          def perform(sqs_msg, body); end
+        end
+
         Shoryuken.configure_server do |config|
           config.server_middleware do |chain|
             chain.add WorkerCalledMiddleware
@@ -118,8 +128,8 @@ describe Shoryuken::Processor do
       it 'invokes middleware' do
         expect(manager).to receive(:processor_done).with(queue, subject)
 
-        expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
-        expect_any_instance_of(TestWorker).to receive(:called).with(sqs_msg, queue)
+        expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+        expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
 
         subject.process(queue, sqs_msg)
       end

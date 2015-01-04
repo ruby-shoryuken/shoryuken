@@ -18,7 +18,7 @@ module Shoryuken
         defer do
           body = get_body(worker.class, sqs_msg)
 
-          Shoryuken.server_middleware.invoke(worker, queue, sqs_msg, body) do
+          worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
             worker.perform(sqs_msg, body)
           end
         end

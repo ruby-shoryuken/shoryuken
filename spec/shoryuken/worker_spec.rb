@@ -114,4 +114,87 @@ describe 'Shoryuken::Worker' do
       expect(GlobalDefaultsTestWorker.get_shoryuken_options['batch']).to eq false
     end
   end
+
+  describe '.server_middleware' do
+    before do
+      class FakeMiddleware
+        def call(*args)
+          yield
+        end
+      end
+    end
+
+    context 'no middleware is defined in the worker' do
+      it 'returns the list of global middlewares' do
+        expect(TestWorker.server_middleware).to satisfy do |chain|
+          chain.exists?(Shoryuken::Middleware::Server::Timing)
+        end
+
+        expect(TestWorker.server_middleware).to satisfy do |chain|
+          chain.exists?(Shoryuken::Middleware::Server::AutoDelete)
+        end
+      end
+    end
+
+    context 'the worker clears the middleware chain' do
+      before do
+        class NewTestWorker2
+          include Shoryuken::Worker
+
+          server_middleware do |chain|
+            chain.clear
+          end
+        end
+      end
+
+      it 'returns an empty list' do
+        expect(NewTestWorker2.server_middleware.entries).to be_empty
+      end
+
+      it 'does not affect the global middleware chain' do
+        expect(Shoryuken.server_middleware.entries).not_to be_empty
+      end
+    end
+
+    context 'the worker modifies the chain' do
+      before do
+        class NewTestWorker3
+          include Shoryuken::Worker
+
+          server_middleware do |chain|
+            chain.remove Shoryuken::Middleware::Server::Timing
+            chain.insert_before Shoryuken::Middleware::Server::AutoDelete, FakeMiddleware
+          end
+        end
+      end
+
+      it 'returns the combined global and worker middlewares' do
+        expect(NewTestWorker3.server_middleware).not_to satisfy do |chain|
+          chain.exists?(Shoryuken::Middleware::Server::Timing)
+        end
+
+        expect(NewTestWorker3.server_middleware).to satisfy do |chain|
+          chain.exists?(FakeMiddleware)
+        end
+
+        expect(NewTestWorker3.server_middleware).to satisfy do |chain|
+          chain.exists?(Shoryuken::Middleware::Server::AutoDelete)
+        end
+      end
+
+      it 'does not affect the global middleware chain' do
+        expect(Shoryuken.server_middleware).to satisfy do |chain|
+          chain.exists?(Shoryuken::Middleware::Server::Timing)
+        end
+
+        expect(Shoryuken.server_middleware).to satisfy do |chain|
+          chain.exists?(Shoryuken::Middleware::Server::AutoDelete)
+        end
+
+        expect(Shoryuken.server_middleware).not_to satisfy do |chain|
+          chain.exists?(FakeMiddleware)
+        end
+      end
+    end
+  end
 end
