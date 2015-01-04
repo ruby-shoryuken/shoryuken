@@ -30,6 +30,14 @@ module Shoryuken
 
       alias_method :perform_at, :perform_in
 
+      def server_middleware
+        @server_middleware ||= begin
+          chain = Shoryuken.server_middleware
+          chain = chain.dup.tap { |c| yield c } if block_given?
+          chain
+        end
+      end
+
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(Hash(opts)))
         queue = @shoryuken_options['queue']
