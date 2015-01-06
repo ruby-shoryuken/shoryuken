@@ -5,7 +5,7 @@ module Shoryuken
         include Util
 
         def call(worker, queue, sqs_msg, body)
-          Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg)}/#{queue}/#{sqs_msg.id}") do
+          Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.id}") do
             begin
               started_at = Time.now
 

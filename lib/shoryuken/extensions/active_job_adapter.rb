@@ -25,7 +25,7 @@ module ActiveJob
         def enqueue_at(job, timestamp) #:nodoc:
           register_worker!(job)
 
-          delay = timestamp - Time.current.to_f
+          delay = (timestamp - Time.current.to_f).round
           raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
 
           Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay,
