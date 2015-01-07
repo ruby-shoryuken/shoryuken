@@ -40,6 +40,8 @@ module Shoryuken
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
 
+      Shoryuken.start_callback.call if Shoryuken.start_callback
+
       begin
         launcher.run
 

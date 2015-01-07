@@ -79,6 +79,12 @@ module Shoryuken
       @@default_worker_options = options
     end
 
+    def on_start(&block)
+      @start_callback = block
+    end
+
+    attr_reader :start_callback
+
     private
 
     def default_server_middleware
