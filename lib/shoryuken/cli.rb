@@ -24,9 +24,9 @@ module Shoryuken
 
       setup_options(args) do |cli_options|
         # this needs to happen before configuration is parsed, since it may depend on Rails env
+        initialize_logger(cli_options)
         load_rails if cli_options[:rails]
       end
-      initialize_logger
       require_workers
       validate!
       patch_deprecated_workers!
@@ -234,10 +234,10 @@ module Shoryuken
       end
     end
 
-    def initialize_logger
-      Shoryuken::Logging.initialize_logger(Shoryuken.options[:logfile]) if Shoryuken.options[:logfile]
+    def initialize_logger(options = Shoryuken.options)
+      Shoryuken::Logging.initialize_logger(options[:logfile]) if options[:logfile]
 
-      Shoryuken.logger.level = Logger::DEBUG if Shoryuken.options[:verbose]
+      Shoryuken.logger.level = Logger::DEBUG if options[:verbose]
     end
 
     def validate!

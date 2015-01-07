@@ -128,6 +128,23 @@ You can tell Shoryuken to load your Rails application by passing the `-R` or `--
 
 If you load Rails, and assuming your workers are located in the `app/workers` directory, they will be auto-loaded. This means you don't need to require them explicitly with `-r`.
 
+For middleware and other configuration, you might want to create an initializer:
+
+```ruby
+Shoryuken.configure_server do |config|
+  # Replace Rails logger so messages are logged wherever Shoryuken is logging
+  # Note: this entire block is only run by the processor, so we don't overwrite
+  #       the logger when the app is running as usual.
+  Rails.logger = Shoryuken::Logging.logger
+
+  config.server_middleware do |chain|
+    chain.add Shoryuken::MyMiddleware
+  end
+end
+```
+
+*Note:* In the above case, since we are replacing the Rails logger, it's desired that this initializer runs before other initializers (in case they themselves use the logger). Since by Rails conventions initializers are executed in alphabetical order, this can be achieved by prepending the initializer filename with `00_` (assuming no other initializers alphabetically precede this one).
+
 This feature works for Rails 4+, but needs to be confirmed for older versions.
 
 #### ActiveJob Support
