@@ -78,6 +78,18 @@ module Shoryuken
       @server_chain
     end
 
+    def default_worker_options
+      @@default_worker_options ||= {
+        'queue'                   => 'default',
+        'delete'                  => false,
+        'auto_delete'             => false,
+        'auto_visibility_timeout' => false,
+        'batch'                   => false }
+    end
+
+    def default_worker_options=(options)
+      @@default_worker_options = options
+    end
 
     private
 

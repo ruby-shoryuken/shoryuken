@@ -54,11 +54,7 @@ module Shoryuken
       end
 
       def get_shoryuken_options # :nodoc:
-        @shoryuken_options || { 'queue'                   => 'default',
-                                'delete'                  => false,
-                                'auto_delete'             => false,
-                                'auto_visibility_timeout' => false,
-                                'batch'                   => false }
+        @shoryuken_options || Shoryuken.default_worker_options
       end
 
       def stringify_keys(hash) # :nodoc:
