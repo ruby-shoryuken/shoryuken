@@ -10,7 +10,7 @@ module Shoryuken
     end
 
     def process(queue, sqs_msg)
-      worker = Shoryuken.worker_loader.call(queue, sqs_msg)
+      worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
 
       timer = auto_visibility_timeout(queue, sqs_msg, worker.class)
 

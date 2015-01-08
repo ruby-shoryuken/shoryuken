@@ -7,7 +7,8 @@ require 'shoryuken/core_ext'
 require 'shoryuken/util'
 require 'shoryuken/client'
 require 'shoryuken/worker'
-require 'shoryuken/worker_loader'
+require 'shoryuken/worker_registry'
+require 'shoryuken/default_worker_registry'
 require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
@@ -22,29 +23,12 @@ module Shoryuken
     timeout: 8
   }
 
-  @@workers       = {}
-  @@queues        = []
-  @@worker_loader = WorkerLoader
+  @@queues          = []
+  @@worker_registry = DefaultWorkerRegistry.new
 
   class << self
     def options
       @options ||= DEFAULTS.dup
-    end
-
-    def register_worker(queue, clazz)
-      if worker_class = @@workers[queue]
-        if worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true
-          raise ArgumentError, "Could not register #{clazz} for '#{queue}', "\
-            "because #{worker_class} is already registered for this queue, "\
-            "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
-        end
-      end
-
-      @@workers[queue] = clazz
-    end
-
-    def workers
-      @@workers
     end
 
     def queues
@@ -55,12 +39,16 @@ module Shoryuken
       Shoryuken::Logging.logger
     end
 
-    def worker_loader=(worker_loader)
-      @@worker_loader = worker_loader
+    def register_worker(*args)
+      worker_registry.register_worker(*args)
     end
 
-    def worker_loader
-      @@worker_loader
+    def worker_registry=(worker_registry)
+      @@worker_registry = worker_registry
+    end
+
+    def worker_registry
+      @@worker_registry
     end
 
     # Shoryuken.configure_server do |config|

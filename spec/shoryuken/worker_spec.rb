@@ -83,7 +83,7 @@ describe 'Shoryuken::Worker' do
 
   describe '.shoryuken_options' do
     it 'registers a worker' do
-      expect(Shoryuken.workers['default']).to eq TestWorker
+      expect(Shoryuken.worker_registry.workers('default')).to eq([TestWorker])
     end
 
     it 'accepts a block as queue name' do
@@ -95,7 +95,7 @@ describe 'Shoryuken::Worker' do
         shoryuken_options queue: ->{ "#{$queue_prefix}_default" }
       end
 
-      expect(Shoryuken.workers['production_default']).to eq NewTestWorker
+      expect(Shoryuken.worker_registry.workers('production_default')).to eq([NewTestWorker])
       expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
     end
 

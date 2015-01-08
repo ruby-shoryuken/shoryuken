@@ -168,7 +168,7 @@ describe Shoryuken::Processor do
       } }
 
       it 'performs without delete' do
-        Shoryuken.workers.clear # unregister TestWorker
+        Shoryuken.worker_registry.clear # unregister TestWorker
 
         expect(manager).to receive(:processor_done).with(queue, subject)
 
