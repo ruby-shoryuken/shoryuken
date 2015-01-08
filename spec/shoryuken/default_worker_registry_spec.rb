@@ -48,7 +48,7 @@ describe Shoryuken::DefaultWorkerRegistry do
         string_value: explicit_worker.to_s,
         data_type: 'String' } if explicit_worker
 
-      double AWS::SQS::ReceivedMessage,
+      double Aws::SQS::Message,
         body: 'test',
         message_attributes: attributes,
         message_id: SecureRandom.uuid

@@ -13,7 +13,8 @@ module Shoryuken
           data_type: 'String'
         }
 
-        Shoryuken::Client.send_message(get_shoryuken_options['queue'], body, options)
+        queue = Shoryuken::Client.queues(get_shoryuken_options['queue'])
+        queue.send_message(body, options)
       end
 
       def perform_in(interval, body, options = {})
@@ -56,7 +57,7 @@ module Shoryuken
       end
 
       def extended_visibility_timeout
-        Shoryuken::Client.visibility_timeout(get_shoryuken_options['queue'])
+        Shoryuken::Client.queues(get_shoryuken_options['queue']).visibility_timeout
       end
 
       def get_shoryuken_options # :nodoc:

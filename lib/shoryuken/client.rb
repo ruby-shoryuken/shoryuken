@@ -1,29 +1,43 @@
 module Shoryuken
   class Client
     @@queues = {}
-    @@visibility_timeouts = {}
+    @@topics = {}
 
     class << self
-      def queues(queue)
-        @@queues[queue.to_s] ||= sqs.queues.named(queue)
+      def queues(name)
+        @@queues[name.to_s] ||= sqs_resource.get_queue_by_name(queue_name: name)
       end
 
-      def visibility_timeout(queue)
-        @@visibility_timeouts[queue.to_s] ||= queues(queue).visibility_timeout
+      def sns
+        @sns ||= Aws::SNS::Client.new(aws_client_options(:sns_endpoint))
       end
 
-      def receive_message(queue, options = {})
-        queues(queue).receive_message(Hash(options))
-      end
-
-      def send_message(queue, body, options = {})
-        body = JSON.dump(body) if body.is_a?(Hash)
-
-        queues(queue).send_message(body, options)
+      def sns_arn
+        @sns_arn ||= SnsArn
       end
 
       def sqs
-        @sqs ||= AWS::SQS.new
+        @sqs ||= Aws::SQS::Client.new(aws_client_options(:sqs_endpoint))
+      end
+
+      def sqs_resource
+        @sqs_resource ||= Aws::SQS::Resource.new(client: sqs)
+      end
+
+      def topics(name)
+        @@topics[name.to_s] ||= Topic.new(name, sns)
+      end
+
+      attr_accessor :account_id
+      attr_writer :sns, :sqs, :sns_arn
+
+      private
+
+      def aws_client_options service_endpoint_key
+        explicit_endpoint = Shoryuken.options[:aws][service_endpoint_key]
+        options = {}
+        options[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?
+        options
       end
     end
   end

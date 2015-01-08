@@ -90,7 +90,7 @@ module Shoryuken
 
     def assign(queue, sqs_msg)
       watchdog("Manager#assign died") do
-        logger.info "Assigning #{sqs_msg.id}"
+        logger.info "Assigning #{sqs_msg.message_id}"
 
         processor = @ready.pop
         @busy << processor
@@ -192,7 +192,6 @@ module Shoryuken
 
       unless defined?(::ActiveJob) ||  !Shoryuken.worker_registry.workers(queue).empty?
         # when no worker registered pause the queue to avoid endless recursion
-
         logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered"
 
         after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }

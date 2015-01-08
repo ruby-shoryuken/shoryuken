@@ -4,9 +4,17 @@ require 'shoryuken/manager'
 
 describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager, processor_done: nil }
-  let(:sqs_queue) { double AWS::SQS::Queue, visibility_timeout: 30 }
+  let(:sqs_queue) { double Aws::SQS::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
-  let(:sqs_msg)   { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test', message_attributes: {} }
+
+  let(:sqs_msg) do
+    double Aws::SQS::Message,
+      queue_url: queue,
+      body: 'test',
+      message_attributes: {},
+      message_id: SecureRandom.uuid,
+      receipt_handle: SecureRandom.uuid
+  end
 
   subject { described_class.new(manager) }
 
@@ -180,7 +188,7 @@ describe Shoryuken::Processor do
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
-      expect(sqs_queue).to receive(:batch_delete).with(sqs_msg)
+      expect(sqs_queue).to receive(:delete_messages).with(entries: [{ id: '0', receipt_handle: sqs_msg.receipt_handle }])
 
       subject.process(queue, sqs_msg)
     end
@@ -192,18 +200,23 @@ describe Shoryuken::Processor do
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
-      expect(sqs_queue).to_not receive(:batch_delete)
+      expect(sqs_queue).to_not receive(:delete_messages)
 
       subject.process(queue, sqs_msg)
     end
 
     context 'when shoryuken_class header' do
-      let(:sqs_msg) { double AWS::SQS::ReceivedMessage, id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', body: 'test', message_attributes: {
-        'shoryuken_class' => {
-          string_value: TestWorker.to_s,
-          data_type: 'String'
-        }
-      } }
+      let(:sqs_msg) do
+        double Aws::SQS::Message,
+          queue_url: queue,
+          body: 'test',
+          message_attributes: {
+            'shoryuken_class' => {
+              string_value: TestWorker.to_s,
+              data_type: 'String' }},
+          message_id: SecureRandom.uuid,
+          receipt_handle: SecureRandom.uuid
+      end
 
       it 'performs without delete' do
         Shoryuken.worker_registry.clear # unregister TestWorker
@@ -212,7 +225,7 @@ describe Shoryuken::Processor do
 
         expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
-        expect(sqs_queue).to_not receive(:batch_delete)
+        expect(sqs_queue).to_not receive(:delete_messages)
 
         subject.process(queue, sqs_msg)
       end

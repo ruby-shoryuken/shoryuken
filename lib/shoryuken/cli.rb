@@ -266,10 +266,8 @@ module Shoryuken
         # validate all queues and AWS credentials consequently
         begin
           Shoryuken::Client.queues queue
-        rescue AWS::SQS::Errors::NonExistentQueue => e
-          raise ArgumentError, "AWS Queue '#{queue}' does not exist."
-        rescue => e
-          raise
+        rescue Aws::SQS::Errors::NonExistentQueue
+          raise ArgumentError, "AWS Queue '#{queue}' does not exist"
         end
       end
     end
@@ -277,7 +275,16 @@ module Shoryuken
     def initialize_aws
       # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
       # when not explicit supplied
-      AWS.config Shoryuken.options[:aws] if Shoryuken.options[:aws]
+      return unless Shoryuken.options[:aws]
+
+      non_standard_keys = %i(
+        account_id
+        sns_endpoint
+        sqs_endpoint)
+
+      Aws.config = Shoryuken.options[:aws].reject do |k, v|
+        non_standard_keys.include?(k)
+      end
     end
 
     def require_workers

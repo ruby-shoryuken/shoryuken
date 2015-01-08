@@ -1,5 +1,6 @@
 require 'yaml'
-require 'aws-sdk-v1'
+require 'aws-sdk-core'
+require 'aws-sdk-resources'
 require 'time'
 
 require 'shoryuken/version'
@@ -13,6 +14,8 @@ require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
 require 'shoryuken/middleware/server/timing'
+require 'shoryuken/sns_arn'
+require 'shoryuken/topic'
 
 module Shoryuken
   DEFAULTS = {

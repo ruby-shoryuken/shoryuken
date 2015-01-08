@@ -12,8 +12,9 @@ $options = {}
 
 if File.exists? options_file
   $options = YAML.load(ERB.new(IO.read(options_file)).result).deep_symbolize_keys
+  Shoryuken::Client.account_id = $options[:aws].delete :account_id
 
-  AWS.config $options[:aws]
+  Aws.config = $options[:aws]
 end
 
 Shoryuken.logger.level = Logger::UNKNOWN
