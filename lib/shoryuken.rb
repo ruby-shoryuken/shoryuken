@@ -101,7 +101,6 @@ module Shoryuken
           require 'shoryuken/middleware/server/active_record'
           m.add Middleware::Server::ActiveRecord
         end
-        # TODO m.add Middleware::Server::RetryJobs
       end
     end
   end
