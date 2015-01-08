@@ -66,7 +66,7 @@ module Shoryuken
 
     def processor_died(processor, reason)
       watchdog("Manager#processor_died died") do
-        logger.error "Process died, reason: #{reason}" if reason
+        logger.error "Process died, reason: #{reason}"
 
         @busy.delete processor
 
