@@ -98,5 +98,20 @@ describe 'Shoryuken::Worker' do
       expect(Shoryuken.workers['production_default']).to eq NewTestWorker
       expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
     end
+
+    it 'is possible to configure the global defaults' do
+      queue = SecureRandom.uuid
+      Shoryuken.default_worker_options['queue'] = queue
+
+      class GlobalDefaultsTestWorker
+        include Shoryuken::Worker
+
+        shoryuken_options auto_delete: true
+      end
+
+      expect(GlobalDefaultsTestWorker.get_shoryuken_options['queue']).to eq queue
+      expect(GlobalDefaultsTestWorker.get_shoryuken_options['auto_delete']).to eq true
+      expect(GlobalDefaultsTestWorker.get_shoryuken_options['batch']).to eq false
+    end
   end
 end
