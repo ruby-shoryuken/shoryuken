@@ -173,7 +173,7 @@ module Shoryuken
       # get/remove the first queue in the list
       queue = @queues.shift
 
-      unless defined?(::ActiveJob) || Shoryuken.workers.include?(queue)
+      unless defined?(::ActiveJob) ||  !Shoryuken.worker_registry.workers(queue).empty?
         # when no worker registered pause the queue to avoid endless recursion
 
         logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered"

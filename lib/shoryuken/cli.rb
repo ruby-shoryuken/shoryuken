@@ -243,9 +243,12 @@ module Shoryuken
     def validate!
       raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
 
+      all_queues = Shoryuken.queues
+      queues_with_workers = Shoryuken.worker_registry.queues
+
       unless defined?(::ActiveJob)
-        Shoryuken.queues.each do |queue|
-          logger.warn "No worker supplied for '#{queue}'" unless Shoryuken.workers.include? queue
+        (all_queues - queues_with_workers).each do |queue|
+          logger.warn "No worker supplied for '#{queue}'"
         end
       end
 
@@ -282,15 +285,17 @@ module Shoryuken
     end
 
     def patch_deprecated_workers!
-      Shoryuken.workers.each do |queue, worker_class|
-        if worker_class.instance_method(:perform).arity == 1
-          logger.warn "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)"
+      Shoryuken.worker_registry.queues.each do |queue|
+        Shoryuken.worker_registry.workers(queue).each do |worker_class|
+          if worker_class.instance_method(:perform).arity == 1
+            logger.warn "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)"
 
-          worker_class.class_eval do
-            alias_method :deprecated_perform, :perform
+            worker_class.class_eval do
+              alias_method :deprecated_perform, :perform
 
-            def perform(sqs_msg, body = nil)
-              deprecated_perform(sqs_msg)
+              def perform(sqs_msg, body = nil)
+                deprecated_perform(sqs_msg)
+              end
             end
           end
         end

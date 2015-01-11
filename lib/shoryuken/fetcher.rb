@@ -28,8 +28,7 @@ module Shoryuken
         logger.debug "Looking for new messages in '#{queue}'"
 
         begin
-          batch = !!(Shoryuken.workers[queue] && Shoryuken.workers[queue].get_shoryuken_options['batch'])
-
+          batch = Shoryuken.worker_registry.batch_receive_messages?(queue)
           limit = batch ? FETCH_LIMIT : available_processors
 
           if (sqs_msgs = Array(receive_message(queue, limit))).any?

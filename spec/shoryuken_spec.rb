@@ -3,22 +3,22 @@ require 'spec_helper'
 describe Shoryuken do
   describe '.register_worker' do
     it 'registers a worker' do
-      described_class.workers.clear
+      described_class.worker_registry.clear
       described_class.register_worker('default', TestWorker)
-      expect(described_class.workers).to eq('default' => TestWorker)
+      expect(described_class.worker_registry.workers('default')).to eq([TestWorker])
     end
 
     it 'registers a batchable worker' do
-      described_class.workers.clear
+      described_class.worker_registry.clear
       TestWorker.get_shoryuken_options['batch'] = true
       described_class.register_worker('default', TestWorker)
-      expect(described_class.workers).to eq('default' => TestWorker)
+      expect(described_class.worker_registry.workers('default')).to eq([TestWorker])
     end
 
     it 'allows multiple workers' do
-      described_class.workers.clear
+      described_class.worker_registry.clear
       described_class.register_worker('default', TestWorker)
-      expect(described_class.workers).to eq('default' => TestWorker)
+      expect(described_class.worker_registry.workers('default')).to eq([TestWorker])
 
       class Test2Worker
         include Shoryuken::Worker
@@ -28,11 +28,11 @@ describe Shoryuken do
         def perform(sqs_msg, body); end
       end
 
-      expect(described_class.workers).to eq('default' => Test2Worker)
+      expect(described_class.worker_registry.workers('default')).to eq([Test2Worker])
     end
 
     it 'raises an exception when mixing batchable with non batchable' do
-      described_class.workers.clear
+      described_class.worker_registry.clear
       TestWorker.get_shoryuken_options['batch'] = true
       described_class.register_worker('default', TestWorker)
 
@@ -45,7 +45,7 @@ describe Shoryuken do
           def perform(sqs_msg, body); end
         end
       }.to raise_error("Could not register BatchableWorker for 'default', because TestWorker is already registered for this queue, " \
-                       "and Shoryuken doesn't support a batchable worker for a queue with multiple workers")
+                       "and Shoryuken doesn't support a batchable worker for a queue with multiple workers.")
     end
   end
 end

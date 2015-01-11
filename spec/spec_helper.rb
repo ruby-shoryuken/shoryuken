@@ -51,7 +51,7 @@ RSpec.configure do |config|
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
 
-    Shoryuken.workers.clear
+    Shoryuken.worker_registry.clear
     Shoryuken.register_worker('default', TestWorker)
   end
 end
