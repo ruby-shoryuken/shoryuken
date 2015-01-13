@@ -9,7 +9,11 @@ module Shoryuken
       @manager = manager
     end
 
+    attr_accessor :proxy_id
+
     def process(queue, sqs_msg)
+      @manager.async.real_thread(proxy_id, Thread.current)
+
       worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
 
       timer = auto_visibility_timeout(queue, sqs_msg, worker.class)
@@ -22,11 +26,11 @@ module Shoryuken
             worker.perform(sqs_msg, body)
           end
         end
+
+        @manager.async.processor_done(queue, current_actor)
       ensure
         timer.cancel if timer
       end
-
-      @manager.async.processor_done(queue, current_actor)
     end
 
     private
