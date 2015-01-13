@@ -12,6 +12,7 @@ describe Shoryuken::Processor do
 
   before do
     allow(manager).to receive(:async).and_return(manager)
+    allow(manager).to receive(:real_thread)
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
 
