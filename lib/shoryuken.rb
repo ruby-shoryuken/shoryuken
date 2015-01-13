@@ -83,7 +83,11 @@ module Shoryuken
       @start_callback = block
     end
 
-    attr_reader :start_callback
+    def on_stop(&block)
+      @stop_callback = block
+    end
+
+    attr_reader :start_callback, :stop_callback
 
     private
 
