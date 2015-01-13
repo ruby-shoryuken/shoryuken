@@ -18,7 +18,8 @@ module Shoryuken
       @done = false
 
       @busy  = []
-      @ready = @count.times.map { Processor.new_link(current_actor) }
+      @ready = @count.times.map { build_processor }
+      @threads = {}
     end
 
     def start
@@ -54,6 +55,7 @@ module Shoryuken
       watchdog('Manager#processor_done died') do
         logger.info "Process done for '#{queue}'"
 
+        @threads.delete(processor.object_id)
         @busy.delete processor
 
         if stopped?
@@ -68,10 +70,11 @@ module Shoryuken
       watchdog("Manager#processor_died died") do
         logger.error "Process died, reason: #{reason}" unless reason.to_s.empty?
 
+        @threads.delete(processor.object_id)
         @busy.delete processor
 
         unless stopped?
-          @ready << Processor.new_link(current_actor)
+          @ready << build_processor
         end
       end
     end
@@ -134,7 +137,17 @@ module Shoryuken
       end
     end
 
+    def real_thread(proxy_id, thr)
+      @threads[proxy_id] = thr
+    end
+
     private
+
+    def build_processor
+      processor = Processor.new_link(current_actor)
+      processor.proxy_id = processor.object_id
+      processor
+    end
 
     def restart_queue!(queue)
       return if stopped?
@@ -148,7 +161,6 @@ module Shoryuken
           logger.debug { 'Restarting fetcher' }
 
           @fetcher_paused = false
-
 
           dispatch
         end
@@ -209,8 +221,9 @@ module Shoryuken
             logger.info { "Hard shutting down #{@busy.size} busy workers" }
 
             @busy.each do |processor|
-              t = processor.bare_object.actual_work_thread
-              t.raise Shutdown if processor.alive?
+              if processor.alive? && t = @threads.delete(processor.object_id)
+                t.raise Shutdown
+              end
             end
           end
 
