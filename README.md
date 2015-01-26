@@ -113,11 +113,11 @@ aws:
   access_key_id:      ...       # or <%= ENV['AWS_ACCESS_KEY_ID'] %>
   secret_access_key:  ...       # or <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
   region:             us-east-1 # or <%= ENV['AWS_REGION'] %>
-  receive_message:              # See http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/SQS/Queue.html#receive_message-instance_method
+  receive_message:              # See http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Queue.html#receive_messages-instance_method
     # wait_time_seconds: N      # The number of seconds to wait for new messages when polling. Defaults to the #wait_time_seconds defined on the queue
-    attributes:
-      - receive_count
-      - sent_at
+    attribute_names:
+      - ApproximateReceiveCount
+      - SentTimestamp
 concurrency: 25,  # The number of allocated threads to process messages. Default 25
 delay: 25,        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
@@ -125,6 +125,13 @@ queues:
   - [default, 2]
   - [low_priority, 1]
 ```
+
+The ```aws``` section is used to configure both the Aws objects used by Shoryuken internally, and also to set up some Shoryuken-specific config. The Shoryuken-specific keys are listed below, and you can expect any other key defined in that block to be passed on untouched to ```Aws::SQS::Client#initialize```:
+
+- ```account_id``` is used when generating SNS ARNs
+- ```sns_endpoint``` can be used to explicitly override the SNS endpoint
+- ```sqs_endpoint``` can be used to explicitly override the SQS endpoint
+- ```receive_message``` can be used to define the options passed to the http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Queue.html#receive_messages-instance_method
 
 ### Rails Integration
 
