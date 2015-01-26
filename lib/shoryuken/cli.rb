@@ -280,7 +280,8 @@ module Shoryuken
       non_standard_keys = %i(
         account_id
         sns_endpoint
-        sqs_endpoint)
+        sqs_endpoint
+        receive_message)
 
       Aws.config = Shoryuken.options[:aws].reject do |k, v|
         non_standard_keys.include?(k)
