@@ -99,29 +99,62 @@ describe Shoryuken::Processor do
         end
       end
 
-      before do
-        Shoryuken.configure_server do |config|
-          config.server_middleware do |chain|
-            chain.add WorkerCalledMiddleware
+      context 'on server' do
+        before do
+          allow(Shoryuken).to receive(:server?).and_return(true)
+
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.add WorkerCalledMiddleware
+            end
           end
+        end
+
+        after do
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.remove WorkerCalledMiddleware
+            end
+          end
+        end
+
+        it 'invokes middleware' do
+          expect(manager).to receive(:processor_done).with(queue, subject)
+
+          expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+          expect_any_instance_of(TestWorker).to receive(:called).with(sqs_msg, queue)
+
+          subject.process(queue, sqs_msg)
         end
       end
 
-      after do
-        Shoryuken.configure_server do |config|
-          config.server_middleware do |chain|
-            chain.remove WorkerCalledMiddleware
+      context 'on client' do
+        before do
+          allow(Shoryuken).to receive(:server?).and_return(false)
+
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.add WorkerCalledMiddleware
+            end
           end
         end
-      end
 
-      it 'invokes middleware' do
-        expect(manager).to receive(:processor_done).with(queue, subject)
+        after do
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.remove WorkerCalledMiddleware
+            end
+          end
+        end
 
-        expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
-        expect_any_instance_of(TestWorker).to receive(:called).with(sqs_msg, queue)
+        it "doesn't invoke middleware" do
+          expect(manager).to receive(:processor_done).with(queue, subject)
 
-        subject.process(queue, sqs_msg)
+          expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+          expect_any_instance_of(TestWorker).to_not receive(:called).with(sqs_msg, queue)
+
+          subject.process(queue, sqs_msg)
+        end
       end
     end
 

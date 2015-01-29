@@ -69,7 +69,7 @@ module Shoryuken
     #   end
     # end
     def configure_server
-      yield self
+      yield self if server?
     end
 
     def server_middleware
@@ -91,6 +91,10 @@ module Shoryuken
         end
         # TODO m.add Middleware::Server::RetryJobs
       end
+    end
+
+    def server?
+      defined?(Shoryuken::CLI)
     end
   end
 end
