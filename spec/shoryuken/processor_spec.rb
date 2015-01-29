@@ -110,29 +110,66 @@ describe Shoryuken::Processor do
 
           def perform(sqs_msg, body); end
         end
+      end
 
-        Shoryuken.configure_server do |config|
-          config.server_middleware do |chain|
-            chain.add WorkerCalledMiddleware
+      context 'server' do
+        before do
+          allow(Shoryuken).to receive(:server?).and_return(true)
+          WorkerCalledMiddlewareWorker.instance_variable_set(:@server_chain, nil) # un-memoize middleware
+
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.add WorkerCalledMiddleware
+            end
           end
+        end
+
+        after do
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.remove WorkerCalledMiddleware
+            end
+          end
+        end
+
+        it 'invokes middleware' do
+          expect(manager).to receive(:processor_done).with(queue, subject)
+
+          expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+          expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
+
+          subject.process(queue, sqs_msg)
         end
       end
 
-      after do
-        Shoryuken.configure_server do |config|
-          config.server_middleware do |chain|
-            chain.remove WorkerCalledMiddleware
+      context 'client' do
+        before do
+          allow(Shoryuken).to receive(:server?).and_return(false)
+          WorkerCalledMiddlewareWorker.instance_variable_set(:@server_chain, nil) # un-memoize middleware
+
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.add WorkerCalledMiddleware
+            end
           end
         end
-      end
 
-      it 'invokes middleware' do
-        expect(manager).to receive(:processor_done).with(queue, subject)
+        after do
+          Shoryuken.configure_server do |config|
+            config.server_middleware do |chain|
+              chain.remove WorkerCalledMiddleware
+            end
+          end
+        end
 
-        expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
-        expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
+        it "doesn't invoke middleware" do
+          expect(manager).to receive(:processor_done).with(queue, subject)
 
-        subject.process(queue, sqs_msg)
+          expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+          expect_any_instance_of(WorkerCalledMiddlewareWorker).to_not receive(:called).with(sqs_msg, queue)
+
+          subject.process(queue, sqs_msg)
+        end
       end
     end
 

@@ -57,7 +57,7 @@ module Shoryuken
     #   end
     # end
     def configure_server
-      yield self
+      yield self if server?
     end
 
     def server_middleware
@@ -90,6 +90,10 @@ module Shoryuken
           m.add Middleware::Server::ActiveRecord
         end
       end
+    end
+
+    def server?
+      defined?(Shoryuken::CLI)
     end
   end
 end
