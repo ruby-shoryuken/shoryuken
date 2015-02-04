@@ -37,6 +37,10 @@ If all queues get empty, all processors will be changed to the waiting state and
 
 To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches, so a single SQS request can fetch up to 10 messages.
 
+## Requirements 
+
+Ruby 2.0 or greater. Ruby 1.9 is no longer supported.
+
 ## Installation
 
 Add this line to your application's Gemfile:
