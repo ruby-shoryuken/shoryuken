@@ -249,7 +249,7 @@ module Shoryuken
     end
 
     def validate!
-      raise ArgumentError, 'No queues supplied' if Shoryuken.queues.empty?
+      logger.warn 'No queues supplied' if Shoryuken.queues.empty?
 
       all_queues = Shoryuken.queues
       queues_with_workers = Shoryuken.worker_registry.queues
