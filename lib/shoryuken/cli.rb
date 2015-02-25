@@ -267,7 +267,7 @@ module Shoryuken
         begin
           Shoryuken::Client.queues queue
         rescue AWS::SQS::Errors::NonExistentQueue => e
-          raise ArgumentError, "Queue '#{queue}' does not exist"
+          raise ArgumentError, "AWS Queue '#{queue}' does not exist."
         rescue => e
           raise
         end
