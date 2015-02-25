@@ -6,12 +6,12 @@ require 'celluloid'
 require 'shoryuken'
 require 'json'
 
-options_file = File.join(File.expand_path('../..', __FILE__), 'shoryuken.yml')
+options_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
 
 $options = {}
 
 if File.exists? options_file
-  $options = YAML.load(File.read(options_file)).deep_symbolize_keys
+  $options = YAML.load(ERB.new(IO.read(options_file)).result).deep_symbolize_keys
 
   AWS.config $options[:aws]
 end
