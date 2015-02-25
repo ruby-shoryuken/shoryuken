@@ -13,4 +13,4 @@ notifications:
     on_success: change
     on_failure: always
 
-script: bundle exec rspec spec
+script: SPEC_ALL=true bundle exec rspec spec
