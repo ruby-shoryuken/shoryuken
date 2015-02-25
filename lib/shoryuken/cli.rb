@@ -25,14 +25,10 @@ module Shoryuken
         end
       end
 
-      setup_options(args) do |cli_options|
-        # this needs to happen before configuration is parsed, since it may depend on Rails env
-        initialize_logger(cli_options)
-        load_rails if cli_options[:rails]
-      end
-      require_workers
-      validate!
-      patch_deprecated_workers!
+      options = parse_cli_args(args)
+
+      EnvironmentLoader.load_for_cli(options)
+
       daemonize
       write_pid
       load_celluloid
@@ -40,9 +36,9 @@ module Shoryuken
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
 
-      if Shoryuken.start_callback
+      if callback = Shoryuken.start_callback
         logger.info "Calling Shoryuken.on_start block"
-        Shoryuken.start_callback.call
+        callback.call
       end
 
       begin
@@ -70,26 +66,6 @@ module Shoryuken
       Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
 
       require 'shoryuken/manager'
-    end
-
-    def load_rails
-      # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
-
-      require 'rails'
-      if ::Rails::VERSION::MAJOR < 4
-        require File.expand_path("config/environment.rb")
-        ::Rails.application.eager_load!
-      else
-        # Painful contortions, see 1791 for discussion
-        require File.expand_path("config/application.rb")
-        ::Rails::Application.initializer "shoryuken.eager_load" do
-          ::Rails.application.config.eager_load = true
-        end
-        require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
-        require File.expand_path("config/environment.rb")
-      end
-
-      logger.info "Rails environment loaded"
     end
 
     def daemonize
@@ -131,8 +107,8 @@ module Shoryuken
       end
     end
 
-    def parse_options(argv)
-      opts = {}
+    def parse_cli_args(argv)
+      opts = { queues: [] }
 
       @parser = OptionParser.new do |o|
         o.on '-c', '--concurrency INT', 'Processor threads to use' do |arg|
@@ -145,7 +121,7 @@ module Shoryuken
 
         o.on '-q', '--queue QUEUE[,WEIGHT]...', 'Queues to process with optional weights' do |arg|
           queue, weight = arg.split(',')
-          parse_queue queue, weight
+          opts[:queues] << [queue, weight]
         end
 
         o.on '-r', '--require [PATH|DIR]', 'Location of the worker' do |arg|
@@ -216,105 +192,6 @@ module Shoryuken
         logger.info "Received #{sig}, will shutdown down"
 
         raise Interrupt
-      end
-    end
-
-    def setup_options(args)
-      options = parse_options(args)
-
-      # yield parsed options in case we need to do more setup before configuration is parsed
-      yield(options) if block_given?
-
-      config = options[:config_file] ? parse_config(options[:config_file]).deep_symbolize_keys : {}
-
-      Shoryuken.options.merge!(config)
-
-      Shoryuken.options.merge!(options)
-
-      parse_queues
-    end
-
-    def parse_config(config_file)
-      if File.exist?(config_file)
-        YAML.load(ERB.new(IO.read(config_file)).result)
-      else
-        raise ArgumentError, "Config file #{config_file} does not exist"
-      end
-    end
-
-    def initialize_logger(options = Shoryuken.options)
-      Shoryuken::Logging.initialize_logger(options[:logfile]) if options[:logfile]
-
-      Shoryuken.logger.level = Logger::DEBUG if options[:verbose]
-    end
-
-    def validate!
-      logger.warn 'No queues supplied' if Shoryuken.queues.empty?
-
-      all_queues = Shoryuken.queues
-      queues_with_workers = Shoryuken.worker_registry.queues
-
-      unless defined?(::ActiveJob)
-        (all_queues - queues_with_workers).each do |queue|
-          logger.warn "No worker supplied for '#{queue}'"
-        end
-      end
-
-      initialize_aws
-
-      Shoryuken.queues.uniq.each do |queue|
-        # validate all queues and AWS credentials consequently
-        begin
-          Shoryuken::Client.queues queue
-        rescue Aws::SQS::Errors::NonExistentQueue
-          raise ArgumentError, "AWS Queue '#{queue}' does not exist"
-        end
-      end
-    end
-
-    def initialize_aws
-      # aws-sdk tries to load the credentials from the ENV variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-      # when not explicit supplied
-      return unless Shoryuken.options[:aws]
-
-      non_standard_keys = %i(
-        account_id
-        sns_endpoint
-        sqs_endpoint
-        receive_message)
-
-      Aws.config = Shoryuken.options[:aws].reject do |k, v|
-        non_standard_keys.include?(k)
-      end
-    end
-
-    def require_workers
-      require Shoryuken.options[:require] if Shoryuken.options[:require]
-    end
-
-    def parse_queues
-      Shoryuken.options[:queues].to_a.each { |queue_and_weight| parse_queue *queue_and_weight }
-    end
-
-    def parse_queue(queue, weight = nil)
-      [weight.to_i, 1].max.times { Shoryuken.queues << queue }
-    end
-
-    def patch_deprecated_workers!
-      Shoryuken.worker_registry.queues.each do |queue|
-        Shoryuken.worker_registry.workers(queue).each do |worker_class|
-          if worker_class.instance_method(:perform).arity == 1
-            logger.warn "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)"
-
-            worker_class.class_eval do
-              alias_method :deprecated_perform, :perform
-
-              def perform(sqs_msg, body = nil)
-                deprecated_perform(sqs_msg)
-              end
-            end
-          end
-        end
       end
     end
   end

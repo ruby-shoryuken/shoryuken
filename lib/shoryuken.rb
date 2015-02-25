@@ -6,11 +6,12 @@ require 'time'
 require 'shoryuken/version'
 require 'shoryuken/core_ext'
 require 'shoryuken/util'
+require 'shoryuken/logging'
+require 'shoryuken/environment_loader'
 require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/worker_registry'
 require 'shoryuken/default_worker_registry'
-require 'shoryuken/logging'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
 require 'shoryuken/middleware/server/timing'
@@ -82,6 +83,10 @@ module Shoryuken
       @@default_worker_options = options
     end
 
+    def on_aws_initialization(&block)
+      @aws_initialization_callback = block
+    end
+
     def on_start(&block)
       @start_callback = block
     end
@@ -90,7 +95,9 @@ module Shoryuken
       @stop_callback = block
     end
 
-    attr_reader :start_callback, :stop_callback
+    attr_reader :aws_initialization_callback,
+                :start_callback,
+                :stop_callback
 
     private
 

@@ -32,9 +32,9 @@ module Shoryuken
       watchdog('Manager#stop died') do
         @done = true
 
-        if Shoryuken.stop_callback
+        if callback = Shoryuken.stop_callback
           logger.info "Calling Shoryuken.on_stop block"
-          Shoryuken.stop_callback.call
+          callback.call
         end
 
         @fetcher.terminate if @fetcher.alive?
