@@ -148,7 +148,7 @@ module Shoryuken
         begin
           Shoryuken::Client.queues queue
         rescue Aws::SQS::Errors::NonExistentQueue
-          Shoryuken.logger.warn "Queue '#{queue}' does not exist"
+          Shoryuken.logger.warn "AWS Queue '#{queue}' does not exist"
         end
       end
     end
