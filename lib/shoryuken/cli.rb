@@ -27,7 +27,7 @@ module Shoryuken
 
       options = parse_cli_args(args)
 
-      EnvironmentLoader.load_for_cli(options)
+      EnvironmentLoader.load(options)
 
       daemonize
       write_pid

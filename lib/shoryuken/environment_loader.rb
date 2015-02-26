@@ -2,12 +2,12 @@ module Shoryuken
   class EnvironmentLoader
     attr_reader :options
 
-    def self.load_for_cli(options)
+    def self.load(options)
       new(options).load
     end
 
     def self.load_for_rails_console
-      new(search_for_config_file: true).load
+      load(config_file: (Rails.root + 'config' + 'shoryuken.yml'))
     end
 
     def initialize options
@@ -32,10 +32,10 @@ module Shoryuken
 
     def config_file_options
       if (path = options[:config_file])
-        raise ArgumentError, "Config file #{config_file} does not exist" unless File.exist?(path)
-      elsif options.delete(:search_for_config_file)
-        path = Rails.root + 'config' + 'shoryuken.yml'
-        path = nil unless File.exists?(path)
+        unless File.exists?(path)
+          Shoryuken.logger.warn "Config file #{path} does not exist"
+          path = nil
+        end
       end
 
       return {} unless path

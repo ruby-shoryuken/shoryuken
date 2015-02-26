@@ -6,16 +6,9 @@ require 'celluloid'
 require 'shoryuken'
 require 'json'
 
-options_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
+config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
 
-$options = {}
-
-if File.exists? options_file
-  $options = YAML.load(ERB.new(IO.read(options_file)).result).deep_symbolize_keys
-  Shoryuken::Client.account_id = $options[:aws].delete :account_id
-
-  Aws.config = $options[:aws]
-end
+Shoryuken::EnvironmentLoader.load(config_file: config_file)
 
 Shoryuken.logger.level = Logger::UNKNOWN
 Celluloid.logger.level = Logger::UNKNOWN
@@ -38,16 +31,11 @@ RSpec.configure do |config|
     Shoryuken::Client.class_variable_set :@@queues, {}
     Shoryuken::Client.class_variable_set :@@visibility_timeouts, {}
 
-    Shoryuken.options.clear
-    Shoryuken.options.merge!($options)
-
     Shoryuken.queues.clear
 
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1
     Shoryuken.options[:timeout]     = 1
-
-    Shoryuken.options[:aws] = {}
 
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
