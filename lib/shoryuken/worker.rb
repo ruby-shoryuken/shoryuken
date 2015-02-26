@@ -51,12 +51,12 @@ module Shoryuken
         !!get_shoryuken_options['auto_visibility_timeout']
       end
 
-      def visibility_timeout_heartbeat
-        extended_visibility_timeout - 5
+      def visibility_timeout_heartbeat(queue)
+        extended_visibility_timeout(queue) - 5
       end
 
-      def extended_visibility_timeout
-        Shoryuken::Client.visibility_timeout(get_shoryuken_options['queue'])
+      def extended_visibility_timeout(queue)
+        Shoryuken::Client.visibility_timeout(queue)
       end
 
       def get_shoryuken_options # :nodoc:

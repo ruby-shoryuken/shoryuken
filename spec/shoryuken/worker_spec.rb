@@ -115,6 +115,23 @@ describe 'Shoryuken::Worker' do
     end
   end
 
+  describe '.visibility_timeout' do
+    before do
+      allow(Shoryuken::Client).to receive(:visibility_timeout).with('queue1').and_return(60)
+      allow(Shoryuken::Client).to receive(:visibility_timeout).with('queue2').and_return(120)
+    end
+
+    it 'returns the seconds to extend visibility timeout for a queue' do
+      expect(TestWorker.extended_visibility_timeout('queue1')).to eq 60
+      expect(TestWorker.extended_visibility_timeout('queue2')).to eq 120
+    end
+
+    it 'returns how often to extend visibility timeout for a queue' do
+      expect(TestWorker.visibility_timeout_heartbeat('queue1')).to eq 55
+      expect(TestWorker.visibility_timeout_heartbeat('queue2')).to eq 115
+    end
+  end
+
   describe '.server_middleware' do
     before do
       class FakeMiddleware
