@@ -5,7 +5,7 @@ module Shoryuken
         include Util
 
         def call(worker, queue, sqs_msg, body)
-          Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.id}") do
+          Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id}") do
             begin
               started_at = Time.now
 
@@ -15,7 +15,7 @@ module Shoryuken
 
               total_time = elapsed(started_at)
 
-              if (total_time / 1000.0) > (timeout = Shoryuken::Client.visibility_timeout(queue))
+              if (total_time / 1000.0) > (timeout = Shoryuken::Client.queues(queue).visibility_timeout)
                 logger.warn "exceeded the queue visibility timeout by #{total_time - (timeout * 1000)} ms"
               end
 
