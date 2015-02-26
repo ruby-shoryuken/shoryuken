@@ -15,8 +15,8 @@ Yeah, Shoryuken load balances the messages consumption!
 Given this configuration:
 
 ```yaml
-concurrency: 25,
-delay: 25,
+concurrency: 25
+delay: 25
 queues:
   - [high_priority, 6]
   - [default, 2]
@@ -118,8 +118,8 @@ aws:
     attribute_names:
       - ApproximateReceiveCount
       - SentTimestamp
-concurrency: 25,  # The number of allocated threads to process messages. Default 25
-delay: 25,        # The delay in seconds to pause a queue when it's empty. Default 0
+concurrency: 25  # The number of allocated threads to process messages. Default 25
+delay: 25        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
   - [high_priority, 6]
   - [default, 2]
