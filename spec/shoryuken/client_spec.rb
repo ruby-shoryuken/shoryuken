@@ -1,9 +1,10 @@
 require 'spec_helper'
 
 describe Shoryuken::Client do
-  let(:sqs) { Aws::SQS::Client.new stub_responses: true }
-  let(:queue_name) { 'shoryuken' }
-  let(:queue_url) { 'https://eu-west-1.amazonaws.com:6059/123456789012/shoryuken' }
+  let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }
+  let(:sqs)         { Aws::SQS::Client.new(stub_responses: true, credentials: credentials) }
+  let(:queue_name)  { 'shoryuken' }
+  let(:queue_url)   { 'https://eu-west-1.amazonaws.com:6059/123456789012/shoryuken' }
 
   before do
     described_class.sqs = sqs

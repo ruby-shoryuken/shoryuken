@@ -7,8 +7,10 @@ require 'shoryuken'
 require 'json'
 require 'multi_xml'
 
-require 'codeclimate-test-reporter'
-CodeClimate::TestReporter.start
+if ENV['CODECLIMATE_REPO_TOKEN']
+  require 'codeclimate-test-reporter'
+  CodeClimate::TestReporter.start
+end
 
 config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
 

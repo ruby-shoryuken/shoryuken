@@ -15,7 +15,7 @@ task :console do
   end
 
   def push(queue, message)
-    Shoryuken::Client.queues(queue).send_message message
+    Shoryuken::Client.queues(queue).send_message(message_body: message)
   end
 
   ARGV.clear
