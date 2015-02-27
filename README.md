@@ -5,6 +5,7 @@
 Shoryuken _sho-ryu-ken_ is a super-efficient [AWS SQS](https://aws.amazon.com/sqs/) thread-based message processor.
 
 [![Build Status](https://travis-ci.org/phstc/shoryuken.svg)](https://travis-ci.org/phstc/shoryuken)
+[![Code Climate](https://codeclimate.com/github/phstc/shoryuken/badges/gpa.svg)](https://codeclimate.com/github/phstc/shoryuken)
 
 ## Key features
 
@@ -37,7 +38,7 @@ If all queues get empty, all processors will be changed to the waiting state and
 
 To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches, so a single SQS request can fetch up to 10 messages.
 
-## Requirements 
+## Requirements
 
 Ruby 2.0 or greater. Ruby 1.9 is no longer supported.
 
