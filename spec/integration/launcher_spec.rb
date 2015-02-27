@@ -5,9 +5,7 @@ require 'shoryuken/launcher'
 describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
     before do
-      Shoryuken.options[:aws] ||= {}
-      Shoryuken.options[:aws][:receive_message] ||= {}
-      Shoryuken.options[:aws][:receive_message][:wait_time_seconds] = 5
+      Shoryuken.options[:aws][:receive_message] = { wait_time_seconds: 5 }
 
       Shoryuken.queues << 'shoryuken'
       Shoryuken.queues << 'shoryuken_command'
@@ -15,12 +13,27 @@ describe Shoryuken::Launcher do
       Shoryuken.register_worker 'shoryuken',          StandardWorker
       Shoryuken.register_worker 'shoryuken_command',  CommandWorker
 
-      subject.run
-
       StandardWorker.received_messages = 0
+
+      Shoryuken.queues.each do |name|
+        Shoryuken::Client.queues(name).purge
+      end
+
+      # Gives the queues a moment to empty out
+      sleep 1
     end
 
-    after { subject.stop }
+    def poll_queues_until
+      subject.run
+
+      Timeout::timeout(10) do
+        begin
+          sleep 0.5
+        end until yield
+      end
+    ensure
+      subject.stop
+    end
 
     class CommandWorker
       include Shoryuken::Worker
@@ -65,10 +78,7 @@ describe Shoryuken::Launcher do
     it 'consumes as a command worker' do
       CommandWorker.perform_async('Yo')
 
-      10.times do
-        break if CommandWorker.received_messages > 0
-        sleep 1
-      end
+      poll_queues_until { CommandWorker.received_messages > 0 }
 
       expect(CommandWorker.received_messages).to eq 1
     end
@@ -76,12 +86,9 @@ describe Shoryuken::Launcher do
     it 'consumes a message' do
       StandardWorker.get_shoryuken_options['batch'] = false
 
-      Shoryuken::Client.queues('shoryuken').send_message('Yo')
+      Shoryuken::Client.queues('shoryuken').send_message(message_body: 'Yo')
 
-      10.times do
-        break if StandardWorker.received_messages > 0
-        sleep 1
-      end
+      poll_queues_until { StandardWorker.received_messages > 0 }
 
       expect(StandardWorker.received_messages).to eq 1
     end
@@ -89,15 +96,17 @@ describe Shoryuken::Launcher do
     it 'consumes a batch' do
       StandardWorker.get_shoryuken_options['batch'] = true
 
-      Shoryuken::Client.queues('shoryuken').batch_send *(['Yo'] * 10)
+      entries = []
+      10.times { entries << { id: SecureRandom.uuid, message_body: 'Yo' } }
 
-      10.times do
-        break if StandardWorker.received_messages > 0
-        sleep 1
-      end
+      Shoryuken::Client.queues('shoryuken').send_messages(entries: entries)
 
-      # the fetch result is uncertain, should be greater than 1, but hard to tell the exact size
-      expect(StandardWorker.received_messages).to be > 1
+      # Give the messages a chance to hit the queue so they are all available at the same time
+      sleep 2
+
+      poll_queues_until { StandardWorker.received_messages > 0 }
+
+      expect(StandardWorker.received_messages).to eq 10
     end
   end
 end

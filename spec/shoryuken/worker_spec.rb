@@ -10,15 +10,15 @@ describe 'Shoryuken::Worker' do
 
   describe '.perform_in' do
     it 'delays a message' do
-      expect(sqs_queue).to receive(:send_message).with('message', {
+      expect(sqs_queue).to receive(:send_message).with(
         message_attributes: {
           'shoryuken_class' => {
             string_value: TestWorker.to_s,
             data_type: 'String'
           }
         },
-        delay_seconds: 60
-      })
+        message_body: 'message',
+        delay_seconds: 60)
 
       TestWorker.perform_in(60, 'message')
     end
@@ -32,15 +32,15 @@ describe 'Shoryuken::Worker' do
 
   describe '.perform_at' do
     it 'delays a message' do
-      expect(sqs_queue).to receive(:send_message).with('message', {
+      expect(sqs_queue).to receive(:send_message).with(
         message_attributes: {
           'shoryuken_class' => {
             string_value: TestWorker.to_s,
             data_type: 'String'
           }
         },
-        delay_seconds: 60
-      })
+        message_body: 'message',
+        delay_seconds: 60)
 
       TestWorker.perform_in(Time.now + 60, 'message')
     end
@@ -54,28 +54,28 @@ describe 'Shoryuken::Worker' do
 
   describe '.perform_async' do
     it 'enqueues a message' do
-      expect(sqs_queue).to receive(:send_message).with('message', {
+      expect(sqs_queue).to receive(:send_message).with(
         message_attributes: {
           'shoryuken_class' => {
             string_value: TestWorker.to_s,
             data_type: 'String'
           }
-        }
-      })
+        },
+        message_body: 'message')
 
       TestWorker.perform_async('message')
     end
 
     it 'enqueues a message with options' do
-      expect(sqs_queue).to receive(:send_message).with('delayed message', {
+      expect(sqs_queue).to receive(:send_message).with(
         delay_seconds: 60,
         message_attributes: {
           'shoryuken_class' => {
             string_value: TestWorker.to_s,
             data_type: 'String'
           }
-        }
-      })
+        },
+        message_body: 'delayed message')
 
       TestWorker.perform_async('delayed message', delay_seconds: 60)
     end

@@ -12,9 +12,9 @@ module Shoryuken
           string_value: self.to_s,
           data_type: 'String'
         }
+        options[:message_body] = body
 
-        queue = Shoryuken::Client.queues(get_shoryuken_options['queue'])
-        queue.send_message(body, options)
+        Shoryuken::Client.queues(get_shoryuken_options['queue']).send_message(options)
       end
 
       def perform_in(interval, body, options = {})
