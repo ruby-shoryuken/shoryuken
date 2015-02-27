@@ -43,7 +43,7 @@ module Shoryuken
           begin
             logger.debug "Extending message #{worker_name(worker_class, sqs_msg)}/#{queue}/#{sqs_msg.message_id} visibility timeout by #{queue_visibility_timeout}s."
 
-            sqs_msg.change_visibility visibility_timeout: queue_visibility_timeout
+            sqs_msg.visibility_timeout = queue_visibility_timeout
           rescue => e
             logger.error "Could not auto extend the message #{worker_class}/#{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{e.message}"
           end

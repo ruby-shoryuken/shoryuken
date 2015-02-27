@@ -29,7 +29,7 @@ module Shoryuken
       end
 
       attr_accessor :account_id
-      attr_writer :sns, :sqs, :sns_arn
+      attr_writer :sns, :sqs, :sqs_resource, :sns_arn
 
       private
 
