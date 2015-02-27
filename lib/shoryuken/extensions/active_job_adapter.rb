@@ -35,7 +35,7 @@ module ActiveJob
 
         private
 
-        def message(job, options={})
+        def message(job, options = {})
           {
             message_body: job.serialize,
             message_attributes: message_attributes
