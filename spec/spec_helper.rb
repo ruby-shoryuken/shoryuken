@@ -7,6 +7,9 @@ require 'shoryuken'
 require 'json'
 require 'multi_xml'
 
+require 'codeclimate-test-reporter'
+CodeClimate::TestReporter.start
+
 config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
 
 Shoryuken::EnvironmentLoader.load(config_file: config_file)
