@@ -19,7 +19,8 @@ module ActiveJob
         def enqueue(job) #:nodoc:
           register_worker!(job)
 
-          Shoryuken::Client.send_message(job.queue_name, job.serialize, message_attributes: message_attributes)
+          queue = Shoryuken::Client.queues(job.queue_name)
+          queue.send_message(message(job))
         end
 
         def enqueue_at(job, timestamp) #:nodoc:
@@ -28,12 +29,18 @@ module ActiveJob
           delay = (timestamp - Time.current.to_f).round
           raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
 
-          Shoryuken::Client.send_message(job.queue_name, job.serialize, delay_seconds: delay,
-                                                                        message_attributes: message_attributes)
+          queue = Shoryuken::Client.queues(job.queue_name)
+          queue.send_message(message(job, delay_seconds: delay))
         end
 
-
         private
+
+        def message(job, options={})
+          {
+            message_body: job.serialize,
+            message_attributes: message_attributes
+          }.merge(options)
+        end
 
         def register_worker!(job)
           Shoryuken.register_worker(job.queue_name, JobWrapper)
