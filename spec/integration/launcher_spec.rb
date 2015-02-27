@@ -19,8 +19,8 @@ describe Shoryuken::Launcher do
         Shoryuken::Client.queues(name).purge
       end
 
-      # Gives the queues a moment to empty out
-      sleep 1
+      # Gives the queues a moment to empty out (and AWS only allows 1 purge per minute)
+      sleep (ENV['TRAVIS'] == 'true') ? 60 : 1
     end
 
     def poll_queues_until
