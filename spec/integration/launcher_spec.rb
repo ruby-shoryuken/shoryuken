@@ -7,33 +7,31 @@ describe Shoryuken::Launcher do
     before do
       Shoryuken.options[:aws][:receive_message] = { wait_time_seconds: 5 }
 
-      [StandardWorker, CommandWorker].each do |worker_class|
-        queue = "test_shoryuken#{worker_class}_#{SecureRandom.uuid}"
+      StandardWorker.received_messages = 0
 
-        Shoryuken::Client.sqs.create_queue queue_name: queue
+      queue = "test_shoryuken#{StandardWorker}_#{SecureRandom.uuid}"
 
-        Shoryuken.queues << queue
+      Shoryuken::Client.sqs.create_queue queue_name: queue
 
-        worker_class.get_shoryuken_options['queue'] = queue
+      Shoryuken.queues << queue
 
-        Shoryuken.register_worker queue, worker_class
-      end
+      StandardWorker.get_shoryuken_options['queue'] = queue
+
+      Shoryuken.register_worker queue, StandardWorker
     end
 
     after do
-      [StandardWorker, CommandWorker].each do |worker_class|
-        queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: worker_class.get_shoryuken_options['queue']).queue_url
+      queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: StandardWorker.get_shoryuken_options['queue']).queue_url
 
-        Shoryuken::Client.sqs.delete_queue queue_url: queue_url
-      end
+      Shoryuken::Client.sqs.delete_queue queue_url: queue_url
     end
 
     it 'consumes as a command worker' do
-      CommandWorker.perform_async('Yo')
+      StandardWorker.perform_async('Yo')
 
-      poll_queues_until { CommandWorker.received_messages > 0 }
+      poll_queues_until { StandardWorker.received_messages > 0 }
 
-      expect(CommandWorker.received_messages).to eq 1
+      expect(StandardWorker.received_messages).to eq 1
     end
 
     it 'consumes a message' do
@@ -71,26 +69,6 @@ describe Shoryuken::Launcher do
       end
     ensure
       subject.stop
-    end
-
-    class CommandWorker
-      include Shoryuken::Worker
-
-      @@received_messages = 0
-
-      shoryuken_options auto_delete: true
-
-      def perform(sqs_msg, body)
-        @@received_messages = Array(sqs_msg).size
-      end
-
-      def self.received_messages
-        @@received_messages
-      end
-
-      def self.received_messages=(received_messages)
-        @@received_messages = received_messages
-      end
     end
 
     class StandardWorker
