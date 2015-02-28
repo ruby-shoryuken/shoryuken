@@ -56,7 +56,7 @@ describe Shoryuken::Launcher do
 
       poll_queues_until { StandardWorker.received_messages > 0 }
 
-      expect(StandardWorker.received_messages).to eq 10
+      expect(StandardWorker.received_messages).to be > 1
     end
 
     def poll_queues_until
