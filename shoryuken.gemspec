@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "pry-byebug"
   spec.add_development_dependency "nokogiri"
+  spec.add_development_dependency "dotenv"
 
   spec.add_dependency "aws-sdk-core", "2.0.21"
   spec.add_dependency "aws-sdk-resources", "2.0.21.pre"

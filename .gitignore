@@ -23,3 +23,4 @@ mkmf.log
 shoryuken.yml
 *.pid
 *.log
+.env
