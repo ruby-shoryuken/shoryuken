@@ -32,7 +32,7 @@ module Shoryuken
 
     def config_file_options
       if (path = options[:config_file])
-        unless File.exists?(path)
+        unless File.exist?(path)
           Shoryuken.logger.warn "Config file #{path} does not exist"
           path = nil
         end
@@ -115,7 +115,7 @@ module Shoryuken
 
     def parse_queues
       Shoryuken.options[:queues].to_a.each do |queue_and_weight|
-        parse_queue *queue_and_weight
+        parse_queue(*queue_and_weight)
       end
     end
 
