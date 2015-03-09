@@ -36,10 +36,11 @@ module ActiveJob
         private
 
         def message(job, options = {})
-          {
-            message_body: job.serialize,
-            message_attributes: message_attributes
-          }.merge(options)
+          body = job.serialize
+          body = JSON.dump(body) if body.is_a?(Hash)
+
+          { message_body: body,
+            message_attributes: message_attributes }.merge(options)
         end
 
         def register_worker!(job)
