@@ -28,10 +28,10 @@ module Shoryuken
               retry_intervals.last
             end
         
-          # timeout cannot be larger than 43200 (12.hours)
-          if interval + sqs_msg.queue.visibility_timeout > 43200
-            interval -= sqs_msg.queue.visibility_timeout
-          end
+          # Visibility timeouts are limited to 12 hours and are not additive.
+          # From the docs:  "Amazon SQS restarts the timeout period using the new value."
+          # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html#AboutVT-extending-message-visibility-timeout
+          interval = 43200 if interval > 43200
         
           sqs_msg.visibility_timeout = interval
         
