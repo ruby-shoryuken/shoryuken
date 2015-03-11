@@ -95,8 +95,6 @@ module Shoryuken
         io.sync = true
       end
       $stdin.reopen('/dev/null')
-
-      initialize_logger
     end
 
     def write_pid
