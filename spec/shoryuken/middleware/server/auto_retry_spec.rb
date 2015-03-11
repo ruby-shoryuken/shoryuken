@@ -39,7 +39,7 @@ describe Shoryuken::Middleware::Server::AutoRetry do
     it 'retries the job if :retry_intervals is non-empty' do
       TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
       
-      expect(sqs_msg).to receive(:queue){ sqs_queue }
+      allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:visibility_timeout=).with(300)
 
       expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
@@ -49,7 +49,7 @@ describe Shoryuken::Middleware::Server::AutoRetry do
       TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
       
       allow(sqs_msg).to receive(:receive_count){ 2 }
-      expect(sqs_msg).to receive(:queue){ sqs_queue }
+      allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:visibility_timeout=).with(1800)
 
       expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
@@ -59,8 +59,17 @@ describe Shoryuken::Middleware::Server::AutoRetry do
       TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
       
       allow(sqs_msg).to receive(:receive_count){ 3 }
-      expect(sqs_msg).to receive(:queue){ sqs_queue }
+      allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:visibility_timeout=).with(1800)
+
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+    end
+
+    it 'limits the visibility timeout to 12 hours' do
+      TestWorker.get_shoryuken_options['retry_intervals'] = [86400]
+      
+      allow(sqs_msg).to receive(:queue){ sqs_queue }
+      expect(sqs_msg).to receive(:visibility_timeout=).with(43200)
 
       expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
     end
