@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Shoryuken::Middleware::Server::AutoRetry do
+describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   let(:queue)     { 'default' }
   let(:sqs_queue) { double Aws::SQS::Queue,   visibility_timeout: 30 }
   let(:sqs_msg)   { double Aws::SQS::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid,

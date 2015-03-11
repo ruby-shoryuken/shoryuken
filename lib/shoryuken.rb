@@ -14,7 +14,7 @@ require 'shoryuken/worker_registry'
 require 'shoryuken/default_worker_registry'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
-require 'shoryuken/middleware/server/auto_retry'
+require 'shoryuken/middleware/server/exponential_backoff_retry'
 require 'shoryuken/middleware/server/timing'
 require 'shoryuken/sns_arn'
 require 'shoryuken/topic'
@@ -106,7 +106,7 @@ module Shoryuken
     def default_server_middleware
       Middleware::Chain.new do |m|
         m.add Middleware::Server::Timing
-        m.add Middleware::Server::AutoRetry
+        m.add Middleware::Server::ExponentialBackoffRetry
         m.add Middleware::Server::AutoDelete
         if defined?(::ActiveRecord::Base)
           require 'shoryuken/middleware/server/active_record'

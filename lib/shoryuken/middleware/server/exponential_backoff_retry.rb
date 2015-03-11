@@ -1,7 +1,7 @@
 module Shoryuken
   module Middleware
     module Server
-      class AutoRetry
+      class ExponentialBackoffRetry
         include Util
 
         def call(worker, queue, sqs_msg, body)
