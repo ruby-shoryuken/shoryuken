@@ -5,22 +5,30 @@ module Shoryuken
         include Util
 
         def call(worker, queue, sqs_msg, body)
+          started_at = Time.now
           yield
         rescue Exception => e
           retry_intervals = Array(worker.class.get_shoryuken_options['retry_intervals'])
-          if retry_intervals.empty?
+           
+          if retry_intervals.empty? || ! handle_failure(sqs_msg, started_at, retry_intervals)
             # Re-raise the exception if the job is not going to be retried.
             # This allows custom middleware (like exception notifiers) to be aware of the unhandled failure.
             raise e
-          else
-            handle_failure sqs_msg, retry_intervals
           end
         end
         
       private
       
-        def handle_failure(sqs_msg, retry_intervals)
-          attempts = sqs_msg.receive_count - 1
+        def handle_failure(sqs_msg, started_at, retry_intervals)
+          attempts = sqs_msg.attributes['ApproximateReceiveCount']
+            
+          # We need these two attributes in order to calculate the next visibility timeout.
+          unless attempts
+            logger.debug { "Message #{sqs_msg.id} will not be retried, because ApproximateReceiveCount missing" }
+            return
+          end
+          
+          attempts = attempts.to_i - 1
         
           interval = if attempts < retry_intervals.size
               retry_intervals[attempts]
@@ -28,12 +36,15 @@ module Shoryuken
               retry_intervals.last
             end
         
-          # Visibility timeouts are limited to 12 hours and are not additive.
+          # Visibility timeouts are limited to a total 12 hours, starting from the receipt of the message.
+          # We calculate the maximum timeout by subtracting the amount of time since the receipt of the message.
+          #
           # From the docs:  "Amazon SQS restarts the timeout period using the new value."
           # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html#AboutVT-extending-message-visibility-timeout
-          interval = 43200 if interval > 43200
+          max_timeout = 43200 - (Time.now - started_at).ceil - 1
+          interval = max_timeout if interval > max_timeout
         
-          sqs_msg.visibility_timeout = interval
+          sqs_msg.change_visibility(visibility_timeout: interval.to_i)
         
           logger.info "Message #{sqs_msg.id} failed, will be retried in #{interval} seconds."
         end
