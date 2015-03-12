@@ -24,7 +24,7 @@ module Shoryuken
             
           # We need these two attributes in order to calculate the next visibility timeout.
           unless attempts
-            logger.debug { "Message #{sqs_msg.id} will not be retried, because ApproximateReceiveCount missing" }
+            logger.debug { "Message #{sqs_msg.message_id} will not be retried, because ApproximateReceiveCount missing" }
             return
           end
           
@@ -46,7 +46,7 @@ module Shoryuken
         
           sqs_msg.change_visibility(visibility_timeout: interval.to_i)
         
-          logger.info "Message #{sqs_msg.id} failed, will be retried in #{interval} seconds."
+          logger.info "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds."
         end
       end
     end
