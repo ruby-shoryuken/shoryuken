@@ -16,6 +16,7 @@ module Shoryuken
       options = Shoryuken.options[:aws][:receive_message].to_h.dup
       options[:max_number_of_messages] = limit
       options[:message_attribute_names] = %w(All)
+      options[:attribute_names] ||= %w(All)
 
       Shoryuken::Client.queues(queue).receive_messages options
     end
