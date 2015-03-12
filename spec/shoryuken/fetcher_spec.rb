@@ -24,7 +24,7 @@ describe Shoryuken::Fetcher do
 
   describe '#fetch' do
     it 'calls pause when no message' do
-      allow(queue).to receive(:receive_messages).with(max_number_of_messages: 1, message_attribute_names: ['All']).and_return([])
+      allow(queue).to receive(:receive_messages).with(max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']).and_return([])
 
       expect(manager).to receive(:pause_queue!).with(queue_name)
       expect(manager).to receive(:dispatch)
@@ -33,7 +33,7 @@ describe Shoryuken::Fetcher do
     end
 
     it 'assigns messages' do
-      allow(queue).to receive(:receive_messages).with(max_number_of_messages: 5, message_attribute_names: ['All']).and_return(sqs_msg)
+      allow(queue).to receive(:receive_messages).with(max_number_of_messages: 5, attribute_names: ['All'], message_attribute_names: ['All']).and_return(sqs_msg)
 
       expect(manager).to receive(:rebalance_queue_weight!).with(queue_name)
       expect(manager).to receive(:assign).with(queue_name, sqs_msg)
@@ -45,7 +45,7 @@ describe Shoryuken::Fetcher do
     it 'assigns messages in batch' do
       TestWorker.get_shoryuken_options['batch'] = true
 
-      allow(queue).to receive(:receive_messages).with(max_number_of_messages: described_class::FETCH_LIMIT, message_attribute_names: ['All']).and_return(sqs_msg)
+      allow(queue).to receive(:receive_messages).with(max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']).and_return(sqs_msg)
 
       expect(manager).to receive(:rebalance_queue_weight!).with(queue_name)
       expect(manager).to receive(:assign).with(queue_name, [sqs_msg])
@@ -58,7 +58,7 @@ describe Shoryuken::Fetcher do
       let(:queue_name) { 'notfound' }
 
       it 'ignores batch' do
-        allow(queue).to receive(:receive_messages).with(max_number_of_messages: 5, message_attribute_names: ['All']).and_return(sqs_msg)
+        allow(queue).to receive(:receive_messages).with(max_number_of_messages: 5, attribute_names: ['All'], message_attribute_names: ['All']).and_return(sqs_msg)
 
         expect(manager).to receive(:rebalance_queue_weight!).with(queue_name)
         expect(manager).to receive(:assign).with(queue_name, sqs_msg)

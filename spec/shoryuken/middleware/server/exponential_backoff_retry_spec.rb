@@ -4,7 +4,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   let(:queue)     { 'default' }
   let(:sqs_queue) { double Aws::SQS::Queue }
   let(:sqs_msg)   { double Aws::SQS::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid,
-                                              attributes: {'ApproximateReceiveCount' => 1}, id: SecureRandom.uuid }
+                                              attributes: {'ApproximateReceiveCount' => 1}, message_id: SecureRandom.uuid }
 
   before do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
