@@ -33,7 +33,7 @@ module Shoryuken
 
       private
 
-      def aws_client_options service_endpoint_key
+      def aws_client_options(service_endpoint_key)
         explicit_endpoint = Shoryuken.options[:aws][service_endpoint_key]
         options = {}
         options[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?

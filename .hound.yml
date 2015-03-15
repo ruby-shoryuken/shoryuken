@@ -1,2 +1,6 @@
-StringLiterals:
-  EnforcedStyle: single_quotes
+ruby:
+  enabled: true
+  config_file: .rubocop.yml
+
+java_script:
+  enabled: true

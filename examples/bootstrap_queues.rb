@@ -22,7 +22,7 @@ if sqs.config['endpoint'] =~ /amazonaws.com/
   ).attributes['QueueArn']
 
   attributes = {}
-  attributes['RedrivePolicy'] = %Q{{"maxReceiveCount":"7", "deadLetterTargetArn":"#{dead_letter_queue_arn}"}}
+  attributes['RedrivePolicy'] = %Q({"maxReceiveCount":"7", "deadLetterTargetArn":"#{dead_letter_queue_arn}"})
 
   sqs.set_queue_attributes queue_url: default_queue_url, attributes: attributes
 end

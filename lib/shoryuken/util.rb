@@ -18,9 +18,8 @@ module Shoryuken
     end
 
     def unparse_queues(queues)
-      queues.inject({}) do |queue_and_weights, name|
+      queues.each_with_object({}) do |name, queue_and_weights|
         queue_and_weights[name] = queue_and_weights[name].to_i + 1
-        queue_and_weights
       end.to_a
     end
 

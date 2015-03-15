@@ -32,8 +32,8 @@ module Shoryuken
       watchdog('Manager#stop died') do
         @done = true
 
-        if callback = Shoryuken.stop_callback
-          logger.info "Calling Shoryuken.on_stop block"
+        if (callback = Shoryuken.stop_callback)
+          logger.info 'Calling Shoryuken.on_stop block'
           callback.call
         end
 
@@ -89,7 +89,7 @@ module Shoryuken
     end
 
     def assign(queue, sqs_msg)
-      watchdog("Manager#assign died") do
+      watchdog('Manager#assign died') do
         logger.info "Assigning #{sqs_msg.message_id}"
 
         processor = @ready.pop
@@ -133,7 +133,7 @@ module Shoryuken
         return
       end
 
-      if queue = next_queue
+      if (queue = next_queue)
         @fetcher.async.fetch(queue, @ready.size)
       else
         logger.debug { 'Pausing fetcher, because all queues are paused' }
@@ -220,7 +220,7 @@ module Shoryuken
       logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
       after(delay) do
-        watchdog("Manager#hard_shutdown_in died") do
+        watchdog('Manager#hard_shutdown_in died') do
           if @busy.size > 0
             logger.info { "Hard shutting down #{@busy.size} busy workers" }
 

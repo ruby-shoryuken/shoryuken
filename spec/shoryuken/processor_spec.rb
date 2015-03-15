@@ -38,7 +38,7 @@ describe Shoryuken::Processor do
     end
 
     it 'parses the body calling the proc' do
-      TestWorker.get_shoryuken_options['body_parser'] = Proc.new { |sqs_msg| "*#{sqs_msg.body}*" }
+      TestWorker.get_shoryuken_options['body_parser'] = proc { |sqs_msg| "*#{sqs_msg.body}*" }
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, '*test*')
 
@@ -214,8 +214,8 @@ describe Shoryuken::Processor do
             'shoryuken_class' => {
               string_value: TestWorker.to_s,
               data_type: 'String' }},
-          message_id: SecureRandom.uuid,
-          receipt_handle: SecureRandom.uuid
+              message_id: SecureRandom.uuid,
+              receipt_handle: SecureRandom.uuid
       end
 
       it 'performs without delete' do
@@ -244,7 +244,7 @@ describe Shoryuken::Processor do
 
     context 'when the worker takes a long time', slow: true do
       it 'extends the message invisibility to prevent it from being dequeued concurrently' do
-        TestWorker.get_shoryuken_options['body_parser'] = Proc.new do |sqs_msg|
+        TestWorker.get_shoryuken_options['body_parser'] = proc do
           sleep visibility_timeout
           'test'
         end

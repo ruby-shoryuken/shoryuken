@@ -42,9 +42,6 @@ RSpec.configure do |config|
   config.filter_run_excluding slow: true unless ENV['SPEC_ALL']
 
   config.before do
-    # remove doubles, preventing:
-    # Double "Queue" was originally created in one example but has leaked into another example and can no longer be used.
-    # rspec-mocks' doubles are designed to only last for one example, and you need to create a new one in each example you wish to use it for.
     Shoryuken::Client.class_variable_set :@@queues, {}
     Shoryuken::Client.class_variable_set :@@visibility_timeouts, {}
 

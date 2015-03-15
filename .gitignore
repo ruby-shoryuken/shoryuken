@@ -24,3 +24,4 @@ shoryuken.yml
 *.pid
 *.log
 .env
+rubocop.html

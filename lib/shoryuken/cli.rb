@@ -19,7 +19,7 @@ module Shoryuken
     def run(args)
       self_read, self_write = IO.pipe
 
-      %w[INT TERM USR1 USR2 TTIN].each do |sig|
+      %w(INT TERM USR1 USR2 TTIN).each do |sig|
         begin
           trap sig do
             self_write.puts(sig)
@@ -48,7 +48,7 @@ module Shoryuken
       begin
         launcher.run
 
-        while readable_io = IO.select([self_read])
+        while (readable_io = IO.select([self_read]))
           signal = readable_io.first[0].gets.strip
           handle_signal(signal)
         end
@@ -86,7 +86,7 @@ module Shoryuken
 
       files_to_reopen.each do |file|
         begin
-          file.reopen file.path, "a+"
+          file.reopen file.path, 'a+'
           file.sync = true
         rescue ::Exception
         end
@@ -102,7 +102,7 @@ module Shoryuken
     end
 
     def write_pid
-      if path = Shoryuken.options[:pidfile]
+      if (path = Shoryuken.options[:pidfile])
         File.open(path, 'w') do |f|
           f.puts Process.pid
         end
@@ -150,7 +150,7 @@ module Shoryuken
           opts[:verbose] = arg
         end
 
-        o.on '-V', '--version', 'Print version and exit' do |arg|
+        o.on '-V', '--version', 'Print version and exit' do
           puts "Shoryuken #{Shoryuken::VERSION}"
           exit 0
         end
@@ -170,7 +170,7 @@ module Shoryuken
 
       case sig
       when 'USR1'
-        logger.info "Received USR1, will soft shutdown down"
+        logger.info 'Received USR1, will soft shutdown down'
 
         launcher.stop
 
@@ -181,7 +181,7 @@ module Shoryuken
           if thread.backtrace
             logger.info thread.backtrace.join("\n")
           else
-            logger.info "<no backtrace available>"
+            logger.info '<no backtrace available>'
           end
         end
 

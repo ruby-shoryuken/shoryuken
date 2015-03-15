@@ -10,7 +10,7 @@ module Shoryuken
       load(config_file: (Rails.root + 'config' + 'shoryuken.yml'))
     end
 
-    def initialize options
+    def initialize(options)
       @options = options
     end
 
@@ -64,8 +64,8 @@ module Shoryuken
 
       aws_options = aws_options.merge(credentials: credentials)
 
-      if callback = Shoryuken.aws_initialization_callback
-        Shoryuken.logger.info "Calling Shoryuken.on_aws_initialization block"
+      if (callback = Shoryuken.aws_initialization_callback)
+        Shoryuken.logger.info 'Calling Shoryuken.on_aws_initialization block'
         callback.call(aws_options)
       end
 
@@ -82,19 +82,19 @@ module Shoryuken
 
       require 'rails'
       if ::Rails::VERSION::MAJOR < 4
-        require File.expand_path("config/environment.rb")
+        require File.expand_path('config/environment.rb')
         ::Rails.application.eager_load!
       else
         # Painful contortions, see 1791 for discussion
-        require File.expand_path("config/application.rb")
-        ::Rails::Application.initializer "shoryuken.eager_load" do
+        require File.expand_path('config/application.rb')
+        ::Rails::Application.initializer 'shoryuken.eager_load' do
           ::Rails.application.config.eager_load = true
         end
         require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
-        require File.expand_path("config/environment.rb")
+        require File.expand_path('config/environment.rb')
       end
 
-      Shoryuken.logger.info "Rails environment loaded"
+      Shoryuken.logger.info 'Rails environment loaded'
     end
 
     def merge_cli_defined_queues

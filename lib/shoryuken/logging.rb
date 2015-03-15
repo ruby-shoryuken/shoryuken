@@ -17,12 +17,10 @@ module Shoryuken
     end
 
     def self.with_context(msg)
-      begin
-        Thread.current[:shoryuken_context] = msg
-        yield
-      ensure
-        Thread.current[:shoryuken_context] = nil
-      end
+      Thread.current[:shoryuken_context] = msg
+      yield
+    ensure
+      Thread.current[:shoryuken_context] = nil
     end
 
     def self.initialize_logger(log_target = STDOUT)
