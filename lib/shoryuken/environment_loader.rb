@@ -19,6 +19,7 @@ module Shoryuken
       load_rails if options[:rails]
       Shoryuken.options.merge!(config_file_options)
       merge_cli_defined_queues
+      prefix_active_job_queue_names
       Shoryuken.options.merge!(options)
       parse_queues
       require_workers
@@ -106,6 +107,22 @@ module Shoryuken
         end
 
         Shoryuken.options[:queues] << cli_defined_queue
+      end
+    end
+
+    def prefix_active_job_queue_names
+      return unless @options[:rails]
+
+      if Shoryuken.active_job_queue_name_prefixing
+        queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
+        queue_name_delimiter = ::ActiveJob::Base.queue_name_delimiter
+
+        # See https://github.com/rails/rails/blob/master/activejob/lib/active_job/queue_name.rb#L27
+        Shoryuken.options[:queues].to_a.map! do |queue_name, weight|
+          name_parts = [queue_name_prefix.presence, queue_name]
+          prefixed_queue_name = name_parts.compact.join(queue_name_delimiter)
+          [prefixed_queue_name, weight]
+        end
       end
     end
 
