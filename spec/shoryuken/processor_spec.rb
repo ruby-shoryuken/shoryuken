@@ -4,11 +4,11 @@ require 'shoryuken/manager'
 
 describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager, processor_done: nil }
-  let(:sqs_queue) { double Aws::SQS::Queue, visibility_timeout: 30 }
+  let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
 
   let(:sqs_msg) do
-    double Aws::SQS::Message,
+    double Shoryuken::Message,
       queue_url: queue,
       body: 'test',
       message_attributes: {},
@@ -207,7 +207,7 @@ describe Shoryuken::Processor do
 
     context 'when shoryuken_class header' do
       let(:sqs_msg) do
-        double Aws::SQS::Message,
+        double Shoryuken::Message,
           queue_url: queue,
           body: 'test',
           message_attributes: {

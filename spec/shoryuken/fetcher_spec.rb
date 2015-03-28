@@ -4,11 +4,11 @@ require 'shoryuken/fetcher'
 
 describe Shoryuken::Fetcher do
   let(:manager)    { double Shoryuken::Manager }
-  let(:queue)      { double Aws::SQS::Queue }
+  let(:queue)      { double Shoryuken::Queue }
   let(:queue_name) { 'default' }
 
   let(:sqs_msg) do
-    double Aws::SQS::Message,
+    double Shoryuken::Message,
       queue_url: queue_name,
       body: 'test',
       message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e'
