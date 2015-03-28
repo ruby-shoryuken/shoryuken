@@ -12,8 +12,8 @@ module Shoryuken
       client.get_queue_attributes(queue_url: url, attribute_names: ['VisibilityTimeout']).attributes['VisibilityTimeout'].to_i
     end
 
-    def delete_messages(entries)
-      client.delete_message_batch queue_url: url, entries: entries
+    def delete_messages(options)
+      client.delete_message_batch(options.merge queue_url: url)
     end
 
     def send_message( options)
@@ -21,7 +21,7 @@ module Shoryuken
     end
 
     def receive_messages(options)
-      client.receive_message options.merge(queue_url: url).messages.map { |m| Message.new m }
+      client.receive_message(options.merge(queue_url: url)).messages.map { |m| Message.new client, url, m }
     end
   end
 end

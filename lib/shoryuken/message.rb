@@ -1,22 +1,23 @@
 module Shoryuken
   class Message
-    attr_accessor :queue, :data
+    attr_accessor :client, :queue_url, :data
 
-    def initialize(queue, data)
-      self.queue = queue
+    def initialize(client, queue_url, data)
+      self.client = client
+      self.queue_url = queue_url
       self.data = data
     end
 
     def delete
-      queue.client.delete_message(queue_url: queue.url, receipt_handle: data.receipt_handle)
+      client.delete_message(queue_url: queue_url, receipt_handle: data.receipt_handle)
     end
 
     def change_visibility(options)
-      queue.client.change_message_visibility(options.merge(queue_url: queue.url, receipt_handle: data.receipt_handle))
+      client.change_message_visibility(options.merge(queue_url: queue_url, receipt_handle: data.receipt_handle))
     end
 
     def visibility_timeout=(timeout)
-      queue.client.change_message_visibility(queue_url: queue.url, receipt_handle: data.receipt_handle, visibility_timeout: timeout)
+      client.change_message_visibility(queue_url: queue_url, receipt_handle: data.receipt_handle, visibility_timeout: timeout)
     end
 
     def message_id
