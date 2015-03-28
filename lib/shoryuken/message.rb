@@ -9,15 +9,24 @@ module Shoryuken
     end
 
     def delete
-      client.delete_message(queue_url: queue_url, receipt_handle: data.receipt_handle)
+      client.delete_message(
+        queue_url: queue_url,
+        receipt_handle: data.receipt_handle
+      )
     end
 
     def change_visibility(options)
-      client.change_message_visibility(options.merge(queue_url: queue_url, receipt_handle: data.receipt_handle))
+      client.change_message_visibility(
+        options.merge(queue_url: queue_url, receipt_handle: data.receipt_handle)
+      )
     end
 
     def visibility_timeout=(timeout)
-      client.change_message_visibility(queue_url: queue_url, receipt_handle: data.receipt_handle, visibility_timeout: timeout)
+      client.change_message_visibility(
+        queue_url: queue_url,
+        receipt_handle: data.receipt_handle,
+        visibility_timeout: timeout
+      )
     end
 
     def message_id
