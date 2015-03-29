@@ -39,8 +39,11 @@ module Shoryuken
       messages = options[:entries] || [options]
 
       messages.each do |m|
-        if m[:message_body].is_a?(Hash)
-          m[:message_body] = JSON.dump(m[:message_body])
+        body = m[:message_body]
+        if body.is_a?(Hash)
+          m[:message_body] = JSON.dump(body)
+        elsif !body.is_a? String
+          fail ArgumentError, "The message body must be a String and you passed a #{body.class}"
         end
       end
 
