@@ -66,19 +66,6 @@ describe 'Shoryuken::Worker' do
       TestWorker.perform_async('message')
     end
 
-    it 'enqueues a message given as hash' do
-      expect(sqs_queue).to receive(:send_message).with(
-        message_attributes: {
-          'shoryuken_class' => {
-            string_value: TestWorker.to_s,
-            data_type: 'String'
-          }
-        },
-        message_body: '{"field":"part1","other_field":"part2"}')
-
-      TestWorker.perform_async(field: 'part1', other_field: 'part2')
-    end
-
     it 'enqueues a message with options' do
       expect(sqs_queue).to receive(:send_message).with(
         delay_seconds: 60,

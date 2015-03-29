@@ -20,17 +20,31 @@ module Shoryuken
     end
 
     def send_message(options)
-      client.send_message(options.merge(queue_url: url))
+      client.send_message(sanitize_message_body(options.merge(queue_url: url)))
     end
 
     def send_messages(options)
-      client.send_message_batch(options.merge(queue_url: url))
+      client.send_message_batch(sanitize_message_body(options.merge(queue_url: url)))
     end
 
     def receive_messages(options)
       client.receive_message(options.merge(queue_url: url)).
         messages.
         map { |m| Message.new(client, url, m) }
+    end
+
+    private
+
+    def sanitize_message_body(options)
+      messages = options[:entries] || [options]
+
+      messages.each do |m|
+        if m[:message_body].is_a?(Hash)
+          m[:message_body] = JSON.dump(m[:message_body])
+        end
+      end
+
+      options
     end
   end
 end

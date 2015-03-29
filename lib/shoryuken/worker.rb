@@ -13,7 +13,6 @@ module Shoryuken
           data_type: 'String'
         }
 
-        body = JSON.dump(body) if body.is_a?(Hash)
         options[:message_body] = body
 
         Shoryuken::Client.queues(get_shoryuken_options['queue']).send_message(options)

@@ -37,7 +37,6 @@ module ActiveJob
 
         def message(job, options = {})
           body = job.serialize
-          body = JSON.dump(body) if body.is_a?(Hash)
 
           { message_body: body,
             message_attributes: message_attributes }.merge(options)
