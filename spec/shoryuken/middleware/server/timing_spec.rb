@@ -2,10 +2,10 @@ require 'spec_helper'
 
 describe Shoryuken::Middleware::Server::Timing do
   let(:queue) { 'default' }
-  let(:sqs_queue) { double Aws::SQS::Queue, visibility_timeout: 60 }
+  let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 60 }
 
   let(:sqs_msg) do
-    double Aws::SQS::Message,
+    double Shoryuken::Message,
       queue_url: queue,
       body: 'test',
       message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e'

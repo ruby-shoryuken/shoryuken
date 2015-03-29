@@ -17,7 +17,7 @@ describe 'Shoryuken::Util' do
 
   describe '#worker_name' do
     let(:sqs_msg) do
-      double Aws::SQS::Message, message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', message_attributes: {}
+      double Shoryuken::Message, message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', message_attributes: {}
     end
 
     it 'returns Shoryuken worker name' do

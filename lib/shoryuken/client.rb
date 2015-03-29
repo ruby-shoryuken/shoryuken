@@ -5,7 +5,7 @@ module Shoryuken
 
     class << self
       def queues(name)
-        @@queues[name.to_s] ||= sqs_resource.get_queue_by_name(queue_name: name)
+        @@queues[name.to_s] ||= Shoryuken::Queue.new(sqs, name)
       end
 
       def sns
@@ -18,10 +18,6 @@ module Shoryuken
 
       def sqs
         @sqs ||= Aws::SQS::Client.new(aws_client_options(:sqs_endpoint))
-      end
-
-      def sqs_resource
-        @sqs_resource ||= Aws::SQS::Resource.new(client: sqs)
       end
 
       def topics(name)

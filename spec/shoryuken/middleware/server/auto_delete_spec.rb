@@ -2,10 +2,10 @@ require 'spec_helper'
 
 describe Shoryuken::Middleware::Server::AutoDelete do
   let(:queue)     { 'default' }
-  let(:sqs_queue) { double Aws::SQS::Queue }
+  let(:sqs_queue) { double Shoryuken::Queue }
 
   def build_message
-    double Aws::SQS::Message,
+    double Shoryuken::Message,
       queue_url: queue,
       body: 'test',
       receipt_handle: SecureRandom.uuid
