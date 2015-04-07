@@ -58,11 +58,13 @@ module Shoryuken
         shoryuken_keys.include?(k)
       end
 
+      # assume credentials based authentication
       credentials = Aws::Credentials.new(
         aws_options.delete(:access_key_id),
         aws_options.delete(:secret_access_key))
 
-      aws_options = aws_options.merge(credentials: credentials)
+      # but only if the configuration options have valid values
+      aws_options = aws_options.merge(credentials: credentials) if credentials.set?
 
       if (callback = Shoryuken.aws_initialization_callback)
         Shoryuken.logger.info 'Calling Shoryuken.on_aws_initialization block'
