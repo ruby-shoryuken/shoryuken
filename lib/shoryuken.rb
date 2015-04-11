@@ -31,6 +31,7 @@ module Shoryuken
 
   @@queues          = []
   @@worker_registry = DefaultWorkerRegistry.new
+  @@active_job_queue_name_prefixing = false
 
   class << self
     def options
@@ -55,6 +56,14 @@ module Shoryuken
 
     def worker_registry
       @@worker_registry
+    end
+
+    def active_job_queue_name_prefixing
+      @@active_job_queue_name_prefixing
+    end
+
+    def active_job_queue_name_prefixing=(prefixing)
+      @@active_job_queue_name_prefixing = prefixing
     end
 
     # Shoryuken.configure_server do |config|
