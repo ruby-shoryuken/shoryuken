@@ -186,6 +186,13 @@ See [ActiveJob docs](http://edgeguides.rubyonrails.org/active_job_basics.html) f
 
 *Note:* When queueing jobs to be performed in the future (e.g when setting the `wait` or `wait_until` ActiveJob options), SQS limits the amount of time to 15 minutes. Shoryuken will raise an exception if you attempt to schedule a job further into the future than this limit.
 
+*Note:* Active Job allows you to [prefix the queue names](http://edgeguides.rubyonrails.org/active_job_basics.html#queues) of all jobs. Shoryuken supports this behavior natively. By default, though, queue names defined in the config file (or passed to the CLI), are not prefixed in the same way. To have Shoryuken honor Active Job prefixes you must enable that option explicitly. A good place to do that in Rails is in an initializer:
+
+```
+# config/initializers/shoryuken.rb
+Shoryuken.active_job_queue_name_prefixing = true
+```
+
 ### Start Shoryuken
 
 ```shell
