@@ -29,7 +29,7 @@ module Shoryuken
     timeout: 8
   }
 
-  @@queues          = []
+  @@queues = []
   @@worker_registry = DefaultWorkerRegistry.new
   @@active_job_queue_name_prefixing = false
 
@@ -66,11 +66,6 @@ module Shoryuken
       @@active_job_queue_name_prefixing = prefixing
     end
 
-    # Shoryuken.configure_server do |config|
-    #   config.server_middleware do |chain|
-    #     chain.add MyServerHook
-    #   end
-    # end
     def configure_server
       yield self if server?
     end
