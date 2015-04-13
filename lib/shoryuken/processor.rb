@@ -72,7 +72,7 @@ module Shoryuken
       when :text, nil
         sqs_msg.body
       else
-        body_parser.parse(sqs_msg.body) if body_parser.respond_to?(:parse) # i.e. JSON.parse(...)
+        body_parser.load(sqs_msg.body) if body_parser.respond_to?(:load) # i.e. JSON.parse(...)
       end
     rescue => e
       logger.error "Error parsing the message body: #{e.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}"
