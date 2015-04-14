@@ -20,7 +20,9 @@ module Shoryuken
     end
 
     def send_message(options)
-      client.send_message(sanitize_message_body(options.merge(queue_url: url)))
+      Shoryuken.client_middleware.invoke(options) do
+        client.send_message(sanitize_message_body(options.merge(queue_url: url)))
+      end
     end
 
     def send_messages(options)

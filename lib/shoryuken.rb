@@ -76,6 +76,16 @@ module Shoryuken
       @server_chain
     end
 
+    def configure_client
+      yield self
+    end
+
+    def client_middleware
+      @client_chain ||= default_client_middleware
+      yield @client_chain if block_given?
+      @client_chain
+    end
+
     def default_worker_options
       @@default_worker_options ||= {
         'queue'                   => 'default',
@@ -118,6 +128,10 @@ module Shoryuken
           m.add Middleware::Server::ActiveRecord
         end
       end
+    end
+
+    def default_client_middleware
+      Middleware::Chain.new
     end
 
     def server?
