@@ -41,8 +41,12 @@ module Shoryuken
 
       return {} unless path
 
-      yml_configs = YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
-      yml_configs[Rails.env.to_sym] || yml_configs if options[:rails]
+      env_section(YAML.load(ERB.new(IO.read(path)).result)).deep_symbolize_keys
+    end
+
+    def env_section(yml)
+      env = Rails.env if options[:rails] || ENV['environment']
+      yml[env] || yml
     end
 
     def initialize_aws
