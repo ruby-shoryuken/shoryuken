@@ -59,8 +59,28 @@ describe Shoryuken::Processor do
       subject.process(queue, sqs_msg)
     end
 
+    it 'parses calling `.load`' do
+      TestWorker.get_shoryuken_options['body_parser'] = Class.new do
+        def self.load(*args)
+          JSON.load(*args)
+        end
+      end
+
+      body = { 'test' => 'hi' }
+
+      expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, body)
+
+      allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
+
+      subject.process(queue, sqs_msg)
+    end
+
     it 'parses calling `.parse`' do
-      TestWorker.get_shoryuken_options['body_parser'] = JSON
+      TestWorker.get_shoryuken_options['body_parser'] = Class.new do
+        def self.parse(*args)
+          JSON.parse(*args)
+        end
+      end
 
       body = { 'test' => 'hi' }
 
