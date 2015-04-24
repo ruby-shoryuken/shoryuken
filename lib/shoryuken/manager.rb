@@ -58,7 +58,7 @@ module Shoryuken
 
     def processor_done(queue, processor)
       watchdog('Manager#processor_done died') do
-        logger.info "Process done for '#{queue}'"
+        logger.debug "Process done for '#{queue}'"
 
         @threads.delete(processor.object_id)
         @busy.delete processor
@@ -90,7 +90,7 @@ module Shoryuken
 
     def assign(queue, sqs_msg)
       watchdog('Manager#assign died') do
-        logger.info "Assigning #{sqs_msg.message_id}"
+        logger.debug "Assigning #{sqs_msg.message_id}"
 
         processor = @ready.pop
         @busy << processor
