@@ -49,11 +49,11 @@ module Shoryuken
       # when not explicit supplied
       return if Shoryuken.options[:aws].empty?
 
-      shoryuken_keys = %i(
+      shoryuken_keys = %w(
         account_id
         sns_endpoint
         sqs_endpoint
-        receive_message)
+        receive_message).map(&:to_sym)
 
       aws_options = Shoryuken.options[:aws].reject do |k, v|
         shoryuken_keys.include?(k)

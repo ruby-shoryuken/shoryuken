@@ -39,7 +39,7 @@ module Shoryuken
       end
 
       def shoryuken_options(opts = {})
-        @shoryuken_options = get_shoryuken_options.merge(stringify_keys(Hash(opts)))
+        @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
         queue = @shoryuken_options['queue']
         if queue.respond_to? :call
           queue = queue.call
