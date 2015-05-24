@@ -1,7 +1,7 @@
 require 'bundler/setup'
 Bundler.setup
 
-require 'pry-debugger'
+require 'pry-byebug'
 require 'celluloid'
 require 'shoryuken'
 require 'json'
