@@ -19,6 +19,7 @@ require 'shoryuken/middleware/server/exponential_backoff_retry'
 require 'shoryuken/middleware/server/timing'
 require 'shoryuken/sns_arn'
 require 'shoryuken/topic'
+require 'shoryuken/polling'
 
 module Shoryuken
   DEFAULTS = {
@@ -26,7 +27,8 @@ module Shoryuken
     queues: [],
     aws: {},
     delay: 0,
-    timeout: 8
+    timeout: 8,
+    polling_strategy: Polling::WeightedRoundRobin,
   }
 
   @@queues = []
