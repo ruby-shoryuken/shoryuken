@@ -21,6 +21,7 @@ require 'shoryuken/middleware/server/exponential_backoff_retry'
 require 'shoryuken/middleware/server/timing'
 require 'shoryuken/sns_arn'
 require 'shoryuken/topic'
+require 'shoryuken/polling'
 
 module Shoryuken
   DEFAULTS = {
@@ -33,7 +34,8 @@ module Shoryuken
       startup: [],
       quiet: [],
       shutdown: [],
-    }
+    },
+    polling_strategy: Polling::WeightedRoundRobin,
   }
 
   @@queues = []

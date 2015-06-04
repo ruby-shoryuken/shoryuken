@@ -1,4 +1,5 @@
 require 'shoryuken/processor'
+require 'shoryuken/polling'
 require 'shoryuken/fetcher'
 
 module Shoryuken
@@ -14,6 +15,7 @@ module Shoryuken
       @count = Shoryuken.options[:concurrency] || 25
       raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
       @queues = Shoryuken.queues.dup.uniq
+      @polling_strategy = Shoryuken.options[:polling_strategy].new(Shoryuken.queues)
       @finished = condvar
 
       @done = false
@@ -105,22 +107,18 @@ module Shoryuken
       end
     end
 
-    def rebalance_queue_weight!(queue)
-      watchdog('Manager#rebalance_queue_weight! died') do
-        if (original = original_queue_weight(queue)) > (current = current_queue_weight(queue))
-          logger.info { "Increasing '#{queue}' weight to #{current + 1}, max: #{original}" }
-
-          @queues << queue
-        end
+    def messages_present(queue)
+      watchdog('Manager#messages_present died') do
+        @polling_strategy.messages_present(queue)
       end
     end
 
-    def pause_queue!(queue)
-      return if !@queues.include?(queue) || Shoryuken.options[:delay].to_f <= 0
+    def queue_empty(queue)
+      return if Shoryuken.options[:delay].to_f <= 0
 
       logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty" }
 
-      @queues.delete(queue)
+      @polling_strategy.pause(queue)
 
       after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
     end
@@ -129,7 +127,7 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{unparse_queues(@queues)}" }
+      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{@polling_strategy.active_queues}" }
 
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
@@ -169,50 +167,33 @@ module Shoryuken
     def restart_queue!(queue)
       return if stopped?
 
-      unless @queues.include? queue
-        logger.debug { "Restarting '#{queue}'" }
+      @polling_strategy.restart(queue)
 
-        @queues << queue
+      if @fetcher_paused
+        logger.debug { 'Restarting fetcher' }
 
-        if @fetcher_paused
-          logger.debug { 'Restarting fetcher' }
+        @fetcher_paused = false
 
-          @fetcher_paused = false
-
-          dispatch
-        end
+        dispatch
       end
-    end
-
-    def current_queue_weight(queue)
-      queue_weight(@queues, queue)
-    end
-
-    def original_queue_weight(queue)
-      queue_weight(Shoryuken.queues, queue)
-    end
-
-    def queue_weight(queues, queue)
-      queues.count { |q| q == queue }
     end
 
     def next_queue
-      return nil if @queues.empty?
-
       # get/remove the first queue in the list
-      queue = @queues.shift
+      queue = @polling_strategy.next_queue
 
-      unless defined?(::ActiveJob) || !Shoryuken.worker_registry.workers(queue).empty?
+      return nil unless queue
+
+      if queue && (not defined?(::ActiveJob) and Shoryuken.worker_registry.workers(queue.name).empty?)
         # when no worker registered pause the queue to avoid endless recursion
         logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered" }
 
+        @polling_strategy.pause(queue)
+
         after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
 
-        return next_queue
+        queue = next_queue
       end
-
-      # add queue back to the end of the list
-      @queues << queue
 
       queue
     end
