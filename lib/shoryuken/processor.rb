@@ -19,12 +19,10 @@ module Shoryuken
       timer = auto_visibility_timeout(queue, sqs_msg, worker.class)
 
       begin
-        defer do
-          body = get_body(worker.class, sqs_msg)
+        body = get_body(worker.class, sqs_msg)
 
-          worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
-            worker.perform(sqs_msg, body)
-          end
+        worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
+          worker.perform(sqs_msg, body)
         end
 
         @manager.async.processor_done(queue, current_actor)
