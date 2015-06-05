@@ -30,7 +30,7 @@ module Shoryuken
           && sqs_msg.message_attributes['shoryuken_class'] \
           && sqs_msg.message_attributes['shoryuken_class'][:string_value] == ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper.to_s
 
-        "ActiveJob/#{body['job_class'].constantize}"
+        "ActiveJob/#{body['job_class']}"
       else
         worker_class.to_s
       end
