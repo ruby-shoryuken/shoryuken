@@ -52,14 +52,12 @@ module Shoryuken
       end
     end
 
-    def visibility_actor
-      @visibility_actor ||= MessageVisibilityExtender.new_link
-    end
-
     def auto_visibility_timeout(queue, sqs_msg, worker_class)
       return unless worker_class.auto_visibility_timeout?
 
-      visibility_actor.auto_extend(queue, sqs_msg, worker_class)
+      @visibility_extender ||= MessageVisibilityExtender.new_link
+
+      @visibility_extender.auto_extend(queue, sqs_msg, worker_class)
     end
 
     def get_body(worker_class, sqs_msg)
