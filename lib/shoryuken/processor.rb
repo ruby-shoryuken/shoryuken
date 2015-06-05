@@ -33,11 +33,14 @@ module Shoryuken
 
     private
 
-    def auto_visibility_timeout(queue, sqs_msg, worker_class)
-      if worker_class.auto_visibility_timeout?
+    class MessageVisibilityExtender
+      include Celluloid
+      include Util
+
+      def auto_extend(queue, sqs_msg, worker_class)
         queue_visibility_timeout = Shoryuken::Client.queues(queue).visibility_timeout
 
-        timer = every(queue_visibility_timeout - 5) do
+        every(queue_visibility_timeout - 5) do
           begin
             logger.debug "Extending message #{worker_name(worker_class, sqs_msg)}/#{queue}/#{sqs_msg.message_id} visibility timeout by #{queue_visibility_timeout}s."
 
@@ -47,8 +50,16 @@ module Shoryuken
           end
         end
       end
+    end
 
-      timer
+    def visibility_actor
+      @visibility_actor ||= MessageVisibilityExtender.new_link
+    end
+
+    def auto_visibility_timeout(queue, sqs_msg, worker_class)
+      return unless worker_class.auto_visibility_timeout?
+
+      visibility_actor.auto_extend(queue, sqs_msg, worker_class)
     end
 
     def get_body(worker_class, sqs_msg)
