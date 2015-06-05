@@ -2,14 +2,14 @@ require 'spec_helper'
 require 'shoryuken/polling'
 
 describe Shoryuken::Polling do
-  let(:queue1) { "shoryuken" }
-  let(:queue2) { "uppercut" }
+  let(:queue1) { 'shoryuken' }
+  let(:queue2) { 'uppercut' }
   let(:queues) { Array.new }
 
   describe Shoryuken::Polling::WeightedRoundRobin do
     subject { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
 
-    it "decreases weight" do
+    it 'decreases weight' do
       # [shoryuken, 2]
       # [uppercut,  1]
       queues << queue1
@@ -23,7 +23,7 @@ describe Shoryuken::Polling do
       expect(subject).to eq [queue2]
     end
 
-    it "increases weight" do
+    it 'increases weight' do
       # [shoryuken, 3]
       # [uppercut,  1]
       queues << queue1
@@ -45,7 +45,7 @@ describe Shoryuken::Polling do
       expect(subject).to eq [queue2, queue1, queue1, queue1]
     end
 
-    it "cycles" do
+    it 'cycles' do
       # [shoryuken, 1]
       # [uppercut,  1]
       queues << queue1
