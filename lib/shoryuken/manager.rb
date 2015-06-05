@@ -114,13 +114,13 @@ module Shoryuken
     end
 
     def queue_empty(queue)
-      return if Shoryuken.options[:delay].to_f <= 0
+      return if delay <= 0
 
-      logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty" }
+      logger.debug { "Pausing '#{queue}' for #{delay} seconds, because it's empty" }
 
       @polling_strategy.pause(queue)
 
-      after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
+      after(delay) { async.restart_queue!(queue) }
     end
 
 
@@ -158,6 +158,10 @@ module Shoryuken
       end
     end
 
+    def delay
+      Shoryuken.options[:delay].to_f
+    end
+
     def build_processor
       processor = Processor.new_link(current_actor)
       processor.proxy_id = processor.object_id
@@ -184,13 +188,13 @@ module Shoryuken
 
       return nil unless queue
 
-      if queue && (not defined?(::ActiveJob) and Shoryuken.worker_registry.workers(queue.name).empty?)
+      if queue && (!defined?(::ActiveJob) && Shoryuken.worker_registry.workers(queue.name).empty?)
         # when no worker registered pause the queue to avoid endless recursion
-        logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered" }
+        logger.debug { "Pausing '#{queue}' for #{delay} seconds, because no workers registered" }
 
         @polling_strategy.pause(queue)
 
-        after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
+        after(delay) { async.restart_queue!(queue) }
 
         queue = next_queue
       end

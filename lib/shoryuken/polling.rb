@@ -57,7 +57,7 @@ module Shoryuken
           @queues == other
         else
           if other.respond_to?(:active_queues)
-            self.active_queues == other.active_queues
+            active_queues == other.active_queues
           else
             false
           end
