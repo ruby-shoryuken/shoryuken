@@ -5,16 +5,14 @@ module Shoryuken
     end
 
     module ClassMethods
+
+      def perform_async_in_batch(body, options = {})
+        options = get_options(body, options) 
+        Shoryuken::Client.queues(get_shoryuken_options['queue']).send_messages(options)
+      end
+
       def perform_async(body, options = {})
-        options ||= {}
-        options[:message_attributes] ||= {}
-        options[:message_attributes]['shoryuken_class'] = {
-          string_value: self.to_s,
-          data_type: 'String'
-        }
-
-        options[:message_body] = body
-
+        options = get_options(body, options)
         Shoryuken::Client.queues(get_shoryuken_options['queue']).send_message(options)
       end
 
@@ -55,6 +53,18 @@ module Shoryuken
 
       def get_shoryuken_options # :nodoc:
         @shoryuken_options || Shoryuken.default_worker_options
+      end
+
+      def get_options(body, options = {})
+        options ||= {}
+        options[:message_attributes] ||= {}
+        options[:message_attributes]['shoryuken_class'] = {
+          string_value: self.to_s,
+          data_type: 'String'
+        }
+
+        options[:message_body] = body 
+        options
       end
 
       def stringify_keys(hash) # :nodoc:
