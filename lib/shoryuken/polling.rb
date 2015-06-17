@@ -1,6 +1,10 @@
 module Shoryuken
   module Polling
     QueueConfiguration = Struct.new(:name, :options) do
+      def hash
+        name.hash
+      end
+
       def ==(other)
         case other
         when String
@@ -13,6 +17,8 @@ module Shoryuken
           super
         end
       end
+
+      alias_method :eql?, :==
     end
 
     class WeightedRoundRobin
