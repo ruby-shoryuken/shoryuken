@@ -27,7 +27,7 @@ describe Shoryuken::Fetcher do
     it 'calls pause when no message' do
       allow(queue).to receive(:receive_messages).with(max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']).and_return([])
 
-      expect(manager).to receive(:queue_empty).with(queue_name)
+      expect(manager).to receive(:queue_empty).with(queue_config)
       expect(manager).to receive(:dispatch)
 
       subject.fetch(queue_config, 1)
@@ -36,7 +36,7 @@ describe Shoryuken::Fetcher do
     it 'assigns messages' do
       allow(queue).to receive(:receive_messages).with(max_number_of_messages: 5, attribute_names: ['All'], message_attribute_names: ['All']).and_return(sqs_msg)
 
-      expect(manager).to receive(:messages_present).with(queue_name)
+      expect(manager).to receive(:messages_present).with(queue_config)
       expect(manager).to receive(:assign).with(queue_name, sqs_msg)
       expect(manager).to receive(:dispatch)
 
@@ -48,7 +48,7 @@ describe Shoryuken::Fetcher do
 
       allow(queue).to receive(:receive_messages).with(max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']).and_return(sqs_msg)
 
-      expect(manager).to receive(:messages_present).with(queue_name)
+      expect(manager).to receive(:messages_present).with(queue_config)
       expect(manager).to receive(:assign).with(queue_name, [sqs_msg])
       expect(manager).to receive(:dispatch)
 
@@ -61,7 +61,7 @@ describe Shoryuken::Fetcher do
       it 'ignores batch' do
         allow(queue).to receive(:receive_messages).with(max_number_of_messages: 5, attribute_names: ['All'], message_attribute_names: ['All']).and_return(sqs_msg)
 
-        expect(manager).to receive(:messages_present).with(queue_name)
+        expect(manager).to receive(:messages_present).with(queue_config)
         expect(manager).to receive(:assign).with(queue_name, sqs_msg)
         expect(manager).to receive(:dispatch)
 
