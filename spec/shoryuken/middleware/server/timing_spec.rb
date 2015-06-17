@@ -54,8 +54,8 @@ describe Shoryuken::Middleware::Server::Timing do
       end
 
       expect {
-        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise }
-      }.to raise_error
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' }
+      }.to raise_error('failed')
     end
   end
 end
