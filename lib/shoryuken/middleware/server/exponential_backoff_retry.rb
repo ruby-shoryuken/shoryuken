@@ -42,7 +42,7 @@ module Shoryuken
 
           sqs_msg.change_visibility(visibility_timeout: interval.to_i)
 
-          logger.info "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds."
+          logger.info { "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds." }
         end
       end
     end

@@ -16,8 +16,12 @@ describe Shoryuken::Middleware::Server::Timing do
   end
 
   it 'logs timing' do
-    expect(Shoryuken.logger).to receive(:info).with(/started at/)
-    expect(Shoryuken.logger).to receive(:info).with(/completed in/)
+    expect(Shoryuken.logger).to receive(:info) do |&block|
+      expect(block.call).to match(/started at/)
+    end
+    expect(Shoryuken.logger).to receive(:info) do |&block|
+      expect(block.call).to match(/completed in/)
+    end
 
     subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) {}
   end
@@ -26,9 +30,15 @@ describe Shoryuken::Middleware::Server::Timing do
     it 'logs exceeded' do
       allow(subject).to receive(:elapsed).and_return(120000)
 
-      expect(Shoryuken.logger).to receive(:info).with(/started at/)
-      expect(Shoryuken.logger).to receive(:info).with(/completed in/)
-      expect(Shoryuken.logger).to receive(:warn).with('exceeded the queue visibility timeout by 60000 ms')
+      expect(Shoryuken.logger).to receive(:info) do |&block|
+        expect(block.call).to match(/started at/)
+      end
+      expect(Shoryuken.logger).to receive(:info) do |&block|
+        expect(block.call).to match(/completed in/)
+      end
+      expect(Shoryuken.logger).to receive(:warn) do |&block|
+        expect(block.call).to match('exceeded the queue visibility timeout by 60000 ms')
+      end
 
       subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) {}
     end
@@ -36,8 +46,12 @@ describe Shoryuken::Middleware::Server::Timing do
 
   context 'when exception' do
     it 'logs failed in' do
-      expect(Shoryuken.logger).to receive(:info).with(/started at/)
-      expect(Shoryuken.logger).to receive(:info).with(/failed in/)
+      expect(Shoryuken.logger).to receive(:info) do |&block|
+        expect(block.call).to match(/started at/)
+      end
+      expect(Shoryuken.logger).to receive(:info) do |&block|
+        expect(block.call).to match(/failed in/)
+      end
 
       expect {
         subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise }

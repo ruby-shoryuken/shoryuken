@@ -25,14 +25,14 @@ module Shoryuken
       watchdog('Fetcher#fetch died') do
         started_at = Time.now
 
-        logger.debug "Looking for new messages in '#{queue}'"
+        logger.debug { "Looking for new messages in '#{queue}'" }
 
         begin
           batch = Shoryuken.worker_registry.batch_receive_messages?(queue)
           limit = batch ? FETCH_LIMIT : available_processors
 
           if (sqs_msgs = Array(receive_messages(queue, limit))).any?
-            logger.info "Found #{sqs_msgs.size} messages for '#{queue}'"
+            logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
 
             if batch
               @manager.async.assign(queue, patch_sqs_msgs!(sqs_msgs))
@@ -42,7 +42,7 @@ module Shoryuken
 
             @manager.async.rebalance_queue_weight!(queue)
           else
-            logger.debug "No message found for '#{queue}'"
+            logger.debug { "No message found for '#{queue}'" }
 
             @manager.async.pause_queue!(queue)
           end
@@ -51,8 +51,8 @@ module Shoryuken
 
           logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
         rescue => ex
-          logger.error "Error fetching message: #{ex}"
-          logger.error ex.backtrace.first
+          logger.error { "Error fetching message: #{ex}" }
+          logger.error { ex.backtrace.first }
 
           @manager.async.dispatch
         end

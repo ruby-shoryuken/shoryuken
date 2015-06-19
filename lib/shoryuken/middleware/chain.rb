@@ -117,7 +117,7 @@ module Shoryuken
 
       def patch_deprecated_middleware!(klass)
         if klass.instance_method(:call).arity == 3
-          Shoryuken.logger.warn "[DEPRECATION] #{klass.name}#call(worker_instance, queue, sqs_msg) is deprecated. Please use #{klass.name}#call(worker_instance, queue, sqs_msg, body)"
+          Shoryuken.logger.warn { "[DEPRECATION] #{klass.name}#call(worker_instance, queue, sqs_msg) is deprecated. Please use #{klass.name}#call(worker_instance, queue, sqs_msg, body)" }
 
           klass.class_eval do
             alias_method :deprecated_call, :call

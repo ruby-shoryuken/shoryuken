@@ -42,11 +42,11 @@ module Shoryuken
 
         every(queue_visibility_timeout - 5) do
           begin
-            logger.debug "Extending message #{worker_name(worker_class, sqs_msg)}/#{queue}/#{sqs_msg.message_id} visibility timeout by #{queue_visibility_timeout}s."
+            logger.debug { "Extending message #{worker_name(worker_class, sqs_msg)}/#{queue}/#{sqs_msg.message_id} visibility timeout by #{queue_visibility_timeout}s." }
 
             sqs_msg.visibility_timeout = queue_visibility_timeout
           rescue => e
-            logger.error "Could not auto extend the message #{worker_class}/#{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{e.message}"
+            logger.error { "Could not auto extend the message #{worker_class}/#{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{e.message}" }
           end
         end
       end
@@ -89,7 +89,7 @@ module Shoryuken
         end
       end
     rescue => e
-      logger.error "Error parsing the message body: #{e.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}"
+      logger.error { "Error parsing the message body: #{e.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}" }
       nil
     end
   end

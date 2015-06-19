@@ -36,7 +36,7 @@ module Shoryuken
 
     def actor_died(actor, reason)
       return if @done
-      logger.warn 'Shoryuken died due to the following error, cannot recover, process exiting'
+      logger.warn { 'Shoryuken died due to the following error, cannot recover, process exiting' }
       exit 1
     end
   end
