@@ -59,7 +59,7 @@ describe Shoryuken::Middleware::Chain do
     subject.clear
 
     expect(Shoryuken.logger).to receive(:warn) do |&block|
-      expect(block.call).to eq("[DEPRECATION] DeprecatedMiddleware#call(worker_instance, queue, sqs_msg) is deprecated. Please use DeprecatedMiddleware#call(worker_instance, queue, sqs_msg, body)")
+      expect(block.call).to eq('[DEPRECATION] DeprecatedMiddleware#call(worker_instance, queue, sqs_msg) is deprecated. Please use DeprecatedMiddleware#call(worker_instance, queue, sqs_msg, body)')
     end
 
     subject.add DeprecatedMiddleware

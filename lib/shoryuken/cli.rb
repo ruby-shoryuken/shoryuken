@@ -41,7 +41,7 @@ module Shoryuken
       @launcher = Shoryuken::Launcher.new
 
       if callback = Shoryuken.start_callback
-        logger.info { "Calling Shoryuken.on_start block" }
+        logger.info { 'Calling Shoryuken.on_start block' }
         callback.call
       end
 
