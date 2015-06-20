@@ -23,7 +23,7 @@ module Shoryuken
     end
 
     def start
-      logger.info 'Starting'
+      logger.info { 'Starting' }
 
       dispatch
     end
@@ -33,7 +33,7 @@ module Shoryuken
         @done = true
 
         if (callback = Shoryuken.stop_callback)
-          logger.info 'Calling Shoryuken.on_stop block'
+          logger.info { 'Calling Shoryuken.on_stop block' }
           callback.call
         end
 
@@ -58,7 +58,7 @@ module Shoryuken
 
     def processor_done(queue, processor)
       watchdog('Manager#processor_done died') do
-        logger.debug "Process done for '#{queue}'"
+        logger.debug { "Process done for '#{queue}'" }
 
         @threads.delete(processor.object_id)
         @busy.delete processor
@@ -73,7 +73,7 @@ module Shoryuken
 
     def processor_died(processor, reason)
       watchdog("Manager#processor_died died") do
-        logger.error "Process died, reason: #{reason}" unless reason.to_s.empty?
+        logger.error { "Process died, reason: #{reason}" unless reason.to_s.empty? }
 
         @threads.delete(processor.object_id)
         @busy.delete processor
@@ -90,7 +90,7 @@ module Shoryuken
 
     def assign(queue, sqs_msg)
       watchdog('Manager#assign died') do
-        logger.debug "Assigning #{sqs_msg.message_id}"
+        logger.debug { "Assigning #{sqs_msg.message_id}" }
 
         processor = @ready.pop
         @busy << processor
@@ -102,7 +102,7 @@ module Shoryuken
     def rebalance_queue_weight!(queue)
       watchdog('Manager#rebalance_queue_weight! died') do
         if (original = original_queue_weight(queue)) > (current = current_queue_weight(queue))
-          logger.info "Increasing '#{queue}' weight to #{current + 1}, max: #{original}"
+          logger.info { "Increasing '#{queue}' weight to #{current + 1}, max: #{original}" }
 
           @queues << queue
         end
@@ -112,7 +112,7 @@ module Shoryuken
     def pause_queue!(queue)
       return if !@queues.include?(queue) || Shoryuken.options[:delay].to_f <= 0
 
-      logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty"
+      logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty" }
 
       @queues.delete(queue)
 
@@ -158,7 +158,7 @@ module Shoryuken
       return if stopped?
 
       unless @queues.include? queue
-        logger.debug "Restarting '#{queue}'"
+        logger.debug { "Restarting '#{queue}'" }
 
         @queues << queue
 
@@ -192,7 +192,7 @@ module Shoryuken
 
       unless defined?(::ActiveJob) ||  !Shoryuken.worker_registry.workers(queue).empty?
         # when no worker registered pause the queue to avoid endless recursion
-        logger.debug "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered"
+        logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered" }
 
         after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
 

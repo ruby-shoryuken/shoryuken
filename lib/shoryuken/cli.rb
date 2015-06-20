@@ -41,7 +41,7 @@ module Shoryuken
       @launcher = Shoryuken::Launcher.new
 
       if callback = Shoryuken.start_callback
-        logger.info "Calling Shoryuken.on_start block"
+        logger.info { 'Calling Shoryuken.on_start block' }
         callback.call
       end
 
@@ -158,7 +158,7 @@ module Shoryuken
 
       @parser.banner = 'shoryuken [options]'
       @parser.on_tail '-h', '--help', 'Show help' do
-        logger.info @parser
+        logger.info { @parser }
         exit 1
       end
       @parser.parse!(argv)
@@ -166,22 +166,22 @@ module Shoryuken
     end
 
     def handle_signal(sig)
-      logger.info "Got #{sig} signal"
+      logger.info { "Got #{sig} signal" }
 
       case sig
       when 'USR1'
-        logger.info 'Received USR1, will soft shutdown down'
+        logger.info { 'Received USR1, will soft shutdown down' }
 
         launcher.stop
 
         exit 0
       when 'TTIN'
         Thread.list.each do |thread|
-          logger.info "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}"
+          logger.info { "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}" }
           if thread.backtrace
-            logger.info thread.backtrace.join("\n")
+            logger.info { thread.backtrace.join("\n") }
           else
-            logger.info '<no backtrace available>'
+            logger.info { '<no backtrace available>' }
           end
         end
 
@@ -189,9 +189,9 @@ module Shoryuken
         busy   = launcher.manager.instance_variable_get(:@busy).size
         queues = launcher.manager.instance_variable_get(:@queues)
 
-        logger.info "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}"
+        logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}" }
       else
-        logger.info "Received #{sig}, will shutdown down"
+        logger.info { "Received #{sig}, will shutdown down" }
 
         raise Interrupt
       end

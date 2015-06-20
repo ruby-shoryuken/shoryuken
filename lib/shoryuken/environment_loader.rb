@@ -34,7 +34,7 @@ module Shoryuken
     def config_file_options
       if (path = options[:config_file])
         unless File.exist?(path)
-          Shoryuken.logger.warn "Config file #{path} does not exist"
+          Shoryuken.logger.warn { "Config file #{path} does not exist" }
           path = nil
         end
       end
@@ -68,7 +68,7 @@ module Shoryuken
       aws_options = aws_options.merge(credentials: credentials) if credentials.set?
 
       if (callback = Shoryuken.aws_initialization_callback)
-        Shoryuken.logger.info 'Calling Shoryuken.on_aws_initialization block'
+        Shoryuken.logger.info { 'Calling Shoryuken.on_aws_initialization block' }
         callback.call(aws_options)
       end
 
@@ -97,7 +97,7 @@ module Shoryuken
         require File.expand_path('config/environment.rb')
       end
 
-      Shoryuken.logger.info 'Rails environment loaded'
+      Shoryuken.logger.info { 'Rails environment loaded' }
     end
 
     def merge_cli_defined_queues
@@ -141,7 +141,7 @@ module Shoryuken
       Shoryuken.worker_registry.queues.each do |queue|
         Shoryuken.worker_registry.workers(queue).each do |worker_class|
           if worker_class.instance_method(:perform).arity == 1
-            Shoryuken.logger.warn "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)"
+            Shoryuken.logger.warn { "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)" }
 
             worker_class.class_eval do
               alias_method :deprecated_perform, :perform
@@ -160,13 +160,13 @@ module Shoryuken
     end
 
     def validate_queues
-      Shoryuken.logger.warn 'No queues supplied' if Shoryuken.queues.empty?
+      Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
 
       Shoryuken.queues.uniq.each do |queue|
         begin
           Shoryuken::Client.queues queue
         rescue Aws::SQS::Errors::NonExistentQueue
-          Shoryuken.logger.warn "AWS Queue '#{queue}' does not exist"
+          Shoryuken.logger.warn { "AWS Queue '#{queue}' does not exist" }
         end
       end
     end
@@ -177,7 +177,7 @@ module Shoryuken
 
       unless defined?(::ActiveJob)
         (all_queues - queues_with_workers).each do |queue|
-          Shoryuken.logger.warn "No worker supplied for '#{queue}'"
+          Shoryuken.logger.warn { "No worker supplied for '#{queue}'" }
         end
       end
     end
