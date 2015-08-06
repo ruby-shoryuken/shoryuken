@@ -169,7 +169,7 @@ It works as expected. Just put your job in `app/jobs`. Here's an example:
 class ProcessPhotoJob < ActiveJob::Base
   queue_as :default
 
-  rescue_from ActiveJob::DeserializationError do |e|
+  rescue_from ActiveJob::DeserializationError do |ex|
     Shoryuken.logger.error ex
     Shoryuken.logger.error ex.backtrace.join("\n")
   end
