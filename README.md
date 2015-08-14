@@ -36,7 +36,7 @@ If all queues get empty, all processors will be changed to the waiting state and
 
 ### Fetch in batches
 
-To be even more performance and cost efficient, Shoryuken fetches SQS messages in batches, so a single SQS request can fetch up to 10 messages.
+To be even more performant and cost effective, Shoryuken fetches SQS messages in batches, so a single SQS request can fetch up to 10 messages.
 
 ## Requirements
 
