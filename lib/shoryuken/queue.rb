@@ -34,7 +34,7 @@ module Shoryuken
     def receive_messages(options)
       client.receive_message(options.merge(queue_url: url)).
         messages.
-        map { |m| Message.new(client, url, m) }
+        map { |m| Message.new(client, self, m) }
     end
 
     private

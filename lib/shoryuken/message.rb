@@ -1,11 +1,21 @@
 module Shoryuken
   class Message
-    attr_accessor :client, :queue_url, :data
+    attr_accessor :client, :queue_url, :queue_name, :data
 
-    def initialize(client, queue_url, data)
+    def initialize(client, queue, data)
       self.client = client
-      self.queue_url = queue_url
       self.data = data
+
+      if queue.is_a?(Shoryuken::Queue)
+        self.queue_url = queue.url
+        self.queue_name = queue.name
+      else
+        # TODO: Remove next major release
+        Shoryuken.loggger.warn do
+          '[DEPRECATION] Passing a queue url into Shoryuken::Message is deprecated, please pass the queue itself'
+        end
+        self.queue_url = queue
+      end
     end
 
     def delete
