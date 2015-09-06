@@ -136,62 +136,7 @@ The ```aws``` section is used to configure both the Aws objects used by Shoryuke
 
 ### Rails Integration
 
-You can tell Shoryuken to load your Rails application by passing the `-R` or `--rails` flag to the "shoryuken" command.
-
-If you load Rails, and assuming your workers are located in the `app/workers` directory, they will be auto-loaded. This means you don't need to require them explicitly with `-r`.
-
-For middleware and other configuration, you might want to create an initializer:
-
-```ruby
-Shoryuken.configure_server do |config|
-  # Replace Rails logger so messages are logged wherever Shoryuken is logging
-  # Note: this entire block is only run by the processor, so we don't overwrite
-  #       the logger when the app is running as usual.
-  Rails.logger = Shoryuken::Logging.logger
-
-  config.server_middleware do |chain|
-    chain.add Shoryuken::MyMiddleware
-  end
-end
-```
-
-*Note:* In the above case, since we are replacing the Rails logger, it's desired that this initializer runs before other initializers (in case they themselves use the logger). Since by Rails conventions initializers are executed in alphabetical order, this can be achieved by prepending the initializer filename with `00_` (assuming no other initializers alphabetically precede this one).
-
-This feature works for Rails 4+, but needs to be confirmed for older versions.
-
-#### ActiveJob Support
-
-Yes, Shoryuken supports ActiveJob! This means that you can put your jobs in processor-agnostic `ActiveJob::Base` subclasses, and change processors whenever you want (or better yet, switch to Shoryuken from another processor easily!).
-
-It works as expected. Just put your job in `app/jobs`. Here's an example:
-
-```ruby
-class ProcessPhotoJob < ActiveJob::Base
-  queue_as :default
-
-  rescue_from ActiveJob::DeserializationError do |ex|
-    Shoryuken.logger.error ex
-    Shoryuken.logger.error ex.backtrace.join("\n")
-  end
-
-  def perform(photo)
-    photo.process_image!
-  end
-end
-```
-
-Delayed mailers, ActiveRecord serialization, etc. all work.
-
-See [ActiveJob docs](http://edgeguides.rubyonrails.org/active_job_basics.html) for more info.
-
-*Note:* When queueing jobs to be performed in the future (e.g when setting the `wait` or `wait_until` ActiveJob options), SQS limits the amount of time to 15 minutes. Shoryuken will raise an exception if you attempt to schedule a job further into the future than this limit.
-
-*Note:* Active Job allows you to [prefix the queue names](http://edgeguides.rubyonrails.org/active_job_basics.html#queues) of all jobs. Shoryuken supports this behavior natively. By default, though, queue names defined in the config file (or passed to the CLI), are not prefixed in the same way. To have Shoryuken honor Active Job prefixes you must enable that option explicitly. A good place to do that in Rails is in an initializer:
-
-```
-# config/initializers/shoryuken.rb
-Shoryuken.active_job_queue_name_prefixing = true
-```
+[Check the Rails Integration Active Job documention](https://github.com/phstc/shoryuken/wiki/Rails-Integration-Active-Job).
 
 ### Start Shoryuken
 
