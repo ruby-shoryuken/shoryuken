@@ -134,6 +134,8 @@ The ```aws``` section is used to configure both the Aws objects used by Shoryuke
 - ```sqs_endpoint``` can be used to explicitly override the SQS endpoint
 - ```receive_message``` can be used to define the options passed to the http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
 
+The ```sns_endpoint``` and ```sqs_endpoint``` Shoryuken-specific options will also fallback to the environment variables ```AWS_SNS_ENDPOINT``` and ```AWS_SQS_ENDPOINT``` respectively, if they are set.
+
 ### Rails Integration
 
 [Check the Rails Integration Active Job documention](https://github.com/phstc/shoryuken/wiki/Rails-Integration-Active-Job).
