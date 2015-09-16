@@ -90,7 +90,7 @@ module Shoryuken
       end
     rescue => e
       logger.error { "Error parsing the message body: #{e.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}" }
-      nil
+      raise
     end
   end
 end
