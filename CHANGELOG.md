@@ -1,4 +1,4 @@
-## [v1.0.4] - 2015-09-22
+## [v2.0.0] - 2015-09-22
 
 - Allow configuration of SQS/SNS endpoints via environment variables
  - [#130](https://github.com/phstc/shoryuken/pull/130)
