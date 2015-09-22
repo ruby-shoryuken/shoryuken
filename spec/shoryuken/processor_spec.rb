@@ -92,18 +92,22 @@ describe Shoryuken::Processor do
     end
 
     context 'when parse errors' do
-      it 'does not fail' do
+      before do
         TestWorker.get_shoryuken_options['body_parser'] = :json
 
-        expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, nil)
-
         allow(sqs_msg).to receive(:body).and_return('invalid json')
+      end
 
+      it 'logs the error' do
         expect(subject.logger).to receive(:error) do |&block|
           expect(block.call).to eq("Error parsing the message body: 757: unexpected token at 'invalid json'\nbody_parser: json\nsqs_msg.body: invalid json")
         end
 
-        subject.process(queue, sqs_msg)
+        subject.process(queue, sqs_msg) rescue nil
+      end
+
+      it 're raises the error' do
+        expect{ subject.process(queue, sqs_msg) }.to raise_error(JSON::ParserError, "757: unexpected token at 'invalid json'")
       end
     end
 
