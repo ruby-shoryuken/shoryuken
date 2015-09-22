@@ -107,7 +107,7 @@ describe Shoryuken::Processor do
       end
 
       it 're raises the error' do
-        expect{subject.process(queue, sqs_msg)}.to raise_error(JSON::ParserError, "757: unexpected token at 'invalid json'")
+        expect{ subject.process(queue, sqs_msg) }.to raise_error(JSON::ParserError, "757: unexpected token at 'invalid json'")
       end
     end
 
