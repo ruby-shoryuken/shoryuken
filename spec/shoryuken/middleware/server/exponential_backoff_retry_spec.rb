@@ -25,7 +25,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
     it 'does not retry the job by default' do
       expect(sqs_msg).not_to receive(:change_visibility)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.to raise_error('failed')
     end
 
     it 'does not retry the job if :retry_intervals is empty' do
@@ -33,7 +33,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
       expect(sqs_msg).not_to receive(:change_visibility)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.to raise_error('failed')
     end
 
     it 'retries the job if :retry_intervals is non-empty' do
@@ -42,7 +42,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 300)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'retries the job with exponential backoff' do
@@ -52,7 +52,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 1800)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'uses the last retry interval when :receive_count exceeds the size of :retry_intervals' do
@@ -62,7 +62,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 1800)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'limits the visibility timeout to 12 hours from receipt of message' do
@@ -71,7 +71,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 43198)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
   end
 end

@@ -20,11 +20,11 @@ describe Shoryuken::Manager do
       Shoryuken.queues << queue1
       Shoryuken.queues << queue2
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue1, queue2]
 
-      subject.pause_queue!(queue1)
+      subject.queue_empty(queue1)
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue2]
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2]
     end
 
     it 'increases weight' do
@@ -39,18 +39,18 @@ describe Shoryuken::Manager do
       Shoryuken.queues << queue1
       Shoryuken.queues << queue2
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue1, queue2]
-      subject.pause_queue!(queue1)
-      expect(subject.instance_variable_get('@queues')).to eq [queue2]
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue1, queue2]
+      subject.queue_empty(queue1)
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2]
 
-      subject.rebalance_queue_weight!(queue1)
-      expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1]
+      subject.messages_present(queue1)
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2, queue1]
 
-      subject.rebalance_queue_weight!(queue1)
-      expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1, queue1]
+      subject.messages_present(queue1)
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2, queue1, queue1]
 
-      subject.rebalance_queue_weight!(queue1)
-      expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1, queue1, queue1]
+      subject.messages_present(queue1)
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2, queue1, queue1, queue1]
     end
 
     it 'adds queue back' do
@@ -69,12 +69,12 @@ describe Shoryuken::Manager do
       fetcher = double('Fetcher').as_null_object
       subject.fetcher = fetcher
 
-      subject.pause_queue!(queue1)
-      expect(subject.instance_variable_get('@queues')).to eq [queue2]
+      subject.queue_empty(queue1)
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2]
 
       sleep 0.5
 
-      expect(subject.instance_variable_get('@queues')).to eq [queue2, queue1]
+      expect(subject.instance_variable_get('@polling_strategy')).to eq [queue2, queue1]
     end
   end
 
