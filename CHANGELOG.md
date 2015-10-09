@@ -1,3 +1,8 @@
+## [v2.0.1] - 2015-10-09
+
+- Bump aws-sdk to ~> 2
+ - [#138](https://github.com/phstc/shoryuken/pull/138)
+
 ## [v2.0.0] - 2015-09-22
 
 - Allow configuration of SQS/SNS endpoints via environment variables
