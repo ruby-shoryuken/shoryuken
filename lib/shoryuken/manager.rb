@@ -37,6 +37,8 @@ module Shoryuken
           callback.call
         end
 
+        fire_event(:shutdown, true)
+
         @fetcher.terminate if @fetcher.alive?
 
         logger.info { "Shutting down #{@ready.size} quiet workers" }
