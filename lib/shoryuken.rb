@@ -26,7 +26,12 @@ module Shoryuken
     queues: [],
     aws: {},
     delay: 0,
-    timeout: 8
+    timeout: 8,
+    lifecycle_events: {
+      startup: [],
+      quiet: [],
+      shutdown: [],
+    }
   }
 
   @@queues = []
@@ -110,6 +115,20 @@ module Shoryuken
 
     def on_stop(&block)
       @stop_callback = block
+    end
+
+    # Register a block to run at a point in the Shoryuken lifecycle.
+    # :startup, :quiet or :shutdown are valid events.
+    #
+    #   Shoryuken.configure_server do |config|
+    #     config.on(:shutdown) do
+    #       puts "Goodbye cruel world!"
+    #     end
+    #   end
+    def on(event, &block)
+      raise ArgumentError, "Symbols only please: #{event}" unless event.is_a?(Symbol)
+      raise ArgumentError, "Invalid event name: #{event}" unless options[:lifecycle_events].key?(event)
+      options[:lifecycle_events][event] << block
     end
 
     attr_reader :aws_initialization_callback,
