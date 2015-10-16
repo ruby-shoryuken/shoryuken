@@ -299,7 +299,7 @@ describe Shoryuken::Processor do
       it 'does not extend the message invisibility' do
         expect(sqs_msg).to receive(:visibility_timeout=).never
         expect_any_instance_of(TestWorker).to receive(:perform).and_raise 'worker failed'
-        expect { subject.process(queue, sqs_msg) }.to raise_error
+        expect { subject.process(queue, sqs_msg) }.to raise_error(RuntimeError, 'worker failed')
       end
     end
   end

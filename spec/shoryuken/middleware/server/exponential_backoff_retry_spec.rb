@@ -25,7 +25,9 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
     it 'does not retry the job by default' do
       expect(sqs_msg).not_to receive(:change_visibility)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.to raise_error
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'Error' }
+      }.to raise_error(RuntimeError, 'Error')
     end
 
     it 'does not retry the job if :retry_intervals is empty' do
@@ -33,7 +35,9 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
       expect(sqs_msg).not_to receive(:change_visibility)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.to raise_error
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'Error' }
+      }.to raise_error(RuntimeError, 'Error')
     end
 
     it 'retries the job if :retry_intervals is non-empty' do
