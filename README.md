@@ -182,3 +182,38 @@ Please check the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+### Setup Development Environment
+
+A provisioned vagrant box allows for a fast setup of a fresh development environment
+which comes with all development dependencies installed.
+Install [Vagrant](https://www.vagrantup.com/) (if you haven't already). We also
+suggest that you make yourself familiar with the general concepts. The documentation section includes
+a nice and comprehensive [Getting started](https://docs.vagrantup.com/v2/getting-started/) guide.
+
+Start up the vitual machine and log into it:
+```bash
+$ vagrant up
+$ vagrant ssh
+
+Welcome to Ubuntu 14.04.2 LTS (GNU/Linux 3.13.0-52-generic x86_64)..
+.
+.
+vagrant@shoryuken-dev-box:~$
+```
+Change to the working directory which is mounted at `/vagrant`:
+```bash
+vagrant@shoryuken-dev-box:~$: cd /vagrant
+vagrant@shoryuken-dev-box:~$: ls
+
+bin           CHANGELOG.md  Gemfile       lib          Rakefile   shoryuken.gemspec  spec
+bootstrap.sh  examples      Gemfile.lock  LICENSE.txt  README.md  shoryuken.jpg      Vagrantfile
+```
+
+These are the actual files and directories of the repository which are shared
+with the virtual machine. You can still edit the files directly on your host system
+with your editor or IDE of choice. Afterwards, run the tests
+inside the vagrant virtual machine:
+```bash
+vagrant@shoryuken-dev-box:/vagrant$ bundle install && SPEC_ALL=true bundle exec rspec spec
+```
