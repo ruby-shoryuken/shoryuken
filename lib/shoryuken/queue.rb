@@ -42,7 +42,9 @@ module Shoryuken
     def sanitize_messages!(options)
       options = case
                 when options.is_a?(Array)
-                  { entries: options.map.with_index { |m, index| { id: index.to_s, message_body: m } } }
+                  { entries: options.map.with_index do |m, index|
+                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m })
+                  end }
                 when options.is_a?(Hash)
                   options
                 end

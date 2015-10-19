@@ -77,6 +77,22 @@ describe Shoryuken::Queue do
       subject.send_messages(entries: [{ id: '0', message_body: 'msg1'}, { id: '1', message_body: 'msg2' }])
     end
 
+    it 'accepts an array of messages' do
+      expect(sqs).to receive(:send_message_batch).with(hash_including(entries: [{ id: '0', message_body: 'msg1', delay_seconds: 1, message_attributes: { attr: 'attr1' } }, { id: '1', message_body: 'msg2', delay_seconds: 1, message_attributes: { attr: 'attr2' } }]))
+
+      subject.send_messages([
+        {
+          message_body: 'msg1',
+          delay_seconds: 1,
+          message_attributes: { attr: 'attr1' }
+        }, {
+          message_body: 'msg2',
+          delay_seconds: 1,
+          message_attributes: { attr: 'attr2' }
+        }
+      ])
+    end
+
     it 'accepts an array of string' do
       expect(sqs).to receive(:send_message_batch).with(hash_including(entries: [{ id: '0', message_body: 'msg1'}, { id: '1', message_body: 'msg2' }]))
 
