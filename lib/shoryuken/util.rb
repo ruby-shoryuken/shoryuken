@@ -12,6 +12,20 @@ module Shoryuken
       Shoryuken.logger
     end
 
+    def fire_event(event, reverse=false)
+      logger.info { "Firing '#{event}' lifecycle event" }
+      arr = Shoryuken.options[:lifecycle_events][event]
+      arr.reverse! if reverse
+      arr.each do |block|
+        begin
+          block.call
+        rescue => ex
+          logger.warn(event: event)
+          logger.warn "#{ex.class.name}: #{ex.message}"
+        end
+      end
+    end
+
     def elapsed(started_at)
       # elapsed in ms
       (Time.now - started_at) * 1000
