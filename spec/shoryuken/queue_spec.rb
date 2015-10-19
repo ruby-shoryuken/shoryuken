@@ -82,11 +82,11 @@ describe Shoryuken::Queue do
 
       subject.send_messages([
         {
-          message_body: "msg1",
+          message_body: 'msg1',
           delay_seconds: 1,
           message_attributes: { attr: 'attr1' }
         }, {
-          message_body: "msg2",
+          message_body: 'msg2',
           delay_seconds: 1,
           message_attributes: { attr: 'attr2' }
         }

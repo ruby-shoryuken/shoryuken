@@ -43,7 +43,7 @@ module Shoryuken
       options = case
                 when options.is_a?(Array)
                   { entries: options.map.with_index do |m, index|
-                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m } )
+                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m })
                   end }
                 when options.is_a?(Hash)
                   options
