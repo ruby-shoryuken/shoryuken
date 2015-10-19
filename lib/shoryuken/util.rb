@@ -20,7 +20,7 @@ module Shoryuken
         begin
           block.call
         rescue => ex
-          logger.warn({ event: event })
+          logger.warn(event: event)
           logger.warn "#{ex.class.name}: #{ex.message}"
         end
       end
