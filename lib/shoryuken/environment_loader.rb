@@ -113,7 +113,7 @@ module Shoryuken
     end
 
     def prefix_active_job_queue_names
-      return unless @options[:rails]
+      return unless defined? ::ActiveJob
       return unless Shoryuken.active_job_queue_name_prefixing
 
       queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
