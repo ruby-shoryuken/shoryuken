@@ -79,6 +79,23 @@ describe 'Shoryuken::Worker' do
 
       TestWorker.perform_async('delayed message', delay_seconds: 60)
     end
+
+    it 'accepts an `queue` option' do
+      new_queue = 'some_different_queue'
+
+      expect(Shoryuken::Client).to receive(:queues).with(new_queue).and_return(sqs_queue)
+
+      expect(sqs_queue).to receive(:send_message).with(
+        message_attributes: {
+          'shoryuken_class' => {
+            string_value: TestWorker.to_s,
+            data_type: 'String'
+          }
+        },
+        message_body: 'delayed message')
+
+      TestWorker.perform_async('delayed message', queue: new_queue)
+    end
   end
 
   describe '.shoryuken_options' do

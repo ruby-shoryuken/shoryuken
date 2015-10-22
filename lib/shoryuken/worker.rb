@@ -14,7 +14,9 @@ module Shoryuken
 
         options[:message_body] = body
 
-        Shoryuken::Client.queues(get_shoryuken_options['queue']).send_message(options)
+        queue = options.delete(:queue) || get_shoryuken_options['queue']
+
+        Shoryuken::Client.queues(queue).send_message(options)
       end
 
       def perform_in(interval, body, options = {})
