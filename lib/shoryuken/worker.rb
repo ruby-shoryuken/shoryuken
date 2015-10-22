@@ -6,7 +6,6 @@ module Shoryuken
 
     module ClassMethods
       def perform_async(body, options = {})
-        options ||= {}
         options[:message_attributes] ||= {}
         options[:message_attributes]['shoryuken_class'] = {
           string_value: self.to_s,
