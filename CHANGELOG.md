@@ -1,3 +1,17 @@
+## [v2.0.2] - 2015-10-22
+
+- Fix warnings that are triggered in some cases with the raise_error matcher
+ - [#144](https://github.com/phstc/shoryuken/pull/144)
+
+- Add lifecycle event registration support
+ - [#141](https://github.com/phstc/shoryuken/pull/141)
+
+- Allow passing array of messages to send_messages
+ - [#140](https://github.com/phstc/shoryuken/pull/140)
+
+- Fix Active Job queue prefixing in Rails apps
+ - [#139](https://github.com/phstc/shoryuken/pull/139)
+
 ## [v2.0.1] - 2015-10-09
 
 - Bump aws-sdk to ~> 2
