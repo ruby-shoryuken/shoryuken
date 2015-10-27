@@ -1,4 +1,4 @@
-## [v2.0.2] - 2015-10-22
+## [v2.0.2] - 2015-10-27
 
 - Fix warnings that are triggered in some cases with the raise_error matcher
  - [#144](https://github.com/phstc/shoryuken/pull/144)
