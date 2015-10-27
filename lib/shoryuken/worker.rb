@@ -6,7 +6,6 @@ module Shoryuken
 
     module ClassMethods
       def perform_async(body, options = {})
-        options ||= {}
         options[:message_attributes] ||= {}
         options[:message_attributes]['shoryuken_class'] = {
           string_value: self.to_s,
@@ -15,7 +14,9 @@ module Shoryuken
 
         options[:message_body] = body
 
-        Shoryuken::Client.queues(get_shoryuken_options['queue']).send_message(options)
+        queue = options.delete(:queue) || get_shoryuken_options['queue']
+
+        Shoryuken::Client.queues(queue).send_message(options)
       end
 
       def perform_in(interval, body, options = {})
