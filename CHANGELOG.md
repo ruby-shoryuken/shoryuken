@@ -12,6 +12,9 @@
 - Fix Active Job queue prefixing in Rails apps
  - [#139](https://github.com/phstc/shoryuken/pull/139)
 
+- Enable override the default queue with a :queue option
+ - [#147](https://github.com/phstc/shoryuken/pull/147)
+
 ## [v2.0.1] - 2015-10-09
 
 - Bump aws-sdk to ~> 2
