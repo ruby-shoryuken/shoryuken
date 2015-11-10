@@ -169,7 +169,7 @@ shoryuken [options]
 
 ## More Information
 
-Please check the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
+For more information on advanced topics such as signals (shutdown), ActiveJob integration, and so on please check the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
 
 ## Credits
 
