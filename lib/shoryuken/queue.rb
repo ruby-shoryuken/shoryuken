@@ -5,7 +5,11 @@ module Shoryuken
     def initialize(client, name)
       self.name   = name
       self.client = client
-      self.url    = client.get_queue_url(queue_name: name).queue_url
+      begin
+        self.url = client.get_queue_url(queue_name: name).queue_url
+      rescue Aws::SQS::Errors::NonExistentQueue => e
+        raise e.class, "#{e.message} (queue: #{name})", e.backtrace
+      end
     end
 
     def visibility_timeout
