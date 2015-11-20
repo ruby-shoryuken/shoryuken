@@ -39,16 +39,27 @@ module Shoryuken
         @server_chain
       end
 
+      # TODO: Shoryuken options should not invoke side effects.
+      # The method makes it sound like it just sets configuration, but it performs
+      # real logic.
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
-        queue = @shoryuken_options['queue']
-        if queue.respond_to? :call
-          queue = queue.call
-          @shoryuken_options['queue'] = queue
+
+        queues = (@shoryuken_options['queues'] ||= [])
+
+        if @shoryuken_options['queue']
+          Shoryuken.logger.warn '[DEPRECATION] queue is deprecated as an option in favor of multiple queue support, please use queues instead'
+
+          queues << @shoryuken_options['queue']
+          @shoryuken_options['queue'] = nil
         end
 
-        Shoryuken.register_worker(queue, self)
+        # FIXME: We shouldn't mutate user supplied values.
+        # Currently done to preserve behavior when a queue is a proc, which probably
+        # shouldn't be supported.
+        @shoryuken_options['queues'] = Shoryuken::QueueRegistration.new(self).register_queues!(queues)
       end
+
 
       def auto_visibility_timeout?
         !!get_shoryuken_options['auto_visibility_timeout']

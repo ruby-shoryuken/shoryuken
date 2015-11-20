@@ -80,6 +80,7 @@ describe 'Shoryuken::Worker' do
       TestWorker.perform_async('delayed message', delay_seconds: 60)
     end
 
+    # TODO: Deprecated
     it 'accepts an `queue` option' do
       new_queue = 'some_different_queue'
 
@@ -99,36 +100,64 @@ describe 'Shoryuken::Worker' do
   end
 
   describe '.shoryuken_options' do
-    it 'registers a worker' do
-      expect(Shoryuken.worker_registry.workers('default')).to eq([TestWorker])
+    let(:dummy_worker) { Class.new }
+
+    before do
+      dummy_worker.include Shoryuken::Worker
     end
 
-    it 'accepts a block as queue name' do
-      $queue_prefix = 'production'
+    subject { dummy_worker.shoryuken_options shoryuken_options }
 
-      class NewTestWorker
-        include Shoryuken::Worker
+    context 'when using the queue key' do
+      let(:shoryuken_options) { { 'queue' => 'a_queue' } }
 
-        shoryuken_options queue: ->{ "#{$queue_prefix}_default" }
+      it 'warns about deprecation' do
+        expect(Shoryuken.logger).to receive(:warn).
+          with('[DEPRECATION] queue is deprecated as an option in favor of multiple queue support, please use queues instead').
+          once
+        subject
       end
 
-      expect(Shoryuken.worker_registry.workers('production_default')).to eq([NewTestWorker])
-      expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
+      it 'does not keep the value from queue' do
+        subject
+        expect(dummy_worker.get_shoryuken_options['queue']).to be_nil
+      end
+
+      it 'merges the queue argument into the queues key' do
+        subject
+        expect(dummy_worker.get_shoryuken_options['queues']).to include('a_queue')
+      end
     end
 
-    it 'is possible to configure the global defaults' do
-      queue = SecureRandom.uuid
-      Shoryuken.default_worker_options['queue'] = queue
+    context 'when passing queues with blocks' do
+      let(:shoryuken_options) { {'queues' => ['a_queue', ->{ 'a_block_queue'}] } }
 
-      class GlobalDefaultsTestWorker
-        include Shoryuken::Worker
+      it 'resolves the blocks and stores the queues at runtime' do
+        subject
+        expect(dummy_worker.get_shoryuken_options['queues']).to eql(['a_queue', 'a_block_queue', 'default'])
+      end
+    end
 
-        shoryuken_options auto_delete: true
+    context 'with changes to the default worker options' do
+      let(:defaults) { { 'queues' => ['randomqueues'], 'auto_delete' => false } }
+      let(:modified_options) { Shoryuken.default_worker_options.merge(defaults) }
+      let(:shoryuken_options) { { 'auto_delete' => true } }
+
+      before do
+        allow(Shoryuken).to receive(:default_worker_options).
+          and_return(modified_options)
       end
 
-      expect(GlobalDefaultsTestWorker.get_shoryuken_options['queue']).to eq queue
-      expect(GlobalDefaultsTestWorker.get_shoryuken_options['auto_delete']).to eq true
-      expect(GlobalDefaultsTestWorker.get_shoryuken_options['batch']).to eq false
+      it 'overrides default configuration' do
+        expect{subject}.to change{dummy_worker.get_shoryuken_options['auto_delete']}.
+          from(false).
+          to(true)
+      end
+
+      it 'still contains configuration not explicitly changed' do
+        subject
+        expect(dummy_worker.get_shoryuken_options['queues']).to include('randomqueues')
+      end
     end
   end
 
