@@ -8,7 +8,8 @@ module Shoryuken
       begin
         self.url = client.get_queue_url(queue_name: name).queue_url
       rescue Aws::SQS::Errors::NonExistentQueue => e
-        raise e.class, "#{e.message} (queue: #{name})", e.backtrace
+        e.message << " (queue: #{name})"
+        raise e
       end
     end
 
