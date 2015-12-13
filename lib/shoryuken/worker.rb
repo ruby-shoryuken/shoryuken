@@ -41,13 +41,7 @@ module Shoryuken
 
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
-        queue = @shoryuken_options['queue']
-        if queue.respond_to? :call
-          queue = queue.call
-          @shoryuken_options['queue'] = queue
-        end
-
-        Shoryuken.register_worker(queue, self)
+        normalize_worker_queue!
       end
 
       def auto_visibility_timeout?
@@ -63,6 +57,22 @@ module Shoryuken
           hash[key.to_s] = hash.delete(key)
         end
         hash
+      end
+
+      private
+
+      def normalize_worker_queue!
+        queue = @shoryuken_options['queue']
+        if queue.respond_to? :call
+          queue = queue.call
+          @shoryuken_options['queue'] = queue
+        end
+
+        [@shoryuken_options['queue']].flatten.compact.each(&method(:register_worker))
+      end
+
+      def register_worker(queue)
+        Shoryuken.register_worker(queue, self)
       end
     end
   end

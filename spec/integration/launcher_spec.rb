@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'shoryuken/manager'
 require 'shoryuken/launcher'
 
-describe Shoryuken::Launcher do
+RSpec.describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
     before do
       Shoryuken.options[:aws][:receive_message] = { wait_time_seconds: 5 }
