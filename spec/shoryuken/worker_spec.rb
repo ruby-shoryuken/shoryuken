@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe 'Shoryuken::Worker' do
+RSpec.describe 'Shoryuken::Worker' do
   let(:sqs_queue) { double 'SQS Queue' }
   let(:queue)     { 'default' }
 
@@ -103,7 +103,7 @@ describe 'Shoryuken::Worker' do
       expect(Shoryuken.worker_registry.workers('default')).to eq([TestWorker])
     end
 
-    it 'accepts a block as queue name' do
+    it 'accepts a block as a queue' do
       $queue_prefix = 'production'
 
       class NewTestWorker
@@ -114,6 +114,18 @@ describe 'Shoryuken::Worker' do
 
       expect(Shoryuken.worker_registry.workers('production_default')).to eq([NewTestWorker])
       expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
+    end
+
+    it 'accepts an array as a queue' do
+      class WorkerMultipleQueues
+        include Shoryuken::Worker
+
+        shoryuken_options queue: %w[queue1 queue2 queue3]
+      end
+
+      expect(Shoryuken.worker_registry.workers('queue1')).to eq([WorkerMultipleQueues])
+      expect(Shoryuken.worker_registry.workers('queue2')).to eq([WorkerMultipleQueues])
+      expect(Shoryuken.worker_registry.workers('queue3')).to eq([WorkerMultipleQueues])
     end
 
     it 'is possible to configure the global defaults' do
