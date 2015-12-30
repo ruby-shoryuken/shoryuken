@@ -11,7 +11,7 @@ module Shoryuken
         self.queue_name = queue.name
       else
         # TODO: Remove next major release
-        Shoryuken.loggger.warn do
+        Shoryuken.logger.warn do
           '[DEPRECATION] Passing a queue url into Shoryuken::Message is deprecated, please pass the queue itself'
         end
         self.queue_url = queue
