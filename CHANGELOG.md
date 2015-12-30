@@ -1,3 +1,11 @@
+## [v2.0.3] - 2015-12-30
+
+- Allow multiple queues per worker
+ - [#164](https://github.com/phstc/shoryuken/pull/164)
+
+- Fix typo
+ - [#166](https://github.com/phstc/shoryuken/pull/166)
+
 ## [v2.0.2] - 2015-10-27
 
 - Fix warnings that are triggered in some cases with the raise_error matcher
