@@ -8,8 +8,7 @@ module Shoryuken
       begin
         self.url = client.get_queue_url(queue_name: name).queue_url
       rescue Aws::SQS::Errors::NonExistentQueue => e
-        e.message << " (queue: #{name})"
-        raise e
+        raise e, "The specified queue '#{name}' does not exist"
       end
     end
 
