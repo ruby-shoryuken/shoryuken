@@ -15,6 +15,21 @@ module ActiveJob
     #
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
     class ShoryukenAdapter
+      class << self
+        def instance
+          # https://github.com/phstc/shoryuken/pull/174#issuecomment-174555657
+          @instance ||= new
+        end
+
+        def enqueue(job)
+          instance.enqueue(job)
+        end
+
+        def enqueue_at(job, timestamp)
+          instance.enqueue(job, timestamp)
+        end
+      end
+
       def enqueue(job) #:nodoc:
         register_worker!(job)
 
