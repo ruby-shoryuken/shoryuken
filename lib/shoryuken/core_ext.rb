@@ -1,7 +1,10 @@
 begin
   require 'active_support/core_ext/hash/keys'
   require 'active_support/core_ext/hash/deep_merge'
-rescue LoadError
+  {}.stringify_keys
+  {}.symbolize_keys
+  {}.deep_symbolize_keys
+rescue LoadError, NoMethodError
   class Hash
     def stringify_keys
       keys.each do |key|
