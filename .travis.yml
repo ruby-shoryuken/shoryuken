@@ -15,3 +15,5 @@ notifications:
     on_failure: always
 
 script: SPEC_ALL=true bundle exec rspec spec
+before_install:
+ - gem update bundler
