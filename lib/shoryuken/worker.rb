@@ -68,6 +68,13 @@ module Shoryuken
           @shoryuken_options['queue'] = queue
         end
 
+        case @shoryuken_options['queue']
+        when Array
+          @shoryuken_options['queue'].map!(&:to_s)
+        when Symbol
+          @shoryuken_options['queue'] = @shoryuken_options['queue'].to_s
+        end
+
         [@shoryuken_options['queue']].flatten.compact.each(&method(:register_worker))
       end
 
