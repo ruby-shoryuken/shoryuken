@@ -142,6 +142,28 @@ RSpec.describe 'Shoryuken::Worker' do
       expect(GlobalDefaultsTestWorker.get_shoryuken_options['auto_delete']).to eq true
       expect(GlobalDefaultsTestWorker.get_shoryuken_options['batch']).to eq false
     end
+
+    it 'accepts a symbol as a queue and converts to string' do
+      class SymbolQueueTestWorker
+        include Shoryuken::Worker
+
+        shoryuken_options queue: :default
+      end
+
+      expect(SymbolQueueTestWorker.get_shoryuken_options['queue']).to eq 'default'
+    end
+
+    it 'accepts an array that contains symbols as a queue and converts to string' do
+      class WorkerMultipleSymbolQueues
+        include Shoryuken::Worker
+
+        shoryuken_options queue: %i[symbol_queue1 symbol_queue2 symbol_queue3]
+      end
+
+      expect(Shoryuken.worker_registry.workers('symbol_queue1')).to eq([WorkerMultipleSymbolQueues])
+      expect(Shoryuken.worker_registry.workers('symbol_queue2')).to eq([WorkerMultipleSymbolQueues])
+      expect(Shoryuken.worker_registry.workers('symbol_queue3')).to eq([WorkerMultipleSymbolQueues])
+    end
   end
 
   describe '.server_middleware' do
