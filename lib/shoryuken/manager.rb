@@ -11,8 +11,8 @@ module Shoryuken
     trap_exit :processor_died
 
     def initialize(condvar)
-      @count  = Shoryuken.options[:concurrency] || 25
-      raise(ArgumentError, "concurrency value #{@count} is invalid, the value needs to be a positive number") unless @count > 0
+      @count = Shoryuken.options[:concurrency] || 25
+      raise(ArgumentError, "concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
       @queues = Shoryuken.queues.dup.uniq
       @finished = condvar
 

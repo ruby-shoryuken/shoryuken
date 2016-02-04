@@ -11,8 +11,8 @@ describe Shoryuken::Manager do
   describe 'Invalid concurrency setting' do
     it 'raises ArgumentError if concurrency is not positive number' do
       Shoryuken.options[:concurrency] = -1
-      expect{Shoryuken::Manager.new(nil)}
-      .to raise_error(ArgumentError, 'concurrency value -1 is invalid, the value needs to be a positive number')
+      expect { Shoryuken::Manager.new(nil) }
+        .to raise_error(ArgumentError, 'concurrency value -1 is invalid, it needs to be a positive number')
     end
 
   end
