@@ -8,6 +8,15 @@ describe Shoryuken::Manager do
     Shoryuken::Manager.new(condvar)
   end
 
+  describe 'Invalid concurrency setting' do
+    it 'raises ArgumentError if concurrency is not positive number' do
+      Shoryuken.options[:concurrency] = -1
+      expect{Shoryuken::Manager.new(nil)}
+      .to raise_error(ArgumentError, 'concurrency value -1 is invalid, the value needs to be a positive number')
+    end
+
+  end
+
   describe 'Auto Scaling' do
     it 'decreases weight' do
       queue1 = 'shoryuken'
