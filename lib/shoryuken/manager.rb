@@ -12,7 +12,7 @@ module Shoryuken
 
     def initialize(condvar)
       @count = Shoryuken.options[:concurrency] || 25
-      raise(ArgumentError, "concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
+      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
       @queues = Shoryuken.queues.dup.uniq
       @finished = condvar
 

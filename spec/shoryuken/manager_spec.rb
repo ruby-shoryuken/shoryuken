@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'shoryuken/manager'
 
-describe Shoryuken::Manager do
+RSpec.describe Shoryuken::Manager do
   subject do
     condvar = double(:condvar)
     allow(condvar).to receive(:signal).and_return(nil)
@@ -12,7 +12,7 @@ describe Shoryuken::Manager do
     it 'raises ArgumentError if concurrency is not positive number' do
       Shoryuken.options[:concurrency] = -1
       expect { Shoryuken::Manager.new(nil) }
-        .to raise_error(ArgumentError, 'concurrency value -1 is invalid, it needs to be a positive number')
+        .to raise_error(ArgumentError, 'Concurrency value -1 is invalid, it needs to be a positive number')
     end
 
   end
