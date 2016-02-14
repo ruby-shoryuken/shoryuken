@@ -2,20 +2,20 @@ require 'spec_helper'
 
 RSpec.describe 'Core Extensions' do
   describe Hash do
-    describe 'stringify_keys' do
+    describe '#stringify_keys' do
       it 'converts keys into strings' do
         expect({ :key1 => 'value1', 'key2' => 'value2' }.stringify_keys).to eq('key1' => 'value1', 'key2' => 'value2')
       end
     end
 
-    describe 'symbolize_keys' do
-      it 'converts keys into strings' do
+    describe '#symbolize_keys' do
+      it 'converts keys into symbols' do
         expect({ :key1 => 'value1', 'key2' => 'value2' }.symbolize_keys).to eq(:key1 => 'value1', key2: 'value2')
       end
     end
 
-    describe 'deep_symbolize_keys' do
-      it 'converts keys into strings' do
+    describe '#deep_symbolize_keys' do
+      it 'converts keys into symbols' do
         expect({ :key1 => 'value1',
                  'key2' => 'value2',
                  'key3' => {
