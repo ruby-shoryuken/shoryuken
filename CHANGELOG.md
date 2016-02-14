@@ -1,3 +1,17 @@
+## [v2.0.4] -
+
+- Add Rails 3 support
+ - [#175](https://github.com/phstc/shoryuken/pull/175)
+
+- Allow symbol as a queue name in shoryuken_options
+ - [#177](https://github.com/phstc/shoryuken/pull/177)
+
+- Make sure bundler is always updated on Travis CI
+ - [#176](https://github.com/phstc/shoryuken/pull/176)
+
+- Add Rails 5 compatibility
+ - [#174](https://github.com/phstc/shoryuken/pull/174)
+
 ## [v2.0.3] - 2015-12-30
 
 - Allow multiple queues per worker
