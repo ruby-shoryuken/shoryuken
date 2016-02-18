@@ -26,7 +26,7 @@ module ActiveJob
         end
 
         def enqueue_at(job, timestamp)
-          instance.enqueue(job, timestamp)
+          instance.enqueue_at(job, timestamp)
         end
       end
 
