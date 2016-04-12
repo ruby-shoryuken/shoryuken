@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'shoryuken/processor'
 require 'shoryuken/manager'
 
-describe Shoryuken::Processor do
+RSpec.describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager, processor_done: nil }
   let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
@@ -100,14 +100,16 @@ describe Shoryuken::Processor do
 
       it 'logs the error' do
         expect(subject.logger).to receive(:error) do |&block|
-          expect(block.call).to eq("Error parsing the message body: 757: unexpected token at 'invalid json'\nbody_parser: json\nsqs_msg.body: invalid json")
+          expect(block.call).
+            to include("unexpected token at 'invalid json'\nbody_parser: json\nsqs_msg.body: invalid json")
         end
 
         subject.process(queue, sqs_msg) rescue nil
       end
 
       it 're raises the error' do
-        expect{ subject.process(queue, sqs_msg) }.to raise_error(JSON::ParserError, "757: unexpected token at 'invalid json'")
+        expect { subject.process(queue, sqs_msg) }.
+          to raise_error(JSON::ParserError, /unexpected token at 'invalid json'/)
       end
     end
 

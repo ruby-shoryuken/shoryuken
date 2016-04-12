@@ -15,13 +15,12 @@ module Shoryuken
     end
 
     def load
+      Shoryuken.options.merge!(config_file_options)
+      Shoryuken.options.merge!(options)
       initialize_logger
       load_rails if options[:rails]
-      Shoryuken.options.merge!(config_file_options)
-      reset_logger
       merge_cli_defined_queues
       prefix_active_job_queue_names
-      Shoryuken.options.merge!(options)
       parse_queues
       require_workers
       initialize_aws
@@ -79,11 +78,6 @@ module Shoryuken
     def initialize_logger
       Shoryuken::Logging.initialize_logger(options[:logfile]) if options[:logfile]
       Shoryuken.logger.level = Logger::DEBUG if options[:verbose]
-    end
-
-    def reset_logger
-      Shoryuken::Logging.initialize_logger(Shoryuken.options[:logfile]) if options[:logfile].nil? && Shoryuken.options[:logfile]
-      Shoryuken.logger.level = Logger::DEBUG if options[:verbose].nil? && Shoryuken.options[:verbose]
     end
 
     def load_rails
