@@ -32,11 +32,9 @@ module Shoryuken
     private
 
     def config_file_options
-      if (path = options[:config_file])
-        unless File.exist?(path)
-          fail ArgumentError, "The supplied config file '#{path}' does not exist"
-        end
-      end
+      return {} unless (path = options[:config_file])
+
+      fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
 
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
     end

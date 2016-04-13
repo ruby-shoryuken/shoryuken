@@ -126,8 +126,8 @@ module Shoryuken
     #     end
     #   end
     def on(event, &block)
-      raise ArgumentError, "Symbols only please: #{event}" unless event.is_a?(Symbol)
-      raise ArgumentError, "Invalid event name: #{event}" unless options[:lifecycle_events].key?(event)
+      fail ArgumentError, "Symbols only please: #{event}" unless event.is_a?(Symbol)
+      fail ArgumentError, "Invalid event name: #{event}" unless options[:lifecycle_events].key?(event)
       options[:lifecycle_events][event] << block
     end
 
