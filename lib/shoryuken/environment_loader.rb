@@ -15,12 +15,12 @@ module Shoryuken
     end
 
     def load
+      Shoryuken.options.merge!(config_file_options)
+      Shoryuken.options.merge!(options)
       initialize_logger
       load_rails if options[:rails]
-      Shoryuken.options.merge!(config_file_options)
       merge_cli_defined_queues
       prefix_active_job_queue_names
-      Shoryuken.options.merge!(options)
       parse_queues
       require_workers
       initialize_aws
@@ -32,14 +32,9 @@ module Shoryuken
     private
 
     def config_file_options
-      if (path = options[:config_file])
-        unless File.exist?(path)
-          Shoryuken.logger.warn { "Config file #{path} does not exist" }
-          path = nil
-        end
-      end
+      return {} unless (path = options[:config_file])
 
-      return {} unless path
+      fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
 
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
     end
