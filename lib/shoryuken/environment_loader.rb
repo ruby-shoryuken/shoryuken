@@ -34,12 +34,9 @@ module Shoryuken
     def config_file_options
       if (path = options[:config_file])
         unless File.exist?(path)
-          Shoryuken.logger.warn { "Config file #{path} does not exist" }
-          path = nil
+          fail ArgumentError, "The supplied config file '#{path}' does not exist"
         end
       end
-
-      return {} unless path
 
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
     end
