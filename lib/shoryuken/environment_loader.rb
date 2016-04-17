@@ -92,6 +92,7 @@ module Shoryuken
         require File.expand_path('config/environment.rb')
       end
 
+      Shoryuken.options.merge!(config_file_options)
       Shoryuken.logger.info { 'Rails environment loaded' }
     end
 
