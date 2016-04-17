@@ -1,3 +1,11 @@
+## [v2.0.5] -
+
+- Fix log initialization when using `Shoryuken::EnvironmentLoader#load`
+ - [#191](https://github.com/phstc/shoryuken/pull/191)
+
+ - Fix `enqueue_at` in the ActiveJob Adapter
+ - [#182](https://github.com/phstc/shoryuken/pull/182)
+
 ## [v2.0.4] -
 
 - Add Rails 3 support
