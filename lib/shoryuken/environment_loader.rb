@@ -15,8 +15,7 @@ module Shoryuken
     end
 
     def load
-      Shoryuken.options.merge!(config_file_options)
-      Shoryuken.options.merge!(options)
+      initialize_options
       initialize_logger
       load_rails if options[:rails]
       merge_cli_defined_queues
@@ -30,6 +29,11 @@ module Shoryuken
     end
 
     private
+
+    def initialize_options
+      Shoryuken.options.merge!(config_file_options)
+      Shoryuken.options.merge!(options)
+    end
 
     def config_file_options
       return {} unless (path = options[:config_file])
@@ -92,7 +96,9 @@ module Shoryuken
         require File.expand_path('config/environment.rb')
       end
 
-      Shoryuken.options.merge!(config_file_options)
+      # Reload options with Rails environment (see PR #195)
+      initialize_options
+
       Shoryuken.logger.info { 'Rails environment loaded' }
     end
 
