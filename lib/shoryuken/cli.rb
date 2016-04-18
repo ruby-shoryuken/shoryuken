@@ -112,7 +112,7 @@ module Shoryuken
     end
 
     def parse_cli_args(argv)
-      opts = { queues: [] }
+      opts = {}
 
       @parser = OptionParser.new do |o|
         o.on '-c', '--concurrency INT', 'Processor threads to use' do |arg|
@@ -125,6 +125,7 @@ module Shoryuken
 
         o.on '-q', '--queue QUEUE[,WEIGHT]...', 'Queues to process with optional weights' do |arg|
           queue, weight = arg.split(',')
+          opts[:queues] = [] unless opts[:queues]
           opts[:queues] << [queue, weight]
         end
 
