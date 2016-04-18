@@ -1,3 +1,8 @@
+## [v2.0.6] -
+
+- Fix log initialization introduced by #191
+ - [#195](https://github.com/phstc/shoryuken/pull/195)
+
 ## [v2.0.5] -
 
 - Fix log initialization when using `Shoryuken::EnvironmentLoader#load`
