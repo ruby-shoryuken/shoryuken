@@ -164,13 +164,17 @@ module Shoryuken
     def validate_queues
       Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
 
+      non_existent_queues = []
+
       Shoryuken.queues.uniq.each do |queue|
         begin
           Shoryuken::Client.queues queue
         rescue Aws::SQS::Errors::NonExistentQueue
-          Shoryuken.logger.warn { "The specified queue '#{queue}' does not exist" }
+          non_existent_queues << queue
         end
       end
+
+      fail ArgumentError, "The specified queue(s) #{non_existent_queues} do not exist" if non_existent_queues.any?
     end
 
     def validate_workers
