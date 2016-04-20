@@ -15,9 +15,9 @@ module Shoryuken
     end
 
     def load
+      load_rails if options[:rails]
       initialize_options
       initialize_logger
-      load_rails if options[:rails]
       merge_cli_defined_queues
       prefix_active_job_queue_names
       parse_queues
@@ -95,11 +95,6 @@ module Shoryuken
         require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
         require File.expand_path('config/environment.rb')
       end
-
-      # Reload options with Rails environment (see PR #195)
-      initialize_options
-
-      Shoryuken.logger.info { 'Rails environment loaded' }
     end
 
     def merge_cli_defined_queues
