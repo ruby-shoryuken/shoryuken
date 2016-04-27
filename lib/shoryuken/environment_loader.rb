@@ -15,6 +15,7 @@ module Shoryuken
     end
 
     def load
+      require 'rails' if options[:rails]
       initialize_options
       initialize_logger
       load_rails if options[:rails]
@@ -82,7 +83,6 @@ module Shoryuken
     def load_rails
       # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
 
-      require 'rails'
       if ::Rails::VERSION::MAJOR < 4
         require File.expand_path('config/environment.rb')
         ::Rails.application.eager_load!
