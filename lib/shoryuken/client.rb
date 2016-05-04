@@ -31,10 +31,13 @@ module Shoryuken
 
       def aws_client_options(service_endpoint_key)
         environment_endpoint = ENV["AWS_#{service_endpoint_key.to_s.upcase}"]
-        explicit_endpoint = Shoryuken.options[:aws][service_endpoint_key] || environment_endpoint
-        options = {}
-        options[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?
-        options
+        aws_options = Shoryuken.options[:aws]
+        explicit_endpoint = aws_options[service_endpoint_key] || environment_endpoint
+        Hash.new.tap do |options|
+          options[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?
+          options[:access_key_id] = aws_options[:access_key_id] unless aws_options[:access_key_id].nil?
+          options[:secret_access_key] = aws_options[:secret_access_key] unless aws_options[:secret_access_key].nil?
+        end
       end
     end
   end
