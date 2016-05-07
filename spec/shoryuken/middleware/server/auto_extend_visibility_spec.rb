@@ -14,7 +14,7 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
   class Runner
     include Celluloid
 
-    def run_and_sleep(worker, queue, sqs_msg, sleep_interval)
+    def run(worker, queue, sqs_msg)
       Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) {}
     end
   end
@@ -35,7 +35,7 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
       with(visibility_timeout - extend_upfront).
       once { |_, _, &block| block.call }
 
-    Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, visibility_timeout)
+    Runner.new.run(TestWorker.new, queue, sqs_msg)
   end
 
   it 'does not extend message visibility if auto_visibility_timeout is not true' do
@@ -45,6 +45,6 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
     expect(sqs_msg).to_not receive(:change_visibility)
     expect_any_instance_of(Celluloid).to_not receive(:every)
 
-    Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, visibility_timeout)
+    Runner.new.run(TestWorker.new, queue, sqs_msg)
   end
 end
