@@ -14,8 +14,16 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
   class Runner
     include Celluloid
 
-    def run(worker, queue, sqs_msg)
-      Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) {}
+    def run_and_sleep(worker, queue, sqs_msg, interval)
+      Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
+        sleep interval
+      end
+    end
+
+    def run_and_raise(worker, queue, sqs_msg, error_class)
+      Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
+        raise error_class.new
+      end
     end
   end
 
@@ -26,16 +34,22 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
     stub_const('Shoryuken::Middleware::Server::AutoExtendVisibility::EXTEND_UPFRONT_SECONDS', extend_upfront)
   end
 
-  it 'extends message visibility' do
+  it 'extends message visibility if jobs takes a long time' do
     TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
 
     allow(sqs_msg).to receive(:queue) { sqs_queue }
     expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: visibility_timeout)
-    expect_any_instance_of(Celluloid).to receive(:every).
-      with(visibility_timeout - extend_upfront).
-      once { |_, _, &block| block.call }
 
-    Runner.new.run(TestWorker.new, queue, sqs_msg)
+    Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, visibility_timeout)
+  end
+
+  it 'does not extend message visibility if worker raises' do
+    TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
+
+    allow(sqs_msg).to receive(:queue) { sqs_queue }
+    expect(sqs_msg).to_not receive(:change_visibility)
+
+    expect{ Runner.new.run_and_raise(TestWorker.new, queue, sqs_msg, StandardError) }.to raise_error(StandardError)
   end
 
   it 'does not extend message visibility if auto_visibility_timeout is not true' do
@@ -43,8 +57,7 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
 
     allow(sqs_msg).to receive(:queue) { sqs_queue }
     expect(sqs_msg).to_not receive(:change_visibility)
-    expect_any_instance_of(Celluloid).to_not receive(:every)
 
-    Runner.new.run(TestWorker.new, queue, sqs_msg)
+    Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, visibility_timeout)
   end
 end
