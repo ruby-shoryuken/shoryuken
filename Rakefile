@@ -1,6 +1,12 @@
 require 'bundler/gem_tasks'
 $stdout.sync = true
 
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:spec)
+rescue LoadError
+end
+
 desc 'Open Shoryuken pry console'
 task :console do
   require 'pry'
