@@ -47,15 +47,13 @@ module Shoryuken
             @manager.async.pause_queue!(queue)
           end
 
-          @manager.async.dispatch
-
           logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
         rescue => ex
           logger.error { "Error fetching message: #{ex}" }
           logger.error { ex.backtrace.first }
-
-          @manager.async.dispatch
         end
+
+        @manager.async.dispatch
       end
 
     end
