@@ -15,9 +15,13 @@ module Shoryuken
     end
 
     def load
+      load_rails if options[:rails]
+
       initialize_options
       initialize_logger
-      load_rails if options[:rails]
+
+      Shoryuken.logger.info { 'Rails environment loaded' } if options[:rails]
+
       merge_cli_defined_queues
       prefix_active_job_queue_names
       parse_queues
@@ -95,11 +99,6 @@ module Shoryuken
         require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
         require File.expand_path('config/environment.rb')
       end
-
-      # Reload options with Rails environment (see PR #195)
-      initialize_options
-
-      Shoryuken.logger.info { 'Rails environment loaded' }
     end
 
     def merge_cli_defined_queues
@@ -164,17 +163,13 @@ module Shoryuken
     def validate_queues
       Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
 
-      non_existent_queues = []
-
       Shoryuken.queues.uniq.each do |queue|
         begin
           Shoryuken::Client.queues queue
         rescue Aws::SQS::Errors::NonExistentQueue
-          non_existent_queues << queue
+          Shoryuken.logger.warn { "The specified queue '#{queue}' does not exist" }
         end
       end
-
-      fail ArgumentError, "The specified queue(s) #{non_existent_queues} do not exist" if non_existent_queues.any?
     end
 
     def validate_workers
