@@ -2,6 +2,7 @@ module Shoryuken
   module Middleware
     module Server
       class ExponentialBackoffRetry
+        MODIFIER_BASE = 10
         include Util
 
         def call(worker, queue, sqs_msg, body)
@@ -31,6 +32,9 @@ module Shoryuken
                      else
                        retry_intervals.last
                      end
+          random_modifier = (rand * interval / MODIFIER_BASE).floor
+          interval += random_modifier
+
 
           # Visibility timeouts are limited to a total 12 hours, starting from the receipt of the message.
           # We calculate the maximum timeout by subtracting the amount of time since the receipt of the message.
