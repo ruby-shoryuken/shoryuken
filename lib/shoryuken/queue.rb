@@ -20,7 +20,10 @@ module Shoryuken
     end
 
     def delete_messages(options)
-      client.delete_message_batch(options.merge(queue_url: url))
+      entries = options[:entries]
+      entries.each_slice(10) do | batch_of_entries |
+        client.delete_message_batch(options.merge(queue_url: url, entries: batch_of_entries))
+      end
     end
 
     def send_message(options)
