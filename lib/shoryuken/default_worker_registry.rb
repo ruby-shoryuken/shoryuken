@@ -8,6 +8,10 @@ module Shoryuken
       !!(@workers[queue] && @workers[queue].get_shoryuken_options['batch'])
     end
 
+    def batch_by_interval(queue)
+      @workers[queue] && @workers[queue].get_shoryuken_options['batch_by_interval']
+    end
+
     def clear
       @workers.clear
     end
@@ -33,6 +37,10 @@ module Shoryuken
           fail ArgumentError, "Could not register #{clazz} for '#{queue}', "\
             "because #{worker_class} is already registered for this queue, "\
             "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
+        elsif worker_class.get_shoryuken_options['batch_by_interval'] > 0 || clazz.get_shoryuken_options['batch_by_interval'] > 0
+          fail ArgumentError, "Could not register #{clazz} for '#{queue}', "\
+          "because #{worker_class} is already registered for this queue, "\
+          "and Shoryuken doesn't support an interval batchable worker for a queue with multiple workers"
         end
       end
 

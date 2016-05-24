@@ -25,3 +25,4 @@ shoryuken.yml
 *.log
 .env
 rubocop.html
+.idea

@@ -98,7 +98,9 @@ module Shoryuken
         'auto_delete'             => false,
         'auto_visibility_timeout' => false,
         'retry_intervals'         => nil,
-        'batch'                   => false }
+        'batch'                   => false,
+        'batch_by_interval'       => false
+      }
     end
 
     def default_worker_options=(options)

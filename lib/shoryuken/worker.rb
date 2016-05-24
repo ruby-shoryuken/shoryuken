@@ -42,6 +42,7 @@ module Shoryuken
       def shoryuken_options(opts = {})
         @shoryuken_options = get_shoryuken_options.merge(stringify_keys(opts || {}))
         normalize_worker_queue!
+        validate_batch_interval
       end
 
       def auto_visibility_timeout?
@@ -76,6 +77,16 @@ module Shoryuken
         end
 
         [@shoryuken_options['queue']].flatten.compact.each(&method(:register_worker))
+      end
+
+      def validate_batch_interval
+        if @shoryuken_options['batch_by_interval'].present?
+          if (@shoryuken_options['batch_by_interval'] < 1 || @shoryuken_options['batch_by_interval'] > 3600 * 3)
+            fail ArgumentError
+          end
+
+          @shoryuken_options['batch'] = true
+        end
       end
 
       def register_worker(queue)

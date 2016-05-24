@@ -5,6 +5,11 @@ module Shoryuken
       fail NotImplementedError
     end
 
+    def batch_by_interval(queue)
+      # true if the workers for queue support batch processing of messages by a time interval
+      fail NotImplementedError
+    end
+
     def clear
       # must remove all worker registrations
       fail NotImplementedError

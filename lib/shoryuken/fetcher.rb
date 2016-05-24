@@ -28,10 +28,30 @@ module Shoryuken
         logger.debug { "Looking for new messages in '#{queue}'" }
 
         begin
+          batch_by_interval = Shoryuken.worker_registry.batch_by_interval(queue)
+
           batch = Shoryuken.worker_registry.batch_receive_messages?(queue)
           limit = batch ? FETCH_LIMIT : available_processors
 
-          if (sqs_msgs = Array(receive_messages(queue, limit))).any?
+          sqs_msgs = Array(receive_messages(queue, limit))
+
+          if batch_by_interval > 0
+            logger.debug { "Waiting for messages for #{batch_by_interval}sec" }
+
+            stop_polling_at = started_at + batch_by_interval
+            while Time.now < stop_polling_at
+              fetch = Array(receive_messages(queue, limit))
+              if fetch.any?
+                sqs_msgs.concat(fetch)
+              else
+                sleep 1
+              end
+            end
+
+            logger.debug { "Finished waiting for messages for #{batch_by_interval}sec" }
+          end
+
+          if sqs_msgs.any?
             logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
 
             if batch
