@@ -46,6 +46,7 @@ module Shoryuken
               else
                 sleep 1
               end
+              logger.debug { "Batch by interval buffer has #{sqs_msgs.length} messages, #{stop_polling_at - Time.now}sec remaining" }
             end
 
             logger.debug { "Finished waiting for messages for #{batch_by_interval}sec" }
