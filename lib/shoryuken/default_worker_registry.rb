@@ -37,7 +37,7 @@ module Shoryuken
           fail ArgumentError, "Could not register #{clazz} for '#{queue}', "\
             "because #{worker_class} is already registered for this queue, "\
             "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
-        elsif worker_class.get_shoryuken_options['batch_by_interval'] > 0 || clazz.get_shoryuken_options['batch_by_interval'] > 0
+        elsif (worker_class.get_shoryuken_options['batch_by_interval'] && worker_class.get_shoryuken_options['batch_by_interval'] > 0) || (clazz.get_shoryuken_options['batch_by_interval'] && clazz.get_shoryuken_options['batch_by_interval'] > 0)
           fail ArgumentError, "Could not register #{clazz} for '#{queue}', "\
           "because #{worker_class} is already registered for this queue, "\
           "and Shoryuken doesn't support an interval batchable worker for a queue with multiple workers"
