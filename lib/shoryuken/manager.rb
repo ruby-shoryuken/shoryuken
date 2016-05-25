@@ -68,6 +68,7 @@ module Shoryuken
 
         if stopped?
           processor.terminate if processor.alive?
+          return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << processor
         end
@@ -81,7 +82,9 @@ module Shoryuken
         @threads.delete(processor.object_id)
         @busy.delete processor
 
-        unless stopped?
+        if stopped?
+          return after(0) { @finished.signal } if @busy.empty?
+        else
           @ready << build_processor
         end
       end
