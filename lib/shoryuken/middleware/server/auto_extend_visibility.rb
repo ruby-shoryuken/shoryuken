@@ -1,3 +1,5 @@
+require 'celluloid' unless defined?(Celluloid)
+
 module Shoryuken
   module Middleware
     module Server
