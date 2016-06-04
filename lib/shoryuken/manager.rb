@@ -71,6 +71,7 @@ module Shoryuken
           return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << processor
+          dispatch
         end
       end
     end
@@ -86,6 +87,7 @@ module Shoryuken
           return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << build_processor
+          dispatch
         end
       end
     end
