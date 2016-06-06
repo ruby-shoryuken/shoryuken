@@ -31,10 +31,11 @@ module Shoryuken
 
       options = parse_cli_args(args)
 
-      EnvironmentLoader.load(options)
-
       daemonize
       write_pid
+
+      EnvironmentLoader.load(options)
+
       load_celluloid
 
       require 'shoryuken/launcher'
