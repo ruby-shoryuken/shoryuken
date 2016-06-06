@@ -105,7 +105,7 @@ end
 
 [Check the Middleware documentation](https://github.com/phstc/shoryuken/wiki/Middleware).
 
-### Configuration
+### Configuration (worker side)
 
 Sample configuration file `shoryuken.yml`.
 
@@ -135,6 +135,19 @@ The ```aws``` section is used to configure both the Aws objects used by Shoryuke
 - ```receive_message``` can be used to define the options passed to the http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
 
 The ```sns_endpoint``` and ```sqs_endpoint``` Shoryuken-specific options will also fallback to the environment variables ```AWS_SNS_ENDPOINT``` and ```AWS_SQS_ENDPOINT``` respectively, if they are set.
+
+### Configuration (producer side)
+
+'Producer' processes need permissions to put messages into SQS. There are a few ways:
+
+* Ensure the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` env vars are set.
+* Create a `~/.aws/credentials` file.
+* Set `Aws.config[:credentials]` from Ruby code (e.g. in a Rails initializer)
+* Use the Instance Profiles feature. The IAM role of the targeted machine must have an adequate SQS Policy.
+
+Note that storing your credentials into Amazon instances represents a security risk. Instance Profiles tends to be the best choice.
+
+You can read about these in more detail [here](http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html).
 
 ### Rails Integration
 
