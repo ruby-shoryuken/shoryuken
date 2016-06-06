@@ -1,4 +1,4 @@
-## [v2.0.7] -
+## [v2.0.7] - 2016-06-06
 
 - Daemonize before loading environment
  - [#219] https://github.com/phstc/shoryuken/pull/219
@@ -21,12 +21,12 @@
 - Fail on non-existent queues
  - [#196] https://github.com/phstc/shoryuken/pull/196
 
-## [v2.0.6] -
+## [v2.0.6] - 2016-04-18
 
 - Fix log initialization introduced by #191
  - [#195](https://github.com/phstc/shoryuken/pull/195)
 
-## [v2.0.5] -
+## [v2.0.5] - 2016-04-17
 
 - Fix log initialization when using `Shoryuken::EnvironmentLoader#load`
  - [#191](https://github.com/phstc/shoryuken/pull/191)
@@ -34,7 +34,7 @@
  - Fix `enqueue_at` in the ActiveJob Adapter
  - [#182](https://github.com/phstc/shoryuken/pull/182)
 
-## [v2.0.4] -
+## [v2.0.4] - 2016-02-04
 
 - Add Rails 3 support
  - [#175](https://github.com/phstc/shoryuken/pull/175)
