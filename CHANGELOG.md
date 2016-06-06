@@ -1,3 +1,26 @@
+## [v2.0.7] -
+
+- Daemonize before loading environment
+ - [#219] https://github.com/phstc/shoryuken/pull/219
+
+- Fix initialization when using rails
+ - [#197] https://github.com/phstc/shoryuken/pull/197
+
+- Improve message fetching
+ - https://github.com/phstc/shoryuken/pull/214 and https://github.com/phstc/shoryuken/commit/f4640d97950c1783a061195855d93994725ed64a
+
+- Fix hard shutdown if there are some busy workers when signal received
+ - [#215] https://github.com/phstc/shoryuken/pull/215
+
+- Fix `rake console` task
+ - [#208] https://github.com/phstc/shoryuken/pull/208
+
+- Isolate `MessageVisibilityExtender` as new middleware
+ - [#199] https://github.com/phstc/shoryuken/pull/190
+
+- Fail on non-existent queues
+ - [#196] https://github.com/phstc/shoryuken/pull/196
+
 ## [v2.0.6] -
 
 - Fix log initialization introduced by #191
