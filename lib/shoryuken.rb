@@ -15,7 +15,6 @@ require 'shoryuken/worker_registry'
 require 'shoryuken/default_worker_registry'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
-require 'shoryuken/middleware/server/auto_extend_visibility'
 require 'shoryuken/middleware/server/exponential_backoff_retry'
 require 'shoryuken/middleware/server/timing'
 require 'shoryuken/sns_arn'
@@ -140,10 +139,13 @@ module Shoryuken
 
     def default_server_middleware
       Middleware::Chain.new do |m|
+        # middleware requiring Celluloid has to be loaded here, after dameonization has happened
+        require 'shoryuken/middleware/server/auto_extend_visibility'
+        m.add Middleware::Server::AutoExtendVisibility
+
         m.add Middleware::Server::Timing
         m.add Middleware::Server::ExponentialBackoffRetry
         m.add Middleware::Server::AutoDelete
-        m.add Middleware::Server::AutoExtendVisibility
         if defined?(::ActiveRecord::Base)
           require 'shoryuken/middleware/server/active_record'
           m.add Middleware::Server::ActiveRecord
