@@ -34,9 +34,9 @@ module Shoryuken
       daemonize
       write_pid
 
-      EnvironmentLoader.load(options)
-
       load_celluloid
+
+      EnvironmentLoader.load(options)
 
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
