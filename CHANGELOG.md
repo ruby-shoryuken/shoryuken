@@ -1,3 +1,8 @@
+## [v2.0.8] - 2016-06-07
+
+- Fix daemonization
+ - [#223] https://github.com/phstc/shoryuken/pull/223
+
 ## [v2.0.7] - 2016-06-06
 
 - Daemonize before loading environment
