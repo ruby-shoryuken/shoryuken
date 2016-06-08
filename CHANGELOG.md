@@ -1,3 +1,8 @@
+## [v2.0.9] - 2016-06-08
+
+- Fix daemonization broken in #219
+ - [#224] https://github.com/phstc/shoryuken/pull/224
+
 ## [v2.0.8] - 2016-06-07
 
 - Fix daemonization
