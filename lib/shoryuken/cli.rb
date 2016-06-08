@@ -31,12 +31,12 @@ module Shoryuken
 
       options = parse_cli_args(args)
 
-      daemonize
-      write_pid
-
-      load_celluloid
+      daemonize(options)
+      write_pid(options)
 
       EnvironmentLoader.load(options)
+
+      load_celluloid
 
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
@@ -64,21 +64,27 @@ module Shoryuken
     private
 
     def load_celluloid
-      raise "Celluloid cannot be required until here, or it will break Shoryuken's daemonization" if defined?(::Celluloid) && Shoryuken.options[:daemon]
-
-      # Celluloid can't be loaded until after we've daemonized
-      # because it spins up threads and creates locks which get
-      # into a very bad state if forked.
       require 'celluloid/autostart'
       Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
 
       require 'shoryuken/manager'
     end
 
-    def daemonize
-      return unless Shoryuken.options[:daemon]
+    def celluloid_loaded?
+      defined?(::Celluloid)
+    end
 
-      fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless Shoryuken.options[:logfile]
+    def daemonize(options)
+      return unless options[:daemon]
+
+      fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless options[:logfile]
+
+      if celluloid_loaded?
+        # Celluloid can't be loaded until after we've daemonized
+        # because it spins up threads and creates locks which get
+        # into a very bad state if forked.
+        raise "Celluloid cannot be required until here, or it will break Shoryuken's daemonization"
+      end
 
       files_to_reopen = []
       ObjectSpace.each_object(File) do |file|
@@ -96,7 +102,7 @@ module Shoryuken
       end
 
       [$stdout, $stderr].each do |io|
-        File.open(Shoryuken.options[:logfile], 'ab') do |f|
+        File.open(options[:logfile], 'ab') do |f|
           io.reopen(f)
         end
         io.sync = true
@@ -104,8 +110,8 @@ module Shoryuken
       $stdin.reopen('/dev/null')
     end
 
-    def write_pid
-      if (path = Shoryuken.options[:pidfile])
+    def write_pid(options)
+      if (path = options[:pidfile])
         File.open(path, 'w') do |f|
           f.puts Process.pid
         end
