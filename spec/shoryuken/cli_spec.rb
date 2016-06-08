@@ -51,7 +51,7 @@ RSpec.describe Shoryuken::CLI do
     end
 
     it 'raises if logfile is not set' do
-      expect { cli.send(:daemonize, { daemon: true }) }.to raise_error(ArgumentError)
+      expect { cli.send(:daemonize, daemon: true) }.to raise_error(ArgumentError)
     end
 
     it 'raises if Celluloid is already loaded' do
