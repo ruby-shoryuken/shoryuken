@@ -57,7 +57,7 @@ RSpec.describe Shoryuken::CLI do
     it 'raises if Celluloid is already loaded' do
       expect(cli).to receive(:celluloid_loaded?).and_return(true)
       args = { daemon: true, logfile: '/dev/null' }
-      expect{ cli.send(:daemonize, args) }.to raise_error(RuntimeError)
+      expect { cli.send(:daemonize, args) }.to raise_error(RuntimeError)
     end
 
     it 'calls Process.daemon' do

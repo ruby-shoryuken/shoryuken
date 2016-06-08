@@ -83,7 +83,7 @@ module Shoryuken
         # Celluloid can't be loaded until after we've daemonized
         # because it spins up threads and creates locks which get
         # into a very bad state if forked.
-        fail RuntimeError, "Celluloid cannot be required until here, or it will break Shoryuken's daemonization"
+        raise "Celluloid cannot be required until here, or it will break Shoryuken's daemonization"
       end
 
       files_to_reopen = []
