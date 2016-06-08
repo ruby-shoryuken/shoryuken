@@ -3,7 +3,6 @@ require 'shoryuken/cli'
 require 'shoryuken/launcher'
 
 RSpec.describe Shoryuken::CLI do
-
   let(:cli) { Shoryuken::CLI.instance }
 
   before(:each) do
@@ -15,7 +14,6 @@ RSpec.describe Shoryuken::CLI do
   end
 
   describe '#run' do
-
     let(:launcher) { instance_double('Shoryuken::Launcher') }
 
     before(:each) do
@@ -25,7 +23,7 @@ RSpec.describe Shoryuken::CLI do
     end
 
     it 'does not raise' do
-      expect{ cli.run([]) }.to_not raise_error
+      expect { cli.run([]) }.to_not raise_error
     end
 
     it 'daemonizes with --daemon --logfile' do
@@ -48,13 +46,12 @@ RSpec.describe Shoryuken::CLI do
   end
 
   describe '#daemonize' do
-
     before(:each) do
       allow(cli).to receive(:celluloid_loaded?).and_return(false)
     end
 
     it 'raises if logfile is not set' do
-      expect{ cli.send(:daemonize, { daemon: true }) }.to raise_error(ArgumentError)
+      expect { cli.send(:daemonize, { daemon: true }) }.to raise_error(ArgumentError)
     end
 
     it 'raises if Celluloid is already loaded' do
