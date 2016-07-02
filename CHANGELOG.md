@@ -1,3 +1,8 @@
+## [v2.0.11] - 2016-07-02
+
+- Same as 2.0.10. Unfortunately 2.0.10 was removed `yanked` by mistake from RubyGems.
+ - [#b255bc3] https://github.com/phstc/shoryuken/commit/b255bc3
+
 ## [v2.0.10] - 2016-06-09
 
 - Fix manager #225
