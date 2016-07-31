@@ -143,13 +143,13 @@ module Shoryuken
 
     def dispatch_batch(queue)
       batch = fetcher.fetch(queue, BATCH_LIMIT)
-      self.async.assign(queue.name, patch_batch!(batch))
+      assign(queue.name, patch_batch!(batch))
       polling_strategy.messages_found(queue.name, batch.size)
     end
 
     def dispatch_single_messages(queue)
       messages = fetcher.fetch(queue, @ready.size)
-      messages.each { |message| self.async.assign(queue.name, message) }
+      messages.each { |message| assign(queue.name, message) }
       polling_strategy.messages_found(queue.name, messages.size)
     end
 
