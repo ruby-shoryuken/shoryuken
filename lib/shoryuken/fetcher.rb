@@ -1,15 +1,8 @@
   module Shoryuken
     class Fetcher
-      include Celluloid
       include Util
 
       FETCH_LIMIT = 10
-
-      def initialize(manager, polling_strategy)
-        @manager = manager
-        @polling_strategy = polling_strategy
-        @delay = Shoryuken.options[:delay].to_f
-      end
 
       def fetch(queue, available_processors)
         watchdog('Fetcher#fetch died') do
@@ -18,36 +11,19 @@
           logger.debug { "Looking for new messages in '#{queue}'" }
 
           begin
-            batch = Shoryuken.worker_registry.batch_receive_messages?(queue.name)
-            limit = batch ? FETCH_LIMIT : available_processors
+            limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
 
             sqs_msgs = Array(receive_messages(queue, limit))
             logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
 
-            if batch
-              @manager.async.assign(queue.name, patch_sqs_msgs!(sqs_msgs))
-            else
-              sqs_msgs.each { |sqs_msg| @manager.async.assign(queue.name, sqs_msg) }
-            end
-
-            @polling_strategy.messages_found(queue, sqs_msgs.size)
-
             logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
+
+            sqs_msgs
           rescue => ex
             logger.error { "Error fetching message: #{ex}" }
             logger.error { ex.backtrace.first }
           end
-
-          @manager.async.dispatch
         end
-      end
-
-      def next_queue(*args)
-        @polling_strategy.next_queue(*args)
-      end
-
-      def active_queues(*args)
-        @polling_strategy.active_queues(*args)
       end
 
       private
@@ -64,16 +40,6 @@
         options.merge!(queue.options)
 
         Shoryuken::Client.queues(queue.name).receive_messages options
-      end
-
-      def patch_sqs_msgs!(sqs_msgs)
-        sqs_msgs.instance_eval do
-          def message_id
-            "batch-with-#{size}-messages"
-          end
-        end
-
-        sqs_msgs
       end
     end
   end

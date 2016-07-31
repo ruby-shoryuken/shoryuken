@@ -7,8 +7,11 @@ module Shoryuken
     include Util
 
     attr_accessor :fetcher
+    attr_accessor :polling_strategy
 
     trap_exit :processor_died
+
+    BATCH_LIMIT = 10
 
     def initialize(condvar)
       @count = Shoryuken.options[:concurrency] || 25
@@ -39,8 +42,6 @@ module Shoryuken
         end
 
         fire_event(:shutdown, true)
-
-        @fetcher.terminate if @fetcher.alive?
 
         logger.info { "Shutting down #{@ready.size} quiet workers" }
 
@@ -94,21 +95,10 @@ module Shoryuken
       @done
     end
 
-    def assign(queue, sqs_msg)
-      watchdog('Manager#assign died') do
-        logger.debug { "Assigning #{sqs_msg.message_id}" }
-
-        processor = @ready.pop
-        @busy << processor
-
-        processor.async.process(queue, sqs_msg)
-      end
-    end
-
     def dispatch
       return if stopped?
 
-      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{@fetcher.active_queues}" }
+      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{polling_strategy.active_queues}" }
 
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
@@ -116,7 +106,7 @@ module Shoryuken
         return
       end
 
-      queue = @fetcher.next_queue
+      queue = polling_strategy.next_queue
       if queue == nil 
         logger.debug { 'Pausing fetcher, because all queues are paused' }
         after(1) { dispatch }
@@ -129,7 +119,9 @@ module Shoryuken
         return
       end
 
-      @fetcher.async.fetch(queue, @ready.size)
+      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+
+      self.async.dispatch
     end
 
     def real_thread(proxy_id, thr)
@@ -143,6 +135,33 @@ module Shoryuken
         @_dispatch_timer = nil
         dispatch
       end
+    end
+
+    def assign(queue, sqs_msg)
+      watchdog('Manager#assign died') do
+        logger.debug { "Assigning #{sqs_msg.message_id}" }
+
+        processor = @ready.pop
+        @busy << processor
+
+        processor.async.process(queue, sqs_msg)
+      end
+    end
+
+    def dispatch_batch(queue)
+      batch = fetcher.fetch(queue, BATCH_LIMIT)
+      self.async.assign(queue.name, patch_batch!(batch))
+      polling_strategy.messages_found(queue.name, batch.size)
+    end
+
+    def dispatch_single_messages(queue)
+      messages = fetcher.fetch(queue, @ready.size)
+      messages.each { |message| self.async.assign(queue.name, message) }
+      polling_strategy.messages_found(queue.name, messages.size)
+    end
+
+    def batched_queue?(queue)
+      Shoryuken.worker_registry.batch_receive_messages?(queue.name)
     end
 
     def delay
@@ -184,6 +203,16 @@ module Shoryuken
           @finished.signal
         end
       end
+    end
+
+    def patch_batch!(sqs_msgs)
+      sqs_msgs.instance_eval do
+        def message_id
+          "batch-with-#{size}-messages"
+        end
+      end
+
+      sqs_msgs
     end
   end
 end
