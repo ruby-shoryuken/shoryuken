@@ -1,5 +1,4 @@
 require 'shoryuken/processor'
-require 'shoryuken/polling'
 require 'shoryuken/fetcher'
 
 module Shoryuken
@@ -15,7 +14,6 @@ module Shoryuken
       @count = Shoryuken.options[:concurrency] || 25
       raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
       @queues = Shoryuken.queues.dup.uniq
-      @polling_strategy = Shoryuken.options[:polling_strategy].new(Shoryuken.queues)
       @finished = condvar
 
       @done = false
@@ -107,42 +105,31 @@ module Shoryuken
       end
     end
 
-    def messages_present(queue)
-      watchdog('Manager#messages_present died') do
-        @polling_strategy.messages_present(queue)
-      end
-    end
-
-    def queue_empty(queue)
-      return if delay <= 0
-
-      logger.debug { "Pausing '#{queue}' for #{delay} seconds, because it's empty" }
-
-      @polling_strategy.pause(queue)
-
-      after(delay) { async.restart_queue!(queue) }
-    end
-
-
     def dispatch
       return if stopped?
 
-      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{@polling_strategy.active_queues}" }
+      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{@fetcher.active_queues}" }
 
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
-
         dispatch_later
         return
       end
 
-      if (queue = next_queue)
-        @fetcher.async.fetch(queue, @ready.size)
-      else
+      queue = @fetcher.next_queue
+      if queue == nil 
         logger.debug { 'Pausing fetcher, because all queues are paused' }
-
-        @fetcher_paused = true
+        after(1) { dispatch }
+        return
       end
+
+      unless defined?(::ActiveJob) || Shoryuken.worker_registry.workers(queue.name).any?
+        logger.debug { "Pausing fetcher, because of no registered workers for queue #{queue}" }
+        after(1) { dispatch }
+        return
+      end
+
+      @fetcher.async.fetch(queue, @ready.size)
     end
 
     def real_thread(proxy_id, thr)
@@ -166,40 +153,6 @@ module Shoryuken
       processor = Processor.new_link(current_actor)
       processor.proxy_id = processor.object_id
       processor
-    end
-
-    def restart_queue!(queue)
-      return if stopped?
-
-      @polling_strategy.restart(queue)
-
-      if @fetcher_paused
-        logger.debug { 'Restarting fetcher' }
-
-        @fetcher_paused = false
-
-        dispatch
-      end
-    end
-
-    def next_queue
-      # get/remove the first queue in the list
-      queue = @polling_strategy.next_queue
-
-      return nil unless queue
-
-      if queue && (!defined?(::ActiveJob) && Shoryuken.worker_registry.workers(queue.name).empty?)
-        # when no worker registered pause the queue to avoid endless recursion
-        logger.debug { "Pausing '#{queue}' for #{delay} seconds, because no workers registered" }
-
-        @polling_strategy.pause(queue)
-
-        after(delay) { async.restart_queue!(queue) }
-
-        queue = next_queue
-      end
-
-      queue
     end
 
     def soft_shutdown(delay)
