@@ -10,7 +10,8 @@ module Shoryuken
     def initialize
       @condvar = Celluloid::Condition.new
       @manager = Shoryuken::Manager.new_link(@condvar)
-      @fetcher = Shoryuken::Fetcher.new_link(manager)
+      polling_strategy = Shoryuken.options[:polling_strategy].new(Shoryuken.queues)
+      @fetcher = Shoryuken::Fetcher.new_link(manager, polling_strategy)
 
       @done = false
 
