@@ -33,7 +33,7 @@ module Shoryuken
       def next_queue
         unpause_queues
         queue = @queues.shift
-        return nil if queue == nil
+        return nil if queue.nil?
 
         @queues << queue
         QueueConfiguration.new(queue, {})
@@ -81,7 +81,7 @@ module Shoryuken
         @paused_queues << [Time.now + delay, queue]
         logger.debug "Paused '#{queue}'"
       end
-      
+ 
       def unpause_queues
         return if @paused_queues.empty?
         return if Time.now < @paused_queues.first[0]

@@ -107,7 +107,7 @@ module Shoryuken
       end
 
       queue = polling_strategy.next_queue
-      if queue == nil
+      if queue.nil?
         logger.debug { 'Pausing fetcher, because all queues are paused' }
         after(1) { dispatch }
         return
@@ -115,7 +115,7 @@ module Shoryuken
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
-      self.async.dispatch
+      async.dispatch
     end
 
     def real_thread(proxy_id, thr)
