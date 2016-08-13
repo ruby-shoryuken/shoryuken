@@ -58,8 +58,8 @@ RSpec.describe Shoryuken::Manager do
     end
 
     it 'calls dispatch_single_messages if worker wants single messages' do
-      expect_any_instance_of(described_class).to receive(:dispatch_single_messages)
-        .with(queue_config_of(queue))
+      expect_any_instance_of(described_class).to receive(:dispatch_single_messages).
+        with(queue_config_of(queue))
       expect(async_manager).to receive(:dispatch)
       subject.dispatch
     end
