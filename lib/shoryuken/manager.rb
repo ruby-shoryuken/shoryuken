@@ -107,14 +107,8 @@ module Shoryuken
       end
 
       queue = polling_strategy.next_queue
-      if queue == nil 
+      if queue == nil
         logger.debug { 'Pausing fetcher, because all queues are paused' }
-        after(1) { dispatch }
-        return
-      end
-
-      unless defined?(::ActiveJob) || Shoryuken.worker_registry.workers(queue.name).any?
-        logger.debug { "Pausing fetcher, because of no registered workers for queue #{queue}" }
         after(1) { dispatch }
         return
       end
@@ -150,14 +144,14 @@ module Shoryuken
 
     def dispatch_batch(queue)
       batch = fetcher.fetch(queue, BATCH_LIMIT)
-      assign(queue.name, patch_batch!(batch))
       polling_strategy.messages_found(queue.name, batch.size)
+      assign(queue.name, patch_batch!(batch))
     end
 
     def dispatch_single_messages(queue)
       messages = fetcher.fetch(queue, @ready.size)
-      messages.each { |message| assign(queue.name, message) }
       polling_strategy.messages_found(queue.name, messages.size)
+      messages.each { |message| assign(queue.name, message) }
     end
 
     def batched_queue?(queue)

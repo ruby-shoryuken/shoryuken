@@ -15,13 +15,12 @@
 
             sqs_msgs = Array(receive_messages(queue, limit))
             logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
-
             logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
-
             sqs_msgs
           rescue => ex
             logger.error { "Error fetching message: #{ex}" }
             logger.error { ex.backtrace.first }
+            []
           end
         end
       end
@@ -39,7 +38,7 @@
 
         options.merge!(queue.options)
 
-        Shoryuken::Client.queues(queue.name).receive_messages options
+        Shoryuken::Client.queues(queue.name).receive_messages(options)
       end
     end
   end
