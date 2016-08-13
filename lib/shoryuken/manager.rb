@@ -9,6 +9,8 @@ module Shoryuken
     attr_accessor :fetcher
     attr_accessor :polling_strategy
 
+    exclusive :dispatch
+
     trap_exit :processor_died
 
     BATCH_LIMIT = 10
@@ -72,6 +74,7 @@ module Shoryuken
           return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << processor
+          async.dispatch
         end
       end
     end
@@ -87,6 +90,7 @@ module Shoryuken
           return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << build_processor
+          async.dispatch
         end
       end
     end
