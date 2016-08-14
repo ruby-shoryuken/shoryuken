@@ -18,6 +18,11 @@ module Shoryuken
         message.message_attributes['shoryuken_class'] &&
         message.message_attributes['shoryuken_class'][:string_value]
 
+      approximate_receive_count = message.attributes['ApproximateReceiveCount'].to_i
+      if approximate_receive_count > 1 && 'ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper' != worker_class
+        worker_class = nil
+      end
+
       worker_class = (worker_class.constantize rescue nil) || @workers[queue]
 
       worker_class.new
