@@ -51,7 +51,8 @@ describe Shoryuken::DefaultWorkerRegistry do
       double Shoryuken::Message,
         body: 'test',
         message_attributes: attributes,
-        message_id: SecureRandom.uuid
+        message_id: SecureRandom.uuid,
+        redelivery?: false
     end
 
     context 'a batch of messages is being processed' do

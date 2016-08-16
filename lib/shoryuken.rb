@@ -13,6 +13,7 @@ require 'shoryuken/client'
 require 'shoryuken/worker'
 require 'shoryuken/worker_registry'
 require 'shoryuken/default_worker_registry'
+require 'shoryuken/redrive_policy_registry'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
 Shoryuken::Middleware::Server.autoload :AutoExtendVisibility, 'shoryuken/middleware/server/auto_extend_visibility'
@@ -37,6 +38,7 @@ module Shoryuken
 
   @@queues = []
   @@worker_registry = DefaultWorkerRegistry.new
+  @@redrive_policy_registry = RedrivePolicyRegistry.new
   @@active_job_queue_name_prefixing = false
 
   class << self
@@ -62,6 +64,10 @@ module Shoryuken
 
     def worker_registry
       @@worker_registry
+    end
+
+    def redrive_policy_registry
+      @@redrive_policy_registry
     end
 
     def active_job_queue_name_prefixing
