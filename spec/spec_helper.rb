@@ -54,6 +54,7 @@ RSpec.configure do |config|
 
     Shoryuken.queues.clear
 
+    Shoryuken.options[:fetcher_pause_interval] = 1
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1
     Shoryuken.options[:timeout]     = 1

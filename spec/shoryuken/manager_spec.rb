@@ -11,10 +11,18 @@ RSpec.describe Shoryuken::Manager do
   describe 'Invalid concurrency setting' do
     it 'raises ArgumentError if concurrency is not positive number' do
       Shoryuken.options[:concurrency] = -1
-      expect { Shoryuken::Manager.new(nil) }
-        .to raise_error(ArgumentError, 'Concurrency value -1 is invalid, it needs to be a positive number')
+      expect { Shoryuken::Manager.new(nil) }.
+        to raise_error(ArgumentError, 'Concurrency value -1 is invalid, it needs to be a positive number')
     end
 
+  end
+
+  describe 'Invalid fetch pause interval setting' do
+    it 'raises ArgumentError if fetcher pause interval is not positive number' do
+      Shoryuken.options[:fetcher_pause_interval] = -1
+      expect { Shoryuken::Manager.new(nil) }.
+        to raise_error(ArgumentError, 'Fetcher pause interval value -1 is invalid, it cannot be negative')
+    end
   end
 
   describe 'Auto Scaling' do

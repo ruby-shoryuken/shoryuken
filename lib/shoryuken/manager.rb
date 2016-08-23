@@ -12,7 +12,17 @@ module Shoryuken
 
     def initialize(condvar)
       @count = Shoryuken.options[:concurrency] || 25
-      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
+      @fetcher_pause_interval = Shoryuken.options[:fetcher_pause_interval] || 1
+
+      unless @count > 0
+        raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number")
+      end
+
+      if @fetcher_pause_interval < 0
+        message = "Fetcher pause interval value #{@fetcher_pause_interval} is invalid, it cannot be negative"
+        raise(ArgumentError, message)
+      end
+
       @queues = Shoryuken.queues.dup.uniq
       @finished = condvar
 
@@ -125,16 +135,15 @@ module Shoryuken
       after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
     end
 
-
     def dispatch
       return if stopped?
 
       logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{unparse_queues(@queues)}" }
 
       if @ready.empty?
-        logger.debug { 'Pausing fetcher, because all processors are busy' }
+        logger.debug { 'Pausing fetcher for #{@fetcher_pause_interval} seconds, because all processors are busy' }
 
-        after(1) { dispatch }
+        after(@fetcher_pause_interval) { dispatch }
 
         return
       end

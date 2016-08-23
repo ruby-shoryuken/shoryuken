@@ -126,6 +126,10 @@ module Shoryuken
           opts[:concurrency] = Integer(arg)
         end
 
+        o.on '-i', '--fetcher-pause-interval DECIMAL', 'Interval to pause fetching when all workers are busy' do |arg|
+          opts[:fetcher_pause_interval] = Float(arg)
+        end
+
         o.on '-d', '--daemon', 'Daemonize process' do |arg|
           opts[:daemon] = arg
         end
