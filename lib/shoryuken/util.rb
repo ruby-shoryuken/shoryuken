@@ -42,7 +42,9 @@ module Shoryuken
           && !sqs_msg.is_a?(Array) \
           && sqs_msg.message_attributes \
           && sqs_msg.message_attributes['shoryuken_class'] \
-          && sqs_msg.message_attributes['shoryuken_class'][:string_value] == ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper.to_s
+          && sqs_msg.message_attributes['shoryuken_class'][:string_value] \
+          == ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper.to_s \
+          && body
 
         "ActiveJob/#{body['job_class']}"
       else
