@@ -20,9 +20,7 @@ module Shoryuken
         private
 
         def handle_failure(sqs_msg, started_at, retry_intervals)
-          attempts = sqs_msg.attributes['ApproximateReceiveCount']
-
-          return unless attempts
+          return unless attempts = sqs_msg.attributes['ApproximateReceiveCount']
 
           attempts = attempts.to_i - 1
 
@@ -37,7 +35,7 @@ module Shoryuken
           #
           # From the docs:  "Amazon SQS restarts the timeout period using the new value."
           # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html#AboutVT-extending-message-visibility-timeout
-          max_timeout = 43200 - (Time.now - started_at).ceil - 1
+          max_timeout = 12.hours - (Time.now - started_at).ceil - 1
           interval = max_timeout if interval > max_timeout
 
           sqs_msg.change_visibility(visibility_timeout: interval.to_i)
