@@ -20,9 +20,7 @@ module Shoryuken
         private
 
         def handle_failure(sqs_msg, started_at, retry_intervals)
-          attempts = sqs_msg.attributes['ApproximateReceiveCount']
-
-          return unless attempts
+          return unless attempts = sqs_msg.attributes['ApproximateReceiveCount']
 
           attempts = attempts.to_i - 1
 
