@@ -35,7 +35,7 @@ module Shoryuken
           #
           # From the docs:  "Amazon SQS restarts the timeout period using the new value."
           # http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html#AboutVT-extending-message-visibility-timeout
-          max_timeout = 12.hours - (Time.now - started_at).ceil - 1
+          max_timeout = 43200 - (Time.now - started_at).ceil - 1
           interval = max_timeout if interval > max_timeout
 
           sqs_msg.change_visibility(visibility_timeout: interval.to_i)
