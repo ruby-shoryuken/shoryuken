@@ -10,17 +10,16 @@ module Shoryuken
     def initialize
       @condvar = Celluloid::Condition.new
       @manager = Shoryuken::Manager.new_link(@condvar)
-      @fetcher = Shoryuken::Fetcher.new_link(manager)
 
       @done = false
 
-      manager.fetcher = @fetcher
+      manager.fetcher = Shoryuken::Fetcher.new
+      manager.polling_strategy = Shoryuken.options[:polling_strategy].new(Shoryuken.queues)
     end
 
     def stop(options = {})
       watchdog('Launcher#stop') do
         @done = true
-        @fetcher.terminate if @fetcher.alive?
 
         manager.async.stop(shutdown: !!options[:shutdown], timeout: Shoryuken.options[:timeout])
         @condvar.wait

@@ -1,13 +1,31 @@
 module Shoryuken
   class Fetcher
-    include Celluloid
     include Util
 
     FETCH_LIMIT = 10
 
-    def initialize(manager)
-      @manager = manager
+    def fetch(queue, available_processors)
+      watchdog('Fetcher#fetch died') do
+        started_at = Time.now
+
+        logger.debug { "Looking for new messages in '#{queue}'" }
+
+        begin
+          limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
+
+          sqs_msgs = Array(receive_messages(queue, limit))
+          logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
+          logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
+          sqs_msgs
+        rescue => ex
+          logger.error { "Error fetching message: #{ex}" }
+          logger.error { ex.backtrace.first }
+          []
+        end
+      end
     end
+
+    private
 
     def receive_messages(queue, limit)
       # AWS limits the batch size by 10
@@ -18,56 +36,9 @@ module Shoryuken
       options[:message_attribute_names] = %w(All)
       options[:attribute_names] = %w(All)
 
-      Shoryuken::Client.queues(queue).receive_messages options
-    end
+      options.merge!(queue.options)
 
-    def fetch(queue, available_processors)
-      watchdog('Fetcher#fetch died') do
-        started_at = Time.now
-
-        logger.debug { "Looking for new messages in '#{queue}'" }
-
-        begin
-          batch = Shoryuken.worker_registry.batch_receive_messages?(queue)
-          limit = batch ? FETCH_LIMIT : available_processors
-
-          if (sqs_msgs = Array(receive_messages(queue, limit))).any?
-            logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
-
-            if batch
-              @manager.async.assign(queue, patch_sqs_msgs!(sqs_msgs))
-            else
-              sqs_msgs.each { |sqs_msg| @manager.async.assign(queue, sqs_msg) }
-            end
-
-            @manager.async.rebalance_queue_weight!(queue)
-          else
-            logger.debug { "No message found for '#{queue}'" }
-
-            @manager.async.pause_queue!(queue)
-          end
-
-          logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
-        rescue => ex
-          logger.error { "Error fetching message: #{ex}" }
-          logger.error { ex.backtrace.first }
-        end
-
-        @manager.async.dispatch
-      end
-
-    end
-
-    private
-
-    def patch_sqs_msgs!(sqs_msgs)
-      sqs_msgs.instance_eval do
-        def message_id
-          "batch-with-#{size}-messages"
-        end
-      end
-
-      sqs_msgs
+      Shoryuken::Client.queues(queue.name).receive_messages(options)
     end
   end
 end

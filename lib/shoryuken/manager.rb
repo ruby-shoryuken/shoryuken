@@ -7,8 +7,13 @@ module Shoryuken
     include Util
 
     attr_accessor :fetcher
+    attr_accessor :polling_strategy
+
+    exclusive :dispatch
 
     trap_exit :processor_died
+
+    BATCH_LIMIT = 10
 
     def initialize(condvar)
       @count = Shoryuken.options[:concurrency] || 25
@@ -40,8 +45,6 @@ module Shoryuken
 
         fire_event(:shutdown, true)
 
-        @fetcher.terminate if @fetcher.alive?
-
         logger.info { "Shutting down #{@ready.size} quiet workers" }
 
         @ready.each do |processor|
@@ -71,6 +74,7 @@ module Shoryuken
           return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << processor
+          async.dispatch
         end
       end
     end
@@ -86,6 +90,7 @@ module Shoryuken
           return after(0) { @finished.signal } if @busy.empty?
         else
           @ready << build_processor
+          async.dispatch
         end
       end
     end
@@ -93,6 +98,35 @@ module Shoryuken
     def stopped?
       @done
     end
+
+    def dispatch
+      return if stopped?
+
+      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{polling_strategy.active_queues}" }
+
+      if @ready.empty?
+        logger.debug { 'Pausing fetcher, because all processors are busy' }
+        after(1) { dispatch }
+        return
+      end
+
+      queue = polling_strategy.next_queue
+      if queue.nil?
+        logger.debug { 'Pausing fetcher, because all queues are paused' }
+        after(1) { dispatch }
+        return
+      end
+
+      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+
+      async.dispatch
+    end
+
+    def real_thread(proxy_id, thr)
+      @threads[proxy_id] = thr
+    end
+
+    private
 
     def assign(queue, sqs_msg)
       watchdog('Manager#assign died') do
@@ -105,110 +139,30 @@ module Shoryuken
       end
     end
 
-    def rebalance_queue_weight!(queue)
-      watchdog('Manager#rebalance_queue_weight! died') do
-        if (original = original_queue_weight(queue)) > (current = current_queue_weight(queue))
-          logger.info { "Increasing '#{queue}' weight to #{current + 1}, max: #{original}" }
-
-          @queues << queue
-        end
-      end
+    def dispatch_batch(queue)
+      batch = fetcher.fetch(queue, BATCH_LIMIT)
+      polling_strategy.messages_found(queue.name, batch.size)
+      assign(queue.name, patch_batch!(batch))
     end
 
-    def pause_queue!(queue)
-      return if !@queues.include?(queue) || Shoryuken.options[:delay].to_f <= 0
-
-      logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because it's empty" }
-
-      @queues.delete(queue)
-
-      after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
+    def dispatch_single_messages(queue)
+      messages = fetcher.fetch(queue, @ready.size)
+      polling_strategy.messages_found(queue.name, messages.size)
+      messages.each { |message| assign(queue.name, message) }
     end
 
-
-    def dispatch
-      return if stopped?
-
-      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{unparse_queues(@queues)}" }
-
-      if @ready.empty?
-        logger.debug { 'Pausing fetcher, because all processors are busy' }
-
-        after(1) { dispatch }
-
-        return
-      end
-
-      if (queue = next_queue)
-        @fetcher.async.fetch(queue, @ready.size)
-      else
-        logger.debug { 'Pausing fetcher, because all queues are paused' }
-
-        @fetcher_paused = true
-      end
+    def batched_queue?(queue)
+      Shoryuken.worker_registry.batch_receive_messages?(queue.name)
     end
 
-    def real_thread(proxy_id, thr)
-      @threads[proxy_id] = thr
+    def delay
+      Shoryuken.options[:delay].to_f
     end
-
-    private
 
     def build_processor
       processor = Processor.new_link(current_actor)
       processor.proxy_id = processor.object_id
       processor
-    end
-
-    def restart_queue!(queue)
-      return if stopped?
-
-      unless @queues.include? queue
-        logger.debug { "Restarting '#{queue}'" }
-
-        @queues << queue
-
-        if @fetcher_paused
-          logger.debug { 'Restarting fetcher' }
-
-          @fetcher_paused = false
-
-          dispatch
-        end
-      end
-    end
-
-    def current_queue_weight(queue)
-      queue_weight(@queues, queue)
-    end
-
-    def original_queue_weight(queue)
-      queue_weight(Shoryuken.queues, queue)
-    end
-
-    def queue_weight(queues, queue)
-      queues.count { |q| q == queue }
-    end
-
-    def next_queue
-      return nil if @queues.empty?
-
-      # get/remove the first queue in the list
-      queue = @queues.shift
-
-      unless defined?(::ActiveJob) ||  !Shoryuken.worker_registry.workers(queue).empty?
-        # when no worker registered pause the queue to avoid endless recursion
-        logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered" }
-
-        after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
-
-        return next_queue
-      end
-
-      # add queue back to the end of the list
-      @queues << queue
-
-      queue
     end
 
     def soft_shutdown(delay)
@@ -240,6 +194,16 @@ module Shoryuken
           @finished.signal
         end
       end
+    end
+
+    def patch_batch!(sqs_msgs)
+      sqs_msgs.instance_eval do
+        def message_id
+          "batch-with-#{size}-messages"
+        end
+      end
+
+      sqs_msgs
     end
   end
 end
