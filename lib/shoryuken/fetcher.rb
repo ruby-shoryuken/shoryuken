@@ -32,7 +32,7 @@ module Shoryuken
           limit = batch ? FETCH_LIMIT : available_processors
 
           if (sqs_msgs = Array(receive_messages(queue, limit))).any?
-            logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
+            logger.debug { "Found #{sqs_msgs.size} messages for '#{queue}'" }
 
             if batch
               @manager.async.assign(queue, patch_sqs_msgs!(sqs_msgs))
