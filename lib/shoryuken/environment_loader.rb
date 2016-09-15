@@ -126,7 +126,15 @@ module Shoryuken
     end
 
     def require_workers
-      require Shoryuken.options[:require] if Shoryuken.options[:require]
+      required = Shoryuken.options[:require]
+
+      return unless required
+
+      if File.directory?(required)
+        Dir[File.join(required, '**', '*.rb')].each(&method(:require))
+      else
+        require required
+      end
     end
 
     def validate_queues
