@@ -168,7 +168,7 @@ shoryuken [options]
     -c, --concurrency INT            Processor threads to use
     -d, --daemon                     Daemonize process
     -q, --queue QUEUE[,WEIGHT]...    Queues to process with optional weights
-    -r, --require [PATH]             Location of the worker
+    -r, --require [PATH|DIR]         Location of the worker
     -C, --config PATH                Path to YAML config file
     -R, --rails                      Attempts to load the containing Rails project
     -L, --logfile PATH               Path to writable logfile
