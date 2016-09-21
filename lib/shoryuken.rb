@@ -19,6 +19,7 @@ Shoryuken::Middleware::Server.autoload :AutoExtendVisibility, 'shoryuken/middlew
 require 'shoryuken/middleware/server/exponential_backoff_retry'
 require 'shoryuken/middleware/server/timing'
 require 'shoryuken/sns_arn'
+require 'shoryuken/sqs_connection'
 require 'shoryuken/topic'
 
 module Shoryuken
@@ -83,7 +84,7 @@ module Shoryuken
     end
 
     def configure_client
-      yield self
+      yield self unless server?
     end
 
     def client_middleware
@@ -116,6 +117,10 @@ module Shoryuken
 
     def on_stop(&block)
       @stop_callback = block
+    end
+
+    def sqs=(hash)
+      @sqs = Shoryuken::SQSConnection.new(hash)
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
