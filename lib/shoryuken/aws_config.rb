@@ -6,8 +6,8 @@ module Shoryuken
         @options ||= {}
       end
 
-      def set_options(hash)
-        Shoryuken::AwsConfig.options.merge!(hash)
+      def options=(hash)
+        @options = hash
       end
 
       def setup(hash)
@@ -15,7 +15,7 @@ module Shoryuken
         # when not explicit supplied
         return if hash.empty?
 
-        set_options(hash)
+        self.options = hash
 
         shoryuken_keys = %w(
           account_id
