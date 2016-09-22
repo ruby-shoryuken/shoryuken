@@ -6,6 +6,7 @@ require 'shoryuken/version'
 require 'shoryuken/core_ext'
 require 'shoryuken/util'
 require 'shoryuken/logging'
+require 'shoryuken/aws_config'
 require 'shoryuken/environment_loader'
 require 'shoryuken/queue'
 require 'shoryuken/message'
@@ -72,6 +73,12 @@ module Shoryuken
       @@active_job_queue_name_prefixing = prefixing
     end
 
+    ##
+    # Configuration for Shoryuken server, use like:
+    #
+    #   Shoryuken.configure_server do |config|
+    #     config.aws = { :sqs_endpoint => '...', :access_key_id: '...', :secret_access_key: '...', region: '...' }
+    #   end
     def configure_server
       yield self if server?
     end
@@ -82,8 +89,14 @@ module Shoryuken
       @server_chain
     end
 
+    ##
+    # Configuration for Shoryuken client, use like:
+    #
+    #   Shoryuken.configure_client do |config|
+    #     config.aws = { :sqs_endpoint => '...', :access_key_id: '...', :secret_access_key: '...', region: '...' }
+    #   end
     def configure_client
-      yield self
+      yield self unless server?
     end
 
     def client_middleware
@@ -116,6 +129,10 @@ module Shoryuken
 
     def on_stop(&block)
       @stop_callback = block
+    end
+
+    def aws=(hash)
+      @aws = Shoryuken::AwsConfig.setup(hash)
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
