@@ -1,13 +1,11 @@
+# frozen_string_literal: true
 module Shoryuken
   class AwsConfig
-
     class << self
+      attr_writer :options
+
       def options
         @options ||= {}
-      end
-
-      def options=(hash)
-        @options = hash
       end
 
       def setup(hash)
@@ -24,7 +22,7 @@ module Shoryuken
           receive_message
         ).map(&:to_sym)
 
-        aws_options = hash.reject do |k, v|
+        aws_options = hash.reject do |k, _|
           shoryuken_keys.include?(k)
         end
 
