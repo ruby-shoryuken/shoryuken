@@ -2,23 +2,29 @@ module Shoryuken
   class EnvironmentLoader
     attr_reader :options
 
-    def self.load(options)
-      new(options).load
+    def self.setup_options(options)
+      instance = new(options)
+      instance.setup_options
+      instance
     end
 
     def self.load_for_rails_console
-      load(config_file: (Rails.root + 'config' + 'shoryuken.yml'))
+      instance = setup_options(config_file: (Rails.root + 'config' + 'shoryuken.yml'))
+      instance.load
     end
 
     def initialize(options)
       @options = options
     end
 
-    def load
-      load_rails if options[:rails]
+    def setup_options
       initialize_options
       initialize_logger
       merge_cli_defined_queues
+    end
+
+    def load
+      load_rails if options[:rails]
       prefix_active_job_queue_names
       parse_queues
       require_workers

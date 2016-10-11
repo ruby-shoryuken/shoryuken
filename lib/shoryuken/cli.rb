@@ -31,10 +31,12 @@ module Shoryuken
 
       options = parse_cli_args(args)
 
+      loader = EnvironmentLoader.setup_options(options)
+
       daemonize(options)
       write_pid(options)
 
-      EnvironmentLoader.load(options)
+      loader.load
 
       load_celluloid
 
