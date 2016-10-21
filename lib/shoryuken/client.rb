@@ -9,7 +9,7 @@ module Shoryuken
       end
 
       def sns
-        @sns ||= Aws::SNS::Client.new(aws_client_options(:sns_endpoint))
+        @sns ||= Aws::SNS::Client.new(aws_client_options(:sns))
       end
 
       def sns_arn
@@ -17,7 +17,7 @@ module Shoryuken
       end
 
       def sqs
-        @sqs ||= Aws::SQS::Client.new(aws_client_options(:sqs_endpoint))
+        @sqs ||= Aws::SQS::Client.new(aws_client_options(:sqs))
       end
 
       def topics(name)
@@ -29,10 +29,11 @@ module Shoryuken
 
       private
 
-      def aws_client_options(service_endpoint_key)
+      def aws_client_options(client_type)
+        service_endpoint_key = "#{client_type}_endpoint".to_sym
         environment_endpoint = ENV["AWS_#{service_endpoint_key.to_s.upcase}"]
         explicit_endpoint = Shoryuken.options[:aws][service_endpoint_key] || environment_endpoint
-        options = {}
+        options = Shoryuken.options[client_type] || {}
         options[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?
         options
       end
