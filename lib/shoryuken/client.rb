@@ -30,9 +30,9 @@ module Shoryuken
       private
 
       def aws_client_options(client_type)
-        service_endpoint_key = "#{client_type}_endpoint".to_sym
-        environment_endpoint = ENV["AWS_#{service_endpoint_key.to_s.upcase}"]
-        explicit_endpoint = Shoryuken.options[:aws][service_endpoint_key] || environment_endpoint
+        service_endpoint_key = "#{client_type}_endpoint"
+        environment_endpoint = ENV["AWS_#{service_endpoint_key.upcase}"]
+        explicit_endpoint = Shoryuken.options[:aws][service_endpoint_key.to_sym] || environment_endpoint
         options = Shoryuken.options[client_type] || {}
         options[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?
         options
