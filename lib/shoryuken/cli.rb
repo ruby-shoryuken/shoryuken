@@ -64,7 +64,7 @@ module Shoryuken
     private
 
     def load_celluloid
-      require 'celluloid/autostart'
+      require 'celluloid/current'
       Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
 
       require 'shoryuken/manager'
