@@ -132,7 +132,7 @@ module Shoryuken
     end
 
     def aws=(hash)
-      @aws = Shoryuken::AwsConfig.setup(hash)
+      Shoryuken::AwsConfig.setup(hash)
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
