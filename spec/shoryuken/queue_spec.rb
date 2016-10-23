@@ -45,6 +45,7 @@ describe Shoryuken::Queue do
         end
 
         before do
+          allow(Shoryuken).to receive(:server?).and_return(false)
           Shoryuken.configure_client do |config|
             config.client_middleware do |chain|
               chain.add MyClientMiddleware

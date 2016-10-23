@@ -26,6 +26,7 @@ describe Shoryuken::Client do
       ENV['AWS_SNS_ENDPOINT'] = sns_endpoint
       ENV['AWS_REGION'] = 'us-east-1'
       Shoryuken.options[:aws] = {}
+      Shoryuken::AwsConfig.options = {}
     end
 
     it 'will use config file settings if set' do
