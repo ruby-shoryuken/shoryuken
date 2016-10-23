@@ -119,6 +119,10 @@ aws:
     attribute_names:
       - ApproximateReceiveCount
       - SentTimestamp
+sqs:
+  log_level: debug
+sns:
+  log_level: info
 concurrency: 25  # The number of allocated threads to process messages. Default 25
 delay: 25        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
@@ -127,7 +131,7 @@ queues:
   - [low_priority, 1]
 ```
 
-The ```aws``` section is used to configure both the Aws objects used by Shoryuken internally, and also to set up some Shoryuken-specific config. The Shoryuken-specific keys are listed below, and you can expect any other key defined in that block to be passed on untouched to ```Aws::SQS::Client#initialize```:
+The ```aws``` section is used to configure both the Aws objects used by Shoryuken internally, and also to set up some Shoryuken-specific config. The Shoryuken-specific keys are listed below:
 
 - ```account_id``` is used when generating SNS ARNs
 - ```sns_endpoint``` can be used to explicitly override the SNS endpoint
@@ -135,6 +139,8 @@ The ```aws``` section is used to configure both the Aws objects used by Shoryuke
 - ```receive_message``` can be used to define the options passed to the http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
 
 The ```sns_endpoint``` and ```sqs_endpoint``` Shoryuken-specific options will also fallback to the environment variables ```AWS_SNS_ENDPOINT``` and ```AWS_SQS_ENDPOINT``` respectively, if they are set.
+
+The ```sqs``` and ```sns``` sections are for keys that will be passed on untouched to ```Aws::SQS::Client#initialize``` and ```Aws::SNS::Client#initialize``` respectively. In the above example the log level of the clients are set explicitly.
 
 ### Configuration (producer side)
 

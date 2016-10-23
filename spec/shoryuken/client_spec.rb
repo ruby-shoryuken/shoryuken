@@ -55,6 +55,20 @@ describe Shoryuken::Client do
     end
   end
 
+  describe 'SQS/SNS SDK config options' do
+    it 'will use SDK defaults if sections not declared' do
+      load_config_file_by_file_name('shoryuken.yml')
+      expect(described_class.sqs.config.log_level.to_s).to eql('info')
+      expect(described_class.sns.config.log_level.to_s).to eql('info')
+    end
+
+    it 'will use pass through config if declared' do
+      load_config_file_by_file_name('shoryuken_sdk_config.yml')
+      expect(described_class.sqs.config.log_level.to_s).to eql('debug')
+      expect(described_class.sns.config.log_level.to_s).to eql('error')
+    end
+  end
+
   def load_config_file_by_file_name(file_name)
     path_name = file_name ? File.join(File.expand_path('../../..', __FILE__), 'spec', file_name) : nil
     Shoryuken::EnvironmentLoader.load(config_file: path_name)
