@@ -33,8 +33,11 @@ module Shoryuken
 
       loader = EnvironmentLoader.setup_options(options)
 
-      daemonize(options)
-      write_pid(options)
+      # When cli args exist, override options in config file
+      Shoryuken.options.merge!(options)
+
+      daemonize(Shoryuken.options)
+      write_pid(Shoryuken.options)
 
       loader.load
 
