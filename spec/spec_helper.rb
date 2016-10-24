@@ -16,7 +16,7 @@ end
 
 config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
 
-Shoryuken::EnvironmentLoader.load(config_file: config_file)
+Shoryuken::EnvironmentLoader.setup_options(config_file: config_file)
 
 Shoryuken.logger.level = Logger::UNKNOWN
 Celluloid.logger.level = Logger::UNKNOWN

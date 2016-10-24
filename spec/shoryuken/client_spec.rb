@@ -58,6 +58,7 @@ describe Shoryuken::Client do
 
   def load_config_file_by_file_name(file_name)
     path_name = file_name ? File.join(File.expand_path('../../..', __FILE__), 'spec', file_name) : nil
-    Shoryuken::EnvironmentLoader.load(config_file: path_name)
+    loader = Shoryuken::EnvironmentLoader.setup_options(config_file: path_name)
+    loader.load
   end
 end
