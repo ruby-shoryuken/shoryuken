@@ -22,6 +22,12 @@ RSpec.describe Shoryuken::CLI do
       allow(launcher).to receive(:stop)
     end
 
+    # reset shoryuken options because class variable hold value which is used previous test case
+    after(:each) do
+      Shoryuken.options[:daemon] = nil
+      Shoryuken.options[:logfile] = nil
+    end
+
     it 'does not raise' do
       expect { cli.run([]) }.to_not raise_error
     end
@@ -32,7 +38,7 @@ RSpec.describe Shoryuken::CLI do
       cli.run(['--daemon', '--logfile', '/dev/null'])
     end
 
-    it 'does NOT daemonize with --daemon --logfile' do
+    it 'does NOT daemonize with --logfile' do
       expect(Process).to_not receive(:daemon)
       cli.run(['--logfile', '/dev/null'])
     end
