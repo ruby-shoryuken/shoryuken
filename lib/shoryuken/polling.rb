@@ -25,9 +25,43 @@ module Shoryuken
       end
     end
 
-    class WeightedRoundRobin
+    class BaseStrategy
       include Util
 
+      def next_queue
+        fail NotImplementedError
+      end
+
+      def messages_found(queue, messages_found)
+        fail NotImplementedError
+      end
+
+      def active_queues
+        fail NotImplementedError
+      end
+
+      def ==(other)
+        case other
+        when Array
+          @queues == other
+        else
+          if other.respond_to?(:active_queues)
+            active_queues == other.active_queues
+          else
+            false
+          end
+        end
+      end
+
+      private
+
+      def delay
+        Shoryuken.options[:delay].to_f
+      end
+    end
+
+    class WeightedRoundRobin < BaseStrategy
+      
       def initialize(queues)
         @initial_queues = queues
         @queues = queues.dup.uniq
@@ -61,24 +95,7 @@ module Shoryuken
         unparse_queues(@queues)
       end
 
-      def ==(other)
-        case other
-        when Array
-          @queues == other
-        else
-          if other.respond_to?(:active_queues)
-            active_queues == other.active_queues
-          else
-            false
-          end
-        end
-      end
-
       private
-
-      def delay
-        Shoryuken.options[:delay].to_f
-      end
 
       def pause(queue)
         return unless @queues.delete(queue)
