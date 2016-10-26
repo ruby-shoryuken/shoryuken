@@ -134,8 +134,7 @@ module Shoryuken
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
 
-        after(1) { dispatch }
-
+        dispatch_later
         return
       end
 
@@ -153,6 +152,13 @@ module Shoryuken
     end
 
     private
+
+    def dispatch_later
+      @_dispatch_timer ||= after(1) do
+        @_dispatch_timer = nil
+        dispatch
+      end
+    end
 
     def build_processor
       processor = Processor.new_link(current_actor)
@@ -196,7 +202,7 @@ module Shoryuken
       # get/remove the first queue in the list
       queue = @queues.shift
 
-      unless defined?(::ActiveJob) ||  !Shoryuken.worker_registry.workers(queue).empty?
+      unless defined?(::ActiveJob) || !Shoryuken.worker_registry.workers(queue).empty?
         # when no worker registered pause the queue to avoid endless recursion
         logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered" }
 
