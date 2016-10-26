@@ -19,6 +19,10 @@ module Shoryuken
       end
 
       alias_method :eql?, :==
+
+      def to_s
+        options.empty? ? name : super
+      end
     end
 
     class WeightedRoundRobin
