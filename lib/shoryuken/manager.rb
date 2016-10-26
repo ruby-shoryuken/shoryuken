@@ -106,14 +106,24 @@ module Shoryuken
 
       if @ready.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
-        after(1) { dispatch }
+
+        @dispatch_timer ||= after(1) do
+          @dispatch_timer = nil
+          dispatch
+        end
+
         return
       end
 
       queue = polling_strategy.next_queue
       if queue.nil?
         logger.debug { 'Pausing fetcher, because all queues are paused' }
-        after(1) { dispatch }
+
+        @dispatch_timer ||= after(1) do
+          @dispatch_timer = nil
+          dispatch
+        end
+
         return
       end
 
