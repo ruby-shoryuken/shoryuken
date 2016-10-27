@@ -127,21 +127,19 @@ module Shoryuken
     class StrictPriority < BaseStrategy
 
       def initialize(queues)
-        unparsed_queues = unparse_queues(queues)
-        
         # Mapping of queues to priority values
-        @queue_priorities = unparsed_queues
-          .to_h
+        @queue_priorities = queues
+          .each_with_object(Hash.new(0)) { |queue, h| h[queue] += 1 }
 
         # Priority ordering of the queues
-        @queue_order = unparsed_queues
+        @queue_order = @queue_priorities
+          .to_a
           .sort_by { |queue, priority| -priority }
           .map(&:first)
 
         # Pause status of the queues
         @queue_status = @queue_order
-          .map { |queue| [queue, [true, nil]] }
-          .to_h
+          .each_with_object({}) { |queue, h| h[queue] = [true, nil] }
 
         # Most recently used queue
         @current_queue = nil
@@ -198,19 +196,20 @@ module Shoryuken
  
       def unpause_queues
         # Modifies queue statuses for queues that are now unpaused
-        @queue_status = @queue_status.map do |queue, status|
+        @queue_status = @queue_status.each_with_object({}) do |e, h|
+          queue, status = e
           active, delay = status
 
-          if active
-            [queue, [true, nil]]
+          h[queue] = if active
+            [true, nil]
           elsif Time.now > delay
             logger.debug "Unpaused '#{queue}'"
             @current_queue = nil # Reset the check ordering on un-pause
-            [queue, [true, nil]]
+            [true, nil]
           else
-            [queue, [false, delay]]
+            [false, delay]
           end
-        end.to_h
+        end
       end
     end
   end
