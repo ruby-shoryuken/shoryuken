@@ -11,7 +11,10 @@ module Shoryuken
           begin
             yield
           ensure
-            timer.cancel if timer
+            if timer
+              timer.cancel
+              @visibility_extender.terminate
+            end
           end
         end
 
