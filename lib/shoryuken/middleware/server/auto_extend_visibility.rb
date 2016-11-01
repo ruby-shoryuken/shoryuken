@@ -48,7 +48,7 @@ module Shoryuken
 
         def auto_visibility_timer(worker, queue, sqs_msg, body)
           return unless worker.class.auto_visibility_timeout?
-          @visibility_extender ||= MessageVisibilityExtender.new_link
+          @visibility_extender = MessageVisibilityExtender.new_link
           @visibility_extender.auto_extend(worker, queue, sqs_msg, body)
         end
       end
