@@ -5,7 +5,7 @@ require 'shoryuken/launcher'
 RSpec.describe Shoryuken::CLI do
   let(:cli) { Shoryuken::CLI.instance }
 
-  before(:each) do
+  before do
     # make sure we do not bail
     allow(cli).to receive(:exit)
 
@@ -20,12 +20,6 @@ RSpec.describe Shoryuken::CLI do
       allow(Shoryuken::Launcher).to receive(:new).and_return(launcher)
       allow(launcher).to receive(:run).and_raise(Interrupt)
       allow(launcher).to receive(:stop)
-    end
-
-    # reset shoryuken options because class variable hold value which is used previous test case
-    after(:each) do
-      Shoryuken.options[:daemon] = nil
-      Shoryuken.options[:logfile] = nil
     end
 
     it 'does not raise' do

@@ -57,6 +57,9 @@ RSpec.configure do |config|
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1
     Shoryuken.options[:timeout]     = 1
+    Shoryuken.options[:daemon]      = nil
+    Shoryuken.options[:logfile]     = nil
+
     Shoryuken.options[:aws].delete(:receive_message)
 
     TestWorker.get_shoryuken_options.clear
