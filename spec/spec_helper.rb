@@ -2,7 +2,7 @@ require 'bundler/setup'
 Bundler.setup
 
 require 'pry-byebug'
-require 'celluloid'
+require 'celluloid/current'
 require 'shoryuken'
 require 'json'
 require 'multi_xml'

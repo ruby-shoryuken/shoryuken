@@ -10,7 +10,7 @@ end
 desc 'Open Shoryuken pry console'
 task :console do
   require 'pry'
-  require 'celluloid'
+  require 'celluloid/current'
   require 'shoryuken'
 
   config_file = File.join File.expand_path('..', __FILE__), 'shoryuken.yml'

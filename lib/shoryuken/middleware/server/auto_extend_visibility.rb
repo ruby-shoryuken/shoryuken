@@ -1,4 +1,4 @@
-require 'celluloid' unless defined?(Celluloid)
+require 'celluloid/current' unless defined?(Celluloid)
 
 module Shoryuken
   module Middleware
