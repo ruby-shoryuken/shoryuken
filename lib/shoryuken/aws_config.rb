@@ -22,25 +22,42 @@ module Shoryuken
           receive_message
         ).map(&:to_sym)
 
-        aws_options = hash.reject do |k, _|
+        @aws_options = hash.reject do |k, _|
           shoryuken_keys.include?(k)
         end
 
         # assume credentials based authentication
         credentials = Aws::Credentials.new(
-          aws_options.delete(:access_key_id),
-          aws_options.delete(:secret_access_key)
+          @aws_options.delete(:access_key_id),
+          @aws_options.delete(:secret_access_key)
         )
 
         # but only if the configuration options have valid values
-        aws_options = aws_options.merge(credentials: credentials) if credentials.set?
+        @aws_options.merge!(credentials: credentials) if credentials.set?
 
         if (callback = Shoryuken.aws_initialization_callback)
           Shoryuken.logger.info { 'Calling Shoryuken.on_aws_initialization block' }
-          callback.call(aws_options)
+          callback.call(@aws_options)
         end
+      end
 
-        Aws.config = aws_options
+      def sns
+        Aws::SNS::Client.new(aws_client_options(:sns_endpoint))
+      end
+
+      def sqs
+        Aws::SQS::Client.new(aws_client_options(:sqs_endpoint))
+      end
+
+      private
+
+      def aws_client_options(service_endpoint_key)
+        environment_endpoint = ENV["AWS_#{service_endpoint_key.to_s.upcase}"]
+        explicit_endpoint = options[service_endpoint_key] || environment_endpoint
+        endpoint = {}.tap do |hash|
+          hash[:endpoint] = explicit_endpoint unless explicit_endpoint.to_s.empty?
+        end
+        @aws_options.to_h.merge(endpoint)
       end
     end
   end
