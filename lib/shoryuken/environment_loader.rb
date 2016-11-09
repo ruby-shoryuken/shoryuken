@@ -49,7 +49,11 @@ module Shoryuken
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
     end
 
+    # DEPRECATED: Please use configure_server and configure_client in
+    # https://github.com/phstc/shoryuken/blob/a81637d577b36c5cf245882733ea91a335b6602f/lib/shoryuken.rb#L82
+    # Please delete this method afert next release (v2.0.12 or later)
     def initialize_aws
+      Shoryuken.logger.warn { "[DEPRECATION] aws in shoryuken.yml is deprecated. Please use configure_server and configure_client in your initializer"} unless Shoryuken.options[:aws].nil?
       Shoryuken::AwsConfig.setup(Shoryuken.options[:aws])
     end
 
