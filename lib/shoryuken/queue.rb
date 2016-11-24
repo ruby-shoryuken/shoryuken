@@ -14,8 +14,8 @@ module Shoryuken
 
     def visibility_timeout
       client.get_queue_attributes(
-        queue_url: url,
-        attribute_names: ['VisibilityTimeout']
+          queue_url:       url,
+          attribute_names: ['VisibilityTimeout']
       ).attributes['VisibilityTimeout'].to_i
     end
 
@@ -37,38 +37,68 @@ module Shoryuken
 
     def receive_messages(options)
       client.receive_message(options.merge(queue_url: url)).
-        messages.
-        map { |m| Message.new(client, self, m) }
+          messages.
+          map { |m| Message.new(client, self, m) }
+    end
+
+    # Returns whether this queue is a FIFO queue or not.
+    # @return [TrueClass, FalseClass]
+    def is_fifo?
+      fifo_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
+    end
+
+    # Returns whether this queue has content based deduplication enabled or not.
+    # @return [TrueClass, FalseClass]
+    def has_content_deduplication?
+      fifo_attributes.attributes[CONTENT_DEDUP_ATTRIBUTE] == 'true'
     end
 
     private
 
+    FIFO_ATTRIBUTE          = 'FifoQueue'
+    CONTENT_DEDUP_ATTRIBUTE = 'ContentBasedDeduplication'
+    MESSAGE_GROUP_ID        = 'ShoryukenMessage'
+
+    # @return [Aws::SQS::Types::GetQueueAttributesResult]
+    def fifo_attributes
+      @fifo_attr ||= client.get_queue_attributes(queue_url: url, attribute_names: [FIFO_ATTRIBUTE, CONTENT_DEDUP_ATTRIBUTE])
+    end
+
+    # Returns sanitized messages, raising ArgumentError if any of the message is invalid.
     def sanitize_messages!(options)
       options = case
-                when options.is_a?(Array)
-                  { entries: options.map.with_index do |m, index|
-                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m })
-                  end }
-                when options.is_a?(Hash)
-                  options
+                  when options.is_a?(Array)
+                    {entries: options.map.with_index do |m, index|
+                      result = {id: index.to_s}.merge(m.is_a?(Hash) ? m : {message_body: m})
+                      add_fifo_attributes!(result)
+                      result
+                    end}
+                  when options.is_a?(Hash)
+                    options[:entries].each do |m|
+                      add_fifo_attributes!(m)
+                    end
+                    options
                 end
-
       validate_messages!(options)
-
       options
+    end
+
+    # Modifies the supplied hash and adds the required FIFO message attributes based on the queue configuration.
+    def add_fifo_attributes!(message_hash)
+      message_hash[:message_group_id]         = MESSAGE_GROUP_ID if is_fifo?
+      message_hash[:message_deduplication_id] = SecureRandom.uuid if is_fifo? && !has_content_deduplication?
     end
 
     def sanitize_message!(options)
       options = case
-                when options.is_a?(String)
-                  # send_message('message')
-                  { message_body: options }
-                when options.is_a?(Hash)
-                  options
+                  when options.is_a?(String)
+                    # send_message('message')
+                    {message_body: options}
+                  when options.is_a?(Hash)
+                    options
                 end
-
+      add_fifo_attributes! options
       validate_message!(options)
-
       options
     end
 
@@ -83,7 +113,15 @@ module Shoryuken
       elsif !body.is_a?(String)
         fail ArgumentError, "The message body must be a String and you passed a #{body.class}"
       end
-
+      if is_fifo? && options[:delay_seconds].is_a?(Fixnum)
+        fail ArgumentError, 'FIFO queues do not accept DelaySeconds arguments.'
+      end
+      if is_fifo? && options[:message_group_id].nil?
+        fail ArgumentError, 'This queue is FIFO and no message_group_id was provided.'
+      end
+      if is_fifo? && !has_content_deduplication? && options[:message_deduplication_id].nil?
+        fail ArgumentError, 'This queue is FIFO without ContentBasedDeduplication enabled, and no MessageDeduplicationId was supplied'
+      end
       options
     end
   end
