@@ -67,10 +67,10 @@ module Shoryuken
       options = case
                 when options.is_a?(Array)
                   { entries: options.map.with_index do |m, index|
-                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m }).tap(&method(:add_fifo_attributes))
+                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m }).tap(&method(:add_fifo_attributes!))
                   end }
                 when options.is_a?(Hash)
-                  options[:entries].each(&:add_fifo_attributes!)
+                  options[:entries].each(&method(:add_fifo_attributes!))
                   options
                 end
       validate_messages!(options)
@@ -83,6 +83,8 @@ module Shoryuken
 
       message_hash[:message_group_id] = MESSAGE_GROUP_ID
       message_hash[:message_deduplication_id] = SecureRandom.uuid unless has_content_deduplication?
+
+      message_hash
     end
 
     def sanitize_message!(options)
