@@ -3,7 +3,7 @@ module Shoryuken
     attr_accessor :name, :client, :url
 
     def initialize(client, name)
-      self.name   = name
+      self.name = name
       self.client = client
       begin
         self.url = client.get_queue_url(queue_name: name).queue_url
@@ -13,10 +13,7 @@ module Shoryuken
     end
 
     def visibility_timeout
-      client.get_queue_attributes(
-          queue_url:       url,
-          attribute_names: ['VisibilityTimeout']
-      ).attributes['VisibilityTimeout'].to_i
+      queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
     end
 
     def delete_messages(options)
@@ -37,47 +34,44 @@ module Shoryuken
 
     def receive_messages(options)
       client.receive_message(options.merge(queue_url: url)).
-          messages.
-          map { |m| Message.new(client, self, m) }
+        messages.
+        map { |m| Message.new(client, self, m) }
     end
 
     # Returns whether this queue is a FIFO queue or not.
     # @return [TrueClass, FalseClass]
     def is_fifo?
-      fifo_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
+      queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
     end
 
     # Returns whether this queue has content based deduplication enabled or not.
     # @return [TrueClass, FalseClass]
     def has_content_deduplication?
-      fifo_attributes.attributes[CONTENT_DEDUP_ATTRIBUTE] == 'true'
+      queue_attributes.attributes[CONTENT_DEDUP_ATTRIBUTE] == 'true'
     end
 
     private
 
-    FIFO_ATTRIBUTE          = 'FifoQueue'
+    FIFO_ATTRIBUTE = 'FifoQueue'
     CONTENT_DEDUP_ATTRIBUTE = 'ContentBasedDeduplication'
-    MESSAGE_GROUP_ID        = 'ShoryukenMessage'
+    MESSAGE_GROUP_ID = 'ShoryukenMessage'
+    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
 
     # @return [Aws::SQS::Types::GetQueueAttributesResult]
-    def fifo_attributes
-      @fifo_attr ||= client.get_queue_attributes(queue_url: url, attribute_names: [FIFO_ATTRIBUTE, CONTENT_DEDUP_ATTRIBUTE])
+    def queue_attributes
+      client.get_queue_attributes(queue_url: url, attribute_names: [FIFO_ATTRIBUTE, CONTENT_DEDUP_ATTRIBUTE, VISIBILITY_TIMEOUT_ATTR])
     end
 
     # Returns sanitized messages, raising ArgumentError if any of the message is invalid.
     def sanitize_messages!(options)
       options = case
-                  when options.is_a?(Array)
-                    {entries: options.map.with_index do |m, index|
-                      result = {id: index.to_s}.merge(m.is_a?(Hash) ? m : {message_body: m})
-                      add_fifo_attributes!(result)
-                      result
-                    end}
-                  when options.is_a?(Hash)
-                    options[:entries].each do |m|
-                      add_fifo_attributes!(m)
-                    end
-                    options
+                when options.is_a?(Array)
+                  { entries: options.map.with_index do |m, index|
+                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m }).tap(&method(:add_fifo_attributes))
+                  end }
+                when options.is_a?(Hash)
+                  options[:entries].each(&:add_fifo_attributes!)
+                  options
                 end
       validate_messages!(options)
       options
@@ -85,17 +79,19 @@ module Shoryuken
 
     # Modifies the supplied hash and adds the required FIFO message attributes based on the queue configuration.
     def add_fifo_attributes!(message_hash)
-      message_hash[:message_group_id]         = MESSAGE_GROUP_ID if is_fifo?
-      message_hash[:message_deduplication_id] = SecureRandom.uuid if is_fifo? && !has_content_deduplication?
+      return unless is_fifo?
+
+      message_hash[:message_group_id] = MESSAGE_GROUP_ID
+      message_hash[:message_deduplication_id] = SecureRandom.uuid unless has_content_deduplication?
     end
 
     def sanitize_message!(options)
       options = case
-                  when options.is_a?(String)
-                    # send_message('message')
-                    {message_body: options}
-                  when options.is_a?(Hash)
-                    options
+                when options.is_a?(String)
+                  # send_message('message')
+                  { message_body: options }
+                when options.is_a?(Hash)
+                  options
                 end
       add_fifo_attributes! options
       validate_message!(options)

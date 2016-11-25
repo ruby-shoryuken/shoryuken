@@ -114,15 +114,15 @@ describe Shoryuken::Queue do
         expect(sqs).to receive(:send_message_batch) do |arg|
           expect(arg).to include(:entries)
           first_entry = arg[:entries].first
-          expect(first_entry).to include({id: '0', message_body: 'msg1', message_group_id: 'ShoryukenMessage'})
+          expect(first_entry).to include({ id: '0', message_body: 'msg1', message_group_id: 'ShoryukenMessage' })
           expect(first_entry[:message_deduplication_id]).to be_a String
         end
       }
       it 'sends with message_group_id and message_deduplication_id when an array is sent' do
-        subject.send_messages([{message_body: 'msg1', message_attributes: {attr: 'attr1'}}])
+        subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
       end
       it 'sends with message_group_id and message_deduplication_id  when a hash is sent' do
-        subject.send_messages(entries: [{id: '0', message_body: 'msg1'}])
+        subject.send_messages(entries: [{ id: '0', message_body: 'msg1' }])
       end
     end
 
@@ -135,20 +135,20 @@ describe Shoryuken::Queue do
         expect(sqs).to receive(:send_message_batch) do |arg|
           expect(arg).to include(:entries)
           first_entry = arg[:entries].first
-          expect(first_entry).to match({id: '0', message_body: 'msg1', message_group_id: 'ShoryukenMessage', message_attributes: {attr: 'attr1'}})
+          expect(first_entry).to match({ id: '0', message_body: 'msg1', message_group_id: 'ShoryukenMessage', message_attributes: { attr: 'attr1' } })
         end
       }
       it 'sends with message_group_id when argument is an array' do
-        subject.send_messages([{message_body: 'msg1', message_attributes: {attr: 'attr1'}}])
+        subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
       end
       it 'sends with message_group_id when a hash is sent' do
-        subject.send_messages(entries: [{id: '0', message_body: 'msg1', message_attributes: {attr: 'attr1'}}])
+        subject.send_messages(entries: [{ id: '0', message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
       end
     end
 
 
     it 'accepts an array of string' do
-      expect(sqs).to receive(:send_message_batch).with(hash_including(entries: [{id: '0', message_body: 'msg1'}, {id: '1', message_body: 'msg2'}]))
+      expect(sqs).to receive(:send_message_batch).with(hash_including(entries: [{ id: '0', message_body: 'msg1' }, { id: '1', message_body: 'msg2' }]))
 
       subject.send_messages(%w(msg1 msg2))
     end
@@ -172,12 +172,12 @@ describe Shoryuken::Queue do
     before {
       # Required as Aws::SQS::Client.get_queue_url returns 'String' when responses are stubbed.
       allow(subject).to receive(:url).and_return(queue_url)
-      allow(sqs).to receive(:get_queue_attributes).with({queue_url: queue_url, attribute_names: ['FifoQueue', 'ContentBasedDeduplication']}).and_return(attribute_response)
+      allow(sqs).to receive(:get_queue_attributes).with({ queue_url: queue_url, attribute_names: ['FifoQueue', 'ContentBasedDeduplication', 'VisibilityTimeout'] }).and_return(attribute_response)
 
     }
     context 'when queue is FIFO' do
       before {
-        allow(attribute_response).to receive(:attributes).and_return({'FifoQueue' => 'true', 'ContentBasedDeduplication' => 'true'})
+        allow(attribute_response).to receive(:attributes).and_return({ 'FifoQueue' => 'true', 'ContentBasedDeduplication' => 'true' })
       }
       it 'Returns True' do
         expect(subject.is_fifo?).to eq true
@@ -185,7 +185,7 @@ describe Shoryuken::Queue do
     end
     context 'when queue is not FIFO' do
       before {
-        allow(attribute_response).to receive(:attributes).and_return({'FifoQueue' => 'false', 'ContentBasedDeduplication' => 'false'})
+        allow(attribute_response).to receive(:attributes).and_return({ 'FifoQueue' => 'false', 'ContentBasedDeduplication' => 'false' })
       }
       it 'Returns False' do
         expect(subject.is_fifo?).to eq false
@@ -195,12 +195,12 @@ describe Shoryuken::Queue do
 
   describe '#has_content_deduplication?' do
     before {
-      allow(sqs).to receive(:get_queue_attributes).with({queue_url: queue_url, attribute_names: ['FifoQueue', 'ContentBasedDeduplication']}).and_return(attribute_response)
+      allow(sqs).to receive(:get_queue_attributes).with({ queue_url: queue_url, attribute_names: ['FifoQueue', 'ContentBasedDeduplication', 'VisibilityTimeout'] }).and_return(attribute_response)
 
     }
     context 'when queue has content deduplicaiton' do
       before {
-        allow(attribute_response).to receive(:attributes).and_return({'FifoQueue' => 'true', 'ContentBasedDeduplication' => 'true'})
+        allow(attribute_response).to receive(:attributes).and_return({ 'FifoQueue' => 'true', 'ContentBasedDeduplication' => 'true' })
       }
       it 'Returns True' do
         expect(subject.has_content_deduplication?).to eq true
@@ -208,7 +208,7 @@ describe Shoryuken::Queue do
     end
     context 'when queue does not have content deduplication' do
       before {
-        allow(attribute_response).to receive(:attributes).and_return({'FifoQueue' => 'true', 'ContentBasedDeduplication' => 'false'})
+        allow(attribute_response).to receive(:attributes).and_return({ 'FifoQueue' => 'true', 'ContentBasedDeduplication' => 'false' })
       }
       it 'Returns False' do
         expect(subject.has_content_deduplication?).to eq false
