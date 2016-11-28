@@ -41,7 +41,7 @@ module Shoryuken
     # Returns whether this queue is a FIFO queue or not.
     # @return [TrueClass, FalseClass]
     def is_fifo?
-      queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
+      @__is_fifo ||= queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
     end
 
     # Returns whether this queue has content based deduplication enabled or not.
@@ -57,9 +57,12 @@ module Shoryuken
     MESSAGE_GROUP_ID = 'ShoryukenMessage'
     VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
 
+
     # @return [Aws::SQS::Types::GetQueueAttributesResult]
     def queue_attributes
-      client.get_queue_attributes(queue_url: url, attribute_names: [FIFO_ATTRIBUTE, CONTENT_DEDUP_ATTRIBUTE, VISIBILITY_TIMEOUT_ATTR])
+      # Note: Retrieving all queue attributes as requesting `FifoQueue` on non-FIFO queue raises error.
+      # See issue: https://github.com/aws/aws-sdk-ruby/issues/1350
+      client.get_queue_attributes(queue_url: url, attribute_names: ['All'])
     end
 
     # Returns sanitized messages, raising ArgumentError if any of the message is invalid.
@@ -111,16 +114,24 @@ module Shoryuken
       elsif !body.is_a?(String)
         fail ArgumentError, "The message body must be a String and you passed a #{body.class}"
       end
-      if is_fifo? && options[:delay_seconds].is_a?(Fixnum)
+      validate_fifo_message! options
+      options
+    end
+
+    # Validates a FIFO message with the queue configuration.
+    # @param [Hash] options - Message hash.
+    # @raise [ArgumentError] raises ArgumentError if the message configuration is incompatible with the queue configuration.
+    def validate_fifo_message!(options)
+      return unless is_fifo?
+      if options[:delay_seconds].is_a?(Fixnum)
         fail ArgumentError, 'FIFO queues do not accept DelaySeconds arguments.'
       end
-      if is_fifo? && options[:message_group_id].nil?
+      if options[:message_group_id].nil?
         fail ArgumentError, 'This queue is FIFO and no message_group_id was provided.'
       end
-      if is_fifo? && !has_content_deduplication? && options[:message_deduplication_id].nil?
-        fail ArgumentError, 'This queue is FIFO without ContentBasedDeduplication enabled, and no MessageDeduplicationId was supplied'
+      if !has_content_deduplication? && options[:message_deduplication_id].nil?
+        fail ArgumentError, 'This queue is FIFO without ContentBasedDeduplication enabled, and no MessageDeduplicationId was supplied.'
       end
-      options
     end
   end
 end

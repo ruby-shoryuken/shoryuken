@@ -172,7 +172,7 @@ describe Shoryuken::Queue do
     before {
       # Required as Aws::SQS::Client.get_queue_url returns 'String' when responses are stubbed.
       allow(subject).to receive(:url).and_return(queue_url)
-      allow(sqs).to receive(:get_queue_attributes).with({ queue_url: queue_url, attribute_names: ['FifoQueue', 'ContentBasedDeduplication', 'VisibilityTimeout'] }).and_return(attribute_response)
+      allow(sqs).to receive(:get_queue_attributes).with({ queue_url: queue_url, attribute_names: ['All'] }).and_return(attribute_response)
 
     }
     context 'when queue is FIFO' do
@@ -195,7 +195,7 @@ describe Shoryuken::Queue do
 
   describe '#has_content_deduplication?' do
     before {
-      allow(sqs).to receive(:get_queue_attributes).with({ queue_url: queue_url, attribute_names: ['FifoQueue', 'ContentBasedDeduplication', 'VisibilityTimeout'] }).and_return(attribute_response)
+      allow(sqs).to receive(:get_queue_attributes).with({ queue_url: queue_url, attribute_names: ['All'] }).and_return(attribute_response)
 
     }
     context 'when queue has content deduplicaiton' do
