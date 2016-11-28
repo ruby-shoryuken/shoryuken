@@ -3,7 +3,7 @@ module Shoryuken
     attr_accessor :name, :client, :url
 
     def initialize(client, name)
-      self.name   = name
+      self.name = name
       self.client = client
       begin
         self.url = client.get_queue_url(queue_name: name).queue_url
@@ -13,10 +13,7 @@ module Shoryuken
     end
 
     def visibility_timeout
-      client.get_queue_attributes(
-        queue_url: url,
-        attribute_names: ['VisibilityTimeout']
-      ).attributes['VisibilityTimeout'].to_i
+      queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
     end
 
     def delete_messages(options)
@@ -41,21 +38,56 @@ module Shoryuken
         map { |m| Message.new(client, self, m) }
     end
 
+    # Returns whether this queue is a FIFO queue or not.
+    # @return [TrueClass, FalseClass]
+    def is_fifo?
+      @__is_fifo ||= queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
+    end
+
+    # Returns whether this queue has content based deduplication enabled or not.
+    # @return [TrueClass, FalseClass]
+    def has_content_deduplication?
+      queue_attributes.attributes[CONTENT_DEDUP_ATTRIBUTE] == 'true'
+    end
+
     private
 
+    FIFO_ATTRIBUTE = 'FifoQueue'
+    CONTENT_DEDUP_ATTRIBUTE = 'ContentBasedDeduplication'
+    MESSAGE_GROUP_ID = 'ShoryukenMessage'
+    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
+
+
+    # @return [Aws::SQS::Types::GetQueueAttributesResult]
+    def queue_attributes
+      # Note: Retrieving all queue attributes as requesting `FifoQueue` on non-FIFO queue raises error.
+      # See issue: https://github.com/aws/aws-sdk-ruby/issues/1350
+      client.get_queue_attributes(queue_url: url, attribute_names: ['All'])
+    end
+
+    # Returns sanitized messages, raising ArgumentError if any of the message is invalid.
     def sanitize_messages!(options)
       options = case
                 when options.is_a?(Array)
                   { entries: options.map.with_index do |m, index|
-                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m })
+                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m }).tap(&method(:add_fifo_attributes!))
                   end }
                 when options.is_a?(Hash)
+                  options[:entries].each(&method(:add_fifo_attributes!))
                   options
                 end
-
       validate_messages!(options)
-
       options
+    end
+
+    # Modifies the supplied hash and adds the required FIFO message attributes based on the queue configuration.
+    def add_fifo_attributes!(message_hash)
+      return unless is_fifo?
+
+      message_hash[:message_group_id] = MESSAGE_GROUP_ID
+      message_hash[:message_deduplication_id] = SecureRandom.uuid unless has_content_deduplication?
+
+      message_hash
     end
 
     def sanitize_message!(options)
@@ -66,9 +98,8 @@ module Shoryuken
                 when options.is_a?(Hash)
                   options
                 end
-
+      add_fifo_attributes! options
       validate_message!(options)
-
       options
     end
 
@@ -83,8 +114,24 @@ module Shoryuken
       elsif !body.is_a?(String)
         fail ArgumentError, "The message body must be a String and you passed a #{body.class}"
       end
-
+      validate_fifo_message! options
       options
+    end
+
+    # Validates a FIFO message with the queue configuration.
+    # @param [Hash] options - Message hash.
+    # @raise [ArgumentError] raises ArgumentError if the message configuration is incompatible with the queue configuration.
+    def validate_fifo_message!(options)
+      return unless is_fifo?
+      if options[:delay_seconds].is_a?(Fixnum)
+        fail ArgumentError, 'FIFO queues do not accept DelaySeconds arguments.'
+      end
+      if options[:message_group_id].nil?
+        fail ArgumentError, 'This queue is FIFO and no message_group_id was provided.'
+      end
+      if !has_content_deduplication? && options[:message_deduplication_id].nil?
+        fail ArgumentError, 'This queue is FIFO without ContentBasedDeduplication enabled, and no MessageDeduplicationId was supplied.'
+      end
     end
   end
 end
