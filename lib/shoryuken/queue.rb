@@ -1,15 +1,17 @@
 module Shoryuken
   class Queue
+    FIFO_ATTRIBUTE          = 'FifoQueue'
+    MESSAGE_GROUP_ID        = 'ShoryukenMessage'
+    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
+
     attr_accessor :name, :client, :url
 
     def initialize(client, name)
-      self.name = name
+      self.name   = name
       self.client = client
-      begin
-        self.url = client.get_queue_url(queue_name: name).queue_url
-      rescue Aws::SQS::Errors::NonExistentQueue => e
-        raise e, "The specified queue '#{name}' does not exist"
-      end
+      self.url    = client.get_queue_url(queue_name: name).queue_url
+    rescue Aws::SQS::Errors::NonExistentQueue => e
+      raise e, "The specified queue '#{name}' does not exist."
     end
 
     def visibility_timeout
@@ -38,34 +40,18 @@ module Shoryuken
         map { |m| Message.new(client, self, m) }
     end
 
-    # Returns whether this queue is a FIFO queue or not.
-    # @return [TrueClass, FalseClass]
-    def is_fifo?
-      @__is_fifo ||= queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
-    end
-
-    # Returns whether this queue has content based deduplication enabled or not.
-    # @return [TrueClass, FalseClass]
-    def has_content_deduplication?
-      queue_attributes.attributes[CONTENT_DEDUP_ATTRIBUTE] == 'true'
+    def fifo?
+      @_fifo ||= queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
     end
 
     private
 
-    FIFO_ATTRIBUTE = 'FifoQueue'
-    CONTENT_DEDUP_ATTRIBUTE = 'ContentBasedDeduplication'
-    MESSAGE_GROUP_ID = 'ShoryukenMessage'
-    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
-
-
-    # @return [Aws::SQS::Types::GetQueueAttributesResult]
     def queue_attributes
       # Note: Retrieving all queue attributes as requesting `FifoQueue` on non-FIFO queue raises error.
       # See issue: https://github.com/aws/aws-sdk-ruby/issues/1350
       client.get_queue_attributes(queue_url: url, attribute_names: ['All'])
     end
 
-    # Returns sanitized messages, raising ArgumentError if any of the message is invalid.
     def sanitize_messages!(options)
       options = case
                 when options.is_a?(Array)
@@ -76,61 +62,53 @@ module Shoryuken
                   options[:entries].each(&method(:add_fifo_attributes!))
                   options
                 end
+
       validate_messages!(options)
+
       options
     end
 
-    # Modifies the supplied hash and adds the required FIFO message attributes based on the queue configuration.
-    def add_fifo_attributes!(message_hash)
-      return unless is_fifo?
+    def add_fifo_attributes!(options)
+      return unless fifo?
 
-      message_hash[:message_group_id] = MESSAGE_GROUP_ID
-      message_hash[:message_deduplication_id] = SecureRandom.uuid unless has_content_deduplication?
+      options[:message_group_id]         ||= MESSAGE_GROUP_ID
+      options[:message_deduplication_id] ||= Digest::SHA256.digest(options[:message_body])
 
-      message_hash
+      options
     end
 
     def sanitize_message!(options)
-      options = case
-                when options.is_a?(String)
-                  # send_message('message')
-                  { message_body: options }
-                when options.is_a?(Hash)
-                  options
-                end
-      add_fifo_attributes! options
+      options = { message_body: options } if options.is_a?(String)
+
+      add_fifo_attributes!(options)
       validate_message!(options)
+
       options
     end
 
     def validate_messages!(options)
-      options[:entries].map { |m| validate_message!(m) }
+      options[:entries].map(&method(:validate_message!))
     end
 
     def validate_message!(options)
       body = options[:message_body]
+
       if body.is_a?(Hash)
         options[:message_body] = JSON.dump(body)
       elsif !body.is_a?(String)
-        fail ArgumentError, "The message body must be a String and you passed a #{body.class}"
+        fail ArgumentError, "The message body must be a String and you passed a #{body.class}."
       end
-      validate_fifo_message! options
+
+      validate_fifo_message!(options)
+
       options
     end
 
-    # Validates a FIFO message with the queue configuration.
-    # @param [Hash] options - Message hash.
-    # @raise [ArgumentError] raises ArgumentError if the message configuration is incompatible with the queue configuration.
     def validate_fifo_message!(options)
-      return unless is_fifo?
-      if options[:delay_seconds].is_a?(Fixnum)
+      return unless fifo?
+
+      if options[:delay_seconds]
         fail ArgumentError, 'FIFO queues do not accept DelaySeconds arguments.'
-      end
-      if options[:message_group_id].nil?
-        fail ArgumentError, 'This queue is FIFO and no message_group_id was provided.'
-      end
-      if !has_content_deduplication? && options[:message_deduplication_id].nil?
-        fail ArgumentError, 'This queue is FIFO without ContentBasedDeduplication enabled, and no MessageDeduplicationId was supplied.'
       end
     end
   end
