@@ -30,50 +30,36 @@ describe Shoryuken::Queue do
       subject.send_message('msg1')
     end
 
-    context 'when body is invalid' do
-      it 'raises ArgumentError for nil' do
-        expect {
-          subject.send_message(message_body: nil)
-        }.to raise_error(ArgumentError, 'The message body must be a String and you passed a NilClass.')
+    context 'when a client middleware' do
+      class MyClientMiddleware
+        def call(options)
+          options[:message_body] = 'changed'
+
+          yield
+        end
       end
 
-      it 'raises ArgumentError for Fixnum' do
-        expect {
-          subject.send_message(message_body: 1)
-        }.to raise_error(ArgumentError, 'The message body must be a String and you passed a Fixnum.')
+      before do
+        allow(Shoryuken).to receive(:server?).and_return(false)
+        Shoryuken.configure_client do |config|
+          config.client_middleware do |chain|
+            chain.add MyClientMiddleware
+          end
+        end
       end
 
-      context 'when a client middleware' do
-        class MyClientMiddleware
-          def call(options)
-            options[:message_body] = 'changed'
-
-            yield
+      after do
+        Shoryuken.configure_client do |config|
+          config.client_middleware do |chain|
+            chain.remove MyClientMiddleware
           end
         end
+      end
 
-        before do
-          allow(Shoryuken).to receive(:server?).and_return(false)
-          Shoryuken.configure_client do |config|
-            config.client_middleware do |chain|
-              chain.add MyClientMiddleware
-            end
-          end
-        end
+      it 'invokes MyClientMiddleware' do
+        expect(sqs).to receive(:send_message).with(hash_including(message_body: 'changed'))
 
-        after do
-          Shoryuken.configure_client do |config|
-            config.client_middleware do |chain|
-              chain.remove MyClientMiddleware
-            end
-          end
-        end
-
-        it 'invokes MyClientMiddleware' do
-          expect(sqs).to receive(:send_message).with(hash_including(message_body: 'changed'))
-
-          subject.send_message(message_body: 'original')
-        end
+        subject.send_message(message_body: 'original')
       end
     end
   end
@@ -150,20 +136,6 @@ describe Shoryuken::Queue do
       expect(sqs).to receive(:send_message_batch).with(hash_including(entries: [{ id: '0', message_body: 'msg1' }, { id: '1', message_body: 'msg2' }]))
 
       subject.send_messages(%w(msg1 msg2))
-    end
-
-    context 'when body is invalid' do
-      it 'raises ArgumentError for nil' do
-        expect {
-          subject.send_messages(entries: [message_body: nil])
-        }.to raise_error(ArgumentError, 'The message body must be a String and you passed a NilClass.')
-      end
-
-      it 'raises ArgumentError for Fixnum' do
-        expect {
-          subject.send_messages(entries: [message_body: 1])
-        }.to raise_error(ArgumentError, 'The message body must be a String and you passed a Fixnum.')
-      end
     end
   end
 

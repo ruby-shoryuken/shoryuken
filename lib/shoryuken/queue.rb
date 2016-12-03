@@ -70,7 +70,7 @@ module Shoryuken
       return unless fifo?
 
       options[:message_group_id]         ||= MESSAGE_GROUP_ID
-      options[:message_deduplication_id] ||= Digest::SHA256.hexdigest(options[:message_body])
+      options[:message_deduplication_id] ||= Digest::SHA256.hexdigest(options[:message_body].to_s)
 
       options
     end
@@ -83,27 +83,8 @@ module Shoryuken
       end
 
       add_fifo_attributes!(options)
-      validate_message!(options)
 
       options
-    end
-
-    def validate_message!(options)
-      unless (body = options[:message_body]).is_a?(String)
-        fail ArgumentError, "The message body must be a String and you passed a #{body.class}."
-      end
-
-      validate_fifo_message!(options)
-
-      options
-    end
-
-    def validate_fifo_message!(options)
-      return unless fifo?
-
-      if options[:delay_seconds]
-        fail ArgumentError, 'FIFO queues do not accept DelaySeconds arguments.'
-      end
     end
   end
 end
