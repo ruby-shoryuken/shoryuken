@@ -72,7 +72,7 @@ module Shoryuken
       return unless fifo?
 
       options[:message_group_id]         ||= MESSAGE_GROUP_ID
-      options[:message_deduplication_id] ||= Digest::SHA256.digest(options[:message_body])
+      options[:message_deduplication_id] ||= Digest::SHA256.hexdigest(options[:message_body])
 
       options
     end
