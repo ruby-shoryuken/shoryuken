@@ -1,71 +1,71 @@
 ## [v2.1.0] - 2016-12-03
 
 - Fix celluloid "running in BACKPORTED mode" warning
- - [#260] https://github.com/phstc/shoryuken/pull/260
+ - [#260](https://github.com/phstc/shoryuken/pull/260)
  
 - Allow setting the aws configuration in 'Shoryuken.configure_server'
- - [#252] https://github.com/phstc/shoryuken/pull/252
+ - [#252](https://github.com/phstc/shoryuken/pull/252)
 
 - Allow requiring a file or dir a through `-r`
- - [#248] https://github.com/phstc/shoryuken/pull/248
+ - [#248](https://github.com/phstc/shoryuken/pull/248)
  
 - Reduce info log verbosity 
- - [#243] https://github.com/phstc/shoryuken/pull/243
+ - [#243](https://github.com/phstc/shoryuken/pull/243)
  
 - Fix auto extender when using ActiveJob
- - [#3213] https://github.com/phstc/shoryuken/pull/213
+ - [#3213](https://github.com/phstc/shoryuken/pull/213)
  
 - Add FIFO queue support
- - [#272] https://github.com/phstc/shoryuken/issues/272
+ - [#272](https://github.com/phstc/shoryuken/issues/272)
  
 - Deprecates initialize_aws
- - [#269] https://github.com/phstc/shoryuken/pull/269
+ - [#269](https://github.com/phstc/shoryuken/pull/269)
  
-- Other miscellaneous updates
- - https://github.com/phstc/shoryuken/compare/v2.0.11...v2.1.0
+- [Other miscellaneous updates](https://github.com/phstc/shoryuken/compare/v2.0.11...v2.1.0)
 
 ## [v2.0.11] - 2016-07-02
 
 - Same as 2.0.10. Unfortunately 2.0.10 was removed `yanked` by mistake from RubyGems.
- - [#b255bc3] https://github.com/phstc/shoryuken/commit/b255bc3
+ - [#b255bc3](https://github.com/phstc/shoryuken/commit/b255bc3)
 
 ## [v2.0.10] - 2016-06-09
 
 - Fix manager #225
- - [#226] https://github.com/phstc/shoryuken/pull/226
+ - [#226](https://github.com/phstc/shoryuken/pull/226)
 
 ## [v2.0.9] - 2016-06-08
 
 - Fix daemonization broken in #219
- - [#224] https://github.com/phstc/shoryuken/pull/224
+ - [#224](https://github.com/phstc/shoryuken/pull/224)
 
 ## [v2.0.8] - 2016-06-07
 
 - Fix daemonization
- - [#223] https://github.com/phstc/shoryuken/pull/223
+ - [#223](https://github.com/phstc/shoryuken/pull/223)
 
 ## [v2.0.7] - 2016-06-06
 
 - Daemonize before loading environment
- - [#219] https://github.com/phstc/shoryuken/pull/219
+ - [#219](https://github.com/phstc/shoryuken/pull/219)
 
 - Fix initialization when using rails
- - [#197] https://github.com/phstc/shoryuken/pull/197
+ - [#197](https://github.com/phstc/shoryuken/pull/197)
 
 - Improve message fetching
- - https://github.com/phstc/shoryuken/pull/214 and https://github.com/phstc/shoryuken/commit/f4640d97950c1783a061195855d93994725ed64a
+ - [#214](https://github.com/phstc/shoryuken/pull/214)
+ - [#f4640d9](https://github.com/phstc/shoryuken/commit/f4640d9)
 
 - Fix hard shutdown if there are some busy workers when signal received
- - [#215] https://github.com/phstc/shoryuken/pull/215
+ - [#215](https://github.com/phstc/shoryuken/pull/215)
 
 - Fix `rake console` task
- - [#208] https://github.com/phstc/shoryuken/pull/208
+ - [#208](https://github.com/phstc/shoryuken/pull/208)
 
 - Isolate `MessageVisibilityExtender` as new middleware
- - [#199] https://github.com/phstc/shoryuken/pull/190
+ - [#199](https://github.com/phstc/shoryuken/pull/190)
 
 - Fail on non-existent queues
- - [#196] https://github.com/phstc/shoryuken/pull/196
+ - [#196](https://github.com/phstc/shoryuken/pull/196)
 
 ## [v2.0.6] - 2016-04-18
 
