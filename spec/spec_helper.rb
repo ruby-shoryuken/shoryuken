@@ -10,8 +10,8 @@ require 'dotenv'
 Dotenv.load
 
 if ENV['CODECLIMATE_REPO_TOKEN']
-  require 'codeclimate-test-reporter'
-  CodeClimate::TestReporter.start
+  require 'simplecov'
+  SimpleCov.start
 end
 
 config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
