@@ -1,3 +1,29 @@
+## [v2.1.0] - 2016-12-03
+
+- Fix celluloid "running in BACKPORTED mode" warning
+ - [#260] https://github.com/phstc/shoryuken/pull/260
+ 
+- Allow setting the aws configuration in 'Shoryuken.configure_server'
+ - [#252] https://github.com/phstc/shoryuken/pull/252
+
+- Allow requiring a file or dir a through `-r`
+ - [#248] https://github.com/phstc/shoryuken/pull/248
+ 
+- Reduce info log verbosity 
+ - [#243] https://github.com/phstc/shoryuken/pull/243
+ 
+- Fix auto extender when using ActiveJob
+ - [#3213] https://github.com/phstc/shoryuken/pull/213
+ 
+- Add FIFO queue support
+ - [#272] https://github.com/phstc/shoryuken/issues/272
+ 
+- Deprecates initialize_aws
+ - [#269] https://github.com/phstc/shoryuken/pull/269
+ 
+- Other miscellaneous updates
+ - https://github.com/phstc/shoryuken/compare/v2.0.11...v2.1.0
+
 ## [v2.0.11] - 2016-07-02
 
 - Same as 2.0.10. Unfortunately 2.0.10 was removed `yanked` by mistake from RubyGems.
