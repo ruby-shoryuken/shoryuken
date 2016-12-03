@@ -53,17 +53,15 @@ module Shoryuken
     end
 
     def sanitize_messages!(options)
-      options = case
-                when options.is_a?(Array)
-                  { entries: options.map.with_index do |m, index|
-                    { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m }).tap(&method(:add_fifo_attributes!))
-                  end }
-                when options.is_a?(Hash)
-                  options[:entries].each(&method(:add_fifo_attributes!))
-                  options
-                end
+      if options.is_a?(Array)
+        entries = options.map.with_index do |m, index|
+          { id: index.to_s }.merge(m.is_a?(Hash) ? m : { message_body: m })
+        end
 
-      validate_messages!(options)
+        options = { entries: entries }
+      end
+
+      options[:entries].each(&method(:sanitize_message!))
 
       options
     end
@@ -84,10 +82,6 @@ module Shoryuken
       validate_message!(options)
 
       options
-    end
-
-    def validate_messages!(options)
-      options[:entries].map(&method(:validate_message!))
     end
 
     def validate_message!(options)
