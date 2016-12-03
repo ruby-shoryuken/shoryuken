@@ -1,6 +1,6 @@
 module Shoryuken
   class Queue
-    FIFO_ATTRIBUTE          = 'FifoQueue'
+    FIFO_ATTR               = 'FifoQueue'
     MESSAGE_GROUP_ID        = 'ShoryukenMessage'
     VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
 
@@ -41,7 +41,7 @@ module Shoryuken
     end
 
     def fifo?
-      @_fifo ||= queue_attributes.attributes[FIFO_ATTRIBUTE] == 'true'
+      @_fifo ||= queue_attributes.attributes[FIFO_ATTR] == 'true'
     end
 
     private
