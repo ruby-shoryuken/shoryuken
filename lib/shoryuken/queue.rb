@@ -78,6 +78,10 @@ module Shoryuken
     def sanitize_message!(options)
       options = { message_body: options } if options.is_a?(String)
 
+      if (body = options[:message_body]).is_a?(Hash)
+        options[:message_body] = JSON.dump(body)
+      end
+
       add_fifo_attributes!(options)
       validate_message!(options)
 
@@ -85,11 +89,7 @@ module Shoryuken
     end
 
     def validate_message!(options)
-      body = options[:message_body]
-
-      if body.is_a?(Hash)
-        options[:message_body] = JSON.dump(body)
-      elsif !body.is_a?(String)
+      unless (body = options[:message_body]).is_a?(String)
         fail ArgumentError, "The message body must be a String and you passed a #{body.class}."
       end
 
