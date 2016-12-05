@@ -5,6 +5,8 @@ require 'optparse'
 require 'erb'
 
 require 'shoryuken'
+require 'concurrent-edge'
+
 
 module Shoryuken
   # See: https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
@@ -41,7 +43,7 @@ module Shoryuken
 
       loader.load
 
-      load_celluloid
+      load_concurrent_ruby
 
       require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
@@ -68,28 +70,18 @@ module Shoryuken
 
     private
 
-    def load_celluloid
-      require 'celluloid/current'
-      Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
+    def load_concurrent_ruby
+      Concurrent.global_logger = lambda do |level, progname, msg = nil, &block|
+        Shoryuken.logger.log(level, msg, progname, &block)
+      end if Shoryuken.logger
 
       require 'shoryuken/manager'
-    end
-
-    def celluloid_loaded?
-      defined?(::Celluloid)
     end
 
     def daemonize(options)
       return unless options[:daemon]
 
       fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless options[:logfile]
-
-      if celluloid_loaded?
-        # Celluloid can't be loaded until after we've daemonized
-        # because it spins up threads and creates locks which get
-        # into a very bad state if forked.
-        raise "Celluloid cannot be required until here, or it will break Shoryuken's daemonization"
-      end
 
       files_to_reopen = []
       ObjectSpace.each_object(File) do |file|

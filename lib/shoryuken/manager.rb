@@ -2,25 +2,30 @@ require 'shoryuken/processor'
 require 'shoryuken/fetcher'
 
 module Shoryuken
-  class Manager
-    include Celluloid
+  class Manager < Concurrent::Actor::RestartingContext
     include Util
 
-    attr_accessor :fetcher
+    def on_message(msg)
+      method, *args = msg
+      send(method, *args)
+    end
 
-    trap_exit :processor_died
-
-    def initialize(condvar)
+    def initialize
       @count = Shoryuken.options[:concurrency] || 25
-      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
+
+      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") if @count < 1
+
       @queues = Shoryuken.queues.dup.uniq
-      @finished = condvar
 
       @done = false
 
       @busy  = []
       @ready = @count.times.map { build_processor }
       @threads = {}
+    end
+
+    def fetcher(fetcher)
+      @fetcher = fetcher
     end
 
     def start
@@ -40,16 +45,14 @@ module Shoryuken
 
         fire_event(:shutdown, true)
 
-        @fetcher.terminate if @fetcher.alive?
+        @fetcher.ask!(:terminate!)
 
         logger.info { "Shutting down #{@ready.size} quiet workers" }
 
         @ready.each do |processor|
-          processor.terminate if processor.alive?
+          processor.ask!(:terminate!)
         end
         @ready.clear
-
-        return after(0) { @finished.signal } if @busy.empty?
 
         if options[:shutdown]
           hard_shutdown_in(options[:timeout])
@@ -67,31 +70,21 @@ module Shoryuken
         @busy.delete processor
 
         if stopped?
-          processor.terminate if processor.alive?
-          return after(0) { @finished.signal } if @busy.empty?
+          processor.ask!(:terminate!)
         else
           @ready << processor
         end
       end
     end
 
-    def processor_died(processor, reason)
-      watchdog("Manager#processor_died died") do
-        logger.error { "Process died, reason: #{reason}" }
-
-        @threads.delete(processor.object_id)
-        @busy.delete processor
-
-        if stopped?
-          return after(0) { @finished.signal } if @busy.empty?
-        else
-          @ready << build_processor
-        end
-      end
-    end
-
     def stopped?
       @done
+    end
+
+    def reset
+    end
+
+    def terminated(_)
     end
 
     def assign(queue, sqs_msg)
@@ -101,7 +94,7 @@ module Shoryuken
         processor = @ready.pop
         @busy << processor
 
-        processor.async.process(queue, sqs_msg)
+        processor.tell([:process, queue, sqs_msg])
       end
     end
 
@@ -122,7 +115,7 @@ module Shoryuken
 
       @queues.delete(queue)
 
-      after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
+      after(Shoryuken.options[:delay].to_f) { tell([:restart_queue!, queue]) }
     end
 
 
@@ -139,7 +132,7 @@ module Shoryuken
       end
 
       if (queue = next_queue)
-        @fetcher.async.fetch(queue, @ready.size)
+        @fetcher.tell [:fetch, queue, @ready.size]
       else
         logger.debug { 'Pausing fetcher, because all queues are paused' }
 
@@ -147,8 +140,11 @@ module Shoryuken
       end
     end
 
-    def real_thread(proxy_id, thr)
-      @threads[proxy_id] = thr
+
+    def on_event(event)
+      if event == :reset
+      end
+      logger.info(event.inspect)
     end
 
     private
@@ -161,9 +157,7 @@ module Shoryuken
     end
 
     def build_processor
-      processor = Processor.new_link(current_actor)
-      processor.proxy_id = processor.object_id
-      processor
+      Processor.spawn! name: :processor, link: true, args: [self]
     end
 
     def restart_queue!(queue)
@@ -206,7 +200,7 @@ module Shoryuken
         # when no worker registered pause the queue to avoid endless recursion
         logger.debug { "Pausing '#{queue}' for #{Shoryuken.options[:delay].to_f} seconds, because no workers registered" }
 
-        after(Shoryuken.options[:delay].to_f) { async.restart_queue!(queue) }
+        after(Shoryuken.options[:delay].to_f) { tell([:restart_queue!, queue]) }
 
         return next_queue
       end
@@ -222,8 +216,6 @@ module Shoryuken
 
       if @busy.size > 0
         after(delay) { soft_shutdown(delay) }
-      else
-        @finished.signal
       end
     end
 
@@ -231,21 +223,19 @@ module Shoryuken
       logger.info { "Waiting for #{@busy.size} busy workers" }
       logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
-      after(delay) do
-        watchdog('Manager#hard_shutdown_in died') do
-          if @busy.size > 0
-            logger.info { "Hard shutting down #{@busy.size} busy workers" }
+      # after(delay) do
+      #   watchdog('Manager#hard_shutdown_in died') do
+      #     if @busy.size > 0
+      #       logger.info { "Hard shutting down #{@busy.size} busy workers" }
 
-            @busy.each do |processor|
-              if processor.alive? && t = @threads.delete(processor.object_id)
-                t.raise Shutdown
-              end
-            end
-          end
-
-          @finished.signal
-        end
-      end
+      #       # @busy.each do |processor|
+      #       #   if processor.alive? && t = @threads.delete(processor.object_id)
+      #       #     t.raise Shutdown
+      #       #   end
+      #       # end
+      #     end
+      #   end
+      # end
     end
   end
 end

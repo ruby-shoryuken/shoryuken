@@ -1,43 +1,27 @@
 module Shoryuken
-  class Launcher
-    include Celluloid
+  class Launcher < Concurrent::Actor::RestartingContext
     include Util
 
-    trap_exit :actor_died
-
-    attr_accessor :manager
-
     def initialize
-      @condvar = Celluloid::Condition.new
-      @manager = Shoryuken::Manager.new_link(@condvar)
-      @fetcher = Shoryuken::Fetcher.new_link(manager)
+      @manager = Shoryuken::Manager.spawn! name: :manager, link: true
+      @fetcher = Shoryuken::Fetcher.spawn! name: :fetcher, link: true, args: [@manager]
 
-      @done = false
-
-      manager.fetcher = @fetcher
+      @manager.ask!([:fetcher, @fetcher])
     end
 
     def stop(options = {})
       watchdog('Launcher#stop') do
-        @done = true
-        @fetcher.terminate if @fetcher.alive?
+        @fetcher.ask!(:terminate!)
 
-        manager.async.stop(shutdown: !!options[:shutdown], timeout: Shoryuken.options[:timeout])
-        @condvar.wait
-        manager.terminate
+        @manager.ask!([:stop, shutdown: !!options[:shutdown], timeout: Shoryuken.options[:timeout]])
+        @manager.ask!(:terminate!)
       end
     end
 
     def run
       watchdog('Launcher#run') do
-        manager.async.start
+        @manager.tell(:start)
       end
-    end
-
-    def actor_died(actor, reason)
-      return if @done
-      logger.warn { "Shoryuken died due to the following error, cannot recover, process exiting: #{reason}" }
-      exit 1
     end
   end
 end
