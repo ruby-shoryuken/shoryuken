@@ -7,7 +7,6 @@ require 'erb'
 require 'shoryuken'
 require 'concurrent-edge'
 
-
 module Shoryuken
   # See: https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
   class Shutdown < Interrupt; end

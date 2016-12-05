@@ -5,11 +5,6 @@ module Shoryuken
   class Manager < Concurrent::Actor::RestartingContext
     include Util
 
-    def on_message(msg)
-      method, *args = msg
-      send(method, *args)
-    end
-
     def initialize
       @count = Shoryuken.options[:concurrency] || 25
 
@@ -138,13 +133,6 @@ module Shoryuken
 
         @fetcher_paused = true
       end
-    end
-
-
-    def on_event(event)
-      if event == :reset
-      end
-      logger.info(event.inspect)
     end
 
     private

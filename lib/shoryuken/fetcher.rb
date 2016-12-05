@@ -4,11 +4,6 @@ module Shoryuken
 
     FETCH_LIMIT = 10
 
-    def on_message(msg)
-      method, *args = msg
-      send(method, *args)
-    end
-
     def initialize(manager)
       @manager = manager
     end

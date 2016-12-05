@@ -5,14 +5,14 @@ module Shoryuken
         EXTEND_UPFRONT_SECONDS = 5
 
         def call(worker, queue, sqs_msg, body)
-          # timer = auto_visibility_timer(worker, queue, sqs_msg, body)
+          timer = auto_visibility_timer(worker, queue, sqs_msg, body)
           begin
             yield
           ensure
-            # if timer
-            #   timer.cancel
-            #   @visibility_extender.terminate
-            # end
+            if timer
+              timer.shutdown
+              @visibility_extender.ask!(:terminate)
+            end
           end
         end
 
@@ -24,7 +24,9 @@ module Shoryuken
           def auto_extend(worker, queue, sqs_msg, body)
             queue_visibility_timeout = Shoryuken::Client.queues(queue).visibility_timeout
 
-            every(queue_visibility_timeout - EXTEND_UPFRONT_SECONDS) do
+            interval = queue_visibility_timeout - EXTEND_UPFRONT_SECONDS
+
+            Concurrent::TimerTask.execute(execution_interval: interval, timeout_interval: interval) do
               begin
                 logger.debug do
                   "Extending message #{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id} " \
@@ -45,7 +47,7 @@ module Shoryuken
 
         def auto_visibility_timer(worker, queue, sqs_msg, body)
           return unless worker.class.auto_visibility_timeout?
-          @visibility_extender = MessageVisibilityExtender.new_link
+          @visibility_extender = MessageVisibilityExtender.spawn! name: :message_visibility_extender, link: true
           @visibility_extender.auto_extend(worker, queue, sqs_msg, body)
         end
       end

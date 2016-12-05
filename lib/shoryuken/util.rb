@@ -1,5 +1,10 @@
 module Shoryuken
   module Util
+    def on_message(msg)
+      method, *args = msg
+      send(method, *args)
+    end
+
     def watchdog(last_words)
       yield
     rescue => ex

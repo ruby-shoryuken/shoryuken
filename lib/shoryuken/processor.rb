@@ -8,11 +8,6 @@ module Shoryuken
       @manager = manager
     end
 
-    def on_message(msg)
-      method, *args = msg
-      send(method, *args)
-    end
-
     def process(queue, sqs_msg)
       worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
 

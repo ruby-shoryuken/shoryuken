@@ -56,7 +56,6 @@ module Shoryuken
       unless Shoryuken.options[:aws].to_h.empty?
         Shoryuken.logger.warn { '[DEPRECATION] aws in shoryuken.yml is deprecated. Please use configure_server and configure_client in your initializer' }
       end
-
       Shoryuken::AwsConfig.setup(Shoryuken.options[:aws])
     end
 
