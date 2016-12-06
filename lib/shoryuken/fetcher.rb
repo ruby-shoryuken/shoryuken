@@ -1,6 +1,5 @@
 module Shoryuken
-  class Fetcher
-    include Celluloid
+  class Fetcher < Concurrent::Actor::RestartingContext
     include Util
 
     FETCH_LIMIT = 10
@@ -35,16 +34,16 @@ module Shoryuken
             logger.debug { "Found #{sqs_msgs.size} messages for '#{queue}'" }
 
             if batch
-              @manager.async.assign(queue, patch_sqs_msgs!(sqs_msgs))
+              @manager.tell([:assign, queue, patch_sqs_msgs!(sqs_msgs)])
             else
-              sqs_msgs.each { |sqs_msg| @manager.async.assign(queue, sqs_msg) }
+              sqs_msgs.each { |sqs_msg| @manager.tell([:assign, queue, sqs_msg]) }
             end
 
-            @manager.async.rebalance_queue_weight!(queue)
+            @manager.tell([:rebalance_queue_weight!, queue])
           else
             logger.debug { "No message found for '#{queue}'" }
 
-            @manager.async.pause_queue!(queue)
+            @manager.tell([:pause_queue!, queue])
           end
 
           logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
@@ -53,9 +52,8 @@ module Shoryuken
           logger.error { ex.backtrace.first }
         end
 
-        @manager.async.dispatch
+        @manager.tell([:dispatch])
       end
-
     end
 
     private

@@ -1,28 +1,23 @@
 require 'json'
 
 module Shoryuken
-  class Processor
-    include Celluloid
+  class Processor < Concurrent::Actor::RestartingContext
     include Util
 
     def initialize(manager)
       @manager = manager
     end
 
-    attr_accessor :proxy_id
-
     def process(queue, sqs_msg)
-      @manager.async.real_thread(proxy_id, Thread.current)
-
       worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
 
-        body = get_body(worker.class, sqs_msg)
+      body = get_body(worker.class, sqs_msg)
 
-        worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
-          worker.perform(sqs_msg, body)
-        end
+      worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
+        worker.perform(sqs_msg, body)
+      end
 
-        @manager.async.processor_done(queue, current_actor)
+      @manager.tell([:processor_done, queue, self])
     end
 
     private
