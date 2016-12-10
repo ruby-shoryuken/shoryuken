@@ -123,8 +123,6 @@ And setup ```aws``` options to use ```configure_client``` in `config/initializer
 ```ruby
 Shoryuken.configure_client do |config|
   config.aws = {
-    sqs_endpoint:      ...,         # or ENV["AWS_SQS_ENDPOINT"]
-    sns_endpoint:      ...,         # or ENV["AWS_SNS_ENDPOINT"]
     secret_access_key: ...,         # or ENV["AWS_SECRET_ACCESS_KEY"]
     access_key_id:     ...,         # or ENV["AWS_ACCESS_KEY_ID"]
     region:            "us-east-1", # or ENV["AWS_REGION"]
@@ -144,7 +142,6 @@ If you use Shoryuken with plain ruby worker class (not Rails), please call `conf
 ```ruby
 Shoryuken.configure_client do |config|
   config.aws = {
-    sqs_endpoint:      ENV["AWS_SQS_ENDPOINT"],
     secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
     access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
     region:            ENV["AWS_REGION"]
@@ -179,7 +176,6 @@ For example, use the `configure_server` in `config/initializers/shoryuken.rb`:
 ```ruby
 Shoryuken.configure_client do |config|
   config.aws = {
-    sqs_endpoint:      ENV["AWS_SQS_ENDPOINT"],
     secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
     access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
     region:            ENV["AWS_REGION"]
@@ -188,7 +184,6 @@ end
 
 Shoryuken.configure_server do |config|
   config.aws = {
-    sqs_endpoint:      ENV["AWS_SQS_ENDPOINT"],
     secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
     access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
     region:            ENV["AWS_REGION"]
