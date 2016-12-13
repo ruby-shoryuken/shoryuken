@@ -113,7 +113,7 @@ module Shoryuken
       queue = polling_strategy.next_queue
       if queue.nil?
         logger.debug { 'Pausing fetcher, because all queues are paused' }
-        after(1) { dispatch }
+        dispatch_later
         return
       end
 
