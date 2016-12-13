@@ -55,8 +55,8 @@ describe Shoryuken::Middleware::Server::AutoDelete do
       expect(sqs_queue).to_not receive(:delete_messages)
 
       expect {
-        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'Error' }
-      }.to raise_error(RuntimeError, 'Error')
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' }
+      }.to raise_error('failed')
     end
   end
 end

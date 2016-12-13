@@ -46,7 +46,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 300)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'retries the job with exponential backoff' do
@@ -56,7 +56,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 1800)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'uses the last retry interval when :receive_count exceeds the size of :retry_intervals' do
@@ -66,7 +66,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 1800)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'limits the visibility timeout to 12 hours from receipt of message' do
@@ -75,7 +75,7 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       allow(sqs_msg).to receive(:queue){ sqs_queue }
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 43198)
 
-      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise } }.not_to raise_error
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
   end
 end
