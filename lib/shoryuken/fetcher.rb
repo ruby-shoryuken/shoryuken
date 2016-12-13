@@ -14,7 +14,7 @@ module Shoryuken
           limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
 
           sqs_msgs = Array(receive_messages(queue, limit))
-          logger.info { "Found #{sqs_msgs.size} messages for '#{queue}'" }
+          logger.info { "Found #{sqs_msgs.size} messages for '#{queue.name}'" }
           logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
           sqs_msgs
         rescue => ex
