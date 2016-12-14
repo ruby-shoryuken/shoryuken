@@ -110,15 +110,6 @@ end
 Sample configuration file `shoryuken.yml`.
 
 ```yaml
-aws:
-  access_key_id:      ...       # or <%= ENV['AWS_ACCESS_KEY_ID'] %>
-  secret_access_key:  ...       # or <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
-  region:             us-east-1 # or <%= ENV['AWS_REGION'] %>
-  receive_message:              # See http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
-    # wait_time_seconds: N      # The number of seconds to wait for new messages when polling. Defaults to the #wait_time_seconds defined on the queue
-    attribute_names:
-      - ApproximateReceiveCount
-      - SentTimestamp
 concurrency: 25  # The number of allocated threads to process messages. Default 25
 delay: 25        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
@@ -127,23 +118,79 @@ queues:
   - [low_priority, 1]
 ```
 
-The ```aws``` section is used to configure both the Aws objects used by Shoryuken internally, and also to set up some Shoryuken-specific config. The Shoryuken-specific keys are listed below, and you can expect any other key defined in that block to be passed on untouched to ```Aws::SQS::Client#initialize```:
+And setup ```aws``` options to use ```configure_client``` in `config/initializers/shoryuken.rb`:
 
-- ```account_id``` is used when generating SNS ARNs
-- ```sns_endpoint``` can be used to explicitly override the SNS endpoint
-- ```sqs_endpoint``` can be used to explicitly override the SQS endpoint
-- ```receive_message``` can be used to define the options passed to the http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
+```ruby
+Shoryuken.configure_client do |config|
+  config.aws = {
+    secret_access_key: ...,         # or ENV["AWS_SECRET_ACCESS_KEY"]
+    access_key_id:     ...,         # or ENV["AWS_ACCESS_KEY_ID"]
+    region:            "us-east-1", # or ENV["AWS_REGION"]
+    receive_message: {              # See http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
+      # wait_time_seconds: N,       # The number of seconds to wait for new messages when polling. Defaults to the #wait_time_seconds defined on the queue
+      attribute_names: [
+        "ApproximateReceiveCount",
+        "SentTimestamp"
+      ]
+    }
+  }
+end
+```
 
-The ```sns_endpoint``` and ```sqs_endpoint``` Shoryuken-specific options will also fallback to the environment variables ```AWS_SNS_ENDPOINT``` and ```AWS_SQS_ENDPOINT``` respectively, if they are set.
+If you use Shoryuken with plain ruby worker class (not Rails), please call `configure_client` at the beginning of the worker file:
+
+```ruby
+Shoryuken.configure_client do |config|
+  config.aws = {
+    secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
+    access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
+    region:            ENV["AWS_REGION"]
+  }
+end
+
+class MyWorker
+end
+```
+
+The `aws` section is used to configure both the Aws objects used by Shoryuken internally, and also to set up some Shoryuken-specific config. The Shoryuken-specific keys are listed below, and you can expect any other key defined in that block to be passed on untouched to `Aws::SQS::Client#initialize`:
+
+- `account_id` is used when generating SNS ARNs
+- `sns_endpoint` can be used to explicitly override the SNS endpoint
+- `sqs_endpoint` can be used to explicitly override the SQS endpoint
+- `receive_message` can be used to define the options passed to the http://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#receive_message-instance_method
+
+The `sns_endpoint` and `sqs_endpoint` Shoryuken-specific options will also fallback to the environment variables `AWS_SNS_ENDPOINT` and `AWS_SQS_ENDPOINT` respectively, if they are set.
 
 ### Configuration (producer side)
 
 'Producer' processes need permissions to put messages into SQS. There are a few ways:
 
+* Use the `configure_server` in Rails initializer
 * Ensure the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` env vars are set.
 * Create a `~/.aws/credentials` file.
 * Set `Aws.config[:credentials]` from Ruby code (e.g. in a Rails initializer)
 * Use the Instance Profiles feature. The IAM role of the targeted machine must have an adequate SQS Policy.
+
+For example, use the `configure_server` in `config/initializers/shoryuken.rb`:
+
+```ruby
+Shoryuken.configure_client do |config|
+  config.aws = {
+    secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
+    access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
+    region:            ENV["AWS_REGION"]
+  }
+end
+
+Shoryuken.configure_server do |config|
+  config.aws = {
+    secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
+    access_key_id:     ENV["AWS_ACCESS_KEY_ID"],
+    region:            ENV["AWS_REGION"]
+  }
+end
+```
+
 
 Note that storing your credentials into Amazon instances represents a security risk. Instance Profiles tends to be the best choice.
 
