@@ -19,11 +19,49 @@ module Shoryuken
       end
 
       alias_method :eql?, :==
+
+      def to_s
+        options.empty? ? name : super
+      end
     end
 
-    class WeightedRoundRobin
+    class BaseStrategy
       include Util
 
+      def next_queue
+        fail NotImplementedError
+      end
+
+      def messages_found(queue, messages_found)
+        fail NotImplementedError
+      end
+
+      def active_queues
+        fail NotImplementedError
+      end
+
+      def ==(other)
+        case other
+        when Array
+          @queues == other
+        else
+          if other.respond_to?(:active_queues)
+            active_queues == other.active_queues
+          else
+            false
+          end
+        end
+      end
+
+      private
+
+      def delay
+        Shoryuken.options[:delay].to_f
+      end
+    end
+
+    class WeightedRoundRobin < BaseStrategy
+      
       def initialize(queues)
         @initial_queues = queues
         @queues = queues.dup.uniq
@@ -57,24 +95,7 @@ module Shoryuken
         unparse_queues(@queues)
       end
 
-      def ==(other)
-        case other
-        when Array
-          @queues == other
-        else
-          if other.respond_to?(:active_queues)
-            active_queues == other.active_queues
-          else
-            false
-          end
-        end
-      end
-
       private
-
-      def delay
-        Shoryuken.options[:delay].to_f
-      end
 
       def pause(queue)
         return unless @queues.delete(queue)
@@ -100,6 +121,95 @@ module Shoryuken
 
       def queue_weight(queues, queue)
         queues.count { |q| q == queue }
+      end
+    end
+
+    class StrictPriority < BaseStrategy
+
+      def initialize(queues)
+        # Mapping of queues to priority values
+        @queue_priorities = queues
+          .each_with_object(Hash.new(0)) { |queue, h| h[queue] += 1 }
+
+        # Priority ordering of the queues
+        @queue_order = @queue_priorities
+          .to_a
+          .sort_by { |queue, priority| -priority }
+          .map(&:first)
+
+        # Pause status of the queues
+        @queue_status = @queue_order
+          .each_with_object({}) { |queue, h| h[queue] = [true, nil] }
+
+        # Most recently used queue
+        @current_queue = nil
+      end
+
+      def next_queue
+        unpause_queues
+        @current_queue = next_active_queue
+        return nil if @current_queue.nil?
+        QueueConfiguration.new(@current_queue, {})
+      end
+
+      def messages_found(queue, messages_found)
+        if messages_found == 0
+          # If no messages are found, we pause a given queue
+          pause(queue) 
+        else
+          # Reset the current queue when messages found to cause priorities to re-run
+          @current_queue = nil
+        end
+      end
+
+      def active_queues
+        @queue_status
+          .select { |_, status| status.first }
+          .map { |queue, _| [queue, @queue_priorities[queue]] }
+      end
+
+      private
+
+      def next_active_queue
+        return nil unless @queue_order.length > 0
+
+        start = @current_queue.nil? ? 0 : @queue_order.index(@current_queue) + 1
+        i = 0
+
+        # Loop through the queue order from the current queue until we find a
+        # queue that is next in line and is not paused
+        while true
+          queue = @queue_order[(start + i) % @queue_order.length]
+          active, delay = @queue_status[queue]
+          
+          i += 1
+          return queue if active
+          return nil if i >= @queue_order.length # Prevents infinite looping
+        end
+      end
+
+      def pause(queue)
+        return unless delay > 0
+        @queue_status[queue] = [false, Time.now + delay]
+        logger.debug "Paused '#{queue}'"
+      end
+ 
+      def unpause_queues
+        # Modifies queue statuses for queues that are now unpaused
+        @queue_status = @queue_status.each_with_object({}) do |e, h|
+          queue, status = e
+          active, delay = status
+
+          h[queue] = if active
+            [true, nil]
+          elsif Time.now > delay
+            logger.debug "Unpaused '#{queue}'"
+            @current_queue = nil # Reset the check ordering on un-pause
+            [true, nil]
+          else
+            [false, delay]
+          end
+        end
       end
     end
   end
