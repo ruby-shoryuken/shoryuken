@@ -23,9 +23,9 @@ module Shoryuken
 
       @done = false
 
-      @busy  = []
-      @ready = @count.times.map { build_processor }
-      @threads = {}
+      @busy_processors  = []
+      @busy_threads = {}
+      @ready_processors = @count.times.map { build_processor }
     end
 
     def start
@@ -45,14 +45,14 @@ module Shoryuken
 
         fire_event(:shutdown, true)
 
-        logger.info { "Shutting down #{@ready.size} quiet workers" }
+        logger.info { "Shutting down #{@ready_processors.size} quiet workers" }
 
-        @ready.each do |processor|
+        @ready_processors.each do |processor|
           processor.terminate if processor.alive?
         end
-        @ready.clear
+        @ready_processors.clear
 
-        return after(0) { @finished.signal } if @busy.empty?
+        return after(0) { @finished.signal } if @busy_processors.empty?
 
         if options[:shutdown]
           hard_shutdown_in(options[:timeout])
@@ -66,14 +66,14 @@ module Shoryuken
       watchdog('Manager#processor_done died') do
         logger.debug { "Process done for '#{queue}'" }
 
-        @threads.delete(processor.object_id)
-        @busy.delete processor
+        @busy_processors.delete(processor)
+        @busy_threads.delete(processor.object_id)
 
         if stopped?
           processor.terminate if processor.alive?
-          return after(0) { @finished.signal } if @busy.empty?
+          return after(0) { @finished.signal } if @busy_processors.empty?
         else
-          @ready << processor
+          @ready_processors << processor
           async.dispatch
         end
       end
@@ -83,13 +83,13 @@ module Shoryuken
       watchdog("Manager#processor_died died") do
         logger.error { "Process died, reason: #{reason}" }
 
-        @threads.delete(processor.object_id)
-        @busy.delete processor
+        @busy_processors.delete(processor)
+        @busy_threads.delete(processor.object_id)
 
         if stopped?
-          return after(0) { @finished.signal } if @busy.empty?
+          return after(0) { @finished.signal } if @busy_processors.empty?
         else
-          @ready << build_processor
+          @ready_processors << build_processor
           async.dispatch
         end
       end
@@ -102,9 +102,9 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      logger.debug { "Ready: #{@ready.size}, Busy: #{@busy.size}, Active Queues: #{polling_strategy.active_queues}" }
+      logger.debug { "Ready: #{@ready_processors.size}, Busy: #{@busy_processors.size}, Active Queues: #{polling_strategy.active_queues}" }
 
-      if @ready.empty?
+      if @ready_processors.empty?
         logger.debug { 'Pausing fetcher, because all processors are busy' }
         dispatch_later
         return
@@ -122,10 +122,6 @@ module Shoryuken
       async.dispatch
     end
 
-    def real_thread(proxy_id, thr)
-      @threads[proxy_id] = thr
-    end
-
     private
 
     def dispatch_later
@@ -139,8 +135,9 @@ module Shoryuken
       watchdog('Manager#assign died') do
         logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-        processor = @ready.pop
-        @busy << processor
+        processor = @ready_processors.pop
+        @busy_threads[processor.object_id] = processor.running_thread
+        @busy_processors << processor
 
         processor.async.process(queue, sqs_msg)
       end
@@ -153,7 +150,7 @@ module Shoryuken
     end
 
     def dispatch_single_messages(queue)
-      messages = fetcher.fetch(queue, @ready.size)
+      messages = fetcher.fetch(queue, @ready_processors.size)
       polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
@@ -173,9 +170,9 @@ module Shoryuken
     end
 
     def soft_shutdown(delay)
-      logger.info { "Waiting for #{@busy.size} busy workers" }
+      logger.info { "Waiting for #{@busy_processors.size} busy workers" }
 
-      if @busy.size > 0
+      if @busy_processors.size > 0
         after(delay) { soft_shutdown(delay) }
       else
         @finished.signal
@@ -183,16 +180,16 @@ module Shoryuken
     end
 
     def hard_shutdown_in(delay)
-      logger.info { "Waiting for #{@busy.size} busy workers" }
+      logger.info { "Waiting for #{@busy_processors.size} busy workers" }
       logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
       after(delay) do
         watchdog('Manager#hard_shutdown_in died') do
-          if @busy.size > 0
-            logger.info { "Hard shutting down #{@busy.size} busy workers" }
+          if @busy_processors.size > 0
+            logger.info { "Hard shutting down #{@busy_processors.size} busy workers" }
 
-            @busy.each do |processor|
-              if processor.alive? && t = @threads.delete(processor.object_id)
+            @busy_processors.each do |processor|
+              if processor.alive? && t = @busy_threads.delete(processor.object_id)
                 t.raise Shutdown
               end
             end
