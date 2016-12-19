@@ -8,16 +8,12 @@ module Shoryuken
     end
 
     def stop(options = {})
-      watchdog('Launcher#stop') do
-        @manager.stop(shutdown: !!options[:shutdown],
-                      timeout: Shoryuken.options[:timeout])
-      end
+      @manager.stop(shutdown: !!options[:shutdown],
+                    timeout: Shoryuken.options[:timeout])
     end
 
     def run
-      watchdog('Launcher#run') do
-        @manager.start
-      end
+      @manager.start
     end
   end
 end

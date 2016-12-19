@@ -29,34 +29,30 @@ module Shoryuken
     end
 
     def stop(options = {})
-      watchdog('Manager#stop died') do
-        @done.make_true
+      @done.make_true
 
-        if (callback = Shoryuken.stop_callback)
-          logger.info { 'Calling Shoryuken.on_stop block' }
-          callback.call
-        end
+      if (callback = Shoryuken.stop_callback)
+        logger.info { 'Calling Shoryuken.on_stop block' }
+        callback.call
+      end
 
-        fire_event(:shutdown, true)
+      fire_event(:shutdown, true)
 
-        logger.info { "Shutting down workers" }
+      logger.info { "Shutting down workers" }
 
-        if options[:shutdown]
-          hard_shutdown_in(options[:timeout])
-        else
-          soft_shutdown
-        end
+      if options[:shutdown]
+        hard_shutdown_in(options[:timeout])
+      else
+        soft_shutdown
       end
     end
 
     def processor_done(queue)
-      watchdog('Manager#processor_done died') do
-        logger.debug { "Process done for '#{queue}'" }
+      logger.debug { "Process done for '#{queue}'" }
 
-        @ready.increment
+      @ready.increment
 
-        dispatch_later unless @done.true?
-      end
+      dispatch_later unless @done.true?
     end
 
     def dispatch
@@ -99,13 +95,11 @@ module Shoryuken
     end
 
     def assign(queue, sqs_msg)
-      watchdog('Manager#assign died') do
-        logger.debug { "Assigning #{sqs_msg.message_id}" }
+      logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-        @ready.decrement
+      @ready.decrement
 
-        @pool.post { Processor.new(self).process(queue, sqs_msg) }
-      end
+      @pool.post { Processor.new(self).process(queue, sqs_msg) }
     end
 
     def dispatch_batch(queue)
@@ -139,12 +133,10 @@ module Shoryuken
         sleep(delay)
       end
 
-      watchdog('Manager#hard_shutdown_in died') do
-        if busy > 0
-          logger.info { "Hard shutting down #{busy} busy workers" }
+      if busy > 0
+        logger.info { "Hard shutting down #{busy} busy workers" }
 
-          @pool.kill
-        end
+        @pool.kill
       end
     end
 

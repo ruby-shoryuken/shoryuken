@@ -5,23 +5,21 @@ module Shoryuken
     FETCH_LIMIT = 10
 
     def fetch(queue, available_processors)
-      watchdog('Fetcher#fetch died') do
-        started_at = Time.now
+      started_at = Time.now
 
-        logger.debug { "Looking for new messages in '#{queue}'" }
+      logger.debug { "Looking for new messages in '#{queue}'" }
 
-        begin
-          limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
+      begin
+        limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
 
-          sqs_msgs = Array(receive_messages(queue, limit))
-          logger.info { "Found #{sqs_msgs.size} messages for '#{queue.name}'" }
-          logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
-          sqs_msgs
-        rescue => ex
-          logger.error { "Error fetching message: #{ex}" }
-          logger.error { ex.backtrace.first }
-          []
-        end
+        sqs_msgs = Array(receive_messages(queue, limit))
+        logger.info { "Found #{sqs_msgs.size} messages for '#{queue.name}'" }
+        logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
+        sqs_msgs
+      rescue => ex
+        logger.error { "Error fetching message: #{ex}" }
+        logger.error { ex.backtrace.first }
+        []
       end
     end
 
