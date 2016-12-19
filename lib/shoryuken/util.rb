@@ -1,12 +1,5 @@
 module Shoryuken
   module Util
-    def after(interval, &block)
-      Thread.new do
-        sleep(interval)
-        yield
-      end
-    end
-
     def logger
       Shoryuken.logger
     end

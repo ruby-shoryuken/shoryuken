@@ -15,6 +15,8 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 1, timeout_interval: 60) { dispatch }
+
       @ready = Concurrent::AtomicFixnum.new(@count)
 
       @pool = Concurrent::FixedThreadPool.new(@count)
@@ -23,7 +25,7 @@ module Shoryuken
     def start
       logger.info { 'Starting' }
 
-      dispatch
+      @heartbeat.execute
     end
 
     def stop(options = {})
@@ -37,6 +39,8 @@ module Shoryuken
       fire_event(:shutdown, true)
 
       logger.info { "Shutting down workers" }
+
+      @heartbeat.kill
 
       if options[:shutdown]
         hard_shutdown_in(options[:timeout])
@@ -59,26 +63,18 @@ module Shoryuken
       logger.debug { "Ready: #{@ready.value}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       if @ready.value == 0
-        logger.debug { 'Pausing fetcher, because all processors are busy' }
-        return dispatch_later
+        return logger.debug { 'Pausing fetcher, because all processors are busy' }
       end
 
       unless queue = @polling_strategy.next_queue
-        logger.debug { 'Pausing fetcher, because all queues are paused' }
-        return dispatch_later
+        return logger.debug { 'Pausing fetcher, because all queues are paused' }
       end
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-
-      return dispatch_later
     end
 
     def busy
       @count - @ready.value
-    end
-
-    def dispatch_later
-      after(1) { dispatch }
     end
 
     def assign(queue, sqs_msg)
