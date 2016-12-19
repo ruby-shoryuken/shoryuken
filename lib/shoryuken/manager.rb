@@ -121,14 +121,6 @@ module Shoryuken
       Shoryuken.worker_registry.batch_receive_messages?(queue.name)
     end
 
-    def delay
-      Shoryuken.options[:delay].to_f
-    end
-
-    def build_processor
-      Processor.new(self)
-    end
-
     def soft_shutdown(delay)
       logger.info { "Waiting for #{busy} busy workers" }
 
