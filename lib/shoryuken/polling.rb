@@ -21,7 +21,11 @@ module Shoryuken
       alias_method :eql?, :==
 
       def to_s
-        options.empty? ? name : super
+        if options.empty?
+          name
+        else
+          "#<QueueConfiguration #{name} options=#{options.inspect}>"
+        end
       end
     end
 
