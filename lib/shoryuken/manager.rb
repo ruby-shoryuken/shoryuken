@@ -42,7 +42,7 @@ module Shoryuken
         if options[:shutdown]
           hard_shutdown_in(options[:timeout])
         else
-          soft_shutdown(options[:timeout])
+          soft_shutdown
         end
       end
     end
@@ -118,7 +118,7 @@ module Shoryuken
       Shoryuken.worker_registry.batch_receive_messages?(queue.name)
     end
 
-    def soft_shutdown(delay)
+    def soft_shutdown
       logger.info { "Waiting for #{busy} busy workers" }
 
       @pool.shutdown
