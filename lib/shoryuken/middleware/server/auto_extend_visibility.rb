@@ -6,11 +6,11 @@ module Shoryuken
 
         def call(worker, queue, sqs_msg, body)
           timer = auto_visibility_timer(worker, queue, sqs_msg, body)
-          timer&.execute
+          timer.execute if timer
           begin
             yield
           ensure
-            timer&.kill
+            timer.kill if timer
           end
         end
 
