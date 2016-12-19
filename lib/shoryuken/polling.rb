@@ -132,17 +132,17 @@ module Shoryuken
 
       def initialize(queues)
         # Priority ordering of the queues, highest priority first
-        @initial_order = queues
+        @queues = queues
           .group_by { |q| q }
           .sort_by { |_, qs| -qs.count }
           .map(&:first)
 
-        # Stores the queue ordering with the next queue as first element
-        @queue_order = @initial_order.dup
-
         # Pause status of the queues, default to past time (unpaused)
         @paused_until = queues
           .each_with_object(Hash.new) { |queue, h| h[queue] = Time.at(0) }
+
+        # Start queues at 0
+        reset_next_queue
       end
 
       def next_queue
@@ -152,44 +152,48 @@ module Shoryuken
 
       def messages_found(queue, messages_found)
         if messages_found == 0
-          # If no messages are found, we pause a given queue
           pause(queue)
         else
-          # Reset the queue order to the initial ordering
-          @queue_order = @initial_order.dup
+          reset_next_queue
         end
       end
 
       def active_queues
-        @paused_until
-          .reject { |_, unpause_at| unpause_at > Time.now }
-          .map { |queue, _| [queue, @initial_order.reverse.find_index(queue) + 1] }
+        @queues
+          .reverse
+          .map.with_index(1)
+          .reject { |q, _| queue_paused?(q) }
+          .reverse
       end
 
       private
 
       def next_active_queue
-        now = Time.now
+        reset_next_queue if queues_unpaused_since?
 
-        # Return nil if all queues are paused to prevent infinite loop
-        return nil if @paused_until.values.all? { |t| t > now }
-
-        # If any queues have unpaused since the last time we checked, reset the ordering
-        if @last_check && @paused_until.values.any? { |t| t > @last_check && t <= now }
-          @queue_order = @initial_order.dup
+        size = @queues.length
+        size.times do
+          queue = @queues[@next_queue_index]
+          @next_queue_index = (@next_queue_index + 1) % size
+          return queue unless queue_paused?(queue)
         end
 
-        @last_check = now
+        return nil
+      end
 
-        # `rotate!` through the queue list until we find an unpaused queue
-        begin
-          next_queue = @queue_order.first
-          unpause_at = @paused_until[next_queue]
+      def queues_unpaused_since?
+        last = @last_unpause_check
+        now = @last_unpause_check = Time.now
 
-          @queue_order.rotate!
-        end while unpause_at > now
+        last && @paused_until.values.any? { |t| t > last && t <= now }
+      end
 
-        next_queue
+      def reset_next_queue
+        @next_queue_index = 0
+      end
+
+      def queue_paused?(queue)
+        @paused_until[queue] > Time.now
       end
 
       def pause(queue)
