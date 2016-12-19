@@ -27,6 +27,9 @@ module Shoryuken
         # manager.async.stop(shutdown: !!options[:shutdown], timeout: Shoryuken.options[:timeout])
         # @condvar.wait
         # manager.terminate
+
+        @manager.stop(shutdown: !!options[:shutdown],
+                      timeout: Shoryuken.options[:timeout])
       end
     end
 

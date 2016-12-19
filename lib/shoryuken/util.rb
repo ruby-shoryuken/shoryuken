@@ -1,5 +1,12 @@
 module Shoryuken
   module Util
+    def after(interval, &block)
+      Thread.new do
+        sleep(interval)
+        yield
+      end
+    end
+
     def watchdog(last_words)
       yield
     rescue => ex

@@ -1,6 +1,7 @@
 require 'yaml'
 require 'aws-sdk-core'
 require 'time'
+require 'concurrent'
 
 require 'shoryuken/version'
 require 'shoryuken/core_ext'
