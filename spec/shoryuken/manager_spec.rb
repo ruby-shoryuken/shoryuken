@@ -12,21 +12,12 @@ RSpec.describe Shoryuken::Manager do
   let(:queues) { [queue] }
   let(:polling_strategy) { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
   let(:fetcher) { Shoryuken::Fetcher.new }
-  let(:condvar) do
-    condvar = double(:condvar)
-    allow(condvar).to receive(:signal).and_return(nil)
-    condvar
-  end
-  let(:async_manager) { instance_double(described_class.name) }
   let(:concurrency) { 1 }
 
-  subject { Shoryuken::Manager.new(condvar) }
+  subject { Shoryuken::Manager.new(fetcher, polling_strategy) }
 
   before(:each) do
     Shoryuken.options[:concurrency] = concurrency
-    subject.fetcher = fetcher
-    subject.polling_strategy = polling_strategy
-    allow_any_instance_of(described_class).to receive(:async).and_return(async_manager)
   end
 
   after(:each) do
@@ -37,7 +28,7 @@ RSpec.describe Shoryuken::Manager do
   describe 'Invalid concurrency setting' do
     it 'raises ArgumentError if concurrency is not positive number' do
       Shoryuken.options[:concurrency] = -1
-      expect { Shoryuken::Manager.new(nil) }
+      expect { Shoryuken::Manager.new(nil, nil) }
         .to raise_error(ArgumentError, 'Concurrency value -1 is invalid, it needs to be a positive number')
     end
   end
@@ -52,15 +43,14 @@ RSpec.describe Shoryuken::Manager do
     it 'calls dispatch_batch if worker wants batches' do
       TestWorker.get_shoryuken_options['batch'] = true
       expect_any_instance_of(described_class).to receive(:dispatch_batch).with(queue_config_of(queue))
-      expect_any_instance_of(described_class).to receive(:async).and_return(async_manager)
-      expect(async_manager).to receive(:dispatch)
+      expect(subject).to receive(:dispatch_later)
       subject.dispatch
     end
 
     it 'calls dispatch_single_messages if worker wants single messages' do
       expect_any_instance_of(described_class).to receive(:dispatch_single_messages).
         with(queue_config_of(queue))
-      expect(async_manager).to receive(:dispatch)
+      expect(subject).to receive(:dispatch_later)
       subject.dispatch
     end
   end

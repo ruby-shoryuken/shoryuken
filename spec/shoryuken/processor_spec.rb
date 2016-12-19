@@ -169,7 +169,7 @@ RSpec.describe Shoryuken::Processor do
         end
 
         it 'invokes middleware' do
-          expect(manager).to receive(:processor_done).with(queue, subject)
+          expect(manager).to receive(:processor_done).with(queue)
 
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
@@ -199,7 +199,7 @@ RSpec.describe Shoryuken::Processor do
         end
 
         it "doesn't invoke middleware" do
-          expect(manager).to receive(:processor_done).with(queue, subject)
+          expect(manager).to receive(:processor_done).with(queue)
 
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to_not receive(:called).with(sqs_msg, queue)
@@ -212,7 +212,7 @@ RSpec.describe Shoryuken::Processor do
     it 'performs with delete' do
       TestWorker.get_shoryuken_options['auto_delete'] = true
 
-      expect(manager).to receive(:processor_done).with(queue, subject)
+      expect(manager).to receive(:processor_done).with(queue)
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
@@ -224,7 +224,7 @@ RSpec.describe Shoryuken::Processor do
     it 'performs without delete' do
       TestWorker.get_shoryuken_options['auto_delete'] = false
 
-      expect(manager).to receive(:processor_done).with(queue, subject)
+      expect(manager).to receive(:processor_done).with(queue)
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
@@ -249,7 +249,7 @@ RSpec.describe Shoryuken::Processor do
       it 'performs without delete' do
         Shoryuken.worker_registry.clear # unregister TestWorker
 
-        expect(manager).to receive(:processor_done).with(queue, subject)
+        expect(manager).to receive(:processor_done).with(queue)
 
         expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
