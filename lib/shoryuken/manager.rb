@@ -130,9 +130,11 @@ module Shoryuken
 
     def hard_shutdown_in(delay)
       logger.info { "Waiting for #{busy} busy workers" }
-      logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
-      sleep(delay)
+      if busy > 0
+        logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
+        sleep(delay)
+      end
 
       watchdog('Manager#hard_shutdown_in died') do
         if busy > 0
