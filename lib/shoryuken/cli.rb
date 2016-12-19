@@ -14,8 +14,6 @@ module Shoryuken
     include Util
     include Singleton
 
-    attr_accessor :launcher
-
     def run(args)
       self_read, self_write = IO.pipe
 
@@ -54,14 +52,14 @@ module Shoryuken
       fire_event(:startup)
 
       begin
-        launcher.run
+        @launcher.run
 
         while (readable_io = IO.select([self_read]))
           signal = readable_io.first[0].gets.strip
           handle_signal(signal)
         end
       rescue Interrupt
-        launcher.stop(shutdown: true)
+        @launcher.stop(shutdown: true)
         exit 0
       end
     end
@@ -187,7 +185,7 @@ module Shoryuken
       when 'USR1'
         logger.info { 'Received USR1, will soft shutdown down' }
 
-        launcher.stop
+        @launcher.stop
         fire_event(:quiet, true)
         exit 0
       when 'TTIN'
@@ -200,11 +198,11 @@ module Shoryuken
           end
         end
 
-        ready  = launcher.manager.instance_variable_get(:@ready).size
-        busy   = launcher.manager.instance_variable_get(:@busy).size
-        queues = launcher.manager.instance_variable_get(:@queues)
+        # ready  = launcher.manager.instance_variable_get(:@ready).size
+        # busy   = launcher.manager.instance_variable_get(:@busy).size
+        # queues = launcher.manager.instance_variable_get(:@queues)
 
-        logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}" }
+        # logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}" }
       else
         logger.info { "Received #{sig}, will shutdown down" }
 

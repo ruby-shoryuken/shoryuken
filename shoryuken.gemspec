@@ -26,4 +26,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'aws-sdk-core', '~> 2'
   spec.add_dependency 'celluloid', '~> 0.16'
+  spec.add_dependency 'concurrent-ruby'
 end

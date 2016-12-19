@@ -3,29 +3,36 @@ require 'shoryuken/fetcher'
 
 module Shoryuken
   class Manager
-    include Celluloid
+    # include Celluloid
     include Util
 
-    attr_accessor :fetcher
-    attr_accessor :polling_strategy
+    # attr_accessor :fetcher
+    # attr_accessor :polling_strategy
 
-    exclusive :dispatch
+    # exclusive :dispatch
 
-    trap_exit :processor_died
+    # trap_exit :processor_died
 
     BATCH_LIMIT = 10
 
-    def initialize(condvar)
+    def initialize(fetcher, polling_strategy)
       @count = Shoryuken.options[:concurrency] || 25
       raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
       @queues = Shoryuken.queues.dup.uniq
-      @finished = condvar
+      # @finished = condvar
 
       @done = false
 
-      @busy_processors  = []
-      @busy_threads = {}
-      @ready_processors = @count.times.map { build_processor }
+      @fetcher = fetcher
+      @polling_strategy = polling_strategy
+
+      @ready = Concurrent::AtomicFixnum.new(@count)
+
+      @pool = Concurrent::FixedThreadPool.new(@count)
+
+      # @busy_processors  = []
+      # @busy_threads = {}
+      # @ready_processors = @count.times.map { build_processor }
     end
 
     def start
@@ -43,16 +50,16 @@ module Shoryuken
           callback.call
         end
 
-        fire_event(:shutdown, true)
+        # fire_event(:shutdown, true)
 
-        logger.info { "Shutting down #{@ready_processors.size} quiet workers" }
+        # logger.info { "Shutting down #{@ready_processors.size} quiet workers" }
 
-        @ready_processors.each do |processor|
-          processor.terminate if processor.alive?
-        end
-        @ready_processors.clear
+        # @ready_processors.each do |processor|
+        #   processor.terminate if processor.alive?
+        # end
+        # @ready_processors.clear
 
-        return after(0) { @finished.signal } if @busy_processors.empty?
+        # return after(0) { @finished.signal } if @busy_processors.empty?
 
         if options[:shutdown]
           hard_shutdown_in(options[:timeout])
@@ -62,20 +69,22 @@ module Shoryuken
       end
     end
 
-    def processor_done(queue, processor)
+    # def processor_done(queue, processor)
+    def processor_done(queue)
       watchdog('Manager#processor_done died') do
         logger.debug { "Process done for '#{queue}'" }
 
-        @busy_processors.delete(processor)
-        @busy_threads.delete(processor.object_id)
+        @ready.increment
+        # @busy_processors.delete(processor)
+        # @busy_threads.delete(processor.object_id)
 
-        if stopped?
-          processor.terminate if processor.alive?
-          return after(0) { @finished.signal } if @busy_processors.empty?
-        else
-          @ready_processors << processor
-          async.dispatch
-        end
+        # if stopped?
+        #   processor.terminate if processor.alive?
+        #   return after(0) { @finished.signal } if @busy_processors.empty?
+        # else
+        #   @ready_processors << processor
+        #   async.dispatch
+        # end
       end
     end
 
@@ -83,15 +92,15 @@ module Shoryuken
       watchdog("Manager#processor_died died") do
         logger.error { "Process died, reason: #{reason}" }
 
-        @busy_processors.delete(processor)
-        @busy_threads.delete(processor.object_id)
+        # @busy_processors.delete(processor)
+        # @busy_threads.delete(processor.object_id)
 
-        if stopped?
-          return after(0) { @finished.signal } if @busy_processors.empty?
-        else
-          @ready_processors << build_processor
-          async.dispatch
-        end
+        # if stopped?
+        #   return after(0) { @finished.signal } if @busy_processors.empty?
+        # else
+        #   @ready_processors << build_processor
+        #   async.dispatch
+        # end
       end
     end
 
@@ -102,55 +111,59 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      logger.debug { "Ready: #{@ready_processors.size}, Busy: #{@busy_processors.size}, Active Queues: #{polling_strategy.active_queues}" }
+      # logger.debug { "Ready: #{@ready_processors.size}, Busy: #{@busy_processors.size}, Active Queues: #{polling_strategy.active_queues}" }
 
-      if @ready_processors.empty?
-        logger.debug { 'Pausing fetcher, because all processors are busy' }
-        dispatch_later
-        return
-      end
+      # if @ready_processors.empty?
+      #   logger.debug { 'Pausing fetcher, because all processors are busy' }
+      #   dispatch_later
+      #   return
+      # end
 
-      queue = polling_strategy.next_queue
-      if queue.nil?
-        logger.debug { 'Pausing fetcher, because all queues are paused' }
-        dispatch_later
-        return
-      end
+      queue = @polling_strategy.next_queue
+      # if queue.nil?
+      #   logger.debug { 'Pausing fetcher, because all queues are paused' }
+      #   dispatch_later
+      #   return
+      # end
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
-      async.dispatch
+      # async.dispatch
     end
 
     private
 
     def dispatch_later
-      @_dispatch_timer ||= after(1) do
-        @_dispatch_timer = nil
-        dispatch
-      end
+      # @_dispatch_timer ||= after(1) do
+      #   @_dispatch_timer = nil
+      #   dispatch
+      # end
     end
 
     def assign(queue, sqs_msg)
       watchdog('Manager#assign died') do
         logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-        processor = @ready_processors.pop
-        @busy_threads[processor.object_id] = processor.running_thread
-        @busy_processors << processor
+        @ready.decrement
 
-        processor.async.process(queue, sqs_msg)
+        @pool.post { Processor.new(self).process(queue, sqs_msg) }
+
+        # processor = @ready_processors.pop
+        # @busy_threads[processor.object_id] = processor.running_thread
+        # @busy_processors << processor
+
+        # processor.async.process(queue, sqs_msg)
       end
     end
 
     def dispatch_batch(queue)
-      batch = fetcher.fetch(queue, BATCH_LIMIT)
-      polling_strategy.messages_found(queue.name, batch.size)
-      assign(queue.name, patch_batch!(batch))
+      # batch = fetcher.fetch(queue, BATCH_LIMIT)
+      # polling_strategy.messages_found(queue.name, batch.size)
+      # assign(queue.name, patch_batch!(batch))
     end
 
     def dispatch_single_messages(queue)
-      messages = fetcher.fetch(queue, @ready_processors.size)
+      messages = fetcher.fetch(queue, @ready.value)
       polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
@@ -164,40 +177,41 @@ module Shoryuken
     end
 
     def build_processor
-      processor = Processor.new_link(current_actor)
-      processor.proxy_id = processor.object_id
-      processor
+      # processor = Processor.new_link(current_actor)
+      # processor.proxy_id = processor.object_id
+      # processor
+      Processor.new(self)
     end
 
     def soft_shutdown(delay)
-      logger.info { "Waiting for #{@busy_processors.size} busy workers" }
+      # logger.info { "Waiting for #{@busy_processors.size} busy workers" }
 
-      if @busy_processors.size > 0
-        after(delay) { soft_shutdown(delay) }
-      else
-        @finished.signal
-      end
+      # if @busy_processors.size > 0
+      #   after(delay) { soft_shutdown(delay) }
+      # else
+      #   @finished.signal
+      # end
     end
 
     def hard_shutdown_in(delay)
-      logger.info { "Waiting for #{@busy_processors.size} busy workers" }
-      logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
+      # logger.info { "Waiting for #{@busy_processors.size} busy workers" }
+      # logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
-      after(delay) do
-        watchdog('Manager#hard_shutdown_in died') do
-          if @busy_processors.size > 0
-            logger.info { "Hard shutting down #{@busy_processors.size} busy workers" }
+      # after(delay) do
+      #   watchdog('Manager#hard_shutdown_in died') do
+      #     if @busy_processors.size > 0
+      #       logger.info { "Hard shutting down #{@busy_processors.size} busy workers" }
 
-            @busy_processors.each do |processor|
-              if processor.alive? && t = @busy_threads.delete(processor.object_id)
-                t.raise Shutdown
-              end
-            end
-          end
+      #       @busy_processors.each do |processor|
+      #         if processor.alive? && t = @busy_threads.delete(processor.object_id)
+      #           t.raise Shutdown
+      #         end
+      #       end
+      #     end
 
-          @finished.signal
-        end
-      end
+      #     @finished.signal
+      #   end
+      # end
     end
 
     def patch_batch!(sqs_msgs)
