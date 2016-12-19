@@ -102,21 +102,18 @@ module Shoryuken
     end
 
     def soft_shutdown
-      logger.info { "Waiting for #{busy} busy workers" }
-
       @pool.shutdown
       @pool.wait_for_termination
     end
 
     def hard_shutdown_in(delay)
-      logger.info { "Waiting for #{busy} busy workers" }
-
       if busy > 0
         logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
-        sleep(delay)
       end
 
-      if busy > 0
+      @pool.shutdown
+
+      unless @pool.wait_for_termination(delay)
         logger.info { "Hard shutting down #{busy} busy workers" }
 
         @pool.kill
