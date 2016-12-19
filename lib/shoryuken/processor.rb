@@ -1,15 +1,10 @@
-require 'json'
-
 module Shoryuken
   class Processor
-    # include Celluloid
     include Util
 
     def initialize(manager)
       @manager = manager
     end
-
-    # attr_accessor :proxy_id
 
     def process(queue, sqs_msg)
       worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
@@ -19,13 +14,8 @@ module Shoryuken
         worker.perform(sqs_msg, body)
       end
 
-      # @manager.async.processor_done(queue, current_actor)
       @manager.processor_done(queue)
     end
-
-    # def running_thread
-    #   Thread.current
-    # end
 
     private
 

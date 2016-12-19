@@ -1,4 +1,5 @@
 require 'yaml'
+require 'json'
 require 'aws-sdk-core'
 require 'time'
 require 'concurrent'
@@ -23,6 +24,9 @@ require 'shoryuken/middleware/server/timing'
 require 'shoryuken/sns_arn'
 require 'shoryuken/topic'
 require 'shoryuken/polling'
+require 'shoryuken/manager'
+require 'shoryuken/launcher'
+
 
 module Shoryuken
   DEFAULTS = {

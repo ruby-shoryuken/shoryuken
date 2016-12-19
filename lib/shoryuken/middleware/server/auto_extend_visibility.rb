@@ -1,5 +1,3 @@
-require 'celluloid/current' unless defined?(Celluloid)
-
 module Shoryuken
   module Middleware
     module Server
@@ -7,21 +5,20 @@ module Shoryuken
         EXTEND_UPFRONT_SECONDS = 5
 
         def call(worker, queue, sqs_msg, body)
-          timer = auto_visibility_timer(worker, queue, sqs_msg, body)
+          # timer = auto_visibility_timer(worker, queue, sqs_msg, body)
           begin
             yield
           ensure
-            if timer
-              timer.cancel
-              @visibility_extender.terminate
-            end
+            # if timer
+            #   timer.cancel
+            #   @visibility_extender.terminate
+            # end
           end
         end
 
         private
 
         class MessageVisibilityExtender
-          include Celluloid
           include Util
 
           def auto_extend(worker, queue, sqs_msg, body)

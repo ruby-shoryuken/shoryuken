@@ -2,7 +2,6 @@ require 'bundler/setup'
 Bundler.setup
 
 require 'pry-byebug'
-require 'celluloid/current'
 require 'shoryuken'
 require 'json'
 require 'multi_xml'
@@ -19,7 +18,6 @@ config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.
 Shoryuken::EnvironmentLoader.setup_options(config_file: config_file)
 
 Shoryuken.logger.level = Logger::UNKNOWN
-Celluloid.logger.level = Logger::UNKNOWN
 
 # I'm not sure whether this is an issue specific to running Shoryuken against github.com/comcast/cmb
 # as opposed to AWS itself, but sometimes the receive_messages call returns XML that looks like this:

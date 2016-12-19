@@ -39,9 +39,8 @@ module Shoryuken
 
       loader.load
 
-      load_celluloid
+      configure_concurrent_logger
 
-      require 'shoryuken/launcher'
       @launcher = Shoryuken::Launcher.new
 
       if callback = Shoryuken.start_callback
@@ -66,28 +65,18 @@ module Shoryuken
 
     private
 
-    def load_celluloid
-      require 'celluloid/current'
-      Celluloid.logger = (Shoryuken.options[:verbose] ? Shoryuken.logger : nil)
+    def configure_concurrent_logger
+      return unless Shoryuken.logger
 
-      require 'shoryuken/manager'
-    end
-
-    def celluloid_loaded?
-      defined?(::Celluloid)
+      Concurrent.global_logger = lambda do |level, progname, msg = nil, &block|
+        Shoryuken.logger.log(level, msg, progname, &block)
+      end
     end
 
     def daemonize(options)
       return unless options[:daemon]
 
       fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless options[:logfile]
-
-      if celluloid_loaded?
-        # Celluloid can't be loaded until after we've daemonized
-        # because it spins up threads and creates locks which get
-        # into a very bad state if forked.
-        raise "Celluloid cannot be required until here, or it will break Shoryuken's daemonization"
-      end
 
       files_to_reopen = []
       ObjectSpace.each_object(File) do |file|
@@ -198,11 +187,11 @@ module Shoryuken
           end
         end
 
-        # ready  = launcher.manager.instance_variable_get(:@ready).size
-        # busy   = launcher.manager.instance_variable_get(:@busy).size
-        # queues = launcher.manager.instance_variable_get(:@queues)
+      # ready  = launcher.manager.instance_variable_get(:@ready).size
+      # busy   = launcher.manager.instance_variable_get(:@busy).size
+      # queues = launcher.manager.instance_variable_get(:@queues)
 
-        # logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}" }
+      # logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{unparse_queues(queues)}" }
       else
         logger.info { "Received #{sig}, will shutdown down" }
 
