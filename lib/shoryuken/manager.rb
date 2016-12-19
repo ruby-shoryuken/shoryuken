@@ -12,8 +12,6 @@ module Shoryuken
 
       @done = Concurrent::AtomicBoolean.new(false)
 
-      @dispatch_later = Concurrent::AtomicBoolean.new(false)
-
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
@@ -51,9 +49,9 @@ module Shoryuken
       logger.debug { "Process done for '#{queue}'" }
 
       @ready.increment
-
-      dispatch_later unless @done.true?
     end
+
+    private
 
     def dispatch
       return if @done.true?
@@ -62,34 +60,25 @@ module Shoryuken
 
       if @ready.value == 0
         logger.debug { 'Pausing fetcher, because all processors are busy' }
-        dispatch_later
-        return
+        return dispatch_later
       end
 
       unless queue = @polling_strategy.next_queue
         logger.debug { 'Pausing fetcher, because all queues are paused' }
-        dispatch_later
-        return
+        return dispatch_later
       end
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
-      dispatch_later
+      return dispatch_later
     end
-
-    private
 
     def busy
       @count - @ready.value
     end
 
     def dispatch_later
-      return unless @dispatch_later.make_true
-
-      after(1) do
-        @dispatch_later.make_false
-        dispatch
-      end
+      after(1) { dispatch }
     end
 
     def assign(queue, sqs_msg)
