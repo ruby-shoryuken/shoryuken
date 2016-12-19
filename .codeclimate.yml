@@ -2,8 +2,6 @@
 engines:
   reek:
     enabled: true
-  bundler-audit:
-    enabled: true
   duplication:
     enabled: true
     config:
