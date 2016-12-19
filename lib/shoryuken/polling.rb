@@ -81,7 +81,7 @@ module Shoryuken
         @paused_queues << [Time.now + delay, queue]
         logger.debug "Paused '#{queue}'"
       end
- 
+
       def unpause_queues
         return if @paused_queues.empty?
         return if Time.now < @paused_queues.first[0]
