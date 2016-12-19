@@ -12,7 +12,7 @@ module Shoryuken
 
       @done = Concurrent::AtomicBoolean.new(false)
 
-      @dispatch_timer_mutex = Mutex.new
+      @dispatch_later_mutex = Mutex.new
 
       @fetcher = fetcher
       @polling_strategy = polling_strategy
@@ -88,11 +88,11 @@ module Shoryuken
     end
 
     def dispatch_later
-      return if @_dispatch_timer
+      return if @_dispatch_later
 
-      @dispatch_timer_mutex.synchronize do
-        @_dispatch_timer ||= after(1) do
-          @_dispatch_timer = nil
+      @dispatch_later_mutex.synchronize do
+        @_dispatch_later ||= after(1) do
+          @_dispatch_later = nil
           dispatch
         end
       end
