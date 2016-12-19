@@ -5,7 +5,5 @@ class DefaultWorker
 
   def perform(sqs_msg, body)
     Shoryuken.logger.info("Received message: '#{body}'")
-
-    sleep 25
   end
 end
