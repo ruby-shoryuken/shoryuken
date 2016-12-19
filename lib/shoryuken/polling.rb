@@ -134,7 +134,7 @@ module Shoryuken
         # Priority ordering of the queues, highest priority first
         @initial_order = queues
           .group_by { |q| q }
-          .sort_by { |q, qs| -qs.count }
+          .sort_by { |_, qs| -qs.count }
           .map(&:first)
 
         # Stores the queue ordering with the next queue as first element
