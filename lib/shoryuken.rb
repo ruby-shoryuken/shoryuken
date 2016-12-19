@@ -26,7 +26,8 @@ require 'shoryuken/topic'
 require 'shoryuken/polling'
 require 'shoryuken/manager'
 require 'shoryuken/launcher'
-
+require 'shoryuken/processor'
+require 'shoryuken/fetcher'
 
 module Shoryuken
   DEFAULTS = {

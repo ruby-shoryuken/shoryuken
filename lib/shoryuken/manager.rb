@@ -1,6 +1,3 @@
-require 'shoryuken/processor'
-require 'shoryuken/fetcher'
-
 module Shoryuken
   class Manager
     include Util
@@ -60,10 +57,6 @@ module Shoryuken
       end
     end
 
-    def busy
-      @count - @ready.value
-    end
-
     def dispatch
       return if @done.true?
 
@@ -87,6 +80,10 @@ module Shoryuken
     end
 
     private
+
+    def busy
+      @count - @ready.value
+    end
 
     def dispatch_later
       @_dispatch_timer ||= after(1) do
