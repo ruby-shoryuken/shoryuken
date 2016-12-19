@@ -1,7 +1,7 @@
 ---
 engines:
-  brakeman:
-    enabled: true
+  # brakeman:
+  #   enabled: true
   bundler-audit:
     enabled: true
   duplication:
