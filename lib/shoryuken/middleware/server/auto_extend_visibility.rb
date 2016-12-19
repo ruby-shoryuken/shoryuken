@@ -6,12 +6,9 @@ module Shoryuken
 
         def call(worker, queue, sqs_msg, body)
           timer = auto_visibility_timer(worker, queue, sqs_msg, body)
-          timer.execute if timer
-          begin
-            yield
-          ensure
-            timer.kill if timer
-          end
+          yield
+        ensure
+          timer.kill if timer
         end
 
         private
@@ -44,8 +41,9 @@ module Shoryuken
         def auto_visibility_timer(worker, queue, sqs_msg, body)
           return unless worker.class.auto_visibility_timeout?
 
-          visibility_extender = MessageVisibilityExtender.new
-          visibility_extender.auto_extend(worker, queue, sqs_msg, body)
+          timer = MessageVisibilityExtender.new.auto_extend(worker, queue, sqs_msg, body)
+          timer.execute
+          timer
         end
       end
     end
