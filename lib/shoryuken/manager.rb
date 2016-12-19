@@ -61,7 +61,7 @@ module Shoryuken
     end
 
     def busy
-      @ready.value - @count
+      @count - @ready.value
     end
 
     def dispatch
@@ -140,13 +140,13 @@ module Shoryuken
       logger.info { "Waiting for #{busy} busy workers" }
       logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
 
-      after(delay) do
-        watchdog('Manager#hard_shutdown_in died') do
-          if busy > 0
-            logger.info { "Hard shutting down #{busy} busy workers" }
+      sleep(delay)
 
-            @pool.kill
-          end
+      watchdog('Manager#hard_shutdown_in died') do
+        if busy > 0
+          logger.info { "Hard shutting down #{busy} busy workers" }
+
+          @pool.kill
         end
       end
     end
