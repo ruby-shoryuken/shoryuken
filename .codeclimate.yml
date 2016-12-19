@@ -2,22 +2,22 @@
 engines:
   # brakeman:
   #   enabled: true
-  bundler-audit:
-    enabled: true
-  duplication:
-    enabled: true
-    config:
-      languages:
-      - ruby
-  fixme:
-    enabled: true
-  reek:
-    enabled: true
-  rubocop:
-    enabled: true
-ratings:
-  paths:
-  - "**.rb"
+#   bundler-audit:
+#     enabled: true
+#   duplication:
+#     enabled: true
+#     config:
+#       languages:
+#       - ruby
+#   fixme:
+#     enabled: true
+#   reek:
+#     enabled: true
+#   rubocop:
+#     enabled: true
+# ratings:
+#   paths:
+#   - "**.rb"
 # exclude_paths:
 # - "**/vendor/**/*"
 # - "*/spec/**/*"
