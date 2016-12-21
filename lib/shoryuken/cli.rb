@@ -39,7 +39,7 @@ module Shoryuken
 
       loader.load
 
-      configure_concurrent_logger
+      initialize_concurrent_logger
 
       @launcher = Shoryuken::Launcher.new
 
@@ -65,7 +65,7 @@ module Shoryuken
 
     private
 
-    def configure_concurrent_logger
+    def initialize_concurrent_logger
       return unless Shoryuken.logger
 
       Concurrent.global_logger = lambda do |level, progname, msg = nil, &block|
