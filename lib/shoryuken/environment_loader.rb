@@ -60,8 +60,8 @@ module Shoryuken
     end
 
     def initialize_logger
-      Shoryuken::Logging.initialize_logger(options[:logfile]) if options[:logfile]
-      Shoryuken.logger.level = Logger::DEBUG if options[:verbose]
+      Shoryuken::Logging.initialize_logger(Shoryuken.options[:logfile]) if Shoryuken.options[:logfile]
+      Shoryuken.logger.level = Logger::DEBUG if Shoryuken.options[:verbose]
     end
 
     def load_rails
