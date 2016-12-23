@@ -56,7 +56,7 @@ module Shoryuken
     def do_work
       queue = @polling_strategy.next_queue
       return logger.info { 'Doing nothing, all queues are paused' } if queue.nil?
-      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_message(queue)
     end
 
     def dispatch_batch(queue)
@@ -65,10 +65,10 @@ module Shoryuken
       process(queue.name, patch_batch!(batch))
     end
 
-    def dispatch_single_messages(queue)
+    def dispatch_single_message(queue)
       messages = @fetcher.fetch(queue, 1)
       @polling_strategy.messages_found(queue.name, messages.size)
-      messages.each { |message| process(queue.name, message) }
+      process(queue.name, messages.first) if messages.length > 0
     end
 
     def batched_queue?(queue)
