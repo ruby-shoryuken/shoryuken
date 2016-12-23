@@ -15,7 +15,7 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 1, timeout_interval: 60) { dispatch }
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.10, timeout_interval: 60) { dispatch }
 
       @ready = Concurrent::AtomicFixnum.new(@count)
 
