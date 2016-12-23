@@ -11,15 +11,14 @@ module Shoryuken
       @queues = Shoryuken.queues.dup.uniq
 
       @done = Concurrent::AtomicBoolean.new(false)
+      @dispatching = Concurrent::AtomicBoolean.new(false)
 
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.10, timeout_interval: 60) { dispatch }
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 1, timeout_interval: 60) { dispatch }
 
-      @ready = Concurrent::AtomicFixnum.new(@count)
-
-      @pool = Concurrent::FixedThreadPool.new(@count)
+      @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
 
     def start
@@ -52,17 +51,18 @@ module Shoryuken
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
 
-      @ready.increment
+      dispatch
     end
 
     private
 
     def dispatch
       return if @done.true?
+      return unless @dispatching.make_true
 
-      logger.debug { "Ready: #{@ready.value}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
-      if @ready.value == 0
+      if ready == 0
         return logger.debug { 'Pausing fetcher, because all processors are busy' }
       end
 
@@ -71,16 +71,21 @@ module Shoryuken
       end
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+
+    ensure
+      @dispatching.make_false
     end
 
     def busy
-      @count - @ready.value
+      @count - ready
+    end
+
+    def ready
+      @pool.remaining_capacity
     end
 
     def assign(queue, sqs_msg)
       logger.debug { "Assigning #{sqs_msg.message_id}" }
-
-      @ready.decrement
 
       @pool.post { Processor.new(self).process(queue, sqs_msg) }
     end
@@ -92,7 +97,7 @@ module Shoryuken
     end
 
     def dispatch_single_messages(queue)
-      messages = @fetcher.fetch(queue, @ready.value)
+      messages = @fetcher.fetch(queue, ready)
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
