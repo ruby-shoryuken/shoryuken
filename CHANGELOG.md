@@ -1,3 +1,22 @@
+## [v2.1.2] - 2016-12-22
+- Fix loading `logfile` from shoryuken.yml
+ - [#296](https://github.com/phstc/shoryuken/pull/296)
+
+- Add support for Strict priority polling (pending documentation)
+ - [#288](https://github.com/phstc/shoryuken/pull/288)
+
+- Add `test_workers` for end-to-end testing supporting
+ - [#286](https://github.com/phstc/shoryuken/pull/286)
+
+- Update README documenting `configure_client` and `configure_server`
+ - [#283](https://github.com/phstc/shoryuken/pull/283)
+
+- Fix memory leak caused by async tracking busy threads
+ - [#289](https://github.com/phstc/shoryuken/pull/289)
+
+- Refactor fetcher, polling strategy and manager
+ - [#284](https://github.com/phstc/shoryuken/pull/284)
+
 ## [v2.1.1] - 2016-12-05
 - Fix aws deprecation warning message
  - [#279](https://github.com/phstc/shoryuken/pull/279)
