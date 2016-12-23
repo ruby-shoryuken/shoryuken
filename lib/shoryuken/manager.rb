@@ -10,8 +10,6 @@ module Shoryuken
       @polling_strategy = polling_strategy
 
       create_processors
-
-      @ready = Concurrent::AtomicFixnum.new(@count)
     end
 
     def start
