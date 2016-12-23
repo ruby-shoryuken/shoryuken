@@ -27,3 +27,15 @@ task :console do
   ARGV.clear
   Pry.start
 end
+
+desc 'Enqueue 1k messages'
+task :enqueue_1k do
+  require 'shoryuken'
+
+  require File.join(File.expand_path('..', __FILE__), 'putsreq_worker')
+
+  1000.times do |i|
+    PutsReqWorker.perform_async(i.to_s)
+    print '.'
+  end
+end
