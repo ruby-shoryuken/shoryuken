@@ -14,6 +14,8 @@ module Shoryuken
 
     def start
       # does updating and evaluating @thread has to be wrapped in mutex?
+      # can it throw exception?
+      # what should we do if it dies?
       @thread ||= spawn_thread(&method(:loop))
     end
 
