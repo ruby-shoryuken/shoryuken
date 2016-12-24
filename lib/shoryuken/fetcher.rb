@@ -33,8 +33,6 @@ module Shoryuken
       options[:max_number_of_messages] = limit
       options[:message_attribute_names] = %w(All)
       options[:attribute_names] = %w(All)
-      options[:wait_time_seconds] = 10
-
 
       options.merge!(queue.options)
 

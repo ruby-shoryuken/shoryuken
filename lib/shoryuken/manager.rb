@@ -11,12 +11,11 @@ module Shoryuken
       @queues = Shoryuken.queues.dup.uniq
 
       @done = Concurrent::AtomicBoolean.new(false)
-      @dispatching = Concurrent::AtomicBoolean.new(false)
 
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 1, timeout_interval: 60) { dispatch }
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.05, timeout_interval: 60) { dispatch }
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
@@ -25,7 +24,6 @@ module Shoryuken
       logger.info { 'Starting' }
 
       @heartbeat.execute
-      dispatch
     end
 
     def stop(options = {})
@@ -51,15 +49,12 @@ module Shoryuken
 
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
-
-      dispatch
     end
 
     private
 
     def dispatch
       return if @done.true?
-      return unless @dispatching.make_true
 
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
@@ -72,9 +67,6 @@ module Shoryuken
       end
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-
-    ensure
-      @dispatching.make_false
     end
 
     def busy
