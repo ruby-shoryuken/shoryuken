@@ -16,7 +16,7 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 1, timeout_interval: 60) { dispatch }
+      # @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 1, timeout_interval: 60) { dispatch }
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
@@ -24,7 +24,8 @@ module Shoryuken
     def start
       logger.info { 'Starting' }
 
-      @heartbeat.execute
+      # @heartbeat.execute
+      dispatch
     end
 
     def stop(options = {})
@@ -39,7 +40,7 @@ module Shoryuken
 
       logger.info { "Shutting down workers" }
 
-      @heartbeat.kill
+      # @heartbeat.kill
 
       if options[:shutdown]
         hard_shutdown_in(options[:timeout])
@@ -50,8 +51,6 @@ module Shoryuken
 
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
-
-      dispatch
     end
 
     private
@@ -74,6 +73,7 @@ module Shoryuken
 
     ensure
       @dispatching.make_false
+      dispatch
     end
 
     def busy
