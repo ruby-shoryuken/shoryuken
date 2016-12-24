@@ -7,13 +7,8 @@ module Shoryuken
 
       raise(ArgumentError, "Concurrency value #{count} is invalid, it needs to be a positive number") unless count > 0
 
-      manager_count = count / 10
-      manager_count = 1 if manager_count < 1
-
-      concurrency = count / manager_count
-
-      @managers = Array.new(manager_count) do
-        Shoryuken::Manager.new(concurrency,
+      @managers = Array.new(count) do
+        Shoryuken::Manager.new(1,
                                Shoryuken::Fetcher.new,
                                Shoryuken.options[:polling_strategy].new(Shoryuken.queues))
       end
