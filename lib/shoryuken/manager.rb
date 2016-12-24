@@ -4,9 +4,8 @@ module Shoryuken
 
     BATCH_LIMIT = 10
 
-    def initialize(fetcher, polling_strategy)
-      @count = Shoryuken.options[:concurrency] || 25
-      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
+    def initialize(count, fetcher, polling_strategy)
+      @count = count
 
       @queues = Shoryuken.queues.dup.uniq
 
@@ -16,7 +15,7 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.15, timeout_interval: 60) { dispatch }
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.1, timeout_interval: 60) { dispatch }
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
