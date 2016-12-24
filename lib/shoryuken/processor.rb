@@ -13,7 +13,7 @@ module Shoryuken
       worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
         worker.perform(sqs_msg, body)
       end
-
+    ensure
       @manager.processor_done(queue)
     end
 
