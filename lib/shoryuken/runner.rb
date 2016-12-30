@@ -106,7 +106,7 @@ module Shoryuken
       File.open(path, 'w') { |f| f.puts(Process.pid) }
     end
 
-    def handle_usr1
+    def execute_soft_shutdown
       logger.info { 'Received USR1, will soft shutdown down' }
 
       @launcher.stop
@@ -114,7 +114,7 @@ module Shoryuken
       exit 0
     end
 
-    def handle_ttin
+    def print_threads_backtrace
       Thread.list.each do |thread|
         logger.info { "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}" }
         if thread.backtrace
@@ -129,8 +129,10 @@ module Shoryuken
       logger.info { "Got #{sig} signal" }
 
       case sig
-      when 'USR1' then handle_usr1
-      when 'TTIN' then handle_ttin
+      when 'USR1' then execute_soft_shutdown
+      when 'TTIN' then print_threads_backtrace
+      when 'USR2'
+        logger.warn { "Received #{sig}, will do nothing. To execute soft shutdown, please send USR1" }
       else
         logger.info { "Received #{sig}, will shutdown down" }
 
