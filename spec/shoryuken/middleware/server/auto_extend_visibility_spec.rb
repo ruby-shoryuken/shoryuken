@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Shoryuken::Middleware::Server::AutoExtendVisibility do
+RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
   let(:queue) { 'default' }
   let(:visibility_timeout) { 3 }
   let(:extend_upfront) { 1 }
@@ -32,6 +32,12 @@ describe Shoryuken::Middleware::Server::AutoExtendVisibility do
   before do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
     stub_const('Shoryuken::Middleware::Server::AutoExtendVisibility::EXTEND_UPFRONT_SECONDS', extend_upfront)
+  end
+
+  context 'when batch worker' do
+    it 'yields' do
+      expect { |b| subject.call(nil, nil, [], nil, &b) }.to yield_control
+    end
   end
 
   it 'extends message visibility if jobs takes a long time' do

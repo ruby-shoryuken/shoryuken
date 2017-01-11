@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
+RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   let(:queue)     { 'default' }
   let(:sqs_queue) { double Shoryuken::Queue }
   let(:sqs_msg)   { double Shoryuken::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid,
@@ -8,6 +8,12 @@ describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
   before do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+  end
+
+  context 'when batch worker' do
+    it 'yields' do
+      expect { |b| subject.call(nil, nil, [], nil, &b) }.to yield_control
+    end
   end
 
   context 'when a job succeeds' do
