@@ -1,3 +1,13 @@
+## [v2.1.3] - 2017-01-27
+- Show a warn message when batch isn't supported
+ - [#302](https://github.com/phstc/shoryuken/pull/302)
+
+- Require Celluloid ~> 17
+ - [#305](https://github.com/phstc/shoryuken/pull/305)
+
+- Fix excessive logging when 0 messages found
+ - [#307](https://github.com/phstc/shoryuken/pull/307)
+
 ## [v2.1.2] - 2016-12-22
 - Fix loading `logfile` from shoryuken.yml
  - [#296](https://github.com/phstc/shoryuken/pull/296)
