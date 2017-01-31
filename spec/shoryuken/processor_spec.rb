@@ -13,7 +13,8 @@ RSpec.describe Shoryuken::Processor do
       body: 'test',
       message_attributes: {},
       message_id: SecureRandom.uuid,
-      receipt_handle: SecureRandom.uuid
+      receipt_handle: SecureRandom.uuid,
+      redelivery?: false
   end
 
   subject { described_class.new(manager) }
@@ -243,7 +244,8 @@ RSpec.describe Shoryuken::Processor do
               string_value: TestWorker.to_s,
               data_type: 'String' }},
               message_id: SecureRandom.uuid,
-              receipt_handle: SecureRandom.uuid
+              receipt_handle: SecureRandom.uuid,
+              redelivery?: false
       end
 
       it 'performs without delete' do

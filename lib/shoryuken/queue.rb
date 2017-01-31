@@ -18,6 +18,13 @@ module Shoryuken
       queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
     end
 
+    def redrive_policy
+      client.get_queue_attributes(
+        queue_url: url,
+        attribute_names: ['RedrivePolicy']
+      ).attributes['RedrivePolicy']
+    end
+
     def delete_messages(options)
       client.delete_message_batch(options.merge(queue_url: url))
     end

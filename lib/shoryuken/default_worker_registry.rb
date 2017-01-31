@@ -18,6 +18,13 @@ module Shoryuken
         message.message_attributes['shoryuken_class'] &&
         message.message_attributes['shoryuken_class'][:string_value]
 
+      # TODO: get rid of this code
+      # it's only here to pick the correct Worker in case of msg redelivery, when AJ is not used.
+      # by clearing the worker_class, the correct worker will be fetched based on the queue name.
+      if !message.is_a?(Array) && message.redelivery? && active_job_woker?(worker_class)
+        worker_class = nil
+      end
+
       worker_class = (worker_class.constantize rescue nil) || @workers[queue]
 
       worker_class.new
@@ -41,6 +48,12 @@ module Shoryuken
 
     def workers(queue)
       [@workers.fetch(queue, [])].flatten
+    end
+
+    private
+
+    def active_job_woker?(worker_class)
+      'ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper' != worker_class
     end
   end
 end

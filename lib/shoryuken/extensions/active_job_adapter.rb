@@ -75,6 +75,14 @@ module ActiveJob
         shoryuken_options body_parser: :json, auto_delete: true
 
         def perform(sqs_msg, hash)
+          approximate_receive_count = sqs_msg.approximate_receive_count
+          if approximate_receive_count > 1
+            max_receive_count = Shoryuken.redrive_policy_registry.fetch(sqs_msg.queue_name_from_msg)
+            if approximate_receive_count > max_receive_count
+              hash['job_class'] = hash['job_class'].gsub('Worker', 'DlqWorker')
+            end
+          end
+
           Base.execute hash
         end
       end

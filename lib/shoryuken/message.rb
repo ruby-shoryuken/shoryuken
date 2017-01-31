@@ -66,5 +66,17 @@ module Shoryuken
     def message_attributes
       data.message_attributes
     end
+
+    def approximate_receive_count
+      data.attributes['ApproximateReceiveCount'].to_i
+    end
+
+    def redelivery?
+      approximate_receive_count > 1
+    end
+
+    def queue_name_from_msg
+      JSON.parse(data.body)['queue_name']
+    end
   end
 end
