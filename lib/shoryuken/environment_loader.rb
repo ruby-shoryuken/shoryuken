@@ -46,7 +46,12 @@ module Shoryuken
 
       fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
 
-      YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
+      env_section(YAML.load(ERB.new(IO.read(path)).result)).deep_symbolize_keys
+    end
+
+    def env_section(yml)
+      env = Rails.env if options[:rails] || ENV['environment']
+      yml[env] || yml
     end
 
     # DEPRECATED: Please use configure_server and configure_client in
