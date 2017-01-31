@@ -200,6 +200,10 @@ You can read about these in more detail [here](http://docs.aws.amazon.com/sdkfor
 
 [Check the Rails Integration Active Job documention](https://github.com/phstc/shoryuken/wiki/Rails-Integration-Active-Job).
 
+### Honeybadger Integration
+
+The [honeybadger gem](https://github.com/honeybadger-io/honeybadger-ruby/) integrates with Shoryuken automatically to report failed jobs to [Honeybadger](https://www.honeybadger.io/).
+
 ### Start Shoryuken
 
 ```shell
