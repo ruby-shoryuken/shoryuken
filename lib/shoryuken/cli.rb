@@ -43,7 +43,7 @@ module Shoryuken
 
       @launcher = Shoryuken::Launcher.new
 
-      if callback = Shoryuken.start_callback
+      if (callback = Shoryuken.start_callback)
         logger.info { 'Calling Shoryuken.on_start block' }
         callback.call
       end
@@ -103,11 +103,9 @@ module Shoryuken
     end
 
     def write_pid(options)
-      if (path = options[:pidfile])
-        File.open(path, 'w') do |f|
-          f.puts Process.pid
-        end
-      end
+      return unless (path = options[:pidfile])
+
+      File.open(path, 'w') { |f| f.puts(Process.pid) }
     end
 
     def parse_cli_args(argv)

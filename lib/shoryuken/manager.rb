@@ -4,8 +4,10 @@ module Shoryuken
 
     BATCH_LIMIT = 10
 
-    def initialize(count, fetcher, polling_strategy)
-      @count = count
+    def initialize(fetcher, polling_strategy)
+      @count = Shoryuken.options.fetch(:concurrency, 25)
+
+      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
 
       @queues = Shoryuken.queues.dup.uniq
 
@@ -15,7 +17,7 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      # @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.1, timeout_interval: 60) { dispatch }
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.1, timeout_interval: 60) { dispatch }
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
@@ -23,8 +25,7 @@ module Shoryuken
     def start
       logger.info { 'Starting' }
 
-      # @heartbeat.execute
-      dispatch
+      @heartbeat.execute
     end
 
     def stop(options = {})
@@ -37,9 +38,9 @@ module Shoryuken
 
       fire_event(:shutdown, true)
 
-      logger.info { "Shutting down workers" }
+      logger.info { 'Shutting down workers' }
 
-      # @heartbeat.kill
+      @heartbeat.kill
 
       if options[:shutdown]
         hard_shutdown_in(options[:timeout])
@@ -50,8 +51,6 @@ module Shoryuken
 
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
-
-      dispatch
     end
 
     private
@@ -66,7 +65,7 @@ module Shoryuken
         return logger.debug { 'Pausing fetcher, because all processors are busy' }
       end
 
-      unless queue = @polling_strategy.next_queue
+      unless (queue = @polling_strategy.next_queue)
         return logger.debug { 'Pausing fetcher, because all queues are paused' }
       end
 
@@ -117,11 +116,10 @@ module Shoryuken
 
       @pool.shutdown
 
-      unless @pool.wait_for_termination(delay)
-        logger.info { "Hard shutting down #{busy} busy workers" }
+      return if @pool.wait_for_termination(delay)
 
-        @pool.kill
-      end
+      logger.info { "Hard shutting down #{busy} busy workers" }
+      @pool.kill
     end
 
     def patch_batch!(sqs_msgs)
