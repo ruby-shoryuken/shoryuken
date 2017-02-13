@@ -2,9 +2,16 @@ module Shoryuken
   module Middleware
     module Server
       class AutoExtendVisibility
+        include Util
+
         EXTEND_UPFRONT_SECONDS = 5
 
         def call(worker, queue, sqs_msg, body)
+          if sqs_msg.is_a?(Array)
+            logger.warn { "Auto extend visibility isn't supported for batch workers" }
+            return yield
+          end
+
           timer = auto_visibility_timer(worker, queue, sqs_msg, body)
           yield
         ensure
