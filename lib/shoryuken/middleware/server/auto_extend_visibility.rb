@@ -41,9 +41,7 @@ module Shoryuken
         def auto_visibility_timer(worker, queue, sqs_msg, body)
           return unless worker.class.auto_visibility_timeout?
 
-          timer = MessageVisibilityExtender.new.auto_extend(worker, queue, sqs_msg, body)
-          timer.execute
-          timer
+          MessageVisibilityExtender.new.auto_extend(worker, queue, sqs_msg, body).tap(&:execute)
         end
       end
     end

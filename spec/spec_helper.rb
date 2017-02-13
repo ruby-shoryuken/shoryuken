@@ -4,7 +4,6 @@ Bundler.setup
 require 'pry-byebug'
 require 'shoryuken'
 require 'json'
-require 'multi_xml'
 require 'dotenv'
 Dotenv.load
 
@@ -18,15 +17,6 @@ config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.
 Shoryuken::EnvironmentLoader.setup_options(config_file: config_file)
 
 Shoryuken.logger.level = Logger::UNKNOWN
-
-# I'm not sure whether this is an issue specific to running Shoryuken against github.com/comcast/cmb
-# as opposed to AWS itself, but sometimes the receive_messages call returns XML that looks like this:
-#
-# <ReceiveMessageResponse>\n\t<ReceiveMessageResult>\n\t</ReceiveMessageResult> ... </ReceiveMessageResponse>
-#
-# The default MultiXML parser is ReXML, which seems to mishandle \n\t chars. Nokogiri seems to be
-# the only one that correctly ignore this whitespace.
-MultiXml.parser = :nokogiri
 
 class TestWorker
   include Shoryuken::Worker
