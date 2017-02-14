@@ -12,8 +12,6 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
 
   # We need to run our worker inside actor context.
   class Runner
-    include Celluloid
-
     def run_and_sleep(worker, queue, sqs_msg, interval)
       Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
         sleep interval
