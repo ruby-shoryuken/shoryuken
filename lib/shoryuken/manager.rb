@@ -2,7 +2,8 @@ module Shoryuken
   class Manager
     include Util
 
-    BATCH_LIMIT = 10
+    BATCH_LIMIT        = 10
+    HEARTBEAT_INTERVAL = 0.1
 
     def initialize(fetcher, polling_strategy)
       @count = Shoryuken.options.fetch(:concurrency, 25)
@@ -17,7 +18,9 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: 0.1, timeout_interval: 60) { dispatch }
+      @heartbeat = Concurrent::TimerTask.new(run_now: true,
+                                             execution_interval: HEARTBEAT_INTERVAL,
+                                             timeout_interval: 60) { dispatch }
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
@@ -59,15 +62,10 @@ module Shoryuken
       return if @done.true?
       return unless @dispatching.make_true
 
+      return if ready == 0
+      return unless (queue = @polling_strategy.next_queue)
+
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
-
-      if ready == 0
-        return logger.debug { 'Pausing fetcher, because all processors are busy' }
-      end
-
-      unless (queue = @polling_strategy.next_queue)
-        return logger.debug { 'Pausing fetcher, because all queues are paused' }
-      end
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
     ensure
