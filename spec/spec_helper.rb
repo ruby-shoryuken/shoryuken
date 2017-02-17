@@ -34,11 +34,8 @@ RSpec.configure do |config|
 
   config.before do
     Shoryuken::Client.class_variable_set :@@queues, {}
-    Shoryuken::Client.class_variable_set :@@visibility_timeouts, {}
 
     Shoryuken::Client.sqs = nil
-    Shoryuken::Client.sqs_resource = nil
-    Shoryuken::Client.sns = nil
 
     Shoryuken.queues.clear
 
@@ -47,8 +44,6 @@ RSpec.configure do |config|
     Shoryuken.options[:timeout]     = 1
     Shoryuken.options[:daemon]      = nil
     Shoryuken.options[:logfile]     = nil
-
-    Shoryuken.options[:aws].delete(:receive_message)
 
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
