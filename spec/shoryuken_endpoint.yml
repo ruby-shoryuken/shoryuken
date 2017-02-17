@@ -1,6 +1,0 @@
-aws:
-  access_key_id:      <%= ENV['AWS_ACCESS_KEY_ID'] %>
-  secret_access_key:  <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
-  region:             us-east-1
-  sqs_endpoint: https://github.com/phstc/shoryuken:4568
-  sns_endpoint: http://127.0.0.1:4568

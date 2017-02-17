@@ -28,7 +28,6 @@ module Shoryuken
       prefix_active_job_queue_names
       parse_queues
       require_workers
-      initialize_aws
       validate_queues
       validate_workers
       patch_deprecated_workers
@@ -47,16 +46,6 @@ module Shoryuken
       fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
 
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
-    end
-
-    # DEPRECATED: Please use configure_server and configure_client in
-    # https://github.com/phstc/shoryuken/blob/a81637d577b36c5cf245882733ea91a335b6602f/lib/shoryuken.rb#L82
-    # Please delete this method afert next release (v2.0.12 or later)
-    def initialize_aws
-      unless Shoryuken.options[:aws].to_h.empty?
-        Shoryuken.logger.warn { '[DEPRECATION] aws in shoryuken.yml is deprecated. Please use configure_server and configure_client in your initializer' }
-      end
-      Shoryuken::AwsConfig.setup(Shoryuken.options[:aws])
     end
 
     def initialize_logger
