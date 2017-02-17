@@ -46,7 +46,7 @@ module Shoryuken
   @@active_job_queue_name_prefixing = false
   @@sqs = nil
   @@start_callback = nil
-  @stop_callback = nil
+  @@stop_callback = nil
 
   class << self
     def queues
