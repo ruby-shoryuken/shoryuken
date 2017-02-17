@@ -44,7 +44,8 @@ module Shoryuken
   @@queues = []
   @@worker_registry = DefaultWorkerRegistry.new
   @@active_job_queue_name_prefixing = false
-  @@sqs = nil
+  @@sqs_client = nil
+  @@sqs_client_receive_message_opts = {}
   @@start_callback = nil
   @@stop_callback = nil
 
@@ -91,6 +92,14 @@ module Shoryuken
 
     def sqs_client=(sqs_client)
       @@sqs_client
+    end
+
+    def sqs_client_receive_message_opts
+      @@sqs_client_receive_message_opts
+    end
+
+    def sqs_client_receive_message_opts=(sqs_client_receive_message_opts)
+      @@sqs_client_receive_message_opts
     end
 
     def options
