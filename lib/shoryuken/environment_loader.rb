@@ -99,7 +99,7 @@ module Shoryuken
     end
 
     def parse_queue(queue, weight = nil)
-      [weight.to_i, 1].max.times { Shoryuken.queues << queue }
+      Shoryuken.add_queue(queue, [weight.to_i, 1])
     end
 
     def parse_queues

@@ -54,6 +54,10 @@ module Shoryuken
       @@queues
     end
 
+    def add_queue(queue, priority = 1)
+      priority.times { queues << queue }
+    end
+
     def worker_registry
       @@worker_registry
     end
