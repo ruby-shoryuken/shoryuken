@@ -2,6 +2,8 @@ require 'spec_helper'
 
 RSpec.describe Shoryuken do
   describe '.add_queue' do
+    after { Shoryuken.queues.clear }
+
     it 'adds queues' do
       described_class.add_queue('default')
       expect(described_class.queues).to eq(['default'])
