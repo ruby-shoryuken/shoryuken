@@ -45,7 +45,7 @@ module Shoryuken
 
       fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
 
-      YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
+      YAML.safe_load(ERB.new(IO.read(path)).result).deep_symbolize_keys
     end
 
     def initialize_logger

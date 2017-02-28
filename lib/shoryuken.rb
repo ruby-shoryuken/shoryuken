@@ -41,13 +41,13 @@ module Shoryuken
     polling_strategy: Polling::WeightedRoundRobin
   }.freeze
 
-  @@queues = []
-  @@worker_registry = DefaultWorkerRegistry.new
+  @@queues                          = []
+  @@worker_registry                 = DefaultWorkerRegistry.new
   @@active_job_queue_name_prefixing = false
-  @@sqs_client = nil
+  @@sqs_client                      = nil
   @@sqs_client_receive_message_opts = {}
-  @@start_callback = nil
-  @@stop_callback = nil
+  @@start_callback                  = nil
+  @@stop_callback                   = nil
 
   class << self
     def queues
