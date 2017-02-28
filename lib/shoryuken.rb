@@ -87,7 +87,7 @@ module Shoryuken
     end
 
     def sqs_client
-      @@sqs_client
+      @@sqs_client ||= Aws::SQS::Client.new
     end
 
     def sqs_client=(sqs_client)
@@ -155,10 +155,6 @@ module Shoryuken
 
     def on_stop(&block)
       @@stop_callback = block
-    end
-
-    def sqs_client
-      @@sqs_client ||= Aws::SQS::Client.new
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
