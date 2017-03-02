@@ -30,7 +30,6 @@ module Shoryuken
       require_workers
       validate_queues
       validate_workers
-      patch_deprecated_workers
     end
 
     private
@@ -105,24 +104,6 @@ module Shoryuken
     def parse_queues
       Shoryuken.options[:queues].to_a.each do |queue_and_weight|
         parse_queue(*queue_and_weight)
-      end
-    end
-
-    def patch_deprecated_workers
-      Shoryuken.worker_registry.queues.each do |queue|
-        Shoryuken.worker_registry.workers(queue).each do |worker_class|
-          if worker_class.instance_method(:perform).arity == 1
-            Shoryuken.logger.warn { "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)" }
-
-            worker_class.class_eval do
-              alias_method :deprecated_perform, :perform
-
-              def perform(sqs_msg, body = nil)
-                deprecated_perform(sqs_msg)
-              end
-            end
-          end
-        end
       end
     end
 
