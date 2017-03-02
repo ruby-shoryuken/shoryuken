@@ -44,28 +44,4 @@ describe Shoryuken::Middleware::Chain do
     expect(final_action).to eq nil
     expect(recorder).to eq []
   end
-
-  class DeprecatedMiddleware
-    def call(worker_instance, queue, sqs_msg)
-      @@success = true
-    end
-
-    def self.success?
-      !!@@success
-    end
-  end
-
-  it 'patches deprecated middleware' do
-    subject.clear
-
-    expect(Shoryuken.logger).to receive(:warn) do |&block|
-      expect(block.call).to eq('[DEPRECATION] DeprecatedMiddleware#call(worker_instance, queue, sqs_msg) is deprecated. Please use DeprecatedMiddleware#call(worker_instance, queue, sqs_msg, body)')
-    end
-
-    subject.add DeprecatedMiddleware
-
-    subject.invoke TestWorker, 'test', double('SQS msg', body: 'test'), 'test'
-
-    expect(DeprecatedMiddleware.success?).to eq true
-  end
 end

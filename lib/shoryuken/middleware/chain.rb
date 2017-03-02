@@ -102,31 +102,14 @@ module Shoryuken
 
     class Entry
       attr_reader :klass
+
       def initialize(klass, *args)
         @klass = klass
         @args  = args
-
-        patch_deprecated_middleware!(klass)
       end
 
       def make_new
         @klass.new(*@args)
-      end
-
-      private
-
-      def patch_deprecated_middleware!(klass)
-        if klass.instance_method(:call).arity == 3
-          Shoryuken.logger.warn { "[DEPRECATION] #{klass.name}#call(worker_instance, queue, sqs_msg) is deprecated. Please use #{klass.name}#call(worker_instance, queue, sqs_msg, body)" }
-
-          klass.class_eval do
-            alias_method :deprecated_call, :call
-
-            def call(worker_instance, queue, sqs_msg, body = nil, &block)
-              deprecated_call(worker_instance, queue, sqs_msg, &block)
-            end
-          end
-        end
       end
     end
   end
