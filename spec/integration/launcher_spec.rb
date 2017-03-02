@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'shoryuken/manager'
 require 'shoryuken/launcher'
+require 'securerandom'
 
 RSpec.describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
