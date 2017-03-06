@@ -62,7 +62,7 @@ module Shoryuken
       return if @done.true?
       return unless @dispatching.make_true
 
-      return if ready == 0
+      return if ready.zero?
       return unless (queue = @polling_strategy.next_queue)
 
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
