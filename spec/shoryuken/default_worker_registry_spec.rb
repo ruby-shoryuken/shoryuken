@@ -1,6 +1,7 @@
 require 'spec_helper'
 
-describe Shoryuken::DefaultWorkerRegistry do
+# rubocop:disable Metrics/BlockLength
+RSpec.describe Shoryuken::DefaultWorkerRegistry do
   class RegistryTestWorker
     include Shoryuken::Worker
 
@@ -42,16 +43,17 @@ describe Shoryuken::DefaultWorkerRegistry do
   end
 
   describe 'a registry with workers is handling messages' do
-    def build_message queue, explicit_worker = nil
+    def build_message(queue, explicit_worker = nil)
       attributes = {}
-      attributes['shoryuken_class'] = {
-        string_value: explicit_worker.to_s,
-        data_type: 'String' } if explicit_worker
 
-      double Shoryuken::Message,
-        body: 'test',
-        message_attributes: attributes,
-        message_id: SecureRandom.uuid
+      if explicit_worker
+        attributes['shoryuken_class'] = { string_value: explicit_worker.to_s, data_type: 'String' }
+      end
+
+      double(Shoryuken::Message,
+             body: 'test',
+             message_attributes: attributes,
+             message_id: SecureRandom.uuid)
     end
 
     context 'a batch of messages is being processed' do

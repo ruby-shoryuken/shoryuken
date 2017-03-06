@@ -35,9 +35,7 @@ module Shoryuken
     end
 
     def receive_messages(options)
-      client.receive_message(options.merge(queue_url: url)).
-        messages.
-        map { |m| Message.new(client, self, m) }
+      client.receive_message(options.merge(queue_url: url)).messages.map { |m| Message.new(client, self, m) }
     end
 
     def fifo?

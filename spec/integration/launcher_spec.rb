@@ -20,7 +20,9 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     after do
-      queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: StandardWorker.get_shoryuken_options['queue']).queue_url
+      queue_url = Shoryuken::Client.sqs.get_queue_url(
+        queue_name: StandardWorker.get_shoryuken_options['queue']
+      ).queue_url
 
       Shoryuken::Client.sqs.delete_queue queue_url: queue_url
     end

@@ -98,7 +98,7 @@ module Shoryuken
     end
 
     def parse_queue(queue, weight = nil)
-      [weight.to_i, 1].max.times { Shoryuken.queues << queue }
+      Shoryuken.add_queue(queue, [weight.to_i, 1].max)
     end
 
     def parse_queues
@@ -126,7 +126,7 @@ module Shoryuken
 
       Shoryuken.queues.uniq.each do |queue|
         begin
-          Shoryuken::Client.queues queue
+          Shoryuken::Client.queues(queue)
         rescue Aws::SQS::Errors::NonExistentQueue
           non_existent_queues << queue
         end
@@ -136,13 +136,13 @@ module Shoryuken
     end
 
     def validate_workers
+      return if defined?(::ActiveJob)
+
       all_queues = Shoryuken.queues
       queues_with_workers = Shoryuken.worker_registry.queues
 
-      unless defined?(::ActiveJob)
-        (all_queues - queues_with_workers).each do |queue|
-          Shoryuken.logger.warn { "No worker supplied for '#{queue}'" }
-        end
+      (all_queues - queues_with_workers).each do |queue|
+        Shoryuken.logger.warn { "No worker supplied for '#{queue}'" }
       end
     end
   end

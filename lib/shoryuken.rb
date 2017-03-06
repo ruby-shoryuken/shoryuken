@@ -41,17 +41,21 @@ module Shoryuken
     polling_strategy: Polling::WeightedRoundRobin
   }.freeze
 
-  @@queues = []
-  @@worker_registry = DefaultWorkerRegistry.new
+  @@queues                          = []
+  @@worker_registry                 = DefaultWorkerRegistry.new
   @@active_job_queue_name_prefixing = false
-  @@sqs_client = nil
+  @@sqs_client                      = nil
   @@sqs_client_receive_message_opts = {}
-  @@start_callback = nil
-  @@stop_callback = nil
+  @@start_callback                  = nil
+  @@stop_callback                   = nil
 
   class << self
     def queues
       @@queues
+    end
+
+    def add_queue(queue, priority = 1)
+      priority.times { queues << queue }
     end
 
     def worker_registry
@@ -87,7 +91,7 @@ module Shoryuken
     end
 
     def sqs_client
-      @@sqs_client
+      @@sqs_client ||= Aws::SQS::Client.new
     end
 
     def sqs_client=(sqs_client)
@@ -155,10 +159,6 @@ module Shoryuken
 
     def on_stop(&block)
       @@stop_callback = block
-    end
-
-    def sqs_client
-      @@sqs_client ||= Aws::SQS::Client.new
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
