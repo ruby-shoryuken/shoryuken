@@ -4,6 +4,9 @@ AllCops:
 Style/SignalException:
   Enabled: false
 
+Style/DoubleNegation:
+  Enabled: false
+
 Style/SpaceAroundEqualsInParameterDefault:
   Enabled: false
 
