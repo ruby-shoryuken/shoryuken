@@ -11,6 +11,8 @@ engines:
     enabled: true
   rubocop:
     enabled: true
+    config:
+      file: .rubocop.yml
 ratings:
   paths:
   - "**.rb"
