@@ -40,7 +40,7 @@ To be even more performant and cost effective, Shoryuken fetches SQS messages in
 
 ## Requirements
 
-Ruby 2.0 or greater. Ruby 1.9 is no longer supported.
+Ruby 2.0 or greater.
 
 ## Installation
 
