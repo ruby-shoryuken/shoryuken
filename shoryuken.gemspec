@@ -6,8 +6,8 @@ require 'shoryuken/version'
 Gem::Specification.new do |spec|
   spec.name          = 'shoryuken'
   spec.version       = Shoryuken::VERSION
-  spec.authors       = ['Pablo Cantero', 'Mario Kostelac']
-  spec.email         = ['pablo@pablocantero.com', 'mariokostelac@gmail.com']
+  spec.authors       = ['Pablo Cantero']
+  spec.email         = ['pablo@pablocantero.com']
   spec.description = spec.summary = %q(Shoryuken is a super efficient AWS SQS thread based message processor)
   spec.homepage      = 'https://github.com/phstc/shoryuken'
   spec.license       = 'LGPL-3.0'
@@ -24,5 +24,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'dotenv'
 
   spec.add_dependency 'aws-sdk-core', '~> 2'
-  spec.add_dependency 'celluloid', '~> 0.17'
+  spec.add_dependency 'concurrent-ruby'
 end

@@ -65,7 +65,6 @@ module Shoryuken
     end
 
     class WeightedRoundRobin < BaseStrategy
-      
       def initialize(queues)
         @initial_queues = queues
         @queues = queues.dup.uniq
@@ -106,7 +105,7 @@ module Shoryuken
         @paused_queues << [Time.now + delay, queue]
         logger.debug "Paused '#{queue}'"
       end
- 
+
       def unpause_queues
         return if @paused_queues.empty?
         return if Time.now < @paused_queues.first[0]
@@ -129,7 +128,6 @@ module Shoryuken
     end
 
     class StrictPriority < BaseStrategy
-
       def initialize(queues)
         # Priority ordering of the queues, highest priority first
         @queues = queues
@@ -178,7 +176,7 @@ module Shoryuken
           return queue unless queue_paused?(queue)
         end
 
-        return nil
+        nil
       end
 
       def queues_unpaused_since?

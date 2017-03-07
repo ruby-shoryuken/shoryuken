@@ -1,12 +1,11 @@
 require 'spec_helper'
 require 'shoryuken/manager'
 require 'shoryuken/launcher'
+require 'securerandom'
 
 RSpec.describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
     before do
-      Shoryuken.options[:aws][:receive_message] = { wait_time_seconds: 5 }
-
       StandardWorker.received_messages = 0
 
       queue = "test_shoryuken#{StandardWorker}_#{SecureRandom.uuid}"
@@ -21,7 +20,9 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     after do
-      queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: StandardWorker.get_shoryuken_options['queue']).queue_url
+      queue_url = Shoryuken::Client.sqs.get_queue_url(
+        queue_name: StandardWorker.get_shoryuken_options['queue']
+      ).queue_url
 
       Shoryuken::Client.sqs.delete_queue queue_url: queue_url
     end

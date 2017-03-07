@@ -1,6 +1,18 @@
 require 'spec_helper'
 
-describe Shoryuken do
+RSpec.describe Shoryuken do
+  describe '.add_queue' do
+    after { Shoryuken.queues.clear }
+
+    it 'adds queues' do
+      described_class.add_queue('default')
+      expect(described_class.queues).to eq(['default'])
+
+      described_class.add_queue('high', 2)
+      expect(described_class.queues).to eq(%w(default high high))
+    end
+  end
+
   describe '.register_worker' do
     it 'registers a worker' do
       described_class.worker_registry.clear

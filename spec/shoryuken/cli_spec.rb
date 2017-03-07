@@ -27,7 +27,6 @@ RSpec.describe Shoryuken::CLI do
     end
 
     it 'daemonizes with --daemon --logfile' do
-      expect(cli).to receive(:celluloid_loaded?).and_return(false)
       expect(Process).to receive(:daemon)
       cli.run(['--daemon', '--logfile', '/dev/null'])
     end
@@ -46,18 +45,8 @@ RSpec.describe Shoryuken::CLI do
   end
 
   describe '#daemonize' do
-    before(:each) do
-      allow(cli).to receive(:celluloid_loaded?).and_return(false)
-    end
-
     it 'raises if logfile is not set' do
       expect { cli.send(:daemonize, daemon: true) }.to raise_error(ArgumentError)
-    end
-
-    it 'raises if Celluloid is already loaded' do
-      expect(cli).to receive(:celluloid_loaded?).and_return(true)
-      args = { daemon: true, logfile: '/dev/null' }
-      expect { cli.send(:daemonize, args) }.to raise_error(RuntimeError)
     end
 
     it 'calls Process.daemon' do

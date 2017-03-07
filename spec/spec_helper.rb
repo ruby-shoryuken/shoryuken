@@ -2,7 +2,6 @@ require 'bundler/setup'
 Bundler.setup
 
 require 'pry-byebug'
-require 'celluloid/current'
 require 'shoryuken'
 require 'json'
 require 'dotenv'
@@ -18,7 +17,6 @@ config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.
 Shoryuken::EnvironmentLoader.setup_options(config_file: config_file)
 
 Shoryuken.logger.level = Logger::UNKNOWN
-Celluloid.logger.level = Logger::UNKNOWN
 
 class TestWorker
   include Shoryuken::Worker
@@ -36,11 +34,8 @@ RSpec.configure do |config|
 
   config.before do
     Shoryuken::Client.class_variable_set :@@queues, {}
-    Shoryuken::Client.class_variable_set :@@visibility_timeouts, {}
 
     Shoryuken::Client.sqs = nil
-    Shoryuken::Client.sqs_resource = nil
-    Shoryuken::Client.sns = nil
 
     Shoryuken.queues.clear
 
@@ -49,8 +44,6 @@ RSpec.configure do |config|
     Shoryuken.options[:timeout]     = 1
     Shoryuken.options[:daemon]      = nil
     Shoryuken.options[:logfile]     = nil
-
-    Shoryuken.options[:aws].delete(:receive_message)
 
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'

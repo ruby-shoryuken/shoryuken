@@ -14,11 +14,15 @@ module Shoryuken
 
     def fetch_worker(queue, message)
       worker_class = !message.is_a?(Array) &&
-        message.message_attributes &&
-        message.message_attributes['shoryuken_class'] &&
-        message.message_attributes['shoryuken_class'][:string_value]
+                     message.message_attributes &&
+                     message.message_attributes['shoryuken_class'] &&
+                     message.message_attributes['shoryuken_class'][:string_value]
 
-      worker_class = (worker_class.constantize rescue nil) || @workers[queue]
+      worker_class = begin
+                       worker_class.constantize
+                     rescue
+                       @workers[queue]
+                     end
 
       worker_class.new
     end

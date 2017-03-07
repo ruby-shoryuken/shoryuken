@@ -28,10 +28,8 @@ module Shoryuken
       prefix_active_job_queue_names
       parse_queues
       require_workers
-      initialize_aws
       validate_queues
       validate_workers
-      patch_deprecated_workers
     end
 
     private
@@ -47,16 +45,6 @@ module Shoryuken
       fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
 
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
-    end
-
-    # DEPRECATED: Please use configure_server and configure_client in
-    # https://github.com/phstc/shoryuken/blob/a81637d577b36c5cf245882733ea91a335b6602f/lib/shoryuken.rb#L82
-    # Please delete this method afert next release (v2.0.12 or later)
-    def initialize_aws
-      unless Shoryuken.options[:aws].to_h.empty?
-        Shoryuken.logger.warn { '[DEPRECATION] aws in shoryuken.yml is deprecated. Please use configure_server and configure_client in your initializer' }
-      end
-      Shoryuken::AwsConfig.setup(Shoryuken.options[:aws])
     end
 
     def initialize_logger
@@ -110,30 +98,12 @@ module Shoryuken
     end
 
     def parse_queue(queue, weight = nil)
-      [weight.to_i, 1].max.times { Shoryuken.queues << queue }
+      Shoryuken.add_queue(queue, [weight.to_i, 1].max)
     end
 
     def parse_queues
       Shoryuken.options[:queues].to_a.each do |queue_and_weight|
         parse_queue(*queue_and_weight)
-      end
-    end
-
-    def patch_deprecated_workers
-      Shoryuken.worker_registry.queues.each do |queue|
-        Shoryuken.worker_registry.workers(queue).each do |worker_class|
-          if worker_class.instance_method(:perform).arity == 1
-            Shoryuken.logger.warn { "[DEPRECATION] #{worker_class.name}#perform(sqs_msg) is deprecated. Please use #{worker_class.name}#perform(sqs_msg, body)" }
-
-            worker_class.class_eval do
-              alias_method :deprecated_perform, :perform
-
-              def perform(sqs_msg, body = nil)
-                deprecated_perform(sqs_msg)
-              end
-            end
-          end
-        end
       end
     end
 
@@ -156,7 +126,7 @@ module Shoryuken
 
       Shoryuken.queues.uniq.each do |queue|
         begin
-          Shoryuken::Client.queues queue
+          Shoryuken::Client.queues(queue)
         rescue Aws::SQS::Errors::NonExistentQueue
           non_existent_queues << queue
         end
@@ -166,13 +136,13 @@ module Shoryuken
     end
 
     def validate_workers
+      return if defined?(::ActiveJob)
+
       all_queues = Shoryuken.queues
       queues_with_workers = Shoryuken.worker_registry.queues
 
-      unless defined?(::ActiveJob)
-        (all_queues - queues_with_workers).each do |queue|
-          Shoryuken.logger.warn { "No worker supplied for '#{queue}'" }
-        end
+      (all_queues - queues_with_workers).each do |queue|
+        Shoryuken.logger.warn { "No worker supplied for '#{queue}'" }
       end
     end
   end

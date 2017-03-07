@@ -1,7 +1,10 @@
-LineLength:
-  Max: 120
+AllCops:
+  TargetRubyVersion: 2.0
 
 Style/SignalException:
+  Enabled: false
+
+Style/DoubleNegation:
   Enabled: false
 
 Style/SpaceAroundEqualsInParameterDefault:
@@ -27,6 +30,9 @@ Metrics/ClassLength:
 
 Metrics/ParameterLists:
   Enabled: false
+
+Metrics/LineLength:
+  Max: 120
 
 Metrics/MethodLength :
   Enabled: false
