@@ -63,7 +63,7 @@ module Shoryuken
 
       def normalize_worker_queue!
         queue = @shoryuken_options['queue']
-        if queue.respond_to? :call
+        if queue.respond_to?(:call)
           queue = queue.call
           @shoryuken_options['queue'] = queue
         end
