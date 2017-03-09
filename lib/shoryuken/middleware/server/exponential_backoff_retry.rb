@@ -27,7 +27,7 @@ module Shoryuken
         def get_interval(retry_intervals, attempts)
           return retry_intervals.call(attempts) if retry_intervals.respond_to?(:call)
 
-          # Array start at 0
+          # Arrays start at 0
           attempts -= 1
 
           if attempts < (retry_intervals = Array(retry_intervals)).size
@@ -44,9 +44,9 @@ module Shoryuken
         end
 
         def handle_failure(sqs_msg, started_at, retry_intervals)
-          return false unless sqs_msg.attributes['ApproximateReceiveCount']
+          return false if (receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i).zero?
 
-          return false unless (interval = get_interval(retry_intervals, sqs_msg.attributes['ApproximateReceiveCount'].to_i))
+          return false unless (interval = get_interval(retry_intervals, receive_count))
 
           sqs_msg.change_visibility(visibility_timeout: next_visibility_timeout(interval, started_at))
 

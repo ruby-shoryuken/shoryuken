@@ -39,6 +39,14 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
     end
 
     context 'and retry_intervals is a lambda' do
+      it 'retries' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = ->(_attempts) { 500 }
+
+        allow(sqs_msg).to receive(:queue) { sqs_queue }
+        expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 500)
+
+        expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
+      end
     end
 
     context 'and retry_intervals is empty' do
