@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'thor'
-# require 'pry-byebug'
+require 'pry-byebug'
 require 'aws-sdk-core'
+require 'date'
 # require_relative '../lib/shoryuken/cli'
 
 # begin
@@ -13,10 +14,11 @@ require 'aws-sdk-core'
 #   STDERR.puts e.backtrace.join("\n")
 #   exit 1
 # end
+
+# rubocop:disable Metrics/AbcSize, Metrics/LineLength
 module Shoryuken
   module CLI
     class Base < Thor
-      # rubocop:disable Metrics/AbcSize
       no_commands do
         def print_table(entries)
           entries.each do |entry|
@@ -39,6 +41,12 @@ module Shoryuken
     class SQS < Base
       namespace :sqs
 
+      no_commands do
+        def dump_file(path, queue_name)
+          File.join(path, "#{queue_name}-#{Date.today}.jsonl")
+        end
+      end
+
       desc 'ls [QUEUE_NAME_PREFIX]', 'Returns a list of your queues.'
       def ls(queue_name_prefix = '')
         # https://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#list_queues-instance_method
@@ -60,6 +68,48 @@ module Shoryuken
         entries.unshift(['Queue', 'Messages Available', 'Messages Inflight', 'Last Modified'])
 
         print_table(entries)
+      end
+
+      desc 'dump [QUEUE_NAME]', 'Dump messages from a queue into a JSON lines'
+      method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to dump'
+      method_option :path,   aliases: '-p', type: :string,  default: './', desc: 'path to save the dump file'
+      method_option :append, aliases: '-a', type: :boolean, default: false, desc: 'append to an existing dump file if any'
+      def dump(queue_name)
+        sqs = Aws::SQS::Client.new
+
+        url = sqs.list_queues(queue_name_prefix: queue_name).queue_urls.first
+
+        count = 0
+        batch_size = options[:number] > 10 ? 10 : options[:number]
+
+        filename = dump_file(options[:path], queue_name)
+
+        if !options[:append] && File.exist?(filename)
+          puts "#{filename} already exists"
+          exit(1)
+        end
+
+        file = File.open(filename, 'ab')
+
+        loop do
+          n = options[:number] - count
+          batch_size = n if n < batch_size
+
+          messages = sqs.receive_message(
+            queue_url: url,
+            max_number_of_messages: batch_size,
+            message_attribute_names: ['All']
+          ).messages
+
+          messages.each { |m| file.puts(JSON.dump(m.to_h)) }
+
+          count += messages.size
+
+          break if count >= options[:number]
+          break if messages.empty?
+        end
+      ensure
+        file.close if file
       end
     end
   end
