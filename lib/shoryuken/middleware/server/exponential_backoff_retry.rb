@@ -41,7 +41,7 @@ module Shoryuken
         end
 
         def handle_failure(sqs_msg, started_at, retry_intervals)
-          return false if (receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i).zero?
+          receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
 
           return false unless (interval = get_interval(retry_intervals, receive_count))
 
