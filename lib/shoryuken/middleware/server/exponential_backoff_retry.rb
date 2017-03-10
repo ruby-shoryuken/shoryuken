@@ -34,7 +34,7 @@ module Shoryuken
             retry_intervals[attempts]
           else
             retry_intervals.last
-          end
+          end.to_i
         end
 
         def next_visibility_timeout(interval, started_at)
