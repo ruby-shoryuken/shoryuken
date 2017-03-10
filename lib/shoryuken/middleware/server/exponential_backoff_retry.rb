@@ -27,11 +27,8 @@ module Shoryuken
         def get_interval(retry_intervals, attempts)
           return retry_intervals.call(attempts) if retry_intervals.respond_to?(:call)
 
-          # Arrays start at 0
-          attempts -= 1
-
-          if attempts < (retry_intervals = Array(retry_intervals)).size
-            retry_intervals[attempts]
+          if attempts <= (retry_intervals = Array(retry_intervals)).size
+            retry_intervals[attempts - 1]
           else
             retry_intervals.last
           end.to_i
