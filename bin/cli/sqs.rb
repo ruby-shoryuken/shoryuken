@@ -36,8 +36,6 @@ module Shoryuken
 
       desc 'ls [QUEUE-NAME-PREFIX]', 'List queues'
       def ls(queue_name_prefix = '')
-        # https://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#list_queues-instance_method
-
         attrs = %w(QueueArn ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible LastModifiedTimestamp)
 
         urls = sqs.list_queues(queue_name_prefix: queue_name_prefix).queue_urls
