@@ -8,14 +8,15 @@ require 'shoryuken'
 
 module Shoryuken
   # rubocop:disable Lint/InheritException
+  # rubocop:disable Metrics/AbcSize
   # See: https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
   class Shutdown < Interrupt; end
 
-  class CLI
+  class Runner
     include Util
     include Singleton
 
-    def run(args)
+    def run(options)
       self_read, self_write = IO.pipe
 
       %w(INT TERM USR1 USR2 TTIN).each do |sig|
@@ -27,8 +28,6 @@ module Shoryuken
           puts "Signal #{sig} not supported"
         end
       end
-
-      options = parse_cli_args(args)
 
       loader = EnvironmentLoader.setup_options(options)
 
@@ -107,63 +106,6 @@ module Shoryuken
       return unless (path = options[:pidfile])
 
       File.open(path, 'w') { |f| f.puts(Process.pid) }
-    end
-
-    def parse_cli_args(argv)
-      opts = {}
-
-      @parser = OptionParser.new do |o|
-        o.on '-c', '--concurrency INT', 'Processor threads to use' do |arg|
-          opts[:concurrency] = Integer(arg)
-        end
-
-        o.on '-d', '--daemon', 'Daemonize process' do |arg|
-          opts[:daemon] = arg
-        end
-
-        o.on '-q', '--queue QUEUE[,WEIGHT]...', 'Queues to process with optional weights' do |arg|
-          queue, weight = arg.split(',')
-          opts[:queues] = [] unless opts[:queues]
-          opts[:queues] << [queue, weight]
-        end
-
-        o.on '-r', '--require [PATH|DIR]', 'Location of the worker' do |arg|
-          opts[:require] = arg
-        end
-
-        o.on '-C', '--config PATH', 'Path to YAML config file' do |arg|
-          opts[:config_file] = arg
-        end
-
-        o.on '-R', '--rails', 'Load Rails' do |arg|
-          opts[:rails] = arg
-        end
-
-        o.on '-L', '--logfile PATH', 'Path to writable logfile' do |arg|
-          opts[:logfile] = arg
-        end
-
-        o.on '-P', '--pidfile PATH', 'Path to pidfile' do |arg|
-          opts[:pidfile] = arg
-        end
-
-        o.on '-v', '--verbose', 'Print more verbose output' do |arg|
-          opts[:verbose] = arg
-        end
-
-        o.on '-V', '--version', 'Print version and exit' do
-          puts "Shoryuken #{Shoryuken::VERSION}"
-          exit 0
-        end
-      end
-
-      @parser.banner = 'shoryuken [options]'
-      @parser.on_tail '-h', '--help', 'Show help' do
-        logger.info { @parser }
-        exit 1
-      end
-      @parser.parse!(argv)
-      opts
     end
 
     def handle_usr1
