@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'thor'
-require 'pry-byebug'
 require 'aws-sdk-core'
 require 'date'
 # require_relative '../lib/shoryuken/cli'
@@ -19,6 +18,8 @@ require 'date'
 module Shoryuken
   module CLI
     class Base < Thor
+      PRINT_COLUMN_SIZE = 40
+
       no_commands do
         def normalize_dump_message(message)
           message[:id] = message.delete(:message_id)
@@ -45,14 +46,30 @@ module Shoryuken
         end
 
         def print_table(entries)
-          entries.each do |entry|
-            puts entry.map(&method(:format_table_column)).join
+          column_sizes = print_columns_size(entries)
+
+          entries.map do |entry|
+            puts entry.map.with_index { |e, i| print_format_column(e, column_sizes[i]) }.join
           end
         end
 
-        def format_table_column(column)
-          column = column.to_s.ljust(40)
-          column = "#{column[0...40]}.." if column.size > 40
+        def print_columns_size(entries)
+          column_sizes = Hash.new(0)
+
+          entries.each do |entry|
+            entry.each_with_index do |e, i|
+              e = e.to_s
+              column_sizes[i] = e.size if column_sizes[i] < e.size && e.size < PRINT_COLUMN_SIZE
+            end
+          end
+
+          column_sizes
+        end
+
+        def print_format_column(column, size)
+          right_padding = 4
+          column = column.to_s.ljust(size + right_padding)
+          column = "#{column[0...size - 2]}.." if column.size > size + right_padding
           column
         end
       end
