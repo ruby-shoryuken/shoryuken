@@ -25,13 +25,13 @@ module Shoryuken
         private
 
         def get_interval(retry_intervals, attempts)
-          return retry_intervals.call(attempts).to_i if retry_intervals.respond_to?(:call)
+          return retry_intervals.call(attempts) if retry_intervals.respond_to?(:call)
 
           if attempts <= (retry_intervals = Array(retry_intervals)).size
             retry_intervals[attempts - 1]
           else
             retry_intervals.last
-          end.to_i
+          end
         end
 
         def next_visibility_timeout(interval, started_at)
@@ -43,9 +43,9 @@ module Shoryuken
         def handle_failure(sqs_msg, started_at, retry_intervals)
           return false if (receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i).zero?
 
-          return false if (interval = get_interval(retry_intervals, receive_count)).zero?
+          return false unless (interval = get_interval(retry_intervals, receive_count))
 
-          sqs_msg.change_visibility(visibility_timeout: next_visibility_timeout(interval, started_at))
+          sqs_msg.change_visibility(visibility_timeout: next_visibility_timeout(interval.to_i, started_at))
 
           logger.info { "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds." }
 
