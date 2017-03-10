@@ -7,6 +7,7 @@ require 'erb'
 require 'shoryuken'
 
 module Shoryuken
+  # rubocop:disable Lint/InheritException
   # See: https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
   class Shutdown < Interrupt; end
 
@@ -165,26 +166,31 @@ module Shoryuken
       opts
     end
 
+    def handle_usr1
+      logger.info { 'Received USR1, will soft shutdown down' }
+
+      @launcher.stop
+      fire_event(:quiet, true)
+      exit 0
+    end
+
+    def handle_ttin
+      Thread.list.each do |thread|
+        logger.info { "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}" }
+        if thread.backtrace
+          logger.info { thread.backtrace.join("\n") }
+        else
+          logger.info { '<no backtrace available>' }
+        end
+      end
+    end
+
     def handle_signal(sig)
       logger.info { "Got #{sig} signal" }
 
       case sig
-      when 'USR1'
-        logger.info { 'Received USR1, will soft shutdown down' }
-
-        @launcher.stop
-        fire_event(:quiet, true)
-        exit 0
-      when 'TTIN'
-        Thread.list.each do |thread|
-          logger.info { "Thread TID-#{thread.object_id.to_s(36)} #{thread['label']}" }
-          if thread.backtrace
-            logger.info { thread.backtrace.join("\n") }
-          else
-            logger.info { '<no backtrace available>' }
-          end
-        end
-
+      when 'USR1' then handle_usr1
+      when 'TTIN' then handle_ttin
       else
         logger.info { "Received #{sig}, will shutdown down" }
 
