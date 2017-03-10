@@ -1,9 +1,10 @@
 require 'spec_helper'
-require 'shoryuken/cli'
+require 'shoryuken/runner'
 require 'shoryuken/launcher'
 
-RSpec.describe Shoryuken::CLI do
-  let(:cli) { Shoryuken::CLI.instance }
+# rubocop:disable Metrics/BlockLength
+RSpec.describe Shoryuken::Runner do
+  let(:cli) { Shoryuken::Runner.instance }
 
   before do
     # make sure we do not bail
@@ -23,24 +24,24 @@ RSpec.describe Shoryuken::CLI do
     end
 
     it 'does not raise' do
-      expect { cli.run([]) }.to_not raise_error
+      expect { cli.run({}) }.to_not raise_error
     end
 
     it 'daemonizes with --daemon --logfile' do
       expect(Process).to receive(:daemon)
-      cli.run(['--daemon', '--logfile', '/dev/null'])
+      cli.run(daemon: true, logfile: '/dev/null')
     end
 
     it 'does NOT daemonize with --logfile' do
       expect(Process).to_not receive(:daemon)
-      cli.run(['--logfile', '/dev/null'])
+      cli.run(logfile: '/dev/null')
     end
 
     it 'writes PID file with --pidfile' do
       pidfile = instance_double('File')
       expect(File).to receive(:open).with('/dev/null', 'w').and_yield(pidfile)
       expect(pidfile).to receive(:puts).with(Process.pid)
-      cli.run(['--pidfile', '/dev/null'])
+      cli.run(pidfile: '/dev/null')
     end
   end
 
