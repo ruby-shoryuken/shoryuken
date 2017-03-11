@@ -1,6 +1,6 @@
 require 'date'
 
-# rubocop:disable Metrics/AbcSize
+# rubocop:disable Metrics/AbcSize, Metrics/BlockLength
 module Shoryuken
   module CLI
     class SQS < Base
@@ -28,6 +28,42 @@ module Shoryuken
           end
 
           urls.first
+        end
+
+        def batch_delete(queue_url, messages)
+          messages.to_a.flatten.each_slice(10) do |batch|
+            sqs.delete_message_batch(
+              queue_url: queue_url,
+              entries: batch.map { |message| { id: message.message_id, receipt_handle: message.receipt_handle } }
+            ).failed.any? do |failure|
+              say "Could not delete #{failure.id}, code: #{failure.code}", :yellow
+            end
+          end
+        end
+
+        def find_all(queue_url, limit, &block)
+          count = 0
+          batch_size = limit > 10 ? 10 : limit
+
+          loop do
+            n = limit - count
+            batch_size = n if n < batch_size
+
+            messages = sqs.receive_message(
+              queue_url: queue_url,
+              max_number_of_messages: batch_size,
+              message_attribute_names: ['All']
+            ).messages
+
+            messages.each { |m| yield m }
+
+            count += messages.size
+
+            break if count >= limit
+            break if messages.empty?
+          end
+
+          count
         end
 
         def dump_file(path, queue_name)
@@ -66,43 +102,19 @@ module Shoryuken
 
         url = find_queue_url(queue_name)
 
-        count = 0
-        batch_size = options[:number] > 10 ? 10 : options[:number]
-
         delete_batch = []
 
-        loop do
-          n = options[:number] - count
-          batch_size = n if n < batch_size
+        file = nil
 
-          messages = sqs.receive_message(
-            queue_url: url,
-            max_number_of_messages: batch_size,
-            message_attribute_names: ['All']
-          ).messages
-
+        count = find_all(url, options[:number]) do |m|
           file ||= File.open(path, 'w')
 
-          messages.each { |m| file.puts(JSON.dump(m.to_h)) }
+          file.puts(JSON.dump(m.to_h))
 
           delete_batch << messages if options[:delete]
-
-          count += messages.size
-
-          break if count >= options[:number]
-          break if messages.empty?
         end
 
-        if options[:delete]
-          delete_batch.flatten.each_slice(10) do |batch|
-            sqs.delete_message_batch(
-              queue_url: url,
-              entries: batch.map { |message| { id: message.message_id, receipt_handle: message.receipt_handle } }
-            ).failed.any? do |failure|
-              say "Could not delete #{failure.id}, code: #{failure.code}", :yellow
-            end
-          end
-        end
+        batch_delete(url, delete_batch) if options[:delete]
 
         if count.zero?
           say "Queue #{queue_name} is empty", :yellow
