@@ -4,7 +4,6 @@ require 'rubygems'
 
 require 'thor'
 require 'aws-sdk-core'
-require 'date'
 require_relative 'cli/base'
 require_relative 'cli/sqs'
 require_relative '../lib/shoryuken/runner'
@@ -12,7 +11,7 @@ require_relative '../lib/shoryuken/runner'
 # rubocop:disable Metrics/AbcSize
 module Shoryuken
   module CLI
-    class Runner < Thor
+    class Runner < Base
       default_task :start
 
       register(Shoryuken::CLI::SQS, 'sqs', 'sqs COMMAND', 'SQS commands')
@@ -34,14 +33,14 @@ module Shoryuken
           options[:queues] << [queue, weight]
         end
 
-        fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless options[:logfile]
+        fail_task "You should set a logfile if you're going to daemonize" unless options[:logfile]
 
         Shoryuken::Runner.instance.run(options.to_h)
       end
 
       desc 'version', 'Print version'
       def version
-        puts "Shoryuken #{Shoryuken::VERSION}"
+        say "Shoryuken #{Shoryuken::VERSION}"
       end
     end
   end

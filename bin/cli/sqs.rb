@@ -1,3 +1,5 @@
+require 'date'
+
 # rubocop:disable Metrics/AbcSize
 module Shoryuken
   module CLI
@@ -22,8 +24,7 @@ module Shoryuken
           urls = sqs.list_queues(queue_name_prefix: queue_name_prefix).queue_urls
 
           if urls.size > 1
-            puts "[FAIL] There's more than one starting with #{queue_name_prefix}"
-            exit(1)
+            fail_task "There's more than one queue starting with #{queue_name_prefix}: #{urls.join(', ')}"
           end
 
           urls.first
@@ -61,12 +62,7 @@ module Shoryuken
       def dump(queue_name)
         path = dump_file(options[:path], queue_name)
 
-        if File.exist?(path)
-          puts "[FAIL] #{path} already exists"
-          exit(1)
-        end
-
-        file = File.open(path, 'w')
+        fail_task "File #{path} already exists" if File.exist?(path)
 
         url = find_queue_url(queue_name)
 
@@ -85,6 +81,8 @@ module Shoryuken
             message_attribute_names: ['All']
           ).messages
 
+          file ||= File.open(path, 'w')
+
           messages.each { |m| file.puts(JSON.dump(m.to_h)) }
 
           delete_batch << messages if options[:delete]
@@ -101,9 +99,15 @@ module Shoryuken
               queue_url: url,
               entries: batch.map { |message| { id: message.message_id, receipt_handle: message.receipt_handle } }
             ).failed.any? do |failure|
-              puts "Could not delete #{failure.id}, code: #{failure.code}"
+              say "Could not delete #{failure.id}, code: #{failure.code}", :yellow
             end
           end
+        end
+
+        if count.zero?
+          say "Queue #{queue_name} is empty", :yellow
+        else
+          say "Dump saved in #{path} with #{count} messages", :green
         end
       ensure
         file.close if file
@@ -111,10 +115,7 @@ module Shoryuken
 
       desc 'requeue QUEUE-NAME PATH', 'Requeue messages from a dump file'
       def requeue(queue_name, path)
-        unless File.exist?(path)
-          puts "[FAIL] #{path} not found"
-          exit(1)
-        end
+        fail_task "Path #{path} not found" unless File.exist?(path)
 
         messages = File.readlines(path).map { |line| JSON.parse(line, symbolize_names: true) }
 
@@ -122,7 +123,7 @@ module Shoryuken
 
         messages.map(&method(:normalize_dump_message)).each_slice(10) do |batch|
           sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
-            puts "Could not requeue #{failure.id}, code: #{failure.code}"
+            say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
           end
         end
       end

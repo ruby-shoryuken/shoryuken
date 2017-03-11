@@ -32,8 +32,8 @@ module Shoryuken
           column
         end
 
-        def fail(msg, quit = true)
-          puts "[FAIL] #{msg}"
+        def fail_task(msg, quit = true)
+          say "[FAIL] #{msg}", :red
           exit(1) if quit
         end
       end
