@@ -54,7 +54,7 @@ module Shoryuken
         print_table(entries)
       end
 
-      desc 'dump QUEUE-NAME', 'Dump messages from a queue into a JSON lines'
+      desc 'dump QUEUE-NAME', 'Dump messages from a queue into a JSON lines file'
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to dump'
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'

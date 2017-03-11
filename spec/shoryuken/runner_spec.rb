@@ -46,10 +46,6 @@ RSpec.describe Shoryuken::Runner do
   end
 
   describe '#daemonize' do
-    it 'raises if logfile is not set' do
-      expect { cli.send(:daemonize, daemon: true) }.to raise_error(ArgumentError)
-    end
-
     it 'calls Process.daemon' do
       args = { daemon: true, logfile: '/dev/null' }
       expect(Process).to receive(:daemon).with(true, true)

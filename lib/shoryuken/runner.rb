@@ -76,8 +76,6 @@ module Shoryuken
     def daemonize(options)
       return unless options[:daemon]
 
-      fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless options[:logfile]
-
       files_to_reopen = []
       ObjectSpace.each_object(File) do |file|
         files_to_reopen << file unless file.closed?

@@ -9,6 +9,7 @@ require_relative 'cli/base'
 require_relative 'cli/sqs'
 require_relative '../lib/shoryuken/runner'
 
+# rubocop:disable Metrics/AbcSize
 module Shoryuken
   module CLI
     class Runner < Thor
@@ -32,6 +33,8 @@ module Shoryuken
           options[:queues] = [] unless options[:queues]
           options[:queues] << [queue, weight]
         end
+
+        fail ArgumentError, "You really should set a logfile if you're going to daemonize" unless options[:logfile]
 
         Shoryuken::Runner.instance.run(options.to_h)
       end
