@@ -139,26 +139,16 @@ You can read about these in more detail [here](http://docs.aws.amazon.com/sdkfor
 bundle exec shoryuken -r worker.rb -C shoryuken.yml
 ```
 
-Other options:
+For other options check `bundle exec shoryuken help start`
 
-```bash
-shoryuken --help
+#### SQS commands
 
-shoryuken [options]
-    -c, --concurrency INT            Processor threads to use
-    -d, --daemon                     Daemonize process
-    -q, --queue QUEUE[,WEIGHT]...    Queues to process with optional weights
-    -r, --require [PATH|DIR]         Location of the worker
-    -C, --config PATH                Path to YAML config file
-    -R, --rails                      Attempts to load the containing Rails project
-    -L, --logfile PATH               Path to writable logfile
-    -P, --pidfile PATH               Path to pidfile
-    -v, --verbose                    Print more verbose output
-    -V, --version                    Print version and exit
-    -h, --help                       Show help
-    ...
-```
+Check also some available SQS commands `bundle exec shoryuken help sqs`, such as:
 
+- `ls` list queues
+- `mv` move messages from one queue to another
+- `dump` dump messages from a queue into a JSON lines file
+- `requeue` requeue messages from a dump file
 
 ## More Information
 
