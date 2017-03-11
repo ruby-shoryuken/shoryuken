@@ -44,6 +44,7 @@ RSpec.configure do |config|
     Shoryuken.options[:timeout]     = 1
     Shoryuken.options[:daemon]      = nil
     Shoryuken.options[:logfile]     = nil
+    Shoryuken.options[:queues]      = nil
 
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
