@@ -71,12 +71,11 @@ module Shoryuken
     end
 
     def merge_cli_defined_queues
-      cli_defined_queues = options.delete(:queues) || []
+      cli_defined_queues = options[:queues]
 
       cli_defined_queues.each do |cli_defined_queue|
-        Shoryuken.options[:queues].delete_if do |config_file_queue|
-          config_file_queue[0] == cli_defined_queue[0]
-        end
+        # CLI defined queues override config_file defined queues
+        Shoryuken.options[:queues].delete_if { |config_file_queue| config_file_queue[0] == cli_defined_queue[0] }
 
         Shoryuken.options[:queues] << cli_defined_queue
       end
