@@ -78,29 +78,42 @@ module Shoryuken
           count
         end
 
+        def list_and_print_queues(urls)
+          attrs = %w(QueueArn ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible LastModifiedTimestamp)
+
+          entries = urls.map { |u| sqs.get_queue_attributes(queue_url: u, attribute_names: attrs).attributes }.map do |q|
+            [
+              q['QueueArn'].split(':').last,
+              q['ApproximateNumberOfMessages'],
+              q['ApproximateNumberOfMessagesNotVisible'],
+              Time.at(q['LastModifiedTimestamp'].to_i)
+            ]
+          end
+
+          entries.unshift(['Queue', 'Messages Available', 'Messages Inflight', 'Last Modified'])
+
+          print_table(entries)
+        end
+
         def dump_file(path, queue_name)
           File.join(path, "#{queue_name}-#{Date.today}.jsonl")
         end
       end
 
       desc 'ls [QUEUE-NAME-PREFIX]', 'List queues'
+      method_option :watch,          aliases: '-w',  type: :boolean,              desc: 'watch queues'
+      method_option :watch_interval,                 type: :numeric, default: 10, desc: 'watch interval'
       def ls(queue_name_prefix = '')
-        attrs = %w(QueueArn ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible LastModifiedTimestamp)
-
         urls = sqs.list_queues(queue_name_prefix: queue_name_prefix).queue_urls
 
-        entries = urls.map { |u| sqs.get_queue_attributes(queue_url: u, attribute_names: attrs).attributes }.map do |q|
-          [
-            q['QueueArn'].split(':').last,
-            q['ApproximateNumberOfMessages'],
-            q['ApproximateNumberOfMessagesNotVisible'],
-            Time.at(q['LastModifiedTimestamp'].to_i)
-          ]
+        loop do
+          list_and_print_queues(urls)
+
+          break unless options.watch
+
+          sleep options.watch_interval
+          puts
         end
-
-        entries.unshift(['Queue', 'Messages Available', 'Messages Inflight', 'Last Modified'])
-
-        print_table(entries)
       end
 
       desc 'dump QUEUE-NAME', 'Dump messages from a queue into a JSON lines file'
@@ -108,7 +121,7 @@ module Shoryuken
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def dump(queue_name)
-        path = dump_file(options[:path], queue_name)
+        path = dump_file(options.path, queue_name)
 
         fail_task "File #{path} already exists" if File.exist?(path)
 
@@ -118,15 +131,15 @@ module Shoryuken
 
         file = nil
 
-        count = find_all(url, options[:number]) do |m|
+        count = find_all(url, options.number) do |m|
           file ||= File.open(path, 'w')
 
           file.puts(JSON.dump(m.to_h))
 
-          messages << m if options[:delete]
+          messages << m if options.delete
         end
 
-        batch_delete(url, messages) if options[:delete]
+        batch_delete(url, messages) if options.delete
 
         if count.zero?
           say "Queue #{queue_name} is empty", :yellow
@@ -155,12 +168,12 @@ module Shoryuken
         url_source = find_queue_url(queue_name_source)
         messages = []
 
-        count = find_all(url_source, options[:number]) do |m|
+        count = find_all(url_source, options.number) do |m|
           messages << m
         end
 
         batch_send(find_queue_url(queue_name_target), messages.map(&:to_h))
-        batch_delete(url_source, messages) if options[:delete]
+        batch_delete(url_source, messages) if options.delete
 
         if count.zero?
           say "Queue #{queue_name_source} is empty", :yellow
