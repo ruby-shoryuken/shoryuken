@@ -1,12 +1,49 @@
 #!/usr/bin/env ruby
 
-require_relative '../lib/shoryuken/cli'
+require 'rubygems'
 
-begin
-  Shoryuken::CLI.instance.run(ARGV)
-rescue => e
-  raise e if $DEBUG
-  STDERR.puts e.message
-  STDERR.puts e.backtrace.join("\n")
-  exit 1
+require 'thor'
+require 'aws-sdk-core'
+require_relative 'cli/base'
+require_relative 'cli/sqs'
+require_relative '../lib/shoryuken/runner'
+
+module Shoryuken
+  module CLI
+    class Runner < Base
+      default_task :start
+
+      register(Shoryuken::CLI::SQS, 'sqs', 'sqs COMMAND', 'SQS commands')
+
+      desc 'start', 'Start shoryuken'
+      method_option :concurrency, aliases: '-c', type: :numeric, desc: 'Processor threads to use'
+      method_option :daemon,      aliases: '-d', type: :boolean, desc: 'Daemonize process'
+      method_option :queues,      aliases: '-q', type: :array,   desc: 'Queues to process with optional weights'
+      method_option :require,     aliases: '-r', type: :string,  desc: 'Dir or path of the workers'
+      method_option :config,      aliases: '-C', type: :string,  desc: 'Path to config file'
+      method_option :rails,       aliases: '-R', type: :boolean, desc: 'Load Rails'
+      method_option :logfile,     aliases: '-L', type: :string,  desc: 'Path to logfile'
+      method_option :pidfile,     aliases: '-P', type: :string,  desc: 'Path to pidfile'
+      method_option :verbose,     aliases: '-v', type: :boolean, desc: 'Print more verbose output'
+      def start
+        opts = options.to_h.symbolize_keys
+
+        # Keep compatibility with old CLI queue format
+        opts[:queues] = opts.queues.to_a.map { |q| q.split(',') }
+
+        if opts.daemon && opts.logfile.nil?
+          fail_task "You should set a logfile if you're going to daemonize"
+        end
+
+        Shoryuken::Runner.instance.run(opts.freeze)
+      end
+
+      desc 'version', 'Print version'
+      def version
+        say "Shoryuken #{Shoryuken::VERSION}"
+      end
+    end
+  end
 end
+
+Shoryuken::CLI::Runner.start

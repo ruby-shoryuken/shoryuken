@@ -28,7 +28,8 @@ end
 
 RSpec.configure do |config|
   # Only run slow tests if SPEC_ALL=true and AWS_ACCESS_KEY_ID is present
-  # The AWS_ACCESS_KEY_ID checker is because Travis CI does not expose ENV variables to pull requests from forked repositories
+  # The AWS_ACCESS_KEY_ID checker is because Travis CI
+  # does not expose ENV variables to pull requests from forked repositories
   # http://docs.travis-ci.com/user/pull-requests/
   config.filter_run_excluding slow: true if ENV['SPEC_ALL'] != 'true' || ENV['AWS_ACCESS_KEY_ID'].nil?
 
@@ -44,6 +45,7 @@ RSpec.configure do |config|
     Shoryuken.options[:timeout]     = 1
     Shoryuken.options[:daemon]      = nil
     Shoryuken.options[:logfile]     = nil
+    Shoryuken.options[:queues]      = nil
 
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
