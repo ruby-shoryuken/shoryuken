@@ -71,7 +71,7 @@ module Shoryuken
     end
 
     def merge_cli_defined_queues
-      cli_defined_queues = options[:queues]
+      cli_defined_queues = options[:queues].to_a
 
       cli_defined_queues.each do |cli_defined_queue|
         # CLI defined queues override config_file defined queues
