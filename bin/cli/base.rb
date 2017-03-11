@@ -1,8 +1,7 @@
+# rubocop:disable Metrics/BlockLength
 module Shoryuken
   module CLI
     class Base < Thor
-      PRINT_COLUMN_SIZE = 40
-
       no_commands do
         def print_table(entries)
           column_sizes = print_columns_size(entries)
@@ -18,7 +17,7 @@ module Shoryuken
           entries.each do |entry|
             entry.each_with_index do |e, i|
               e = e.to_s
-              column_sizes[i] = e.size if column_sizes[i] < e.size && e.size < PRINT_COLUMN_SIZE
+              column_sizes[i] = e.size if column_sizes[i] < e.size
             end
           end
 
@@ -26,10 +25,16 @@ module Shoryuken
         end
 
         def print_format_column(column, size)
-          right_padding = 4
-          column = column.to_s.ljust(size + right_padding)
-          column = "#{column[0...size - 2]}.." if column.size > size + right_padding
+          size = 40 if size > 40
+          size_with_padding = size + 4
+          column = column.to_s.ljust(size_with_padding)
+          column = "#{column[0...size - 2]}.." if column.size > size_with_padding
           column
+        end
+
+        def fail(msg, quit = true)
+          puts "[FAIL] #{msg}"
+          exit(1) if quit
         end
       end
     end
