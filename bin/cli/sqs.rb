@@ -104,6 +104,8 @@ module Shoryuken
       method_option :watch,          aliases: '-w',  type: :boolean,              desc: 'watch queues'
       method_option :watch_interval,                 type: :numeric, default: 10, desc: 'watch interval'
       def ls(queue_name_prefix = '')
+        trap('SIGINT', 'EXIT') # expect ctrl-c from loop
+
         urls = sqs.list_queues(queue_name_prefix: queue_name_prefix).queue_urls
 
         loop do
