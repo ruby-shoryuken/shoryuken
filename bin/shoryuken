@@ -8,6 +8,7 @@ require_relative 'cli/base'
 require_relative 'cli/sqs'
 require_relative '../lib/shoryuken/runner'
 
+# rubocop:disable Metrics/AbcSize
 module Shoryuken
   module CLI
     class Runner < Base
@@ -29,9 +30,9 @@ module Shoryuken
         opts = options.to_h.symbolize_keys
 
         # Keep compatibility with old CLI queue format
-        opts[:queues] = opts.queues.to_a.map { |q| q.split(',') }
+        opts[:queues] = options.queues.to_a.map { |q| q.split(',') }
 
-        if opts.daemon && opts.logfile.nil?
+        if options.daemon && options.logfile.nil?
           fail_task "You should set a logfile if you're going to daemonize"
         end
 
