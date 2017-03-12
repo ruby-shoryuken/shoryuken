@@ -20,18 +20,18 @@ concurrency: 25
 delay: 25
 queues:
   - [high_priority, 6]
-  - [default, 2]
+  - [normal_priority, 2]
   - [low_priority, 1]
 ```
 
-And supposing all the queues are full of messages, the configuration above will make Shoryuken to process `high_priority` 3 times more than `default` and 6 times more than `low_priority`,
-splitting the work among the `concurrency: 25` available processors.
+And supposing all the queues are full of messages, the configuration above will make Shoryuken to process `high_priority` 3 times more than `normal_priority` and 6 times more than `low_priority`,
+splitting the work load among all available processors `concurrency: 25` .
 
-If `high_priority` gets empty, Shoryuken will keep using the 25 processors, but only to process `default` (2 times more than `low_priority`) and `low_priority`.
+If `high_priority` gets empty, Shoryuken will keep using the 25 processors, but only to process `normal_priority` and `low_priority`.
 
-If `high_priority` receives a new message, Shoryuken will smoothly increase back the `high_priority` weight one by one until it reaches the weight of 6 again, which is the maximum configured for `high_priority`.
+If `high_priority` receives a new message, Shoryuken will smoothly increase back its weight one by one until it reaches the weight of 6 again.
 
-If all queues get empty, all processors will be changed to the waiting state and the queues will be checked every `delay: 25`. If any queue receives a new message, Shoryuken will start processing again. [Check the delay option documentation for more information](https://github.com/phstc/shoryuken/wiki/Shoryuken-options#delay).
+[If a queue gets empty, Shoryuken will pause checking it for `delay: 25`](https://github.com/phstc/shoryuken/wiki/Shoryuken-options#delay).
 
 
 ### Fetch in batches
@@ -114,7 +114,7 @@ concurrency: 25  # The number of allocated threads to process messages. Default 
 delay: 25        # The delay in seconds to pause a queue when it's empty. Default 0
 queues:
   - [high_priority, 6]
-  - [default, 2]
+  - [normal_priority, 2]
   - [low_priority, 1]
 ```
 
