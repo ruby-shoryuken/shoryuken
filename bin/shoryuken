@@ -30,8 +30,7 @@ module Shoryuken
         opts = options.to_h.symbolize_keys
 
         # Keep compatibility with old CLI queue format
-        opts[:queues] = options.queues.to_a.map { |q| q.split(',') }
-        opts.delete(:queues) if opts[:queues].empty?
+        opts[:queues] = options.queues.map { |q| q.split(',') } if options.queues
 
         if options.daemon && options.logfile.nil?
           fail_task "You should set a logfile if you're going to daemonize"
