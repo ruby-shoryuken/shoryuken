@@ -1,3 +1,22 @@
+## [v3.0.0] - 2017-03-12
+- Replace Celluloid with Concurrent Ruby
+ - [#291](https://github.com/phstc/shoryuken/pull/291)
+
+- Remove AWS configuration from Shoryuken. Now AWS should be configured from outside. Check [this](https://github.com/phstc/shoryuken/wiki/Configure-the-AWS-Client) for more details
+ - [#317](https://github.com/phstc/shoryuken/pull/291)
+
+- Remove deprecation warnings
+ - [#326](https://github.com/phstc/shoryuken/pull/326)
+
+- Allow dynamic adding queues
+ - [#322](https://github.com/phstc/shoryuken/pull/326)
+
+- Support retry_intervals passed in as a lambda. Auto coerce intervals into integer
+ - [#329](https://github.com/phstc/shoryuken/pull/329)
+
+- Add SQS commands `shoryuken help sqs`, such `ls`, `mv`, `dump` and `requeue`
+ - [#330](https://github.com/phstc/shoryuken/pull/330)
+
 ## [v2.1.3] - 2017-01-27
 - Show a warn message when batch isn't supported
  - [#302](https://github.com/phstc/shoryuken/pull/302)
