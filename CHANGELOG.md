@@ -14,7 +14,7 @@
 - Support retry_intervals passed in as a lambda. Auto coerce intervals into integer
  - [#329](https://github.com/phstc/shoryuken/pull/329)
 
-- Add SQS commands `shoryuken help sqs`, such `ls`, `mv`, `dump` and `requeue`
+- Add SQS commands `shoryuken help sqs`, such as `ls`, `mv`, `dump` and `requeue`
  - [#330](https://github.com/phstc/shoryuken/pull/330)
 
 ## [v2.1.3] - 2017-01-27
