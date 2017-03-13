@@ -1,3 +1,6 @@
+## [v3.0.1] - 2017-03-13
+- Fix commands sqs mv and dump `options.delete` checker
+ - [#332](https://github.com/phstc/shoryuken/pull/332)
 ## [v3.0.0] - 2017-03-12
 - Replace Celluloid with Concurrent Ruby
  - [#291](https://github.com/phstc/shoryuken/pull/291)
