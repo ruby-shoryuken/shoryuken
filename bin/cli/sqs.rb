@@ -111,9 +111,9 @@ module Shoryuken
         loop do
           list_and_print_queues(urls)
 
-          break unless options.watch
+          break unless options[:watch]
 
-          sleep options.watch_interval
+          sleep options[:watch_interval]
           puts
         end
       end
@@ -123,7 +123,7 @@ module Shoryuken
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def dump(queue_name)
-        path = dump_file(options.path, queue_name)
+        path = dump_file(options[:path], queue_name)
 
         fail_task "File #{path} already exists" if File.exist?(path)
 
@@ -133,15 +133,15 @@ module Shoryuken
 
         file = nil
 
-        count = find_all(url, options.number) do |m|
+        count = find_all(url, options[:number]) do |m|
           file ||= File.open(path, 'w')
 
           file.puts(JSON.dump(m.to_h))
 
-          messages << m if options.delete
+          messages << m if options[:delete]
         end
 
-        batch_delete(url, messages) if options.delete
+        batch_delete(url, messages) if options[:delete]
 
         if count.zero?
           say "Queue #{queue_name} is empty", :yellow
@@ -170,12 +170,12 @@ module Shoryuken
         url_source = find_queue_url(queue_name_source)
         messages = []
 
-        count = find_all(url_source, options.number) do |m|
+        count = find_all(url_source, options[:number]) do |m|
           messages << m
         end
 
         batch_send(find_queue_url(queue_name_target), messages.map(&:to_h))
-        batch_delete(url_source, messages) if options.delete
+        batch_delete(url_source, messages) if options[:delete]
 
         if count.zero?
           say "Queue #{queue_name_source} is empty", :yellow
