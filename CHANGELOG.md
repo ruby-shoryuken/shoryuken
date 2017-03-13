@@ -9,7 +9,7 @@
  - [#326](https://github.com/phstc/shoryuken/pull/326)
 
 - Allow dynamic adding queues
- - [#322](https://github.com/phstc/shoryuken/pull/326)
+ - [#322](https://github.com/phstc/shoryuken/pull/322)
 
 - Support retry_intervals passed in as a lambda. Auto coerce intervals into integer
  - [#329](https://github.com/phstc/shoryuken/pull/329)
