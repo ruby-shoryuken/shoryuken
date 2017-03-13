@@ -3,7 +3,7 @@
  - [#291](https://github.com/phstc/shoryuken/pull/291)
 
 - Remove AWS configuration from Shoryuken. Now AWS should be configured from outside. Check [this](https://github.com/phstc/shoryuken/wiki/Configure-the-AWS-Client) for more details
- - [#317](https://github.com/phstc/shoryuken/pull/291)
+ - [#317](https://github.com/phstc/shoryuken/pull/317)
 
 - Remove deprecation warnings
  - [#326](https://github.com/phstc/shoryuken/pull/326)
