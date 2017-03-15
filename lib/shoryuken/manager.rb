@@ -54,6 +54,8 @@ module Shoryuken
 
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
+
+      dispatch
     end
 
     private
@@ -62,12 +64,19 @@ module Shoryuken
       return if @done.true?
       return unless @dispatching.make_true
 
-      return if ready.zero?
-      return unless (queue = @polling_strategy.next_queue)
+      current_ready = ready
 
-      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+      while current_ready.positive?
+        return unless (queue = @polling_strategy.next_queue)
 
-      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+        @pool.post do
+          logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+
+          batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+        end
+
+        current_ready = ready - BATCH_LIMIT
+      end
     ensure
       @dispatching.make_false
     end
