@@ -95,7 +95,7 @@ module Shoryuken
     end
 
     def sqs_client=(sqs_client)
-      @@sqs_client
+      @@sqs_client = sqs_client
     end
 
     def sqs_client_receive_message_opts
@@ -103,7 +103,7 @@ module Shoryuken
     end
 
     def sqs_client_receive_message_opts=(sqs_client_receive_message_opts)
-      @@sqs_client_receive_message_opts
+      @@sqs_client_receive_message_opts = sqs_client_receive_message_opts
     end
 
     def options
