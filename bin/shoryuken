@@ -26,6 +26,7 @@ module Shoryuken
       method_option :logfile,     aliases: '-L', type: :string,  desc: 'Path to logfile'
       method_option :pidfile,     aliases: '-P', type: :string,  desc: 'Path to pidfile'
       method_option :verbose,     aliases: '-v', type: :boolean, desc: 'Print more verbose output'
+      method_option :delay,       aliases: '-D', type: :numeric, desc: 'Number of seconds to pause empty queues'
       def start
         opts = options.to_h.symbolize_keys
 

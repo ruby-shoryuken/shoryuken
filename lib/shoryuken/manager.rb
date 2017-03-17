@@ -10,6 +10,8 @@ module Shoryuken
 
       raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
 
+      @ready = Concurrent::AtomicFixnum.new(@count)
+
       @queues = Shoryuken.queues.dup.uniq
 
       @done = Concurrent::AtomicBoolean.new(false)
@@ -22,7 +24,18 @@ module Shoryuken
                                              execution_interval: HEARTBEAT_INTERVAL,
                                              timeout_interval: 60) { dispatch }
 
-      @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
+      # See https://github.com/ruby-concurrency/concurrent-ruby/blob/master/lib/concurrent/configuration.rb#L167
+      @executor = Concurrent::FixedThreadPool.new(@count, auto_terminate: false,
+                                                          idletime: 60,
+                                                          max_queue: 0,
+                                                          fallback_policy: :abort)
+      # min_threads = [2, Concurrent.processor_count].max
+      # @executor = Concurrent::ThreadPoolExecutor.new(min_threads: min_threads,
+      #                                                max_threads: [min_threads, @count].max,
+      #                                                auto_terminate: false,
+      #                                                idletime: 60,
+      #                                                max_queue: 0,
+      #                                                fallback_policy: :abort)
     end
 
     def start
@@ -52,47 +65,42 @@ module Shoryuken
       end
     end
 
-    def processor_done(queue)
-      logger.debug { "Process done for '#{queue}'" }
+    private
 
-      dispatch
+    def on_error(_reason)
+      @ready.increment
     end
 
-    private
+    def on_success(_result)
+      @ready.increment
+    end
 
     def dispatch
       return if @done.true?
       return unless @dispatching.make_true
 
-      current_ready = ready
-
-      while current_ready.positive?
+      while @ready.value.positive?
         return unless (queue = @polling_strategy.next_queue)
 
-        @pool.post do
-          logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+        logger.debug { "Ready: #{@ready.value}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
-          batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-        end
-
-        current_ready = ready - BATCH_LIMIT
+        batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
       end
     ensure
       @dispatching.make_false
     end
 
     def busy
-      @count - ready
-    end
-
-    def ready
-      @pool.remaining_capacity
+      @count - @ready.value
     end
 
     def assign(queue, sqs_msg)
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-      @pool.post { Processor.new(self).process(queue, sqs_msg) }
+      @ready.decrement
+
+      p = Concurrent::Promise.execute(executor: @executor) { Processor.process(queue, sqs_msg) }
+      p.on_success(&method(:on_success)).on_error(&method(:on_error))
     end
 
     def dispatch_batch(queue)
@@ -102,7 +110,7 @@ module Shoryuken
     end
 
     def dispatch_single_messages(queue)
-      messages = @fetcher.fetch(queue, ready)
+      messages = @fetcher.fetch(queue, @ready.value)
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
@@ -112,8 +120,8 @@ module Shoryuken
     end
 
     def soft_shutdown
-      @pool.shutdown
-      @pool.wait_for_termination
+      @executor.shutdown
+      @executor.wait_for_termination
     end
 
     def hard_shutdown_in(delay)
@@ -121,12 +129,12 @@ module Shoryuken
         logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
       end
 
-      @pool.shutdown
+      @executor.shutdown
 
-      return if @pool.wait_for_termination(delay)
+      return if @executor.wait_for_termination(delay)
 
       logger.info { "Hard shutting down #{busy} busy workers" }
-      @pool.kill
+      @executor.kill
     end
 
     def patch_batch!(sqs_msgs)
