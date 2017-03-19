@@ -20,18 +20,10 @@ module Shoryuken
           @_sqs ||= Aws::SQS::Client.new
         end
 
-        def find_queue_url(queue_name_prefix)
-          urls = sqs.list_queues(queue_name_prefix: queue_name_prefix).queue_urls
-
-          if urls.size > 1
-            fail_task "There's more than one queue starting with #{queue_name_prefix}: #{urls.join(', ')}"
-          end
-
-          url = urls.first
-
-          fail_task "Queue #{queue_name_prefix} not found" unless url
-
-          url
+        def find_queue_url(queue_name)
+          sqs.get_queue_url(queue_name: queue_name).queue_url
+        rescue Aws::SQS::Errors::NonExistentQueue
+          fail_task "The specified queue #{queue_name} does not exist"
         end
 
         def batch_delete(url, messages)
