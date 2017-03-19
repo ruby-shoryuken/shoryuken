@@ -1,3 +1,6 @@
+## [v3.0.2] - 2017-03-19
+- Fix custom SQS client initialization
+ - [#335](https://github.com/phstc/shoryuken/pull/335)
 ## [v3.0.1] - 2017-03-13
 - Fix commands sqs mv and dump `options.delete` checker
  - [#332](https://github.com/phstc/shoryuken/pull/332)
