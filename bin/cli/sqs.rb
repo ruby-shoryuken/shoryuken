@@ -158,11 +158,11 @@ module Shoryuken
       desc 'mv QUEUE-NAME-SOURCE QUEUE-NAME-TARGET', 'Move messages from one queue (source) to another (target)'
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to move'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
-      def mv(queue_name_source, queue_name_target)
+      def mv(queue_name_source, queue_name_target, limit: nil)
         url_source = find_queue_url(queue_name_source)
         messages = []
 
-        count = find_all(url_source, options[:number]) do |m|
+        count = find_all(url_source, limit || options[:number]) do |m|
           messages << m
         end
 
