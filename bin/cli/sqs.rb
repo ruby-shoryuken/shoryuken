@@ -92,7 +92,7 @@ module Shoryuken
         end
       end
 
-      desc 'ls [QUEUE-NAME-PREFIX]', 'List queues'
+      desc 'ls [QUEUE-NAME-PREFIX]', 'Lists queues'
       method_option :watch,          aliases: '-w',  type: :boolean,              desc: 'watch queues'
       method_option :watch_interval,                 type: :numeric, default: 10, desc: 'watch interval'
       def ls(queue_name_prefix = '')
@@ -110,7 +110,7 @@ module Shoryuken
         end
       end
 
-      desc 'dump QUEUE-NAME', 'Dump messages from a queue into a JSON lines file'
+      desc 'dump QUEUE-NAME', 'Dumps messages from a queue into a JSON lines file'
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to dump'
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
@@ -144,7 +144,7 @@ module Shoryuken
         file.close if file
       end
 
-      desc 'requeue QUEUE-NAME PATH', 'Requeue messages from a dump file'
+      desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 
@@ -155,7 +155,7 @@ module Shoryuken
         say "Requeued #{messages.size} messages from #{path} to #{queue_name}", :green
       end
 
-      desc 'mv QUEUE-NAME-SOURCE QUEUE-NAME-TARGET', 'Move messages from one queue (source) to another (target)'
+      desc 'mv QUEUE-NAME-SOURCE QUEUE-NAME-TARGET', 'Moves messages from one queue (source) to another (target)'
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to move'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def mv(queue_name_source, queue_name_target)
@@ -174,6 +174,13 @@ module Shoryuken
         else
           say "Moved #{count} messages from #{queue_name_source} to #{queue_name_target}", :green
         end
+      end
+
+      desc 'purge QUEUE-NAME', 'Deletes the messages in a queue'
+      def purge(queue_name)
+        sqs.purge_queue(queue_url: find_queue_url(queue_name))
+
+        say "Purge request sent for #{queue_name}. The message deletion process takes up to 60 seconds", :yellow
       end
     end
   end
