@@ -3,7 +3,7 @@ require 'shoryuken/processor'
 require 'shoryuken/manager'
 
 RSpec.describe Shoryuken::Processor do
-  let(:manager)   { double Shoryuken::Manager, processor_done: nil }
+  let(:manager)   { double Shoryuken::Manager }
   let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
 
@@ -16,7 +16,7 @@ RSpec.describe Shoryuken::Processor do
       receipt_handle: SecureRandom.uuid
   end
 
-  subject { described_class.new(manager) }
+  subject { described_class }
 
   before do
     allow(manager).to receive(:async).and_return(manager)
@@ -24,7 +24,7 @@ RSpec.describe Shoryuken::Processor do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
 
-  describe '#process' do
+  describe '.process' do
     it 'parses the body into JSON' do
       TestWorker.get_shoryuken_options['body_parser'] = :json
 
@@ -169,8 +169,6 @@ RSpec.describe Shoryuken::Processor do
         end
 
         it 'invokes middleware' do
-          expect(manager).to receive(:processor_done).with(queue)
-
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
 
@@ -199,8 +197,6 @@ RSpec.describe Shoryuken::Processor do
         end
 
         it "doesn't invoke middleware" do
-          expect(manager).to receive(:processor_done).with(queue)
-
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to_not receive(:called).with(sqs_msg, queue)
 
@@ -212,8 +208,6 @@ RSpec.describe Shoryuken::Processor do
     it 'performs with delete' do
       TestWorker.get_shoryuken_options['auto_delete'] = true
 
-      expect(manager).to receive(:processor_done).with(queue)
-
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [{ id: '0', receipt_handle: sqs_msg.receipt_handle }])
@@ -223,8 +217,6 @@ RSpec.describe Shoryuken::Processor do
 
     it 'performs without delete' do
       TestWorker.get_shoryuken_options['auto_delete'] = false
-
-      expect(manager).to receive(:processor_done).with(queue)
 
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
@@ -248,8 +240,6 @@ RSpec.describe Shoryuken::Processor do
 
       it 'performs without delete' do
         Shoryuken.worker_registry.clear # unregister TestWorker
-
-        expect(manager).to receive(:processor_done).with(queue)
 
         expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
