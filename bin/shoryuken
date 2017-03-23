@@ -16,7 +16,7 @@ module Shoryuken
 
       register(Shoryuken::CLI::SQS, 'sqs', 'sqs COMMAND', 'SQS commands')
 
-      desc 'start', 'Start shoryuken'
+      desc 'start', 'Starts shoryuken'
       method_option :concurrency, aliases: '-c', type: :numeric, desc: 'Processor threads to use'
       method_option :daemon,      aliases: '-d', type: :boolean, desc: 'Daemonize process'
       method_option :queues,      aliases: '-q', type: :array,   desc: 'Queues to process with optional weights'
@@ -39,7 +39,7 @@ module Shoryuken
         Shoryuken::Runner.instance.run(opts.freeze)
       end
 
-      desc 'version', 'Print version'
+      desc 'version', 'Prints version'
       def version
         say "Shoryuken #{Shoryuken::VERSION}"
       end
