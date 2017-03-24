@@ -3,7 +3,7 @@ module Shoryuken
     include Util
 
     BATCH_LIMIT        = 10
-    HEARTBEAT_INTERVAL = 0.1
+    HEARTBEAT_INTERVAL = 1
 
     def initialize(fetcher, polling_strategy)
       @count = Shoryuken.options.fetch(:concurrency, 25)
@@ -13,19 +13,18 @@ module Shoryuken
       @queues = Shoryuken.queues.dup.uniq
 
       @done = Concurrent::AtomicBoolean.new(false)
-      @dispatching = Concurrent::AtomicBoolean.new(false)
 
       @fetcher = fetcher
       @polling_strategy = polling_strategy
-
-      @heartbeat = Concurrent::TimerTask.new(run_now: true,
-                                             execution_interval: HEARTBEAT_INTERVAL) { @pool.post { dispatch } if @dispatching.false? }
 
       Concurrent::TimerTask.new(execution_interval: 1) do
         Shoryuken.logger.info "Threads: #{Thread.list.size}"
       end.execute
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
+      @dispatcher_pool = Concurrent::SingleThreadExecutor.new
+
+      @heartbeat = Concurrent::TimerTask.new(run_now: true, execution_interval: HEARTBEAT_INTERVAL) { dispatch }
     end
 
     def start
@@ -47,6 +46,7 @@ module Shoryuken
       logger.info { 'Shutting down workers' }
 
       @heartbeat.kill
+      @dispatcher_pool.kill
 
       if options[:shutdown]
         hard_shutdown_in(options[:timeout])
@@ -57,24 +57,25 @@ module Shoryuken
 
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
+
+      dispatch
     end
 
     private
 
     def dispatch
       return if @done.true?
-      return unless @dispatching.make_true
 
-      begin
-        return if ready.zero?
-        return unless (queue = @polling_strategy.next_queue)
+      @dispatcher_pool.post(&method(:dispatch_now))
+    end
 
-        logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+    def dispatch_now
+      return if ready.zero?
+      return unless (queue = @polling_strategy.next_queue)
 
-        batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-      ensure
-        @dispatching.make_false
-      end
+      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+
+      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
     end
 
     def busy
