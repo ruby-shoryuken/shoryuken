@@ -19,8 +19,11 @@ module Shoryuken
       @polling_strategy = polling_strategy
 
       @heartbeat = Concurrent::TimerTask.new(run_now: true,
-                                             execution_interval: HEARTBEAT_INTERVAL,
-                                             timeout_interval: 60) { dispatch }
+                                             execution_interval: HEARTBEAT_INTERVAL) { @pool.post { dispatch } if @dispatching.false? }
+
+      Concurrent::TimerTask.new(execution_interval: 1) do
+        Shoryuken.logger.info "Threads: #{Thread.list.size}"
+      end.execute
 
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
     end
@@ -62,14 +65,16 @@ module Shoryuken
       return if @done.true?
       return unless @dispatching.make_true
 
-      return if ready.zero?
-      return unless (queue = @polling_strategy.next_queue)
+      begin
+        return if ready.zero?
+        return unless (queue = @polling_strategy.next_queue)
 
-      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+        logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
-      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-    ensure
-      @dispatching.make_false
+        batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+      ensure
+        @dispatching.make_false
+      end
     end
 
     def busy
