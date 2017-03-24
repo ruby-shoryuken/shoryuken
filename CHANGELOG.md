@@ -1,3 +1,10 @@
+## [v3.0.4] - 2017-03-24
+- Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
+ - [#344](https://github.com/phstc/shoryuken/pull/344)
+
+- Fix "Thread exhaustion" error. This issue was most noticed when using long polling. @waynerobinson :beers: for pairing up on this.
+ - [#345](https://github.com/phstc/shoryuken/pull/345)
+
 ## [v3.0.3] - 2017-03-19
 - Update `sqs` CLI commands to use `get_queue_url` when appropriated
  - [#341](https://github.com/phstc/shoryuken/pull/341)
