@@ -21,13 +21,20 @@ module Shoryuken
       method_option :daemon,      aliases: '-d', type: :boolean, desc: 'Daemonize process'
       method_option :queues,      aliases: '-q', type: :array,   desc: 'Queues to process with optional weights'
       method_option :require,     aliases: '-r', type: :string,  desc: 'Dir or path of the workers'
-      method_option :config_file, aliases: '-C', type: :string,  desc: 'Path to config file'
+      method_option :config,      aliases: '-C', type: :string,  desc: 'Path to config file'
+      method_option :config_file,                type: :string,  desc: 'Path to config file (backwards compatibility)'
       method_option :rails,       aliases: '-R', type: :boolean, desc: 'Load Rails'
       method_option :logfile,     aliases: '-L', type: :string,  desc: 'Path to logfile'
       method_option :pidfile,     aliases: '-P', type: :string,  desc: 'Path to pidfile'
       method_option :verbose,     aliases: '-v', type: :boolean, desc: 'Print more verbose output'
       def start
         opts = options.to_h.symbolize_keys
+
+        if opts[:config_file]
+          say "[DEPRECATED] Please use --config instead of --config-file", :yellow
+        end
+
+        opts[:config_file] = opts.delete(:config) if opts[:config]
 
         # Keep compatibility with old CLI queue format
         opts[:queues] = options[:queues].map { |q| q.split(',') } if options[:queues]
