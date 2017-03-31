@@ -30,10 +30,11 @@ module Shoryuken
       def start
         opts = options.to_h.symbolize_keys
 
-        if opts[:config_file] && opts[:config]
-          fail_task 'You may only specify either config_file or config, not both'
+        if opts[:config_file]
+          say "[DEPRECATED] Please use --config instead of --config-file", :yellow
         end
-        opts[:config_file] = opts.delete(:config) if opts[:config] && !opts[:config_file]
+
+        opts[:config_file] = opts.delete(:config) if opts[:config]
 
         # Keep compatibility with old CLI queue format
         opts[:queues] = options[:queues].map { |q| q.split(',') } if options[:queues]
