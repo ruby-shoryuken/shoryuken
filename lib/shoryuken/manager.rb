@@ -3,6 +3,8 @@ module Shoryuken
     include Util
 
     BATCH_LIMIT = 10
+    # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
+    MIN_DISPATCH_INTERVAL = 0.1
 
     def initialize(fetcher, polling_strategy)
       @count = Shoryuken.options.fetch(:concurrency, 25)
@@ -61,8 +63,10 @@ module Shoryuken
       return if @done.true?
 
       begin
-        return if ready.zero?
-        return unless (queue = @polling_strategy.next_queue)
+        if ready.zero? || (queue = @polling_strategy.next_queue).nil?
+          sleep MIN_DISPATCH_INTERVAL
+          return
+        end
 
         logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
