@@ -47,6 +47,11 @@ module Shoryuken
       end
     end
 
+    def processor_failed(ex)
+      logger.error ex
+      logger.error ex.backtrace.join("\n") unless ex.backtrace.nil?
+    end
+
     def processor_done(queue)
       logger.debug { "Process done for '#{queue}'" }
     end
