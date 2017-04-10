@@ -13,6 +13,9 @@ module Shoryuken
       worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
         worker.perform(sqs_msg, body)
       end
+    rescue Exception => ex
+      @manager.processor_failed(ex)
+      raise
     ensure
       @manager.processor_done(queue)
     end

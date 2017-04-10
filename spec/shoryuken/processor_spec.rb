@@ -99,6 +99,7 @@ RSpec.describe Shoryuken::Processor do
       end
 
       it 'logs the error' do
+        expect(manager).to receive(:processor_failed)
         expect(subject.logger).to receive(:error) do |&block|
           expect(block.call).
             to include("unexpected token at 'invalid json'\nbody_parser: json\nsqs_msg.body: invalid json")
@@ -108,6 +109,7 @@ RSpec.describe Shoryuken::Processor do
       end
 
       it 're raises the error' do
+        expect(manager).to receive(:processor_failed)
         expect { subject.process(queue, sqs_msg) }.
           to raise_error(JSON::ParserError, /unexpected token at 'invalid json'/)
       end
