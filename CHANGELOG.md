@@ -1,3 +1,15 @@
+## [v3.0.5] - 2017-04-09
+- Pause endless dispatcher to avoid CPU overload
+ - [#354](https://github.com/phstc/shoryuken/pull/354)
+
+- Auto log processor errors
+ - [#355](https://github.com/phstc/shoryuken/pull/355)
+
+- Add a delay as a CLI param
+ - [#350](https://github.com/phstc/shoryuken/pull/350)
+
+- Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
+ - [#344](https://github.com/phstc/shoryuken/pull/344)
 ## [v3.0.4] - 2017-03-24
 - Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
  - [#344](https://github.com/phstc/shoryuken/pull/344)
