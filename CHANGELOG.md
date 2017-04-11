@@ -1,3 +1,7 @@
+## [v3.0.6] - 2017-04-11
+- Fix delay option type
+ - [#356](https://github.com/phstc/shoryuken/pull/356)
+
 ## [v3.0.5] - 2017-04-09
 - Pause endless dispatcher to avoid CPU overload
  - [#354](https://github.com/phstc/shoryuken/pull/354)
