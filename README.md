@@ -104,11 +104,11 @@ Sample configuration file `shoryuken.yml`.
 
 ```yaml
 concurrency: 25  # The number of allocated threads to process messages. Default 25
-delay: 25        # The delay in seconds to pause a queue when it's empty. Default 0
+delay: 0         # The delay in seconds to pause empty queues. Default 0
 queues:
-  - [high_priority, 6]
-  - [normal_priority, 2]
-  - [low_priority, 1]
+  - [queue1, 1]
+  - [queue2, 1]
+  - [queue3, 1]
 ```
 
 #### AWS Configuration
