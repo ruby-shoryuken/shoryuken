@@ -13,26 +13,19 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [AWS SQS](https://aws.amazon.com/sq
 
 Yeah, Shoryuken load balances the messages consumption!
 
-Given this configuration:
-
 ```yaml
 concurrency: 25
-delay: 25
+delay: 0
 queues:
   - [high_priority, 6]
   - [normal_priority, 2]
   - [low_priority, 1]
 ```
 
-And supposing all the queues are full of messages, the configuration above will make Shoryuken to process `high_priority` 3 times more than `normal_priority` and 6 times more than `low_priority`,
-splitting the work load among all available processors `concurrency: 25` .
+Or you can set them all to 1 for having the same priorities.
 
-If `high_priority` gets empty, Shoryuken will keep using the 25 processors, but only to process `normal_priority` and `low_priority`.
-
-If `high_priority` receives a new message, Shoryuken will smoothly increase back its weight one by one until it reaches the weight of 6 again.
-
-[If a queue gets empty, Shoryuken will pause checking it for `delay: 25`](https://github.com/phstc/shoryuken/wiki/Shoryuken-options#delay).
-
+- `concurrency` (default 25) is the number of threads you want to make available for processing. 
+- `delay` (default to 0) is the number of seconds to pause fetching from an empty queue. SQS charges per request, pause checking empty queues for a while can be a cost efficient strategy.
 
 ### Fetch in batches
 
