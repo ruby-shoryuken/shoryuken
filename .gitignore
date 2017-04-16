@@ -25,3 +25,6 @@ shoryuken.yml
 *.log
 .env
 rubocop.html
+.buildpath
+.settings
+.project
