@@ -35,6 +35,7 @@ module Shoryuken
     timeout: 8,
     lifecycle_events: {
       startup: [],
+      dispatch: [],
       quiet: [],
       shutdown: []
     },

@@ -55,6 +55,13 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#dispatch_now' do
+    it 'fires a dispatch event' do
+      expect(subject).to receive(:fire_event).with(:dispatch).once
+      subject.send(:dispatch_now)
+    end
+  end
+
   describe '#dispatch_batch' do
     it 'assings batch as a single message' do
       q = polling_strategy.next_queue
