@@ -1,3 +1,13 @@
+## [v3.0.7] - 2017-05-18
+- Trigger events for dispatch
+ - [#362](https://github.com/phstc/shoryuken/pull/362)
+
+- Log (warn) exponential backoff tries
+ - [#365](https://github.com/phstc/shoryuken/pull/365)
+
+- Fix displaying of long queue names in `shoryuken sqs ls`
+ - [#366](https://github.com/phstc/shoryuken/pull/366)
+
 ## [v3.0.6] - 2017-04-11
 - Fix delay option type
  - [#356](https://github.com/phstc/shoryuken/pull/356)
