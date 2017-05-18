@@ -25,10 +25,8 @@ module Shoryuken
         end
 
         def print_format_column(column, size)
-          size = 40 if size > 40
           size_with_padding = size + 4
           column = column.to_s.ljust(size_with_padding)
-          column = "#{column[0...size - 2]}.." if column.size > size_with_padding
           column
         end
 
