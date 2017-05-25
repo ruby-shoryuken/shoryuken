@@ -1,5 +1,7 @@
 module Shoryuken
   class Queue
+    include Util
+
     FIFO_ATTR               = 'FifoQueue'
     MESSAGE_GROUP_ID        = 'ShoryukenMessage'
     VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
@@ -19,7 +21,13 @@ module Shoryuken
     end
 
     def delete_messages(options)
-      client.delete_message_batch(options.merge(queue_url: url))
+      client.delete_message_batch(
+        options.merge(queue_url: url)
+      ).failed.any? do |failure|
+        logger.error do
+          "Could not delete #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', sender_fault: #{failure.sender_fault}"
+        end
+      end
     end
 
     def send_message(options)
