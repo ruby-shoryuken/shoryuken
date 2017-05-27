@@ -32,7 +32,7 @@ module Shoryuken
       @done.make_true
 
       if (callback = Shoryuken.stop_callback)
-        logger.info { 'Calling Shoryuken.on_stop block' }
+        logger.info { 'Calling on_stop callback' }
         callback.call
       end
 
@@ -50,12 +50,12 @@ module Shoryuken
     end
 
     def processor_failed(ex)
-      logger.error ex
-      logger.error ex.backtrace.join("\n") unless ex.backtrace.nil?
+      logger.error { "Processor failed: #{ex.message}" }
+      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
     end
 
     def processor_done(queue)
-      logger.debug { "Process done for '#{queue}'" }
+      logger.debug { "Process done for #{queue}" }
     end
 
     private

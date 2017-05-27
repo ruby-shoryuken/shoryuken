@@ -26,7 +26,7 @@ class EndlessUninterruptiveWorker
   end
 
   def perform(sqs_msg, body)
-    Shoryuken.logger.info("Received message: '#{body}'")
+    Shoryuken.logger.info("Received message: #{body}")
 
     execution_ms = self.class.random_number(self.class.max_execution_time)
     Shoryuken.logger.info("Going to burn metal for #{execution_ms}ms")

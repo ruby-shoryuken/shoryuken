@@ -10,8 +10,8 @@ module Shoryuken
       self.name   = name
       self.client = client
       self.url    = client.get_queue_url(queue_name: name).queue_url
-    rescue Aws::SQS::Errors::NonExistentQueue => e
-      raise e, "The specified queue '#{name}' does not exist."
+    rescue Aws::SQS::Errors::NonExistentQueue => ex
+      raise ex, "The specified queue #{name} does not exist."
     end
 
     def visibility_timeout

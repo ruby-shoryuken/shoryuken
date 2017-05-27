@@ -23,7 +23,7 @@ module Shoryuken
 
           logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{ex.message}" }
           # since we didn't raise, lets log the backtrace for debugging purposes.
-          logger.debug ex.backtrace.join("\n") unless ex.backtrace.nil?
+          logger.debug { ex.backtrace.join("\n") } unless ex.backtrace.nil?
         end
 
         private
@@ -51,7 +51,7 @@ module Shoryuken
 
           sqs_msg.change_visibility(visibility_timeout: next_visibility_timeout(interval.to_i, started_at))
 
-          logger.info { "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds." }
+          logger.info { "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds" }
 
           true
         end

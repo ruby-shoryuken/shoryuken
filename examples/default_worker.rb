@@ -4,6 +4,6 @@ class DefaultWorker
   shoryuken_options queue: 'default', auto_delete: true
 
   def perform(sqs_msg, body)
-    Shoryuken.logger.debug("Received message: '#{body}'")
+    Shoryuken.logger.debug("Received message: #{body}")
   end
 end
