@@ -4,19 +4,47 @@ describe Shoryuken::Queue do
   let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }
   let(:sqs) { Aws::SQS::Client.new(stub_responses: true, credentials: credentials) }
   let(:queue_name) { 'shoryuken' }
-  let(:queue_url) { 'https://eu-west-1.amazonaws.com:6059/123456789012/shoryuken' }
+  let(:queue_url) { "https://eu-west-1.amazonaws.com:6059/0123456789/#{queue_name}" }
 
   subject { described_class.new(sqs, queue_name) }
-  before {
+
+  before do
     # Required as Aws::SQS::Client.get_queue_url returns 'String' when responses are stubbed,
     # which is not accepted by Aws::SQS::Client.get_queue_attributes for :queue_name parameter.
     allow(subject).to receive(:url).and_return(queue_url)
-  }
+  end
+
+  describe '#delete_messages' do
+    let(:entries) do
+      [
+        { id: '1', receipt_handle:  '1' },
+        { id: '2', receipt_handle:  '2' }
+      ]
+    end
+
+    it 'deletes' do
+      expect(sqs).to receive(:delete_message_batch).with(entries: entries, queue_url: queue_url).and_return(double(failed: []))
+
+      subject.delete_messages(entries: entries)
+    end
+
+    context 'when it fails' do
+      it 'logs the reason' do
+        failure = double(id: 'id', code: 'code', message: '...', sender_fault: false)
+        logger = double 'Logger'
+
+        expect(sqs).to receive(:delete_message_batch).with(entries: entries, queue_url: queue_url).and_return(double(failed: [failure]))
+        expect(subject).to receive(:logger).and_return(logger)
+        expect(logger).to receive(:error)
+
+        subject.delete_messages(entries: entries)
+      end
+    end
+  end
 
   describe '#send_message' do
-    before {
-      allow(subject).to receive(:fifo?).and_return(false)
-    }
+    before { allow(subject).to receive(:fifo?).and_return(false) }
+
     it 'accepts SQS request parameters' do
       # https://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#send_message-instance_method
       expect(sqs).to receive(:send_message).with(hash_including(message_body: 'msg1'))
