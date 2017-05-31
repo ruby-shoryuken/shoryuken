@@ -32,8 +32,8 @@ module Shoryuken
 
       begin
         Shoryuken::Client.queues(queue.name).receive_messages(options)
-      rescue => exception
-        raise exception if options[:raise_errors]
+      rescue => ex
+        raise ex if options[:raise_errors]
 
         logger.error { "Error fetching message: #{ex}" }
         logger.error { ex.backtrace.first }
