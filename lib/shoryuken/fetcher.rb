@@ -9,18 +9,12 @@ module Shoryuken
 
       logger.debug { "Looking for new messages in '#{queue}'" }
 
-      begin
-        limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
+      limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
 
-        sqs_msgs = Array(receive_messages(queue, limit))
-        logger.info { "Found #{sqs_msgs.size} messages for '#{queue.name}'" } unless sqs_msgs.empty?
-        logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
-        sqs_msgs
-      rescue => ex
-        logger.error { "Error fetching message: #{ex}" }
-        logger.error { ex.backtrace.first }
-        []
-      end
+      sqs_msgs = Array(receive_messages(queue, limit))
+      logger.info { "Found #{sqs_msgs.size} messages for '#{queue.name}'" } unless sqs_msgs.empty?
+      logger.debug { "Fetcher for '#{queue}' completed in #{elapsed(started_at)} ms" }
+      sqs_msgs
     end
 
     private
@@ -36,7 +30,15 @@ module Shoryuken
 
       options.merge!(queue.options)
 
-      Shoryuken::Client.queues(queue.name).receive_messages(options)
+      begin
+        Shoryuken::Client.queues(queue.name).receive_messages(options)
+      rescue => exception
+        raise exception if options[:raise_errors]
+
+        logger.error { "Error fetching message: #{ex}" }
+        logger.error { ex.backtrace.first }
+        []
+      end
     end
   end
 end
