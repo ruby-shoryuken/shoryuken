@@ -1,4 +1,16 @@
+## [v3.0.8] - 2017-06-02
+
+- Fix miss handling empty batch fetches
+ - [#376](https://github.com/phstc/shoryuken/pull/376)
+
+- Various minor styling changes :lipstick:
+ - [#373](https://github.com/phstc/shoryuken/pull/373)
+
+- Logout when batch delete returns any failure
+ - [#371](https://github.com/phstc/shoryuken/pull/371)
+
 ## [v3.0.7] - 2017-05-18
+
 - Trigger events for dispatch
  - [#362](https://github.com/phstc/shoryuken/pull/362)
 
@@ -9,10 +21,12 @@
  - [#366](https://github.com/phstc/shoryuken/pull/366)
 
 ## [v3.0.6] - 2017-04-11
+
 - Fix delay option type
  - [#356](https://github.com/phstc/shoryuken/pull/356)
 
 ## [v3.0.5] - 2017-04-09
+
 - Pause endless dispatcher to avoid CPU overload
  - [#354](https://github.com/phstc/shoryuken/pull/354)
 
@@ -24,7 +38,9 @@
 
 - Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
  - [#344](https://github.com/phstc/shoryuken/pull/344)
+
 ## [v3.0.4] - 2017-03-24
+
 - Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
  - [#344](https://github.com/phstc/shoryuken/pull/344)
 
@@ -32,18 +48,22 @@
  - [#345](https://github.com/phstc/shoryuken/pull/345)
 
 ## [v3.0.3] - 2017-03-19
+
 - Update `sqs` CLI commands to use `get_queue_url` when appropriated
  - [#341](https://github.com/phstc/shoryuken/pull/341)
 
 ## [v3.0.2] - 2017-03-19
+
 - Fix custom SQS client initialization
  - [#335](https://github.com/phstc/shoryuken/pull/335)
 
 ## [v3.0.1] - 2017-03-13
+
 - Fix commands sqs mv and dump `options.delete` checker
  - [#332](https://github.com/phstc/shoryuken/pull/332)
 
 ## [v3.0.0] - 2017-03-12
+
 - Replace Celluloid with Concurrent Ruby
  - [#291](https://github.com/phstc/shoryuken/pull/291)
 
@@ -63,6 +83,7 @@
  - [#330](https://github.com/phstc/shoryuken/pull/330)
 
 ## [v2.1.3] - 2017-01-27
+
 - Show a warn message when batch isn't supported
  - [#302](https://github.com/phstc/shoryuken/pull/302)
 
@@ -73,6 +94,7 @@
  - [#307](https://github.com/phstc/shoryuken/pull/307)
 
 ## [v2.1.2] - 2016-12-22
+
 - Fix loading `logfile` from shoryuken.yml
  - [#296](https://github.com/phstc/shoryuken/pull/296)
 
@@ -92,10 +114,12 @@
  - [#284](https://github.com/phstc/shoryuken/pull/284)
 
 ## [v2.1.1] - 2016-12-05
+
 - Fix aws deprecation warning message
  - [#279](https://github.com/phstc/shoryuken/pull/279)
 
 ## [v2.1.0] - 2016-12-03
+
 - Fix celluloid "running in BACKPORTED mode" warning
  - [#260](https://github.com/phstc/shoryuken/pull/260)
 
