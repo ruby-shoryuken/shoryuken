@@ -50,8 +50,8 @@ module Shoryuken
           body_parser.load(sqs_msg.body)
         end
       end
-    rescue => e
-      logger.error { "Error parsing the message body: #{e.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}" }
+    rescue => ex
+      logger.error { "Error parsing the message body: #{ex.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}" }
       raise
     end
   end
