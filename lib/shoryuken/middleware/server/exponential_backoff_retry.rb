@@ -5,6 +5,8 @@ module Shoryuken
         include Util
 
         def call(worker, queue, sqs_msg, body)
+          return yield unless worker.class.exponential_backoff?
+
           if sqs_msg.is_a?(Array)
             logger.warn { "Exponential backoff isn't supported for batch workers" }
             return yield

@@ -5,6 +5,7 @@ require 'pry-byebug'
 require 'shoryuken'
 require 'json'
 require 'dotenv'
+require 'securerandom'
 Dotenv.load
 
 if ENV['CODECLIMATE_REPO_TOKEN']

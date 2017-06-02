@@ -34,7 +34,7 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
 
   context 'when batch worker' do
     it 'yields' do
-      expect { |b| subject.call(nil, nil, [], nil, &b) }.to yield_control
+      expect { |b| subject.call(TestWorker.new, nil, [], nil, &b) }.to yield_control
     end
   end
 

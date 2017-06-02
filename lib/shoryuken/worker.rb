@@ -48,6 +48,14 @@ module Shoryuken
         !!get_shoryuken_options['auto_visibility_timeout']
       end
 
+      def exponential_backoff?
+        !!get_shoryuken_options['retry_intervals']
+      end
+
+      def auto_delete?
+        !!(get_shoryuken_options['delete'] || get_shoryuken_options['auto_delete'])
+      end
+
       def get_shoryuken_options # :nodoc:
         @shoryuken_options || Shoryuken.default_worker_options
       end
