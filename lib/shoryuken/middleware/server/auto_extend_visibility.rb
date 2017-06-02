@@ -36,11 +36,11 @@ module Shoryuken
                 end
 
                 sqs_msg.change_visibility(visibility_timeout: queue_visibility_timeout)
-              rescue => e
+              rescue => ex
                 logger.error do
                   'Could not auto extend the message ' \
                   "#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id} " \
-                  "visibility timeout. Error: #{e.message}"
+                  "visibility timeout. Error: #{ex.message}"
                 end
               end
             end
