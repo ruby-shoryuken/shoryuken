@@ -99,6 +99,9 @@ module Shoryuken
 
     def dispatch_batch(queue)
       batch = @fetcher.fetch(queue, BATCH_LIMIT)
+
+      return if batch.none?
+
       @polling_strategy.messages_found(queue.name, batch.size)
       assign(queue.name, patch_batch!(batch))
     end
