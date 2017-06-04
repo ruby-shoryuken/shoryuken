@@ -89,7 +89,7 @@ module Shoryuken
         maximum_weight = maximum_queue_weight(queue)
         current_weight = current_queue_weight(queue)
         if maximum_weight > current_weight
-          logger.info { "Increasing '#{queue}' weight to #{current_weight + 1}, max: #{maximum_weight}" }
+          logger.info { "Increasing #{queue} weight to #{current_weight + 1}, max: #{maximum_weight}" }
           @queues << queue
         end
       end
@@ -103,7 +103,7 @@ module Shoryuken
       def pause(queue)
         return unless @queues.delete(queue)
         @paused_queues << [Time.now + delay, queue]
-        logger.debug "Paused '#{queue}'"
+        logger.debug "Paused #{queue}"
       end
 
       def unpause_queues
@@ -111,7 +111,7 @@ module Shoryuken
         return if Time.now < @paused_queues.first[0]
         pause = @paused_queues.shift
         @queues << pause[1]
-        logger.debug "Unpaused '#{pause[1]}'"
+        logger.debug "Unpaused #{pause[1]}"
       end
 
       def current_queue_weight(queue)
@@ -197,7 +197,7 @@ module Shoryuken
       def pause(queue)
         return unless delay > 0
         @paused_until[queue] = Time.now + delay
-        logger.debug "Paused '#{queue}'"
+        logger.debug "Paused #{queue}"
       end
     end
   end

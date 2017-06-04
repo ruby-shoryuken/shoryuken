@@ -20,9 +20,9 @@ module Shoryuken
               end
 
               logger.info { "completed in: #{total_time} ms" }
-            rescue => e
+            rescue
               logger.info { "failed in: #{elapsed(started_at)} ms" }
-              raise e
+              raise
             end
           end
         end

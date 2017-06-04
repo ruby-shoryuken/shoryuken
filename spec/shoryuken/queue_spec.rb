@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-describe Shoryuken::Queue do
+RSpec.describe Shoryuken::Queue do
   let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }
   let(:sqs) { Aws::SQS::Client.new(stub_responses: true, credentials: credentials) }
   let(:queue_name) { 'shoryuken' }
-  let(:queue_url) { "https://eu-west-1.amazonaws.com:6059/0123456789/#{queue_name}" }
+  let(:queue_url) { "https://sqs.eu-west-1.amazonaws.com:6059/0123456789/#{queue_name}" }
 
   subject { described_class.new(sqs, queue_name) }
 
@@ -12,6 +12,16 @@ describe Shoryuken::Queue do
     # Required as Aws::SQS::Client.get_queue_url returns 'String' when responses are stubbed,
     # which is not accepted by Aws::SQS::Client.get_queue_attributes for :queue_name parameter.
     allow(subject).to receive(:url).and_return(queue_url)
+  end
+
+  describe '#new' do
+    context 'when queue url supplied' do
+      subject { described_class.new(sqs, queue_url) }
+
+      specify do
+        expect(subject.name).to eq(queue_name)
+      end
+    end
   end
 
   describe '#delete_messages' do
@@ -105,24 +115,24 @@ describe Shoryuken::Queue do
 
     it 'accepts an array of messages' do
       options = { entries: [{ id: '0',
-                              message_body: 'msg1',
-                              delay_seconds: 1,
-                              message_attributes: { attr: 'attr1' } },
-                            { id: '1',
-                              message_body: 'msg2',
-                              delay_seconds: 1,
-                              message_attributes: { attr: 'attr2' } }] }
+        message_body: 'msg1',
+        delay_seconds: 1,
+        message_attributes: { attr: 'attr1' } },
+        { id: '1',
+          message_body: 'msg2',
+          delay_seconds: 1,
+          message_attributes: { attr: 'attr2' } }] }
 
       expect(sqs).to receive(:send_message_batch).with(hash_including(options))
 
       subject.send_messages([{ message_body:       'msg1',
-                               delay_seconds:      1,
-                               message_attributes: { attr: 'attr1' }
-                             }, {
-                               message_body:       'msg2',
-                               delay_seconds:      1,
-                               message_attributes: { attr: 'attr2' }
-                             }])
+        delay_seconds:      1,
+        message_attributes: { attr: 'attr1' }
+      }, {
+        message_body:       'msg2',
+        delay_seconds:      1,
+        message_attributes: { attr: 'attr2' }
+      }])
     end
 
     context 'when FIFO' do
@@ -153,9 +163,9 @@ describe Shoryuken::Queue do
           end
 
           subject.send_messages([{ message_body: 'msg1',
-                                   message_attributes: { attr: 'attr1' },
-                                   message_group_id: 'my group',
-                                   message_deduplication_id: 'my id' }])
+            message_attributes: { attr: 'attr1' },
+            message_group_id: 'my group',
+            message_deduplication_id: 'my id' }])
         end
       end
     end
@@ -179,13 +189,13 @@ describe Shoryuken::Queue do
     context 'when queue is FIFO' do
       let(:fifo) { true }
 
-      it { expect(subject.fifo?).to be }
+      specify { expect(subject.fifo?).to be }
     end
 
     context 'when queue is not FIFO' do
       let(:fifo) { false }
 
-      it { expect(subject.fifo?).to_not be }
+      specify { expect(subject.fifo?).to_not be }
     end
   end
 end

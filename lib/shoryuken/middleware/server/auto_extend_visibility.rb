@@ -7,6 +7,8 @@ module Shoryuken
         EXTEND_UPFRONT_SECONDS = 5
 
         def call(worker, queue, sqs_msg, body)
+          return yield unless worker.class.auto_visibility_timeout?
+
           if sqs_msg.is_a?(Array)
             logger.warn { "Auto extend visibility isn't supported for batch workers" }
             return yield
@@ -34,11 +36,11 @@ module Shoryuken
                 end
 
                 sqs_msg.change_visibility(visibility_timeout: queue_visibility_timeout)
-              rescue => e
+              rescue => ex
                 logger.error do
                   'Could not auto extend the message ' \
                   "#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id} " \
-                  "visibility timeout. Error: #{e.message}"
+                  "visibility timeout. Error: #{ex.message}"
                 end
               end
             end
@@ -46,8 +48,6 @@ module Shoryuken
         end
 
         def auto_visibility_timer(worker, queue, sqs_msg, body)
-          return unless worker.class.auto_visibility_timeout?
-
           MessageVisibilityExtender.new.auto_extend(worker, queue, sqs_msg, body).tap(&:execute)
         end
       end

@@ -42,7 +42,7 @@ module Shoryuken
     def config_file_options
       return {} unless (path = options[:config_file])
 
-      fail ArgumentError, "The supplied config file '#{path}' does not exist" unless File.exist?(path)
+      fail ArgumentError, "The supplied config file #{path} does not exist" unless File.exist?(path)
 
       YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
     end
@@ -119,7 +119,7 @@ module Shoryuken
     end
 
     def validate_queues
-      Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
+      return Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
 
       non_existent_queues = []
 
@@ -131,7 +131,7 @@ module Shoryuken
         end
       end
 
-      fail ArgumentError, "The specified queue(s) #{non_existent_queues} do not exist" if non_existent_queues.any?
+      fail ArgumentError, "The specified queue(s) #{non_existent_queues.join(', ')} do not exist" if non_existent_queues.any?
     end
 
     def validate_workers
@@ -141,7 +141,7 @@ module Shoryuken
       queues_with_workers = Shoryuken.worker_registry.queues
 
       (all_queues - queues_with_workers).each do |queue|
-        Shoryuken.logger.warn { "No worker supplied for '#{queue}'" }
+        Shoryuken.logger.warn { "No worker supplied for #{queue}" }
       end
     end
   end
