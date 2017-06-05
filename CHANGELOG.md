@@ -1,3 +1,8 @@
+## [v3.0.9] - 2017-06-05
+
+- Allow configuring queue URLs instead of names
+ - [#378](https://github.com/phstc/shoryuken/pull/378)
+
 ## [v3.0.8] - 2017-06-02
 
 - Fix miss handling empty batch fetches
