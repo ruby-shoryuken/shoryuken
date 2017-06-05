@@ -8,12 +8,9 @@ module Shoryuken
 
     attr_accessor :name, :client, :url
 
-    def initialize(client, name)
-      self.name   = name
+    def initialize(client, name_or_url)
       self.client = client
-      self.url    = client.get_queue_url(queue_name: name).queue_url
-    rescue Aws::SQS::Errors::NonExistentQueue => ex
-      raise ex, "The specified queue #{name} does not exist."
+      set_name_and_url(name_or_url)
     end
 
     def visibility_timeout
@@ -51,6 +48,21 @@ module Shoryuken
     end
 
     private
+
+    def set_name_and_url(name_or_url)
+      if name_or_url.start_with?('https://sqs.')
+        self.name = name_or_url.split('/').last
+        self.url  = name_or_url
+
+        # Test if the supplied URL is valid
+        fifo?
+      else
+        self.name = name_or_url
+        self.url  = client.get_queue_url(queue_name: name_or_url).queue_url
+      end
+    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
+      raise ex, "The specified queue #{name} does not exist."
+    end
 
     def queue_attributes
       # Note: Retrieving all queue attributes as requesting `FifoQueue` on non-FIFO queue raises error.

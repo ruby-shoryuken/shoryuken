@@ -119,7 +119,7 @@ module Shoryuken
     end
 
     def validate_queues
-      Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
+      return Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
 
       non_existent_queues = []
 
@@ -131,7 +131,7 @@ module Shoryuken
         end
       end
 
-      fail ArgumentError, "The specified queue(s) #{non_existent_queues} do not exist" if non_existent_queues.any?
+      fail ArgumentError, "The specified queue(s) #{non_existent_queues.join(', ')} do not exist" if non_existent_queues.any?
     end
 
     def validate_workers
