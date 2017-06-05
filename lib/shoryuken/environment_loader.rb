@@ -18,13 +18,13 @@ module Shoryuken
     end
 
     def setup_options
+      load_rails if options[:rails]
       initialize_options
       initialize_logger
       merge_cli_defined_queues
     end
 
     def load
-      load_rails if options[:rails]
       prefix_active_job_queue_names
       parse_queues
       require_workers
