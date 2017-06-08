@@ -49,19 +49,21 @@ module Shoryuken
 
     private
 
-    def set_name_and_url(name_or_url)
-      if name_or_url.start_with?('https://sqs.')
-        self.name = name_or_url.split('/').last
-        self.url  = name_or_url
+    def set_name(name)
+      self.name = name
+      self.url  = client.get_queue_url(queue_name: name).queue_url
+    rescue Aws::SQS::Errors::NonExistentQueue
+      logger.info { "Auto creating #{name}" }
+      self.url = client.create_queue(queue_name: name).queue_url
+    end
 
-        # Test if the supplied URL is valid
-        fifo?
-      else
-        self.name = name_or_url
-        self.url  = client.get_queue_url(queue_name: name_or_url).queue_url
-      end
-    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
-      raise ex, "The specified queue #{name} does not exist."
+    def set_url(url)
+      self.name = url.split('/').last
+      self.url  = url
+    end
+
+    def set_name_and_url(name_or_url)
+      name_or_url.start_with?('https://sqs.') ? set_url(name_or_url) : set_name(name_or_url)
     end
 
     def queue_attributes
