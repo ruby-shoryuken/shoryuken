@@ -52,9 +52,8 @@ module Shoryuken
     def set_name(name)
       self.name = name
       self.url  = client.get_queue_url(queue_name: name).queue_url
-    rescue Aws::SQS::Errors::NonExistentQueue
-      logger.info { "Auto creating #{name}" }
-      self.url = client.create_queue(queue_name: name).queue_url
+    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
+      raise ex, "The specified queue #{name} does not exist."
     end
 
     def set_url(url)

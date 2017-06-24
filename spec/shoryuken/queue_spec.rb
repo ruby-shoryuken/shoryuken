@@ -29,19 +29,6 @@ RSpec.describe Shoryuken::Queue do
       specify do
         expect(subject.name).to eq(queue_name)
       end
-
-      context 'when queue does not exist' do
-        before do
-          allow(sqs).to receive(:get_queue_url).and_raise(Aws::SQS::Errors::NonExistentQueue.new(nil, "Queue #{queue_name} does not exist"))
-          allow(sqs).to receive(:create_queue).with(queue_name: queue_name).and_return(double(queue_url: queue_url))
-        end
-
-        specify do
-          subject = described_class.new(sqs, queue_name)
-
-          expect(subject.url).to eq(queue_url)
-        end
-      end
     end
   end
 
