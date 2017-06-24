@@ -1,3 +1,11 @@
+## [v3.0.10] - 2017-06-24
+
+- Allow aws sdk v3
+ - [#381](https://github.com/phstc/shoryuken/pull/381)
+
+- Allow configuring Rails via the config file 
+ - [#387](https://github.com/phstc/shoryuken/pull/387)
+
 ## [v3.0.9] - 2017-06-05
 
 - Allow configuring queue URLs instead of names
