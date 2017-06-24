@@ -33,7 +33,7 @@ module Shoryuken
               entries: batch.map { |message| { id: message.message_id, receipt_handle: message.receipt_handle } }
             ).failed.any? do |failure|
               say(
-                "Could not delete #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', sender_fault: #{failure.sender_fault}",
+                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, sender_fault: #{failure.sender_fault}",
                 :yellow
               )
             end
