@@ -185,6 +185,13 @@ module Shoryuken
 
         say "Purge request sent for #{queue_name}. The message deletion process takes up to 60 seconds", :yellow
       end
+
+      desc 'create QUEUE-NAME', 'Create a queue'
+      def create(queue_name)
+        queue_url = sqs.create_queue(queue_name: queue_name).queue_url
+
+        say "Queue #{queue_name} was successfully created. Queue URL #{queue_url}", :green
+      end
     end
   end
 end
