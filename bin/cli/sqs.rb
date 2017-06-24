@@ -33,7 +33,7 @@ module Shoryuken
               entries: batch.map { |message| { id: message.message_id, receipt_handle: message.receipt_handle } }
             ).failed.any? do |failure|
               say(
-                "Could not delete #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', sender_fault: #{failure.sender_fault}",
+                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, sender_fault: #{failure.sender_fault}",
                 :yellow
               )
             end
@@ -184,6 +184,13 @@ module Shoryuken
         sqs.purge_queue(queue_url: find_queue_url(queue_name))
 
         say "Purge request sent for #{queue_name}. The message deletion process takes up to 60 seconds", :yellow
+      end
+
+      desc 'create QUEUE-NAME', 'Create a queue'
+      def create(queue_name)
+        queue_url = sqs.create_queue(queue_name: queue_name).queue_url
+
+        say "Queue #{queue_name} was successfully created. Queue URL #{queue_url}", :green
       end
     end
   end
