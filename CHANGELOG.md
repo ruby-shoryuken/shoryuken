@@ -1,3 +1,8 @@
+## [v3.0.11] - 2017-06-24
+
+- Add shoryuken sqs create. Tell about sqs create, if queue not found.
+ - [#388](https://github.com/phstc/shoryuken/pull/388)
+
 ## [v3.0.10] - 2017-06-24
 
 - Allow aws sdk v3
