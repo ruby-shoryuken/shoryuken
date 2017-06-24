@@ -24,7 +24,7 @@ module Shoryuken
     end
 
     def load
-      load_rails if options[:rails]
+      load_rails if Shoryuken.options[:rails]
       prefix_active_job_queue_names
       parse_queues
       require_workers
