@@ -3,25 +3,65 @@ module Shoryuken
     include Util
 
     def initialize
-      @manager = setup_manager
+      @managers = create_managers
     end
 
-    def stop(options = {})
-      @manager.each do |manager|
-        manager.stop(
-          shutdown: !options[:shutdown].nil?,
-          timeout: Shoryuken.options[:timeout]
-        )
-      end
+    def start
+      logger.info { 'Starting' }
+
+      start_callback
+
+      @managers.each(&:start)
     end
 
-    def run
-      @manager.each(&:start)
+    def stop!
+      initiate_stop
+
+      logger.info { 'Hard shutting down' }
+
+      Concurrent.global_io_executor.shutdown
+
+      return if Concurrent.global_io_executor.wait_for_termination(Shoryuken.options[:timeout])
+
+      Concurrent.global_io_executor.kill
+    end
+
+    def stop
+      initiate_stop
+
+      logger.info { 'Shutting down' }
+
+      Concurrent.global_io_executor.shutdown
+      Concurrent.global_io_executor.wait_for_termination
     end
 
     private
 
-    def setup_manager
+    def initiate_stop
+      @managers.each(&:stop)
+
+      stop_callback
+    end
+
+    def start_callback
+      if (callback = Shoryuken.start_callback)
+        logger.debug { 'Calling start_callback' }
+        callback.call
+      end
+
+      fire_event(:startup)
+    end
+
+    def stop_callback
+      if (callback = Shoryuken.stop_callback)
+        logger.debug { 'Calling stop_callback' }
+        callback.call
+      end
+
+      fire_event(:shutdown, true)
+    end
+
+    def create_managers
       Shoryuken.queues.map do |group, options|
         Shoryuken::Manager.new(
           Shoryuken::Fetcher.new,

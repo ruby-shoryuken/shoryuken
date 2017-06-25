@@ -2,10 +2,6 @@ module Shoryuken
   class Processor
     include Util
 
-    def initialize(manager)
-      @manager = manager
-    end
-
     def process(queue, sqs_msg)
       worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
 
@@ -17,10 +13,8 @@ module Shoryuken
         worker.perform(sqs_msg, body)
       end
     rescue Exception => ex
-      @manager.processor_failed(ex)
-      raise
-    ensure
-      @manager.processor_done(queue)
+      logger.error { "Processor failed: #{ex.message}" }
+      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
     end
 
     private

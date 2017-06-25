@@ -43,22 +43,15 @@ module Shoryuken
 
       @launcher = Shoryuken::Launcher.new
 
-      if (callback = Shoryuken.start_callback)
-        logger.info { 'Calling on_start callback' }
-        callback.call
-      end
-
-      fire_event(:startup)
-
       begin
-        @launcher.run
+        @launcher.start
 
         while (readable_io = IO.select([self_read]))
           signal = readable_io.first[0].gets.strip
           handle_signal(signal)
         end
       rescue Interrupt
-        @launcher.stop(shutdown: true)
+        @launcher.stop!
         exit 0
       end
     end
