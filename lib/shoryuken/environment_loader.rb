@@ -144,7 +144,7 @@ module Shoryuken
 
       fail(
         ArgumentError,
-        "The specified queue(s) #{non_existent_queues.join(', ')} do not exist.\nCheck 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
+        "The specified queue(s) #{non_existent_queues.join(', ')} do not exist.\nTry 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
       )
     end
 
