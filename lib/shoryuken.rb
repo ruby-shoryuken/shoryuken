@@ -35,7 +35,9 @@ module Shoryuken
   def_delegators(
     :'Shoryuken::Options',
     :queues,
+    :ungrouped_queues,
     :add_queue,
+    :add_group,
     :worker_registry,
     :worker_registry=,
     :start_callback,

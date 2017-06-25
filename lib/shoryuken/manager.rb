@@ -6,12 +6,10 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy)
-      @count = Shoryuken.options.fetch(:concurrency, 25)
+    def initialize(fetcher, polling_strategy, concurrency)
+      @count = concurrency
 
       raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
-
-      @queues = Shoryuken.queues.dup.uniq
 
       @done = Concurrent::AtomicBoolean.new(false)
 

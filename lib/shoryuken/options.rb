@@ -15,7 +15,7 @@ module Shoryuken
       polling_strategy: Polling::WeightedRoundRobin
     }.freeze
 
-    @@queues                          = []
+    @@queues                          = {}
     @@worker_registry                 = DefaultWorkerRegistry.new
     @@active_job_queue_name_prefixing = false
     @@sqs_client                      = nil
@@ -28,8 +28,21 @@ module Shoryuken
         @@queues
       end
 
-      def add_queue(queue, priority = 1)
-        priority.times { queues << queue }
+      def ungrouped_queues
+        queues.flat_map { |group, options| options[:queues] }
+      end
+
+      def add_group(group, concurrency)
+        queues[group] ||= {
+          concurrency: concurrency,
+          queues: []
+        }
+      end
+
+      def add_queue(queue, priority, group)
+        priority.times do
+          queues[group][:queues] << queue
+        end
       end
 
       def worker_registry
