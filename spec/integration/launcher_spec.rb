@@ -8,15 +8,15 @@ RSpec.describe Shoryuken::Launcher do
     before do
       StandardWorker.received_messages = 0
 
-      queue = "test_shoryuken#{StandardWorker}_#{SecureRandom.uuid}"
+      queue = 'shoryuken-travis'
 
-      Shoryuken::Client.sqs.create_queue queue_name: queue
+      Shoryuken::Client.sqs.create_queue(queue_name: queue)
 
       Shoryuken.queues << queue
 
       StandardWorker.get_shoryuken_options['queue'] = queue
 
-      Shoryuken.register_worker queue, StandardWorker
+      Shoryuken.register_worker(queue, StandardWorker)
     end
 
     after do
@@ -24,7 +24,7 @@ RSpec.describe Shoryuken::Launcher do
         queue_name: StandardWorker.get_shoryuken_options['queue']
       ).queue_url
 
-      Shoryuken::Client.sqs.delete_queue queue_url: queue_url
+      Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
     end
 
     it 'consumes as a command worker' do

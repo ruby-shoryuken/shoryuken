@@ -96,13 +96,9 @@ module Shoryuken
       end
     end
 
-    def parse_queue(queue, weight = nil)
-      Shoryuken.add_queue(queue, [weight.to_i, 1].max)
-    end
-
     def parse_queues
-      Shoryuken.options[:queues].to_a.each do |queue_and_weight|
-        parse_queue(*queue_and_weight)
+      Shoryuken.options[:queues].to_a.each do |queue, priority, concurrency|
+        Shoryuken.add_queue(queue, priority, concurrency)
       end
     end
 
@@ -120,21 +116,22 @@ module Shoryuken
 
     def validate_queues
       return Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
-      non_existent_queues = []
+
+      missing_queues = []
 
       Shoryuken.queues.uniq.each do |queue|
         begin
           Shoryuken::Client.queues(queue)
         rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
-          non_existent_queues << queue
+          missing_queues << queue
         end
       end
 
-      return if non_existent_queues.none?
+      return if missing_queues.none?
 
       fail(
         ArgumentError,
-        "The specified queue(s) #{non_existent_queues.join(', ')} do not exist.\nCheck 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
+        "The specified queue(s) #{missing_queues.join(', ')} do not exist.\nTry 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
       )
     end
 
