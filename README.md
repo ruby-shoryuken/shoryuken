@@ -136,6 +136,10 @@ Check also some available SQS commands `bundle exec shoryuken help sqs`, such as
 - `dump` dump messages from a queue into a JSON lines file
 - `requeue` requeue messages from a dump file
 
+## Caveats
+
+* SQS provides [at-least-once message delivery](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html#standard-queues-at-least-once-delivery), which means each job you published could end up being delivered more than once by SQS. That's why it is very important that you design your workers to be idempotent (they should be aware that the job might be worked on or already completed by another worker). Shoryuken can NOT handle this case because different workers don't share the knowledge across different jobs so there is no way to detect the job duplication at shoryuken's level. For more information please refer to [issue#257]( https://github.com/phstc/shoryuken/issues/257).
+
 ## More Information
 
 For more information on advanced topics such as signals (shutdown), ActiveJob integration, and so on please check the [Shoryuken Wiki](https://github.com/phstc/shoryuken/wiki).
