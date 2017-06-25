@@ -16,6 +16,8 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
+      @processors = Concurrent::Array.new
+
       @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
       @dispatcher_executor = Concurrent::SingleThreadExecutor.new
     end
@@ -82,17 +84,20 @@ module Shoryuken
     end
 
     def busy
-      @count - ready
+      @processors.count(&:rejected?)
     end
 
     def ready
-      @pool.remaining_capacity
+      @processors.delete_if(&:complete?)
+      @count - @processors.size
     end
 
     def assign(queue, sqs_msg)
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-      @pool.post { Processor.new(self).process(queue, sqs_msg) }
+      @processors << Concurrent::Future.execute(executor: @pool) do
+        Processor.new(self).process(queue, sqs_msg)
+      end
     end
 
     def dispatch_batch(queue)
