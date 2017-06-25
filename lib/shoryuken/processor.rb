@@ -8,6 +8,9 @@ module Shoryuken
 
     def process(queue, sqs_msg)
       worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
+
+      return logger.error { "No worker found for #{queue}" } unless worker
+
       body = get_body(worker.class, sqs_msg)
 
       worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
@@ -51,7 +54,9 @@ module Shoryuken
         end
       end
     rescue => ex
-      logger.error { "Error parsing the message body: #{ex.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}" }
+      logger.error {
+        "Error parsing the message body: #{ex.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}"
+      }
       raise
     end
   end
