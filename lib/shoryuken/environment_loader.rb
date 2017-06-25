@@ -96,22 +96,9 @@ module Shoryuken
       end
     end
 
-    def parse_queue(queue, weight = nil, group)
-      Shoryuken.add_queue(queue, [weight.to_i, 1].max, group)
-    end
-
     def parse_queues
-      Shoryuken.add_group('default', Shoryuken.options.fetch(:concurrency, 25))
-
-      Shoryuken.options[:queues].to_a.each do |queue, weight|
-        parse_queue(queue, weight, 'default')
-      end
-
-      Shoryuken.options[:groups].to_a.each do |group, options|
-        Shoryuken.add_group(group, options.fetch(:concurrency, 25))
-        options[:queues].to_a.each do |queue, weight|
-          parse_queue(queue, weight, group)
-        end
+      Shoryuken.options[:queues].to_a.each do |queue, priority, concurrency|
+        Shoryuken.add_queue(queue, priority, concurrency)
       end
     end
 
@@ -128,30 +115,30 @@ module Shoryuken
     end
 
     def validate_queues
-      return Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.ungrouped_queues.empty?
+      return Shoryuken.logger.warn { 'No queues supplied' } if Shoryuken.queues.empty?
 
-      non_existent_queues = []
+      missing_queues = []
 
-      Shoryuken.ungrouped_queues.uniq.each do |queue|
+      Shoryuken.queues.uniq.each do |queue|
         begin
           Shoryuken::Client.queues(queue)
         rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
-          non_existent_queues << queue
+          missing_queues << queue
         end
       end
 
-      return if non_existent_queues.none?
+      return if missing_queues.none?
 
       fail(
         ArgumentError,
-        "The specified queue(s) #{non_existent_queues.join(', ')} do not exist.\nTry 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
+        "The specified queue(s) #{missing_queues.join(', ')} do not exist.\nTry 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
       )
     end
 
     def validate_workers
       return if defined?(::ActiveJob)
 
-      all_queues = Shoryuken.ungrouped_queues
+      all_queues = Shoryuken.queues
       queues_with_workers = Shoryuken.worker_registry.queues
 
       (all_queues - queues_with_workers).each do |queue|

@@ -6,8 +6,8 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy, concurrency)
-      @count = concurrency
+    def initialize(fetcher, polling_strategy)
+      @count = Shoryuken.options.fetch(:concurrency, 25)
 
       raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
 
@@ -16,9 +16,8 @@ module Shoryuken
       @fetcher = fetcher
       @polling_strategy = polling_strategy
 
-      @processors = Concurrent::Array.new
+      @processors = Concurrent::Map.new
 
-      @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
       @dispatcher_executor = Concurrent::SingleThreadExecutor.new
     end
 
@@ -68,7 +67,14 @@ module Shoryuken
       return if @done.true?
 
       begin
-        if ready.zero? || (queue = @polling_strategy.next_queue).nil?
+        if !ready.positive? || (queue = @polling_strategy.next_queue).nil?
+          sleep MIN_DISPATCH_INTERVAL
+          return
+        end
+
+        @processors.put_if_absent(queue.name, Concurrent::Array.new)
+
+        unless ready_for_queue(queue.name).positive?
           sleep MIN_DISPATCH_INTERVAL
           return
         end
@@ -83,21 +89,28 @@ module Shoryuken
       end
     end
 
+    def ready_for_queue(queue_name)
+      [
+        Shoryuken.queue_concurrency(queue_name) - @processors.get(queue_name).reject(&:complete?).count,
+        ready
+      ].min
+    end
+
     def busy
-      @processors.count(&:rejected?)
+      @processors.values.flatten.count(&:rejected?)
     end
 
     def ready
-      @processors.delete_if(&:complete?)
-      @count - @processors.size
+      @processors.each_key do |key|
+        @processors.get(key)&.delete_if(&:complete?)
+      end
+      @count - @processors.values.flatten.count
     end
 
-    def assign(queue, sqs_msg)
+    def assign(queue_name, sqs_msg)
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-      @processors << Concurrent::Future.execute(executor: @pool) do
-        Processor.new(self).process(queue, sqs_msg)
-      end
+      @processors.get(queue_name) << Concurrent::Future.execute { Processor.new(self).process(queue_name, sqs_msg) }
     end
 
     def dispatch_batch(queue)
@@ -107,7 +120,7 @@ module Shoryuken
     end
 
     def dispatch_single_messages(queue)
-      messages = @fetcher.fetch(queue, ready)
+      messages = @fetcher.fetch(queue, ready_for_queue(queue.name))
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
@@ -117,8 +130,8 @@ module Shoryuken
     end
 
     def soft_shutdown
-      @pool.shutdown
-      @pool.wait_for_termination
+      Concurrent.global_io_executor.shutdown
+      Concurrent.global_io_executor.wait_for_termination
     end
 
     def hard_shutdown_in(delay)
@@ -126,12 +139,12 @@ module Shoryuken
         logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
       end
 
-      @pool.shutdown
+      Concurrent.global_io_executor.shutdown
 
-      return if @pool.wait_for_termination(delay)
+      return if Concurrent.global_io_executor.wait_for_termination(delay)
 
       logger.info { "Hard shutting down #{busy} busy workers" }
-      @pool.kill
+      Concurrent.global_io_executor.kill
     end
 
     def patch_batch!(sqs_msgs)
