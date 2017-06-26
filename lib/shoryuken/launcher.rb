@@ -11,7 +11,11 @@ module Shoryuken
 
       start_callback
 
-      @managers.each(&:start)
+      @managers.each do |manager|
+        Concurrent::Promise.execute { manager.start }.rescue do |ex|
+          Thread.main.raise(ex)
+        end
+      end
     end
 
     def stop!

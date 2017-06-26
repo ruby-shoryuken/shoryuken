@@ -42,14 +42,12 @@ module Shoryuken
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
-      Concurrent::Future.execute(&method(:dispatch))
+      dispatch
     end
 
     def dispatch_later
-      Concurrent::Future.execute do
-        sleep(MIN_DISPATCH_INTERVAL)
-        dispatch
-      end
+      sleep(MIN_DISPATCH_INTERVAL)
+      dispatch
     end
 
     def busy
