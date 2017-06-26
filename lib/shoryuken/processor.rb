@@ -15,6 +15,8 @@ module Shoryuken
     rescue Exception => ex
       logger.error { "Processor failed: #{ex.message}" }
       logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+
+      raise
     end
 
     private
@@ -47,11 +49,6 @@ module Shoryuken
           body_parser.load(sqs_msg.body)
         end
       end
-    rescue => ex
-      logger.error {
-        "Error parsing the message body: #{ex.message}\nbody_parser: #{body_parser}\nsqs_msg.body: #{sqs_msg.body}"
-      }
-      raise
     end
   end
 end

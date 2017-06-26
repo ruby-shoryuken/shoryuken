@@ -17,29 +17,35 @@ module Shoryuken
     def stop!
       initiate_stop
 
-      Concurrent.global_io_executor.shutdown
+      executor.shutdown
 
-      return if Concurrent.global_io_executor.wait_for_termination(Shoryuken.options[:timeout])
+      return if executor.wait_for_termination(Shoryuken.options[:timeout])
 
-      Concurrent.global_io_executor.kill
+      executor.kill
     end
 
     def stop
       initiate_stop
 
-      Concurrent.global_io_executor.shutdown
-      Concurrent.global_io_executor.wait_for_termination
+      executor.shutdown
+      executor.wait_for_termination
     end
 
     private
+
+    def executor
+      Concurrent.global_io_executor
+    end
 
     def start_managers
       @shutdowing = Concurrent::AtomicBoolean.new(false)
 
       @managers.each do |manager|
         Concurrent::Promise.execute { manager.start }.rescue do |ex|
-          logger.error { "Manager failed: #{ex&.message}" }
-          logger.error { ex.backtrace.join("\n") } unless ex&.backtrace.nil?
+          if ex
+            logger.error { "Manager failed: #{ex.message}" }
+            logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+          end
 
 
           Process.kill('USR1', Process.pid) if @shutdowing.make_true

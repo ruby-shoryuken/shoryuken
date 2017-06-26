@@ -11,26 +11,18 @@ RSpec.describe Shoryuken::Manager do
   let(:queue) { 'default' }
   let(:queues) { [queue] }
   let(:polling_strategy) { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
-  let(:fetcher) { Shoryuken::Fetcher.new }
+  let(:fetcher) { double Shoryuken::Fetcher }
   let(:concurrency) { 1 }
 
-  subject { Shoryuken::Manager.new(fetcher, polling_strategy) }
+  subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency) }
 
-  before(:each) do
-    Shoryuken.options[:concurrency] = concurrency
+  before do
+    allow(fetcher).to receive(:fetch).and_return([])
   end
 
-  after(:each) do
+  after do
     Shoryuken.options[:concurrency] = 1
     TestWorker.get_shoryuken_options['batch'] = false
-  end
-
-  describe 'Invalid concurrency setting' do
-    it 'raises ArgumentError if concurrency is not positive number' do
-      Shoryuken.options[:concurrency] = -1
-      expect { Shoryuken::Manager.new(nil, nil) }
-        .to raise_error(ArgumentError, 'Concurrency value -1 is invalid, it needs to be a positive number')
-    end
   end
 
   describe '#start' do
@@ -55,10 +47,10 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
-  describe '#dispatch_now' do
-    it 'fires a dispatch event' do
-      expect(subject).to receive(:fire_event).with(:dispatch).once
-      subject.send(:dispatch_now)
+  describe '#dispatch' do
+    xit 'fires a dispatch event' do
+      expect(subject).to receive(:fire_event).with(:dispatch)
+      subject.send(:dispatch)
     end
   end
 

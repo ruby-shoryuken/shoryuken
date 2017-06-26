@@ -15,20 +15,11 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       allow(subject).to receive(:patch_deprecated_workers)
     end
 
-    it 'parses' do
-      Shoryuken.options[:queues] = ['queue_1']
+    specify do
+      Shoryuken.options[:queues] = ['queue1', ['queue2', 2]]
       subject.load
 
-      expect(Shoryuken.queues).to eq(%w(queue_1))
-    end
-
-    context 'with priority' do
-      it 'parses' do
-        Shoryuken.options[:queues] = ['queue_1', ['queue_2', 2]]
-        subject.load
-
-        expect(Shoryuken.queues).to eq(%w(queue_1 queue_2 queue_2))
-      end
+      expect(Shoryuken.queues['default'][:queues]).to eq(%w(queue1 queue2 queue2))
     end
   end
 end

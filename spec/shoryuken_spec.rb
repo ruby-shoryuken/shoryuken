@@ -2,14 +2,18 @@ require 'spec_helper'
 
 RSpec.describe Shoryuken do
   describe '.add_queue' do
-    after { Shoryuken.queues.clear }
+    before do
+      Shoryuken.queues.clear
+      Shoryuken.add_group('group1', 25)
+      Shoryuken.add_group('group2', 25)
+    end
 
-    it 'adds queues' do
-      described_class.add_queue('default')
-      expect(described_class.queues).to eq(['default'])
+    specify do
+      described_class.add_queue('queue1', 1, 'group1')
+      described_class.add_queue('queue2', 2, 'group2')
 
-      described_class.add_queue('high', 2)
-      expect(described_class.queues).to eq(%w(default high high))
+      expect(described_class.queues['group1'][:queues]).to eq(%w(queue1))
+      expect(described_class.queues['group2'][:queues]).to eq(%w(queue2 queue2))
     end
   end
 
@@ -56,7 +60,7 @@ RSpec.describe Shoryuken do
 
           def perform(sqs_msg, body); end
         end
-      }.to raise_error("Could not register BatchableWorker for 'default', because TestWorker is already registered for this queue, " \
+      }.to raise_error("Could not register BatchableWorker for default, because TestWorker is already registered for this queue, " \
                        "and Shoryuken doesn't support a batchable worker for a queue with multiple workers")
     end
   end

@@ -55,6 +55,7 @@ module Shoryuken
     :logger,
     :register_worker,
     :configure_server,
+    :server?,
     :server_middleware,
     :configure_client,
     :client_middleware,

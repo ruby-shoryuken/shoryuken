@@ -53,5 +53,7 @@ RSpec.configure do |config|
 
     Shoryuken.worker_registry.clear
     Shoryuken.register_worker('default', TestWorker)
+
+    Aws.config[:stub_responses] = true
   end
 end
