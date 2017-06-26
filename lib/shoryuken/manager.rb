@@ -27,8 +27,12 @@ module Shoryuken
 
     private
 
+    def stopped?
+      @done.true? || !Concurrent.global_io_executor.running?
+    end
+
     def dispatch
-      return if @done.true?
+      return if stopped?
 
       @processors.reject!(&:complete?)
 
@@ -64,6 +68,8 @@ module Shoryuken
     end
 
     def assign(queue_name, sqs_msg)
+      return if stopped?
+
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
       @processors << Concurrent::Future.execute { Processor.new.process(queue_name, sqs_msg) }
