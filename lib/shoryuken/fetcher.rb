@@ -9,19 +9,12 @@ module Shoryuken
 
       logger.debug { "Looking for new messages in #{queue}" }
 
-      begin
-        limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
+      limit = available_processors > FETCH_LIMIT ? FETCH_LIMIT : available_processors
 
-        sqs_msgs = Array(receive_messages(queue, limit))
-        logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
-        logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
-        sqs_msgs
-      rescue => ex
-        logger.error { "Error fetching message: #{ex.message}" }
-        logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
-
-        raise
-      end
+      sqs_msgs = Array(receive_messages(queue, limit))
+      logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+      logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
+      sqs_msgs
     end
 
     private

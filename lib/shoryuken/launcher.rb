@@ -11,11 +11,7 @@ module Shoryuken
 
       start_callback
 
-      @managers.each do |manager|
-        Concurrent::Promise.execute { manager.start }.rescue do
-          Thread.main.raise('Manager failed')
-        end
-      end
+      start_managers
     end
 
     def stop!
@@ -36,6 +32,20 @@ module Shoryuken
     end
 
     private
+
+    def start_managers
+      @shutdowing = Concurrent::AtomicBoolean.new(false)
+
+      @managers.each do |manager|
+        Concurrent::Promise.execute { manager.start }.rescue do |ex|
+          logger.error { "Manager failed: #{ex&.message}" }
+          logger.error { ex.backtrace.join("\n") } unless ex&.backtrace.nil?
+
+
+          Process.kill('USR1', Process.pid) if @shutdowing.make_true
+        end
+      end
+    end
 
     def initiate_stop
       logger.info { 'Shutting down' }

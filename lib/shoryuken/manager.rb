@@ -47,11 +47,6 @@ module Shoryuken
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
       dispatch
-    rescue => ex
-      logger.error { "Dispatch failed: #{ex.message}" }
-      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
-
-      raise
     end
 
     def dispatch_later
