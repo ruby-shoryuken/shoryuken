@@ -40,6 +40,7 @@ module Shoryuken
     :add_group,
     :worker_registry,
     :worker_registry=,
+    :polling_strategy,
     :start_callback,
     :start_callback=,
     :stop_callback,

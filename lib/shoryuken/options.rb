@@ -11,8 +11,7 @@ module Shoryuken
         dispatch: [],
         quiet: [],
         shutdown: []
-      },
-      polling_strategy: Polling::WeightedRoundRobin
+      }
     }.freeze
 
     @@queues                          = {}
@@ -51,6 +50,10 @@ module Shoryuken
 
       def worker_registry=(worker_registry)
         @@worker_registry = worker_registry
+      end
+
+      def polling_strategy(group)
+        options[group].to_h.fetch(:polling_strategy, Polling::WeightedRoundRobin)
       end
 
       def start_callback

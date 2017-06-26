@@ -67,7 +67,7 @@ module Shoryuken
       Shoryuken.queues.map do |group, options|
         Shoryuken::Manager.new(
           Shoryuken::Fetcher.new,
-          Shoryuken.options[:polling_strategy].new(options[:queues]),
+          Shoryuken.polling_strategy(group).new(options[:queues]),
           options[:concurrency]
         )
       end
