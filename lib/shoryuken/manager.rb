@@ -34,8 +34,6 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      @processors.reject!(&:complete?)
-
       if !ready.positive? || (queue = @polling_strategy.next_queue).nil?
         return dispatch_later
       end
@@ -55,7 +53,8 @@ module Shoryuken
     end
 
     def busy
-      @processors.reject(&:complete?).count
+      @processors.reject!(&:complete?)
+      @processors.count
     end
 
     def ready
