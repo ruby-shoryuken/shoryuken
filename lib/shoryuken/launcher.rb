@@ -11,11 +11,11 @@ module Shoryuken
 
       start_callback
 
-      Concurrent::Promise.any?(
-        *(@managers.map { |manager| Concurrent::Promise.new { manager.start } })
-      ).rescue do
-        Thread.main.raise('Manager failed')
-      end.execute
+      @managers.each do |manager|
+        Concurrent::Promise.execute { manager.start }.rescue do
+          Thread.main.raise('Manager failed')
+        end
+      end
     end
 
     def stop!

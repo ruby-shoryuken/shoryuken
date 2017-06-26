@@ -44,7 +44,11 @@ module Shoryuken
 
       fail ArgumentError, "The supplied config file #{path} does not exist" unless File.exist?(path)
 
-      YAML.load(ERB.new(IO.read(path)).result).deep_symbolize_keys
+      if result = YAML.load(ERB.new(IO.read(path)).result)
+        result.deep_symbolize_keys
+      else
+        {}
+      end
     end
 
     def initialize_logger
@@ -101,10 +105,12 @@ module Shoryuken
     end
 
     def parse_queues
-      Shoryuken.add_group('default', Shoryuken.options.fetch(:concurrency, 25))
+      if Shoryuken.options[:queues].to_a.any?
+        Shoryuken.add_group('default', Shoryuken.options.fetch(:concurrency, 25))
 
-      Shoryuken.options[:queues].to_a.each do |queue, weight|
-        parse_queue(queue, weight, 'default')
+        Shoryuken.options[:queues].to_a.each do |queue, weight|
+          parse_queue(queue, weight, 'default')
+        end
       end
 
       Shoryuken.options[:groups].to_a.each do |group, options|
