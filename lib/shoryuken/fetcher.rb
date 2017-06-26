@@ -19,7 +19,8 @@ module Shoryuken
       rescue => ex
         logger.error { "Error fetching message: #{ex.message}" }
         logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
-        []
+
+        raise
       end
     end
 

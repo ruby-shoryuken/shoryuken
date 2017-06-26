@@ -119,8 +119,6 @@ module Shoryuken
     end
 
     def handle_signal(sig)
-      logger.info { "Got #{sig} signal" }
-
       case sig
       when 'USR1' then execute_soft_shutdown
       when 'TTIN' then print_threads_backtrace

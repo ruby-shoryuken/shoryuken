@@ -11,17 +11,15 @@ module Shoryuken
 
       start_callback
 
-      @managers.each do |manager|
-        Concurrent::Promise.execute { manager.start }.rescue do |ex|
-          Thread.main.raise(ex)
-        end
-      end
+      Concurrent::Promise.any?(
+        *(@managers.map { |manager| Concurrent::Promise.new { manager.start } })
+      ).rescue do
+        Thread.main.raise('Manager failed')
+      end.execute
     end
 
     def stop!
       initiate_stop
-
-      logger.info { 'Hard shutting down' }
 
       Concurrent.global_io_executor.shutdown
 
@@ -33,8 +31,6 @@ module Shoryuken
     def stop
       initiate_stop
 
-      logger.info { 'Shutting down' }
-
       Concurrent.global_io_executor.shutdown
       Concurrent.global_io_executor.wait_for_termination
     end
@@ -42,6 +38,8 @@ module Shoryuken
     private
 
     def initiate_stop
+      logger.info { 'Shutting down' }
+
       @managers.each(&:stop)
 
       stop_callback
