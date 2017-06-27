@@ -7,14 +7,11 @@ module Shoryuken
     MIN_DISPATCH_INTERVAL = 0.1
 
     def initialize(fetcher, polling_strategy, concurrency)
-      @count = concurrency
-
-      @done = Concurrent::AtomicBoolean.new(false)
-
-      @fetcher = fetcher
+      @fetcher          = fetcher
       @polling_strategy = polling_strategy
-
-      @processors = Concurrent::Array.new
+      @max_processors   = concurrency
+      @busy_processors  = Concurrent::AtomicFixnum.new(0)
+      @done             = Concurrent::AtomicBoolean.new(false)
     end
 
     def start
@@ -40,7 +37,7 @@ module Shoryuken
 
       fire_event(:dispatch)
 
-      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+      logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
@@ -53,12 +50,11 @@ module Shoryuken
     end
 
     def busy
-      @processors.reject!(&:complete?)
-      @processors.count
+      @busy_processors.value
     end
 
     def ready
-      @count - busy
+      @max_processors - busy
     end
 
     def assign(queue_name, sqs_msg)
@@ -66,7 +62,11 @@ module Shoryuken
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-      @processors << Concurrent::Future.execute { Processor.new.process(queue_name, sqs_msg) }
+      @busy_processors.increment
+
+      Concurrent::Promise.execute {
+        Processor.new.process(queue_name, sqs_msg)
+      }.then { @busy_processors.decrement }.rescue { @busy_processors.decrement }
     end
 
     def dispatch_batch(queue)
