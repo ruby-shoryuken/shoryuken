@@ -2,12 +2,15 @@ module Shoryuken
   class Processor
     include Util
 
-    def process(queue, sqs_msg)
-      worker = Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
+    attr_reader :queue, :sqs_msg
 
+    def initialize(queue, sqs_msg)
+      @queue   = queue
+      @sqs_msg = sqs_msg
+    end
+
+    def process
       return logger.error { "No worker found for #{queue}" } unless worker
-
-      body = get_body(worker.class, sqs_msg)
 
       worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
         worker.perform(sqs_msg, body)
@@ -21,15 +24,19 @@ module Shoryuken
 
     private
 
-    def get_body(worker_class, sqs_msg)
-      if sqs_msg.is_a? Array
-        sqs_msg.map { |m| parse_body(worker_class, m) }
-      else
-        parse_body(worker_class, sqs_msg)
-      end
+    def worker
+      @_worker ||= Shoryuken.worker_registry.fetch_worker(queue, sqs_msg)
     end
 
-    def parse_body(worker_class, sqs_msg)
+    def worker_class
+      worker.class
+    end
+
+    def body
+      @_body ||= sqs_msg.is_a?(Array) ? sqs_msg.map(&method(:parse_body)) : parse_body(sqs_msg)
+    end
+
+    def parse_body(sqs_msg)
       body_parser = worker_class.get_shoryuken_options['body_parser']
 
       case body_parser

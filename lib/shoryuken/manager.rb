@@ -69,7 +69,7 @@ module Shoryuken
       @busy_processors.increment
 
       Concurrent::Promise.execute {
-        Processor.new.process(queue_name, sqs_msg)
+        Processor.new(queue_name, sqs_msg).process
       }.then { processor_done }.rescue { processor_done }
     end
 

@@ -22,6 +22,8 @@ RSpec.describe Shoryuken::Processor do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
 
+  subject { described_class.new(queue, sqs_msg) }
+
   describe '#process' do
     it 'parses the body into JSON' do
       TestWorker.get_shoryuken_options['body_parser'] = :json
@@ -32,7 +34,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses the body calling the proc' do
@@ -42,7 +44,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return('test')
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses the body as text' do
@@ -54,7 +56,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(body)
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses calling `.load`' do
@@ -70,7 +72,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses calling `.parse`' do
@@ -86,7 +88,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     context 'when parse errors' do
@@ -99,7 +101,7 @@ RSpec.describe Shoryuken::Processor do
       specify do
         expect(subject.logger).to receive(:error).twice
 
-        expect { subject.process(queue, sqs_msg) }.
+        expect { subject.process }.
           to raise_error(JSON::ParserError, /unexpected token at 'invalid JSON'/)
       end
     end
@@ -114,7 +116,7 @@ RSpec.describe Shoryuken::Processor do
 
         allow(sqs_msg).to receive(:body).and_return(body)
 
-        subject.process(queue, sqs_msg)
+        subject.process
       end
     end
 
@@ -163,7 +165,7 @@ RSpec.describe Shoryuken::Processor do
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
 
-          subject.process(queue, sqs_msg)
+          subject.process
         end
       end
 
@@ -191,7 +193,7 @@ RSpec.describe Shoryuken::Processor do
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to_not receive(:called).with(sqs_msg, queue)
 
-          subject.process(queue, sqs_msg)
+          subject.process
         end
       end
     end
@@ -203,7 +205,7 @@ RSpec.describe Shoryuken::Processor do
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [{ id: '0', receipt_handle: sqs_msg.receipt_handle }])
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'performs without delete' do
@@ -213,7 +215,7 @@ RSpec.describe Shoryuken::Processor do
 
       expect(sqs_queue).to_not receive(:delete_messages)
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     context 'when shoryuken_class header' do
@@ -236,7 +238,7 @@ RSpec.describe Shoryuken::Processor do
 
         expect(sqs_queue).to_not receive(:delete_messages)
 
-        subject.process(queue, sqs_msg)
+        subject.process
       end
     end
   end
