@@ -57,6 +57,10 @@ module Shoryuken
       @max_processors - busy
     end
 
+    def processor_done
+      @busy_processors.decrement
+    end
+
     def assign(queue_name, sqs_msg)
       return if stopped?
 
@@ -66,7 +70,7 @@ module Shoryuken
 
       Concurrent::Promise.execute {
         Processor.new.process(queue_name, sqs_msg)
-      }.then { @busy_processors.decrement }.rescue { @busy_processors.decrement }
+      }.then(&method(:processor_done)).rescue(&method(:processor_done))
     end
 
     def dispatch_batch(queue)
