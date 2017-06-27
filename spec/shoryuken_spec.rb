@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe Shoryuken do
   describe '.add_queue' do
     before do
-      Shoryuken.queues.clear
+      Shoryuken.groups.clear
       Shoryuken.add_group('group1', 25)
       Shoryuken.add_group('group2', 25)
     end
@@ -12,8 +12,8 @@ RSpec.describe Shoryuken do
       described_class.add_queue('queue1', 1, 'group1')
       described_class.add_queue('queue2', 2, 'group2')
 
-      expect(described_class.queues['group1'][:queues]).to eq(%w(queue1))
-      expect(described_class.queues['group2'][:queues]).to eq(%w(queue2 queue2))
+      expect(described_class.groups['group1'][:queues]).to eq(%w(queue1))
+      expect(described_class.groups['group2'][:queues]).to eq(%w(queue2 queue2))
     end
   end
 

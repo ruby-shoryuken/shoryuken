@@ -14,7 +14,7 @@ module Shoryuken
       }
     }.freeze
 
-    @@queues                          = {}
+    @@groups                          = {}
     @@worker_registry                 = DefaultWorkerRegistry.new
     @@active_job_queue_name_prefixing = false
     @@sqs_client                      = nil
@@ -23,25 +23,25 @@ module Shoryuken
     @@stop_callback                   = nil
 
     class << self
-      def queues
-        @@queues
-      end
-
-      def ungrouped_queues
-        queues.flat_map { |group, options| options[:queues] }
-      end
-
       def add_group(group, concurrency)
-        queues[group] ||= {
+        groups[group] ||= {
           concurrency: concurrency,
           queues: []
         }
       end
 
+      def groups
+        @@groups
+      end
+
       def add_queue(queue, priority, group)
         priority.times do
-          queues[group][:queues] << queue
+          groups[group][:queues] << queue
         end
+      end
+
+      def ungrouped_queues
+        groups.values.flatten
       end
 
       def worker_registry

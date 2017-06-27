@@ -19,7 +19,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       Shoryuken.options[:queues] = ['queue1', ['queue2', 2]]
       subject.load
 
-      expect(Shoryuken.queues['default'][:queues]).to eq(%w(queue1 queue2 queue2))
+      expect(Shoryuken.groups['default'][:queues]).to eq(%w(queue1 queue2 queue2))
     end
   end
 end

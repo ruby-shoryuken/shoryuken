@@ -40,7 +40,7 @@ RSpec.configure do |config|
 
     Shoryuken::Client.sqs = nil
 
-    Shoryuken.queues.clear
+    Shoryuken.groups.clear
 
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1

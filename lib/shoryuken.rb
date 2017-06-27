@@ -34,10 +34,10 @@ module Shoryuken
 
   def_delegators(
     :'Shoryuken::Options',
-    :queues,
-    :ungrouped_queues,
-    :add_queue,
     :add_group,
+    :groups,
+    :add_queue,
+    :ungrouped_queues,
     :worker_registry,
     :worker_registry=,
     :polling_strategy,
