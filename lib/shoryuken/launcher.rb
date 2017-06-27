@@ -3,8 +3,8 @@ module Shoryuken
     include Util
 
     def initialize
-      @managers   = create_managers
-      @shutdowing = Concurrent::AtomicBoolean.new(false)
+      @managers    = create_managers
+      @shutdowning = Concurrent::AtomicBoolean.new(false)
     end
 
     def start
@@ -47,7 +47,7 @@ module Shoryuken
     end
 
     def start_soft_shutdown
-      Process.kill('USR1', Process.pid) if @shutdowing.make_true
+      Process.kill('USR1', Process.pid) if @shutdowning.make_true
     end
 
     def log_manager_failure(ex)
