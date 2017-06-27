@@ -47,7 +47,6 @@ module Shoryuken
             logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
           end
 
-
           Process.kill('USR1', Process.pid) if @shutdowing.make_true
         end
       end

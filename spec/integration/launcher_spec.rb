@@ -21,8 +21,6 @@ RSpec.describe Shoryuken::Launcher do
       StandardWorker.get_shoryuken_options['queue'] = queue
 
       Shoryuken.register_worker(queue, StandardWorker)
-
-      allow(subject).to receive(:executor).and_return(Concurrent::ThreadPoolExecutor.new(min_threads: 4))
     end
 
     after do
