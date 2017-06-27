@@ -18,7 +18,7 @@ module Shoryuken
     @@worker_registry                 = DefaultWorkerRegistry.new
     @@active_job_queue_name_prefixing = false
     @@sqs_client                      = nil
-    @@sqs_client_receive_message_opts = {}
+    @@sqs_client_receive_message_opts = Hash.new({})
     @@start_callback                  = nil
     @@stop_callback                   = nil
 
@@ -93,7 +93,7 @@ module Shoryuken
       end
 
       def sqs_client_receive_message_opts=(sqs_client_receive_message_opts)
-        @@sqs_client_receive_message_opts = sqs_client_receive_message_opts
+        @@sqs_client_receive_message_opts['default'] = sqs_client_receive_message_opts
       end
 
       def options
