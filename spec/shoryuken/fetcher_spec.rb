@@ -25,7 +25,7 @@ RSpec.describe Shoryuken::Fetcher do
     specify do
       expect(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
 
-      Shoryuken.sqs_client_receive_message_opts[group][:wait_time_seconds] = 10
+      Shoryuken.sqs_client_receive_message_opts[group] = { wait_time_seconds: 10 }
 
       expect(queue).to receive(:receive_messages).
         with(wait_time_seconds: 10, max_number_of_messages: limit, message_attribute_names: ['All'], attribute_names: ['All']).
@@ -38,7 +38,7 @@ RSpec.describe Shoryuken::Fetcher do
       let(:limit) { 20 }
 
       specify do
-        Shoryuken.sqs_client_receive_message_opts[group].clear
+        Shoryuken.sqs_client_receive_message_opts[group] = {}
 
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
         expect(queue).to receive(:receive_messages).

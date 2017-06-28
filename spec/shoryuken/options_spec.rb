@@ -41,8 +41,12 @@ RSpec.describe Shoryuken::Options do
       Shoryuken.sqs_client_receive_message_opts = { test: 1 }
       expect(Shoryuken.sqs_client_receive_message_opts).to eq('default' => { test: 1 })
 
-      Shoryuken.sqs_client_receive_message_opts['my_group'] = { test: 2 }
-      expect(Shoryuken.sqs_client_receive_message_opts).to eq('default' => { test: 1 }, 'my_group' => { test: 2 })
+      Shoryuken.sqs_client_receive_message_opts['group1'] = { test: 2 }
+
+      expect(Shoryuken.sqs_client_receive_message_opts).to eq(
+        'default' => { test: 1 },
+        'group1'  => { test: 2 },
+      )
     end
   end
 

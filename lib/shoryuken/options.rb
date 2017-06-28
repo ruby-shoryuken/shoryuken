@@ -18,7 +18,7 @@ module Shoryuken
     @@worker_registry                 = DefaultWorkerRegistry.new
     @@active_job_queue_name_prefixing = false
     @@sqs_client                      = nil
-    @@sqs_client_receive_message_opts = Hash.new({})
+    @@sqs_client_receive_message_opts = {}
     @@start_callback                  = nil
     @@stop_callback                   = nil
 
