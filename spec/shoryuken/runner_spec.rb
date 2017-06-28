@@ -1,6 +1,5 @@
 require 'spec_helper'
 require 'shoryuken/runner'
-require 'shoryuken/launcher'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::Runner do
@@ -17,10 +16,10 @@ RSpec.describe Shoryuken::Runner do
   describe '#run' do
     let(:launcher) { instance_double('Shoryuken::Launcher') }
 
-    before(:each) do
+    before do
       allow(Shoryuken::Launcher).to receive(:new).and_return(launcher)
-      allow(launcher).to receive(:run).and_raise(Interrupt)
-      allow(launcher).to receive(:stop)
+      allow(launcher).to receive(:start).and_raise(Interrupt)
+      allow(launcher).to receive(:stop!)
     end
 
     it 'does not raise' do

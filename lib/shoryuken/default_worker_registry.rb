@@ -24,7 +24,7 @@ module Shoryuken
                        @workers[queue]
                      end
 
-      worker_class&.new
+      worker_class.new if worker_class
     end
 
     def queues

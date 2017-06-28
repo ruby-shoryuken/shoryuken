@@ -3,7 +3,7 @@ require 'shoryuken/processor'
 require 'shoryuken/manager'
 
 RSpec.describe Shoryuken::Processor do
-  let(:manager)   { double Shoryuken::Manager, processor_done: nil }
+  let(:manager)   { double Shoryuken::Manager }
   let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 30 }
   let(:queue)     { 'default' }
 
@@ -16,13 +16,13 @@ RSpec.describe Shoryuken::Processor do
       receipt_handle: SecureRandom.uuid
   end
 
-  subject { described_class.new(manager) }
-
   before do
     allow(manager).to receive(:async).and_return(manager)
     allow(manager).to receive(:real_thread)
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
+
+  subject { described_class.new(queue, sqs_msg) }
 
   describe '#process' do
     it 'parses the body into JSON' do
@@ -34,7 +34,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses the body calling the proc' do
@@ -44,7 +44,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return('test')
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses the body as text' do
@@ -56,7 +56,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(body)
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses calling `.load`' do
@@ -72,7 +72,7 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'parses calling `.parse`' do
@@ -88,30 +88,21 @@ RSpec.describe Shoryuken::Processor do
 
       allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     context 'when parse errors' do
       before do
         TestWorker.get_shoryuken_options['body_parser'] = :json
 
-        allow(sqs_msg).to receive(:body).and_return('invalid json')
+        allow(sqs_msg).to receive(:body).and_return('invalid JSON')
       end
 
-      it 'logs the error' do
-        expect(manager).to receive(:processor_failed)
-        expect(subject.logger).to receive(:error) do |&block|
-          expect(block.call).
-            to include("unexpected token at 'invalid json'\nbody_parser: json\nsqs_msg.body: invalid json")
-        end
+      specify do
+        expect(subject.logger).to receive(:error).twice
 
-        subject.process(queue, sqs_msg) rescue nil
-      end
-
-      it 're raises the error' do
-        expect(manager).to receive(:processor_failed)
-        expect { subject.process(queue, sqs_msg) }.
-          to raise_error(JSON::ParserError, /unexpected token at 'invalid json'/)
+        expect { subject.process }.
+          to raise_error(JSON::ParserError, /unexpected token at 'invalid JSON'/)
       end
     end
 
@@ -125,7 +116,7 @@ RSpec.describe Shoryuken::Processor do
 
         allow(sqs_msg).to receive(:body).and_return(body)
 
-        subject.process(queue, sqs_msg)
+        subject.process
       end
     end
 
@@ -152,7 +143,7 @@ RSpec.describe Shoryuken::Processor do
 
       context 'server' do
         before do
-          allow(Shoryuken).to receive(:server?).and_return(true)
+          allow(Shoryuken::Options).to receive(:server?).and_return(true)
           WorkerCalledMiddlewareWorker.instance_variable_set(:@server_chain, nil) # un-memoize middleware
 
           Shoryuken.configure_server do |config|
@@ -171,12 +162,10 @@ RSpec.describe Shoryuken::Processor do
         end
 
         it 'invokes middleware' do
-          expect(manager).to receive(:processor_done).with(queue)
-
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:called).with(sqs_msg, queue)
 
-          subject.process(queue, sqs_msg)
+          subject.process
         end
       end
 
@@ -201,12 +190,10 @@ RSpec.describe Shoryuken::Processor do
         end
 
         it "doesn't invoke middleware" do
-          expect(manager).to receive(:processor_done).with(queue)
-
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
           expect_any_instance_of(WorkerCalledMiddlewareWorker).to_not receive(:called).with(sqs_msg, queue)
 
-          subject.process(queue, sqs_msg)
+          subject.process
         end
       end
     end
@@ -214,25 +201,21 @@ RSpec.describe Shoryuken::Processor do
     it 'performs with delete' do
       TestWorker.get_shoryuken_options['auto_delete'] = true
 
-      expect(manager).to receive(:processor_done).with(queue)
-
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [{ id: '0', receipt_handle: sqs_msg.receipt_handle }])
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     it 'performs without delete' do
       TestWorker.get_shoryuken_options['auto_delete'] = false
 
-      expect(manager).to receive(:processor_done).with(queue)
-
       expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
       expect(sqs_queue).to_not receive(:delete_messages)
 
-      subject.process(queue, sqs_msg)
+      subject.process
     end
 
     context 'when shoryuken_class header' do
@@ -251,13 +234,11 @@ RSpec.describe Shoryuken::Processor do
       it 'performs without delete' do
         Shoryuken.worker_registry.clear # unregister TestWorker
 
-        expect(manager).to receive(:processor_done).with(queue)
-
         expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
 
         expect(sqs_queue).to_not receive(:delete_messages)
 
-        subject.process(queue, sqs_msg)
+        subject.process
       end
     end
   end

@@ -19,7 +19,7 @@ module Shoryuken
     def run(options)
       self_read, self_write = IO.pipe
 
-      %w(INT TERM USR1 USR2 TTIN).each do |sig|
+      %w(INT TERM USR1 TTIN).each do |sig|
         begin
           trap sig do
             self_write.puts(sig)
@@ -43,22 +43,15 @@ module Shoryuken
 
       @launcher = Shoryuken::Launcher.new
 
-      if (callback = Shoryuken.start_callback)
-        logger.info { 'Calling on_start callback' }
-        callback.call
-      end
-
-      fire_event(:startup)
-
       begin
-        @launcher.run
+        @launcher.start
 
         while (readable_io = IO.select([self_read]))
           signal = readable_io.first[0].gets.strip
           handle_signal(signal)
         end
       rescue Interrupt
-        @launcher.stop(shutdown: true)
+        @launcher.stop!
         exit 0
       end
     end
@@ -126,13 +119,9 @@ module Shoryuken
     end
 
     def handle_signal(sig)
-      logger.info { "Got #{sig} signal" }
-
       case sig
       when 'USR1' then execute_soft_shutdown
       when 'TTIN' then print_threads_backtrace
-      when 'USR2'
-        logger.warn { "Received #{sig}, will do nothing. To execute soft shutdown, please send USR1" }
       else
         logger.info { "Received #{sig}, will shutdown down" }
 

@@ -6,95 +6,71 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy)
-      @count = Shoryuken.options.fetch(:concurrency, 25)
-
-      raise(ArgumentError, "Concurrency value #{@count} is invalid, it needs to be a positive number") unless @count > 0
-
-      @queues = Shoryuken.queues.dup.uniq
-
-      @done = Concurrent::AtomicBoolean.new(false)
-
-      @fetcher = fetcher
+    def initialize(fetcher, polling_strategy, concurrency)
+      @fetcher          = fetcher
       @polling_strategy = polling_strategy
-
-      @pool = Concurrent::FixedThreadPool.new(@count, max_queue: @count)
-      @dispatcher_executor = Concurrent::SingleThreadExecutor.new
+      @max_processors   = concurrency
+      @busy_processors  = Concurrent::AtomicFixnum.new(0)
+      @done             = Concurrent::AtomicBoolean.new(false)
     end
 
     def start
-      logger.info { 'Starting' }
-
-      dispatch_async
+      dispatch
     end
 
-    def stop(options = {})
+    def stop
       @done.make_true
-
-      if (callback = Shoryuken.stop_callback)
-        logger.info { 'Calling on_stop callback' }
-        callback.call
-      end
-
-      fire_event(:shutdown, true)
-
-      logger.info { 'Shutting down workers' }
-
-      @dispatcher_executor.kill
-
-      if options[:shutdown]
-        hard_shutdown_in(options[:timeout])
-      else
-        soft_shutdown
-      end
-    end
-
-    def processor_failed(ex)
-      logger.error { "Processor failed: #{ex.message}" }
-      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
-    end
-
-    def processor_done(queue)
-      logger.debug { "Process done for #{queue}" }
     end
 
     private
 
-    def dispatch_async
-      @dispatcher_executor.post(&method(:dispatch_now))
+    def stopped?
+      @done.true? || !Concurrent.global_io_executor.running?
     end
 
-    def dispatch_now
-      return if @done.true?
+    def dispatch
+      return if stopped?
 
-      begin
-        if ready.zero? || (queue = @polling_strategy.next_queue).nil?
-          sleep MIN_DISPATCH_INTERVAL
-          return
-        end
-
-        fire_event(:dispatch)
-
-        logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
-
-        batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-      ensure
-        dispatch_async
+      if !ready.positive? || (queue = @polling_strategy.next_queue).nil?
+        return dispatch_later
       end
+
+      fire_event(:dispatch)
+
+      logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+
+      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+
+      dispatch
+    end
+
+    def dispatch_later
+      sleep(MIN_DISPATCH_INTERVAL)
+      dispatch
     end
 
     def busy
-      @count - ready
+      @busy_processors.value
     end
 
     def ready
-      @pool.remaining_capacity
+      @max_processors - busy
     end
 
-    def assign(queue, sqs_msg)
+    def processor_done
+      @busy_processors.decrement
+    end
+
+    def assign(queue_name, sqs_msg)
+      return if stopped?
+
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-      @pool.post { Processor.new(self).process(queue, sqs_msg) }
+      @busy_processors.increment
+
+      Concurrent::Promise.execute {
+        Processor.new(queue_name, sqs_msg).process
+      }.then { processor_done }.rescue { processor_done }
     end
 
     def dispatch_batch(queue)
@@ -105,30 +81,13 @@ module Shoryuken
 
     def dispatch_single_messages(queue)
       messages = @fetcher.fetch(queue, ready)
+
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
 
     def batched_queue?(queue)
       Shoryuken.worker_registry.batch_receive_messages?(queue.name)
-    end
-
-    def soft_shutdown
-      @pool.shutdown
-      @pool.wait_for_termination
-    end
-
-    def hard_shutdown_in(delay)
-      if busy > 0
-        logger.info { "Pausing up to #{delay} seconds to allow workers to finish..." }
-      end
-
-      @pool.shutdown
-
-      return if @pool.wait_for_termination(delay)
-
-      logger.info { "Hard shutting down #{busy} busy workers" }
-      @pool.kill
     end
 
     def patch_batch!(sqs_msgs)

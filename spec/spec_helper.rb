@@ -32,14 +32,15 @@ RSpec.configure do |config|
   # The AWS_ACCESS_KEY_ID checker is because Travis CI
   # does not expose ENV variables to pull requests from forked repositories
   # http://docs.travis-ci.com/user/pull-requests/
-  config.filter_run_excluding slow: true if ENV['SPEC_ALL'] != 'true' || ENV['AWS_ACCESS_KEY_ID'].nil?
+  # config.filter_run_excluding slow: true if ENV['SPEC_ALL'] != 'true' || ENV['AWS_ACCESS_KEY_ID'].nil?
+  config.filter_run_excluding slow: true
 
   config.before do
     Shoryuken::Client.class_variable_set :@@queues, {}
 
     Shoryuken::Client.sqs = nil
 
-    Shoryuken.queues.clear
+    Shoryuken.groups.clear
 
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1
@@ -53,5 +54,9 @@ RSpec.configure do |config|
 
     Shoryuken.worker_registry.clear
     Shoryuken.register_worker('default', TestWorker)
+
+    Aws.config[:stub_responses] = true
+
+    allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
   end
 end

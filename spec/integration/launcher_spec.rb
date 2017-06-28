@@ -6,25 +6,31 @@ require 'securerandom'
 RSpec.describe Shoryuken::Launcher do
   describe 'Consuming messages', slow: :true do
     before do
+      Aws.config[:stub_responses] = false
+      Aws.config[:region] = 'us-east-1'
+
       StandardWorker.received_messages = 0
 
-      queue = "test_shoryuken#{StandardWorker}_#{SecureRandom.uuid}"
+      queue = "shoryuken-travis-#{StandardWorker}-#{SecureRandom.uuid}"
 
-      Shoryuken::Client.sqs.create_queue queue_name: queue
+      Shoryuken::Client.sqs.create_queue(queue_name: queue)
 
-      Shoryuken.queues << queue
+      Shoryuken.add_group('default', 1)
+      Shoryuken.add_queue(queue, 1, 'default')
 
       StandardWorker.get_shoryuken_options['queue'] = queue
 
-      Shoryuken.register_worker queue, StandardWorker
+      Shoryuken.register_worker(queue, StandardWorker)
     end
 
     after do
+      Aws.config[:stub_responses] = true
+
       queue_url = Shoryuken::Client.sqs.get_queue_url(
         queue_name: StandardWorker.get_shoryuken_options['queue']
       ).queue_url
 
-      Shoryuken::Client.sqs.delete_queue queue_url: queue_url
+      Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
     end
 
     it 'consumes as a command worker' do
@@ -61,7 +67,7 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     def poll_queues_until
-      subject.run
+      subject.start
 
       Timeout::timeout(10) do
         begin
