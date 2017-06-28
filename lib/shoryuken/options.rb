@@ -41,7 +41,7 @@ module Shoryuken
       end
 
       def ungrouped_queues
-        groups.values.flatten
+        groups.values.flat_map { |options| options[:queues] }
       end
 
       def worker_registry

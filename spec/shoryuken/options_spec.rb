@@ -17,6 +17,21 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '.ungrouped_queues' do
+    before do
+      Shoryuken.groups.clear
+      Shoryuken.add_group('group1', 25)
+      Shoryuken.add_group('group2', 25)
+    end
+
+    specify do
+      described_class.add_queue('queue1', 1, 'group1')
+      described_class.add_queue('queue2', 2, 'group2')
+
+      expect(described_class.ungrouped_queues).to eq(%w(queue1 queue2 queue2))
+    end
+  end
+
   describe '.sqs_client_receive_message_opts' do
     before do
       Shoryuken.sqs_client_receive_message_opts
