@@ -1,6 +1,6 @@
 # Shoryuken
 
-![](shoryuken.jpg)
+![Shoryuken](shoryuken.jpg)
 
 Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com/sqs/) thread-based message processor.
 
@@ -9,16 +9,16 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 
 ## Key features
 
-- [Rails Active Job support](https://github.com/phstc/shoryuken/wiki/Rails-Integration-Active-Job)
-- Queue Load balancing
-- Concurrency per queue
-- Long polling
-- Batch processing
+- [Rails Active Job](https://github.com/phstc/shoryuken/wiki/Rails-Integration-Active-Job)
+- [Queue Load balancing](https://github.com/phstc/shoryuken/wiki/Shoryuken-options#load-balancing)
+- [Concurrency per queue](https://github.com/phstc/shoryuken/wiki/Processing-Groups)
+- [Long Polling](https://github.com/phstc/shoryuken/wiki/Long-Polling)
+- [Batch processing](https://github.com/phstc/shoryuken/wiki/Worker-options#batch)
 - [Auto extend visibility timeout](https://github.com/phstc/shoryuken/wiki/Worker-options#auto_visibility_timeout)
 - [Exponential backoff](https://github.com/phstc/shoryuken/wiki/Worker-options#retry_intervals)
 - [Middleware support](https://github.com/phstc/shoryuken/wiki/Middleware)
-- Built in support in the [Honeybadger](https://www.honeybadger.io/) and [Airbrake](https://airbrake.io/) gems
-- Amazon SQS CLI
+- Built in integrations with [Honeybadger](https://github.com/honeybadger-io/honeybadger-ruby) and [Airbrake](https://github.com/airbrake/airbrake-ruby)
+- Amazon SQS CLI `shoryuken help sqs`
 
 ## Requirements
 
@@ -40,37 +40,7 @@ $ bundle
 
 ## Usage
 
-Create a worker:
-
-```ruby
-class HelloWorker
-  include Shoryuken::Worker
-
-  shoryuken_options queue: 'hello', auto_delete: true
-
-  def perform(sqs_msg, name)
-    puts "Hello, #{name}"
-  end
-end
-```
-
-Create a create:
-
-```shell
-bundle exec shoryuken sqs create hello
-```
-
-Start Shoryuken:
-
-```shell
-bundle exec shoryuken -q my-queue -r ./hello_worker.rb
-```
-
-Enqueue a message:
-
-```ruby
-HelloWorker.perform_async('Ken')
-```
+Check the [Getting Started](https://github.com/phstc/shoryuken/wiki/Getting-Started) page.
 
 ## More Information
 

@@ -34,8 +34,8 @@ module Shoryuken
         @@groups
       end
 
-      def add_queue(queue, priority, group)
-        priority.times do
+      def add_queue(queue, weight, group)
+        weight.times do
           groups[group][:queues] << queue
         end
       end
