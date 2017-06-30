@@ -15,9 +15,9 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 - Long polling
 - Batch processing
 - [Auto extend visibility timeout](https://github.com/phstc/shoryuken/wiki/Worker-options#auto_visibility_timeout)
-- Exponential backoff
-- Middleware support
-- Native support for [Honeybadger](https://www.honeybadger.io/) and [Airbrake](https://airbrake.io/)
+- [Exponential backoff](https://github.com/phstc/shoryuken/wiki/Worker-options#retry_intervals)
+- [Middleware support](https://github.com/phstc/shoryuken/wiki/Middleware)
+- Built in support in the [Honeybadger](https://www.honeybadger.io/) and [Airbrake](https://airbrake.io/) gems
 - Amazon SQS CLI
 
 ## Requirements
