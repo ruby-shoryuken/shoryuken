@@ -25,6 +25,8 @@ module Shoryuken
     end
 
     def stop
+      fire_event(:quiet, true)
+
       initiate_stop
 
       executor.shutdown
