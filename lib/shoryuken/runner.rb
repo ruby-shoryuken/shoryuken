@@ -103,7 +103,6 @@ module Shoryuken
       logger.info { 'Received USR1, will soft shutdown down' }
 
       @launcher.stop
-      fire_event(:quiet, true)
       exit 0
     end
 
