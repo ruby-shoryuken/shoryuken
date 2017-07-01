@@ -18,7 +18,7 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 - [Exponential backoff](https://github.com/phstc/shoryuken/wiki/Worker-options#retry_intervals)
 - [Middleware support](https://github.com/phstc/shoryuken/wiki/Middleware)
 - Built in integrations with [Honeybadger](https://github.com/honeybadger-io/honeybadger-ruby) and [Airbrake](https://github.com/airbrake/airbrake-ruby)
-- Amazon SQS CLI `shoryuken help sqs`
+- Amazon SQS CLI. See `shoryuken help sqs`
 
 ## Requirements
 
