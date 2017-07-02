@@ -192,6 +192,13 @@ module Shoryuken
 
         say "Queue #{queue_name} was successfully created. Queue URL #{queue_url}", :green
       end
+
+      desc 'delete QUEUE-NAME', 'delete a queue'
+      def delete(queue_name)
+        sqs.delete_queue(queue_url: find_queue_url(queue_name))
+
+        say "Queue #{queue_name} was successfully delete", :green
+      end
     end
   end
 end
