@@ -1,6 +1,17 @@
+## [v3.1.0] - 2017-07-02
+
+- Add shoryuken sqs delete command
+ - [#395](https://github.com/phstc/shoryuken/pull/395)
+
+- Add processing groups support; Concurrency per queue support
+ - [#389](https://github.com/phstc/shoryuken/pull/389)
+
+- Terminate Shoryuken if the fetcher crashes
+ - [#389](https://github.com/phstc/shoryuken/pull/389)
+
 ## [v3.0.11] - 2017-06-24
 
-- Add shoryuken sqs create. Tell about sqs create, if queue not found.
+- Add shoryuken sqs create command
  - [#388](https://github.com/phstc/shoryuken/pull/388)
 
 ## [v3.0.10] - 2017-06-24
@@ -8,7 +19,7 @@
 - Allow aws sdk v3
  - [#381](https://github.com/phstc/shoryuken/pull/381)
 
-- Allow configuring Rails via the config file 
+- Allow configuring Rails via the config file
  - [#387](https://github.com/phstc/shoryuken/pull/387)
 
 ## [v3.0.9] - 2017-06-05
