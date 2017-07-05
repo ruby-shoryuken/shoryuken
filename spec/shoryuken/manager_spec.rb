@@ -25,24 +25,35 @@ RSpec.describe Shoryuken::Manager do
     TestWorker.get_shoryuken_options['batch'] = false
   end
 
+  describe '#stop' do
+    specify do
+      allow(subject).to receive(:stopped?).and_return(false, false, true)
+      expect(subject).to receive(:dispatch).thrice.and_call_original
+      expect(subject).to receive(:dispatch_later).once.and_call_original
+      subject.start
+    end
+  end
+
   describe '#start' do
-    xit 'pauses when there are no active queues' do
+    before do
+      # prevent dispatch loop
+      allow(subject).to receive(:stopped?).and_return(false, true)
+    end
+
+    it 'pauses when there are no active queues' do
       expect(polling_strategy).to receive(:next_queue).and_return(nil)
-      expect_any_instance_of(described_class).to receive(:after)
+      expect(subject).to receive(:dispatch_later)
       subject.start
     end
 
-    xit 'calls dispatch_batch if worker wants batches' do
+    it 'calls dispatch_batch if worker wants batches' do
       TestWorker.get_shoryuken_options['batch'] = true
-      expect_any_instance_of(described_class).to receive(:dispatch_batch).with(queue_config_of(queue))
-      expect(subject).to receive(:dispatch_later)
+      expect(subject).to receive(:dispatch_batch).with(queue_config_of(queue))
       subject.start
     end
 
-    xit 'calls dispatch_single_messages if worker wants single messages' do
-      expect_any_instance_of(described_class).to receive(:dispatch_single_messages).
-        with(queue_config_of(queue))
-      expect(subject).to receive(:dispatch_later)
+    it 'calls dispatch_single_messages if worker wants single messages' do
+      expect(subject).to receive(:dispatch_single_messages).with(queue_config_of(queue))
       subject.start
     end
   end
