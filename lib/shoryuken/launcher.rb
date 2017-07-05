@@ -36,12 +36,12 @@ module Shoryuken
     private
 
     def executor
-      Concurrent.global_io_executor
+      @executor ||= Concurrent::FixedThreadPool.new(pool_size, max_queue: pool_size)
     end
 
     def start_managers
       @managers.each do |manager|
-        Concurrent::Promise.execute { manager.start }.rescue do |ex|
+        Concurrent::Promise.execute(executor: executor) { manager.start }.rescue do |ex|
           log_manager_failure(ex)
           start_soft_shutdown
         end
@@ -61,8 +61,6 @@ module Shoryuken
 
     def initiate_stop
       logger.info { 'Shutting down' }
-
-      @managers.each(&:stop)
 
       stop_callback
     end
@@ -85,12 +83,17 @@ module Shoryuken
       fire_event(:shutdown, true)
     end
 
+    def pool_size
+      Shoryuken.groups.values.sum { |options| options[:concurrency].to_i }
+    end
+
     def create_managers
       Shoryuken.groups.map do |group, options|
         Shoryuken::Manager.new(
           Shoryuken::Fetcher.new(group),
           Shoryuken.polling_strategy(group).new(options[:queues]),
-          options[:concurrency]
+          options[:concurrency],
+          executor
         )
       end
     end

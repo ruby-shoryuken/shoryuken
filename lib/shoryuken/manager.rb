@@ -4,28 +4,24 @@ module Shoryuken
 
     BATCH_LIMIT = 10
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
-    MIN_DISPATCH_INTERVAL = 0.5
+    MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy, concurrency)
+    def initialize(fetcher, polling_strategy, concurrency, executor)
       @fetcher          = fetcher
       @polling_strategy = polling_strategy
       @max_processors   = concurrency
       @busy_processors  = Concurrent::AtomicFixnum.new(0)
-      @done             = Concurrent::AtomicBoolean.new(false)
+      @executor         = executor
     end
 
     def start
       dispatch
     end
 
-    def stop
-      @done.make_true
-    end
-
     private
 
     def stopped?
-      @done.true?
+      !@executor.running?
     end
 
     def dispatch
@@ -68,7 +64,7 @@ module Shoryuken
 
       @busy_processors.increment
 
-      Concurrent::Promise.execute {
+      Concurrent::Promise.execute(executor: @executor) {
         Processor.new(queue_name, sqs_msg).process
       }.then { processor_done }.rescue { processor_done }
     end
