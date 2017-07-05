@@ -4,7 +4,7 @@ module Shoryuken
 
     BATCH_LIMIT = 10
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
-    MIN_DISPATCH_INTERVAL = 0.1
+    MIN_DISPATCH_INTERVAL = 0.5
 
     def initialize(fetcher, polling_strategy, concurrency)
       @fetcher          = fetcher
