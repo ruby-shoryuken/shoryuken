@@ -25,7 +25,7 @@ module Shoryuken
     private
 
     def stopped?
-      @done.true? || !Concurrent.global_io_executor.running?
+      @done.true?
     end
 
     def dispatch
