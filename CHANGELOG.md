@@ -1,3 +1,11 @@
+## [v3.1.1] - 2017-07-02
+
+- Reduce log verbosity introduced in 3.1.0
+ - [#397](https://github.com/phstc/shoryuken/pull/397)
+
+- Try to prevent stack level too deep on Ubuntu
+ - [#396](https://github.com/phstc/shoryuken/pull/396)
+
 ## [v3.1.0] - 2017-07-02
 
 - Add shoryuken sqs delete command
