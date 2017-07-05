@@ -31,7 +31,7 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      if !ready.positive? || (queue = @polling_strategy.next_queue).nil?
+      if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
         return dispatch_later
       end
 
