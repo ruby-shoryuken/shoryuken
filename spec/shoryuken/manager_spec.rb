@@ -48,8 +48,13 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#dispatch' do
-    xit 'fires a dispatch event' do
+    it 'fires a dispatch event' do
+      # prevent dispatch loop
+      allow(subject).to receive(:stopped?).and_return(false, true)
+
       expect(subject).to receive(:fire_event).with(:dispatch)
+      expect(Shoryuken.logger).to_not receive(:info)
+
       subject.send(:dispatch)
     end
   end
