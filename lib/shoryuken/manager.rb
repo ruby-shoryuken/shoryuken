@@ -31,13 +31,13 @@ module Shoryuken
     def dispatch
       return if stopped?
 
-      if !ready.positive? || (queue = @polling_strategy.next_queue).nil?
+      if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
         return dispatch_later
       end
 
       fire_event(:dispatch)
 
-      logger.info { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
 
