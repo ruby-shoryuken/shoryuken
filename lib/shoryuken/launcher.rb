@@ -83,10 +83,6 @@ module Shoryuken
       fire_event(:shutdown, true)
     end
 
-    def pool_size
-      Shoryuken.groups.values.inject(0) { |sum, options| sum + options[:concurrency].to_i }
-    end
-
     def create_managers
       Shoryuken.groups.map do |group, options|
         Shoryuken::Manager.new(
