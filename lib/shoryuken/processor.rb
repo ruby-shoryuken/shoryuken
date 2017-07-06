@@ -4,6 +4,10 @@ module Shoryuken
 
     attr_reader :queue, :sqs_msg
 
+    def self.process(queue, sqs_msg)
+      new(queue, sqs_msg).process
+    end
+
     def initialize(queue, sqs_msg)
       @queue   = queue
       @sqs_msg = sqs_msg

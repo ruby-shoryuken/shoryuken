@@ -60,23 +60,36 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#dispatch' do
-    it 'fires a dispatch event' do
-      allow(subject).to receive(:running?).and_return(true)
+    before do
+      allow(subject).to receive(:running?).and_return(true, true, false)
+    end
 
+    specify do
+      message  = ['test1']
+      messages = [message]
+      q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
+
+      expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
       expect(subject).to receive(:fire_event).with(:dispatch)
+      expect(Shoryuken::Processor).to receive(:process).with(q, message)
       expect(Shoryuken.logger).to_not receive(:info)
 
       subject.send(:dispatch)
     end
-  end
 
-  describe '#dispatch_batch' do
-    it 'assings batch as a single message' do
-      q = polling_strategy.next_queue
-      messages = [1, 2, 3]
-      expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, messages)
-      subject.send(:dispatch_batch, q)
+    context 'when batch' do
+      specify do
+        messages = %w(test1 test2 test3)
+        q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
+
+        expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
+        expect(subject).to receive(:fire_event).with(:dispatch)
+        allow(subject).to receive(:batched_queue?).with(q).and_return(true)
+        expect(Shoryuken::Processor).to receive(:process).with(q, messages)
+        expect(Shoryuken.logger).to_not receive(:info)
+
+        subject.send(:dispatch)
+      end
     end
   end
 
