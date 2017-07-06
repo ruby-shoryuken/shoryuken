@@ -59,7 +59,7 @@ module Shoryuken
     end
 
     def assign(queue_name, sqs_msg)
-      return if running?
+      return unless running?
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
