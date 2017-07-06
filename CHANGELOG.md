@@ -1,4 +1,9 @@
-## [v3.1.1] - 2017-07-02
+## [v3.1.2] - 2017-07-06
+
+- Fix stack level too deep on Ubuntu
+ - [#400](https://github.com/phstc/shoryuken/pull/400)
+
+## [v3.1.1] - 2017-07-05
 
 - Reduce log verbosity introduced in 3.1.0
  - [#397](https://github.com/phstc/shoryuken/pull/397)
