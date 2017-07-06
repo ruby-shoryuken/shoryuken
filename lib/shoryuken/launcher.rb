@@ -84,7 +84,7 @@ module Shoryuken
     end
 
     def pool_size
-      Shoryuken.groups.values.sum { |options| options[:concurrency].to_i }
+      Shoryuken.groups.values.inject(0) { |sum, options| sum + options[:concurrency].to_i }
     end
 
     def create_managers
