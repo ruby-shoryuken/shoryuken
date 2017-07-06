@@ -15,20 +15,26 @@ module Shoryuken
     end
 
     def start
-      dispatch
+      dispatch_loop
     end
 
     private
 
-    def stopped?
-      !@executor.running?
+    def running?
+      @executor.running?
+    end
+
+    def dispatch_loop
+      Concurrent::Promise.execute(executor: @executor) {
+        dispatch
+      }.then { dispatch_loop if running? }.rescue { |ex| raise ex }
     end
 
     def dispatch
-      return if stopped?
+      return unless running?
 
       if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
-        return dispatch_later
+        return sleep(MIN_DISPATCH_INTERVAL)
       end
 
       fire_event(:dispatch)
@@ -36,13 +42,6 @@ module Shoryuken
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-
-      dispatch
-    end
-
-    def dispatch_later
-      sleep(MIN_DISPATCH_INTERVAL)
-      dispatch
     end
 
     def busy
@@ -58,7 +57,7 @@ module Shoryuken
     end
 
     def assign(queue_name, sqs_msg)
-      return if stopped?
+      return if running?
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
