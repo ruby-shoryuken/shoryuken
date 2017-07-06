@@ -13,8 +13,9 @@ RSpec.describe Shoryuken::Manager do
   let(:polling_strategy) { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
   let(:fetcher) { double Shoryuken::Fetcher }
   let(:concurrency) { 1 }
+  let(:executor) { Concurrent::ImmediateExecutor.new }
 
-  subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency) }
+  subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency, executor) }
 
   before do
     allow(fetcher).to receive(:fetch).and_return([])
@@ -27,9 +28,9 @@ RSpec.describe Shoryuken::Manager do
 
   describe '#stop' do
     specify do
-      allow(subject).to receive(:stopped?).and_return(false, false, true)
-      expect(subject).to receive(:dispatch).thrice.and_call_original
-      expect(subject).to receive(:dispatch_later).once.and_call_original
+      allow(subject).to receive(:running?).and_return(true, true, false)
+      expect(subject).to receive(:dispatch).once.and_call_original
+      expect(subject).to receive(:dispatch_loop).twice.and_call_original
       subject.start
     end
   end
@@ -37,12 +38,12 @@ RSpec.describe Shoryuken::Manager do
   describe '#start' do
     before do
       # prevent dispatch loop
-      allow(subject).to receive(:stopped?).and_return(false, true)
+      allow(subject).to receive(:running?).and_return(true, true, false)
     end
 
     it 'pauses when there are no active queues' do
       expect(polling_strategy).to receive(:next_queue).and_return(nil)
-      expect(subject).to receive(:dispatch_later)
+      expect(subject).to receive(:dispatch).and_call_original
       subject.start
     end
 
@@ -60,8 +61,7 @@ RSpec.describe Shoryuken::Manager do
 
   describe '#dispatch' do
     it 'fires a dispatch event' do
-      # prevent dispatch loop
-      allow(subject).to receive(:stopped?).and_return(false, true)
+      allow(subject).to receive(:running?).and_return(true)
 
       expect(subject).to receive(:fire_event).with(:dispatch)
       expect(Shoryuken.logger).to_not receive(:info)

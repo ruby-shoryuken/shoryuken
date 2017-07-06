@@ -25,9 +25,11 @@ module Shoryuken
     end
 
     def dispatch_loop
-      Concurrent::Promise.execute(executor: @executor) {
-        dispatch
-      }.then { dispatch_loop if running? }.rescue { |ex| raise ex }
+      return unless running?
+
+      Concurrent::Promise.execute(
+        executor: @executor
+      ) { dispatch }.then { dispatch_loop }.rescue { |ex| raise ex }
     end
 
     def dispatch
@@ -63,9 +65,9 @@ module Shoryuken
 
       @busy_processors.increment
 
-      Concurrent::Promise.execute(executor: @executor) {
-        Processor.new(queue_name, sqs_msg).process
-      }.then { processor_done }.rescue { processor_done }
+      Concurrent::Promise.execute(
+        executor: @executor
+      ) { Processor.new(queue_name, sqs_msg).process }.then { processor_done }.rescue { processor_done }
     end
 
     def dispatch_batch(queue)
