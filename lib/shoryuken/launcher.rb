@@ -36,12 +36,12 @@ module Shoryuken
     private
 
     def executor
-      @executor ||= Concurrent::FixedThreadPool.new(pool_size, max_queue: pool_size)
+      Concurrent.global_io_executor
     end
 
     def start_managers
       @managers.each do |manager|
-        Concurrent::Promise.execute(executor: executor) { manager.start }.rescue do |ex|
+        Concurrent::Promise.execute { manager.start }.rescue do |ex|
           log_manager_failure(ex)
           start_soft_shutdown
         end
