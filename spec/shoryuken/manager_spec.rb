@@ -13,8 +13,9 @@ RSpec.describe Shoryuken::Manager do
   let(:polling_strategy) { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
   let(:fetcher) { double Shoryuken::Fetcher }
   let(:concurrency) { 1 }
+  let(:executor) { Concurrent::ImmediateExecutor.new }
 
-  subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency) }
+  subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency, executor) }
 
   before do
     allow(fetcher).to receive(:fetch).and_return([])
@@ -27,9 +28,9 @@ RSpec.describe Shoryuken::Manager do
 
   describe '#stop' do
     specify do
-      allow(subject).to receive(:stopped?).and_return(false, false, true)
-      expect(subject).to receive(:dispatch).thrice.and_call_original
-      expect(subject).to receive(:dispatch_later).once.and_call_original
+      allow(subject).to receive(:running?).and_return(true, true, false)
+      expect(subject).to receive(:dispatch).once.and_call_original
+      expect(subject).to receive(:dispatch_loop).twice.and_call_original
       subject.start
     end
   end
@@ -37,12 +38,12 @@ RSpec.describe Shoryuken::Manager do
   describe '#start' do
     before do
       # prevent dispatch loop
-      allow(subject).to receive(:stopped?).and_return(false, true)
+      allow(subject).to receive(:running?).and_return(true, true, false)
     end
 
     it 'pauses when there are no active queues' do
       expect(polling_strategy).to receive(:next_queue).and_return(nil)
-      expect(subject).to receive(:dispatch_later)
+      expect(subject).to receive(:dispatch).and_call_original
       subject.start
     end
 
@@ -59,24 +60,36 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#dispatch' do
-    it 'fires a dispatch event' do
-      # prevent dispatch loop
-      allow(subject).to receive(:stopped?).and_return(false, true)
+    before do
+      allow(subject).to receive(:running?).and_return(true, true, false)
+    end
 
+    specify do
+      message  = ['test1']
+      messages = [message]
+      q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
+
+      expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
       expect(subject).to receive(:fire_event).with(:dispatch)
+      expect(Shoryuken::Processor).to receive(:process).with(q, message)
       expect(Shoryuken.logger).to_not receive(:info)
 
       subject.send(:dispatch)
     end
-  end
 
-  describe '#dispatch_batch' do
-    it 'assings batch as a single message' do
-      q = polling_strategy.next_queue
-      messages = [1, 2, 3]
-      expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, messages)
-      subject.send(:dispatch_batch, q)
+    context 'when batch' do
+      specify do
+        messages = %w(test1 test2 test3)
+        q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
+
+        expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
+        expect(subject).to receive(:fire_event).with(:dispatch)
+        allow(subject).to receive(:batched_queue?).with(q).and_return(true)
+        expect(Shoryuken::Processor).to receive(:process).with(q, messages)
+        expect(Shoryuken.logger).to_not receive(:info)
+
+        subject.send(:dispatch)
+      end
     end
   end
 

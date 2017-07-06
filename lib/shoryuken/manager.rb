@@ -6,33 +6,37 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy, concurrency)
+    def initialize(fetcher, polling_strategy, concurrency, executor)
       @fetcher          = fetcher
       @polling_strategy = polling_strategy
       @max_processors   = concurrency
       @busy_processors  = Concurrent::AtomicFixnum.new(0)
-      @done             = Concurrent::AtomicBoolean.new(false)
+      @executor         = executor
     end
 
     def start
-      dispatch
-    end
-
-    def stop
-      @done.make_true
+      dispatch_loop
     end
 
     private
 
-    def stopped?
-      @done.true?
+    def running?
+      @executor.running?
+    end
+
+    def dispatch_loop
+      return unless running?
+
+      Concurrent::Promise.execute(
+        executor: @executor
+      ) { dispatch }.then { dispatch_loop }.rescue { |ex| raise ex }
     end
 
     def dispatch
-      return if stopped?
+      return unless running?
 
       if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
-        return dispatch_later
+        return sleep(MIN_DISPATCH_INTERVAL)
       end
 
       fire_event(:dispatch)
@@ -40,13 +44,6 @@ module Shoryuken
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-
-      dispatch
-    end
-
-    def dispatch_later
-      sleep(MIN_DISPATCH_INTERVAL)
-      dispatch
     end
 
     def busy
@@ -62,15 +59,15 @@ module Shoryuken
     end
 
     def assign(queue_name, sqs_msg)
-      return if stopped?
+      return unless running?
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
       @busy_processors.increment
 
-      Concurrent::Promise.execute {
-        Processor.new(queue_name, sqs_msg).process
-      }.then { processor_done }.rescue { processor_done }
+      Concurrent::Promise.execute(
+        executor: @executor
+      ) { Processor.process(queue_name, sqs_msg) }.then { processor_done }.rescue { processor_done }
     end
 
     def dispatch_batch(queue)

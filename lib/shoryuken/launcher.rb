@@ -62,8 +62,6 @@ module Shoryuken
     def initiate_stop
       logger.info { 'Shutting down' }
 
-      @managers.each(&:stop)
-
       stop_callback
     end
 
@@ -90,7 +88,8 @@ module Shoryuken
         Shoryuken::Manager.new(
           Shoryuken::Fetcher.new(group),
           Shoryuken.polling_strategy(group).new(options[:queues]),
-          options[:concurrency]
+          options[:concurrency],
+          executor
         )
       end
     end
