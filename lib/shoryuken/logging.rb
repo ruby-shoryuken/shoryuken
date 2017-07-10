@@ -3,7 +3,6 @@ require 'logger'
 
 module Shoryuken
   module Logging
-
     class Pretty < Logger::Formatter
       # Provide a call() method that returns the formatted message.
       def call(severity, time, program_name, message)
