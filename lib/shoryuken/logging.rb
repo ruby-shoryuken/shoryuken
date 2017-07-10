@@ -37,9 +37,5 @@ module Shoryuken
     def self.logger=(log)
       @logger = (log ? log : Logger.new('/dev/null'))
     end
-
-    def logger
-      shoryuken::Logging.logger
-    end
   end
 end
