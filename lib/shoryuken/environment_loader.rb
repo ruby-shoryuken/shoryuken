@@ -44,7 +44,7 @@ module Shoryuken
 
       fail ArgumentError, "The supplied config file #{path} does not exist" unless File.exist?(path)
 
-      if result = YAML.load(ERB.new(IO.read(path)).result)
+      if (result = YAML.load(ERB.new(IO.read(path)).result))
         result.deep_symbolize_keys
       else
         {}
@@ -69,7 +69,7 @@ module Shoryuken
         ::Rails::Application.initializer 'shoryuken.eager_load' do
           ::Rails.application.config.eager_load = true
         end
-        require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
+        require 'shoryuken/extensions/active_job_adapter' if Shoryuken.active_job?
         require File.expand_path('config/environment.rb')
       end
     end
@@ -96,7 +96,7 @@ module Shoryuken
     end
 
     def prefix_active_job_queue_names
-      return unless defined? ::ActiveJob
+      return unless Shoryuken.active_job?
       return unless Shoryuken.active_job_queue_name_prefixing
 
       Shoryuken.options[:queues].to_a.map! do |queue_name, weight|
@@ -169,7 +169,7 @@ module Shoryuken
     end
 
     def validate_workers
-      return if defined?(::ActiveJob)
+      return if Shoryuken.active_job?
 
       all_queues = Shoryuken.ungrouped_queues
       queues_with_workers = Shoryuken.worker_registry.queues

@@ -52,11 +52,14 @@ RSpec.configure do |config|
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
 
+    Shoryuken.active_job_queue_name_prefixing = false
+
     Shoryuken.worker_registry.clear
     Shoryuken.register_worker('default', TestWorker)
 
     Aws.config[:stub_responses] = true
 
     allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
+    allow(Shoryuken).to receive(:active_job?).and_return(false)
   end
 end

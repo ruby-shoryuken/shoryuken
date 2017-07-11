@@ -23,6 +23,10 @@ module Shoryuken
     @@stop_callback                   = nil
 
     class << self
+      def active_job?
+        defined?(::ActiveJob)
+      end
+
       def add_group(group, concurrency)
         groups[group] ||= {
           concurrency: concurrency,

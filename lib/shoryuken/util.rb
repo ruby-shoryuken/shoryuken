@@ -30,7 +30,7 @@ module Shoryuken
     end
 
     def worker_name(worker_class, sqs_msg, body = nil)
-      if defined?(::ActiveJob) \
+      if Shoryuken.active_job? \
           && !sqs_msg.is_a?(Array) \
           && sqs_msg.message_attributes \
           && sqs_msg.message_attributes['shoryuken_class'] \

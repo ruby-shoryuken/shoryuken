@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :test do
+  gem 'activejob'
   gem 'codeclimate-test-reporter', require: nil
   gem 'simplecov'
   gem 'multi_xml'

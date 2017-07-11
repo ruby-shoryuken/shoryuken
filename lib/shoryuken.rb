@@ -34,6 +34,7 @@ module Shoryuken
 
   def_delegators(
     :'Shoryuken::Options',
+    :active_job?,
     :add_group,
     :groups,
     :add_queue,
@@ -67,4 +68,4 @@ module Shoryuken
   )
 end
 
-require 'shoryuken/extensions/active_job_adapter' if defined?(::ActiveJob)
+require 'shoryuken/extensions/active_job_adapter' if Shoryuken.active_job?
