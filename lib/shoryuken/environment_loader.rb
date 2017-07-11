@@ -85,18 +85,32 @@ module Shoryuken
       end
     end
 
+    def prefix_active_job_queue_name(queue_name, weight)
+      queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
+      queue_name_delimiter = ::ActiveJob::Base.queue_name_delimiter
+      
+      # See https://github.com/rails/rails/blob/master/activejob/lib/active_job/queue_name.rb#L27
+      name_parts = [queue_name_prefix.presence, queue_name]
+      prefixed_queue_name = name_parts.compact.join(queue_name_delimiter)
+      [prefixed_queue_name, weight]
+    end
+
     def prefix_active_job_queue_names
       return unless defined? ::ActiveJob
       return unless Shoryuken.active_job_queue_name_prefixing
 
-      queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
-      queue_name_delimiter = ::ActiveJob::Base.queue_name_delimiter
-
-      # See https://github.com/rails/rails/blob/master/activejob/lib/active_job/queue_name.rb#L27
       Shoryuken.options[:queues].to_a.map! do |queue_name, weight|
-        name_parts = [queue_name_prefix.presence, queue_name]
-        prefixed_queue_name = name_parts.compact.join(queue_name_delimiter)
-        [prefixed_queue_name, weight]
+        prefix_active_job_queue_name(queue_name, weight)
+      end
+
+      Shoryuken.options[:groups].to_a.map! do |group, options|
+        if options[:queues]
+          options[:queues].map! do |queue_name, weight|
+            prefix_active_job_queue_name(queue_name, weight)
+          end
+        end
+        
+        [group, options]
       end
     end
 
