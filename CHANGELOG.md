@@ -1,3 +1,11 @@
+## [v3.1.3] - 2017-07-11
+
+- Add queue prefixing support for groups
+ - [#405](https://github.com/phstc/shoryuken/pull/405)
+
+- Remove dead code
+ - [#402](https://github.com/phstc/shoryuken/pull/402)
+
 ## [v3.1.2] - 2017-07-06
 
 - Fix stack level too deep on Ubuntu
