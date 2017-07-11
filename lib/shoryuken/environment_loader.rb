@@ -88,7 +88,7 @@ module Shoryuken
     def prefix_active_job_queue_name(queue_name, weight)
       queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
       queue_name_delimiter = ::ActiveJob::Base.queue_name_delimiter
-      
+
       # See https://github.com/rails/rails/blob/master/activejob/lib/active_job/queue_name.rb#L27
       name_parts = [queue_name_prefix.presence, queue_name]
       prefixed_queue_name = name_parts.compact.join(queue_name_delimiter)
@@ -109,12 +109,12 @@ module Shoryuken
             prefix_active_job_queue_name(queue_name, weight)
           end
         end
-        
+
         [group, options]
       end
     end
 
-    def parse_queue(queue, weight = nil, group)
+    def parse_queue(queue, weight, group)
       Shoryuken.add_queue(queue, [weight.to_i, 1].max, group)
     end
 
