@@ -3,6 +3,7 @@ require 'json'
 require 'aws-sdk-core'
 require 'time'
 require 'concurrent'
+require 'forwardable'
 
 require 'shoryuken/version'
 require 'shoryuken/core_ext'
