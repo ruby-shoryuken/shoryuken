@@ -1,3 +1,8 @@
+## [v3.1.4] - 2017-07-14
+
+- Require forwardable allowding to call `shoryuken` without `bundle exec`
+ - [#409](https://github.com/phstc/shoryuken/pull/409)
+
 ## [v3.1.3] - 2017-07-11
 
 - Add queue prefixing support for groups
