@@ -49,16 +49,20 @@ module Shoryuken
 
     private
 
+    def parse_queue_url_params(name_or_url)
+      if name_or_url.start_with?('https://sqs.')
+        *_, account_id, queue_name = URI.parse(name_or_url).path.split('/')
+        {
+          queue_name: queue_name,
+          queue_owner_aws_account_id: account_id
+        }
+      else
+        { queue_name: name_or_url }
+      end
+    end
+
     def set_name_and_url(name_or_url)
-      queue_url_params = if name_or_url.start_with?('https://sqs.')
-                           *_, account_id, queue_name = URI.parse(name_or_url).path.split('/')
-                           {
-                             queue_name: queue_name,
-                             queue_owner_aws_account_id: account_id
-                           }
-                         else
-                           { queue_name: name_or_url }
-                         end
+      queue_url_params = parse_queue_url_params(name_or_url)
       self.name = queue_url_params[:queue_name]
       self.url  = client.get_queue_url(queue_url_params)
     rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
