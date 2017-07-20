@@ -51,11 +51,10 @@ module Shoryuken
 
     def set_name_and_url(name_or_url)
       queue_url_params = if name_or_url.start_with?('https://sqs.')
-                           url = URI.parse(name_or_url).path.split('/')
-
+                           *_, account_id, queue_name = URI.parse(name_or_url).path.split('/')
                            {
-                             queue_name: url.last,
-                             queue_owner_aws_account_id: url.second_to_last
+                             queue_name: queue_name,
+                             queue_owner_aws_account_id: account_id
                            }
                          else
                            { queue_name: name_or_url }
