@@ -49,20 +49,27 @@ module Shoryuken
 
     private
 
-    def set_name(name)
+    def set_by_name(name)
       self.name = name
       self.url  = client.get_queue_url(queue_name: name).queue_url
-    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
-      raise ex, "The specified queue #{name} does not exist."
     end
 
-    def set_url(url)
+    def set_by_url(url)
       self.name = url.split('/').last
       self.url  = url
     end
 
     def set_name_and_url(name_or_url)
-      name_or_url.start_with?('https://sqs.') ? set_url(name_or_url) : set_name(name_or_url)
+      if name_or_url.start_with?('https://sqs.')
+        set_by_url(name_or_url)
+
+        # anticipate the fifo? checker for validating the queue URL
+        return fifo?
+      end
+
+      set_by_name(name_or_url)
+    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
+      raise ex, "The specified queue #{name_or_url} does not exist."
     end
 
     def queue_attributes
