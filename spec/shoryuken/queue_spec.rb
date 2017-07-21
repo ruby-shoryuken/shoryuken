@@ -17,9 +17,11 @@ RSpec.describe Shoryuken::Queue do
 
   describe '#new' do
     context 'when queue URL supplied' do
-      subject { described_class.new(sqs, queue_url) }
+      it 'instantiates by URL and validate the URL' do
+        expect_any_instance_of(described_class).to receive(:fifo?).and_return(false)
 
-      specify do
+        subject = described_class.new(sqs, queue_url)
+
         expect(subject.name).to eq(queue_name)
       end
     end
