@@ -1,3 +1,11 @@
+## [v3.1.5] - 2017-07-23
+
+- Fix memory leak
+ - [#414](https://github.com/phstc/shoryuken/pull/414)
+
+- Fail fast on bad queue URLs
+ - [#413](https://github.com/phstc/shoryuken/pull/413)
+
 ## [v3.1.4] - 2017-07-14
 
 - Require forwardable allowding to call `shoryuken` without `bundle exec`
