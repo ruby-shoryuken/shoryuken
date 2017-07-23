@@ -3,8 +3,7 @@ module Shoryuken
     include Util
 
     def initialize
-      @managers    = create_managers
-      @shutdowning = Concurrent::AtomicBoolean.new(false)
+      @managers = create_managers
     end
 
     def start
@@ -41,22 +40,8 @@ module Shoryuken
 
     def start_managers
       @managers.each do |manager|
-        Concurrent::Promise.execute { manager.start }.rescue do |ex|
-          log_manager_failure(ex)
-          start_soft_shutdown
-        end
+        Concurrent::Future.execute { manager.start }
       end
-    end
-
-    def start_soft_shutdown
-      Process.kill('USR1', Process.pid) if @shutdowning.make_true
-    end
-
-    def log_manager_failure(ex)
-      return unless ex
-
-      logger.error { "Manager failed: #{ex.message}" }
-      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
     end
 
     def initiate_stop
