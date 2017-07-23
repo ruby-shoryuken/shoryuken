@@ -27,9 +27,7 @@ module Shoryuken
     def dispatch_loop
       return unless running?
 
-      Concurrent::Promise.execute(
-        executor: @executor
-      ) { dispatch }.then { dispatch_loop }.rescue { |ex| raise ex }
+      @executor.post { dispatch }
     end
 
     def dispatch
@@ -44,6 +42,10 @@ module Shoryuken
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+
+      dispatch_loop
+    rescue => ex
+      handle_dispatch_error(ex)
     end
 
     def busy
@@ -95,6 +97,13 @@ module Shoryuken
       end
 
       sqs_msgs
+    end
+
+    def handle_dispatch_error(ex)
+      logger.error { "Manager failed: #{ex.message}" }
+      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+
+      Process.kill('USR1', Process.pid)
     end
   end
 end
