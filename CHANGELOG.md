@@ -1,3 +1,8 @@
+## [v3.1.6] - 2017-07-24
+
+- Fix issue with dispatch_loop and delays
+ - [#416](https://github.com/phstc/shoryuken/pull/416)
+
 ## [v3.1.5] - 2017-07-23
 
 - Fix memory leak
