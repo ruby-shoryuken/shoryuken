@@ -57,7 +57,9 @@ module Shoryuken
       end
 
       def polling_strategy(group)
-        options[:groups][group].to_h.fetch(:polling_strategy, Polling::WeightedRoundRobin)
+        strategy = options[:groups][group].to_h.fetch(:polling_strategy, Polling::WeightedRoundRobin)
+        strategy = "Shoryuken::Polling::#{strategy}".constantize if strategy.is_a?(String)
+        strategy
       end
 
       def start_callback
