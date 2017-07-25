@@ -57,7 +57,7 @@ module Shoryuken
       end
 
       def polling_strategy(group)
-        options[group].to_h.fetch(:polling_strategy, Polling::WeightedRoundRobin)
+        options[:groups][group].to_h.fetch(:polling_strategy, Polling::WeightedRoundRobin)
       end
 
       def start_callback
