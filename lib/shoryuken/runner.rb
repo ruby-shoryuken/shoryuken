@@ -120,6 +120,8 @@ module Shoryuken
     def handle_signal(sig)
       case sig
       when 'USR1' then execute_soft_shutdown
+      when 'USR2'
+        logger.warn { "Received #{sig}, will do nothing. To execute soft shutdown, please send USR1" }
       when 'TTIN' then print_threads_backtrace
       else
         logger.info { "Received #{sig}, will shutdown down" }
