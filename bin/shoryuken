@@ -32,7 +32,7 @@ module Shoryuken
         opts = options.to_h.symbolize_keys
 
         if opts[:config_file]
-          say "[DEPRECATED] Please use --config instead of --config-file", :yellow
+          say '[DEPRECATED] Please use --config instead of --config-file', :yellow
         end
 
         opts[:config_file] = opts.delete(:config) if opts[:config]
