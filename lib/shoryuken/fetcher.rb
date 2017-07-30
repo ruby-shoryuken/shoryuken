@@ -4,6 +4,8 @@ module Shoryuken
 
     FETCH_LIMIT = 10
 
+    attr_reader :group
+
     def initialize(group)
       @group = group
     end
@@ -11,13 +13,12 @@ module Shoryuken
     def fetch(queue, limit)
       started_at = Time.now
 
-      # logger.info { "Looking for new messages in #{queue} - #{limit}" }
+      logger.debug { "Looking for new messages in #{queue}" }
 
       sqs_msgs = Array(receive_messages(queue, [FETCH_LIMIT, limit].min))
-      # sqs_msgs = Array(receive_messages(queue, 1))
 
-      # logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } #unless sqs_msgs.empty?
-      # logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
+      logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+      logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
 
       sqs_msgs
     end
@@ -28,7 +29,7 @@ module Shoryuken
       # AWS limits the batch size by 10
       limit = limit > FETCH_LIMIT ? FETCH_LIMIT : limit
 
-      options = Shoryuken.sqs_client_receive_message_opts[@group].to_h.dup
+      options = Shoryuken.sqs_client_receive_message_opts[group].to_h.dup
 
       options[:max_number_of_messages]  = limit
       options[:message_attribute_names] = %w(All)
