@@ -188,7 +188,10 @@ module Shoryuken
 
       desc 'create QUEUE-NAME', 'Create a queue'
       def create(queue_name)
-        queue_url = sqs.create_queue(queue_name: queue_name).queue_url
+        attributes = {}
+        attributes['FifoQueue'] = 'true' if queue_name.end_with?('.fifo')
+
+        queue_url = sqs.create_queue(queue_name: queue_name, attributes: attributes).queue_url
 
         say "Queue #{queue_name} was successfully created. Queue URL #{queue_url}", :green
       end
