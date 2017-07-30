@@ -87,6 +87,8 @@ module Shoryuken
 
           entries.unshift(['Queue', 'Messages Available', 'Messages Inflight', 'Last Modified'])
 
+          system(Gem.win_platform? ? 'cls' : 'clear')
+
           print_table(entries)
         end
 
