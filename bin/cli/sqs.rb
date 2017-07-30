@@ -190,7 +190,7 @@ module Shoryuken
       method_option :attributes, aliases: '-a', type: :hash, default: {}
       def create(queue_name)
         attributes = options[:attributes]
-        attributes['FifoQueue'] = 'true' if queue_name.end_with?('.fifo')
+        attributes['FifoQueue'] ||= 'true' if queue_name.end_with?('.fifo')
 
         queue_url = sqs.create_queue(queue_name: queue_name, attributes: attributes).queue_url
 
