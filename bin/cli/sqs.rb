@@ -187,7 +187,7 @@ module Shoryuken
       end
 
       desc 'create QUEUE-NAME', 'Create a queue'
-      method_option :attributes, aliases: '-a', type: :hash, default: {}
+      method_option :attributes, aliases: '-a', type: :hash, default: {}, desc: 'queue attributes'
       def create(queue_name)
         attributes = options[:attributes]
         attributes['FifoQueue'] ||= 'true' if queue_name.end_with?('.fifo')
