@@ -59,6 +59,8 @@ RSpec.configure do |config|
 
     Aws.config[:stub_responses] = true
 
+    Shoryuken.sqs_client_receive_message_opts.clear
+
     allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
     allow(Shoryuken).to receive(:active_job?).and_return(false)
   end
