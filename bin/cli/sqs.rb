@@ -96,8 +96,8 @@ module Shoryuken
       end
 
       desc 'ls [QUEUE-NAME-PREFIX]', 'Lists queues'
-      method_option :watch,          aliases: '-w',  type: :boolean,              desc: 'watch queues'
-      method_option :watch_interval,                 type: :numeric, default: 10, desc: 'watch interval'
+      method_option :watch,    aliases: '-w', type: :boolean, desc: 'watch queues'
+      method_option :interval, aliases: '-n', type: :numeric, default: 2, desc: 'watch interval in seconds'
       def ls(queue_name_prefix = '')
         trap('SIGINT', 'EXIT') # expect ctrl-c from loop
 
@@ -108,7 +108,7 @@ module Shoryuken
 
           break unless options[:watch]
 
-          sleep options[:watch_interval]
+          sleep options[:interval]
           puts
         end
       end
