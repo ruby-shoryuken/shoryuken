@@ -97,4 +97,84 @@ RSpec.describe Shoryuken::Options do
         "and Shoryuken doesn't support a batchable worker for a queue with multiple workers")
     end
   end
+
+  describe '.polling_strategy' do
+    context 'when not set' do
+      specify do
+        expect(Shoryuken.polling_strategy('default')).to eq Shoryuken::Polling::WeightedRoundRobin
+        expect(Shoryuken.polling_strategy('group1')).to eq Shoryuken::Polling::WeightedRoundRobin
+      end
+    end
+
+    context 'when set to StrictPriority string' do
+      before do
+        Shoryuken.options[:polling_strategy] = 'StrictPriority'
+
+        Shoryuken.options[:groups] = {
+          'group1' => {
+            polling_strategy: 'StrictPriority'
+          }
+        }
+      end
+
+      specify do
+        expect(Shoryuken.polling_strategy('default')).to eq Shoryuken::Polling::StrictPriority
+        expect(Shoryuken.polling_strategy('group1')).to eq Shoryuken::Polling::StrictPriority
+      end
+    end
+
+    context 'when set to WeightedRoundRobin string' do
+      before do
+        Shoryuken.options[:polling_strategy] = 'WeightedRoundRobin'
+
+        Shoryuken.options[:groups] = {
+          'group1' => {
+            polling_strategy: 'WeightedRoundRobin'
+          }
+        }
+      end
+
+      specify do
+        expect(Shoryuken.polling_strategy('default')).to eq Shoryuken::Polling::WeightedRoundRobin
+        expect(Shoryuken.polling_strategy('group1')).to eq Shoryuken::Polling::WeightedRoundRobin
+      end
+    end
+
+    context 'when set to non-existent string' do
+      before do
+        Shoryuken.options[:polling_strategy] = 'NonExistent1'
+
+        Shoryuken.options[:groups] = {
+          'group1' => {
+            polling_strategy: 'NonExistent2'
+          }
+        }
+      end
+
+      specify do
+        expect { Shoryuken.polling_strategy('default') }.to raise_error(ArgumentError)
+        expect { Shoryuken.polling_strategy('group1') }.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'when set to a class' do
+      before do
+        class Foo < Shoryuken::Polling::BaseStrategy; end
+        class Bar < Shoryuken::Polling::BaseStrategy; end
+
+        Shoryuken.options[:polling_strategy] = Foo
+
+        Shoryuken.options[:groups] = {
+          'group1' => {
+            polling_strategy: Bar
+          }
+        }
+      end
+
+      specify do
+        expect(Shoryuken.polling_strategy('default')).to eq Foo
+        expect(Shoryuken.polling_strategy('group1')).to eq Bar
+      end
+    end
+  end
 end
