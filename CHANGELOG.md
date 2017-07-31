@@ -1,3 +1,14 @@
+## [v3.1.7] - 2017-07-31
+
+- Allow polling strategy per group
+ - [#417](https://github.com/phstc/shoryuken/pull/417)
+
+- Add support for creating FIFO queues
+ - [#419](https://github.com/phstc/shoryuken/pull/419)
+
+- Allow receive message options per queue
+ - [#420](https://github.com/phstc/shoryuken/pull/420)
+
 ## [v3.1.6] - 2017-07-24
 
 - Fix issue with dispatch_loop and delays
