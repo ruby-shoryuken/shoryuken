@@ -57,7 +57,18 @@ module Shoryuken
       end
 
       def polling_strategy(group)
-        options[group].to_h.fetch(:polling_strategy, Polling::WeightedRoundRobin)
+        strategy = (group == 'default' ? options : options[:groups][group]).to_h[:polling_strategy]
+
+        case strategy
+        when 'WeightedRoundRobin', nil # Default case
+          Polling::WeightedRoundRobin
+        when 'StrictPriority'
+          Polling::StrictPriority
+        when Class
+          strategy
+        else
+          raise ArgumentError, "#{strategy} is not a valid polling_strategy"
+        end
       end
 
       def start_callback
