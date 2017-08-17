@@ -1,3 +1,8 @@
+## [v3.1.8] - 2017-08-17
+
+- Make Polling strategy backward compatibility
+ - [#424](https://github.com/phstc/shoryuken/pull/424)
+
 ## [v3.1.7] - 2017-07-31
 
 - Allow polling strategy per group
