@@ -26,4 +26,28 @@ describe 'Shoryuken::Util' do
 
     it 'returns ActiveJob worker name'
   end
+
+  describe '#fire_event' do
+    let(:value_holder ) { Object.new }
+    let(:callback_without_options ) { Proc.new { value_holder.value = :without_options } }
+    let(:callback_with_options ) { Proc.new { |options| value_holder.value = [:with_options, options] } }
+
+    after :all do
+      Shoryuken.options[:lifecycle_events].delete( :some_event )
+    end
+
+    it "will trigger callbacks that do not accept arguments" do
+      Shoryuken.options[:lifecycle_events][:some_event] = [callback_without_options]
+
+      expect(value_holder).to receive(:value=).with(:without_options)
+      subject.fire_event(:some_event)
+    end
+
+    it "will trigger callbacks that accept an argument" do
+      Shoryuken.options[:lifecycle_events][:some_event] = [callback_with_options]
+
+      expect( value_holder ).to receive( :value= ).with([:with_options, {my_option: :some_option}])
+      subject.fire_event(:some_event, false, my_option: :some_option)
+    end
+  end
 end
