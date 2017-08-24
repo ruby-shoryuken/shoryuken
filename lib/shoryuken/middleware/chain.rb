@@ -61,6 +61,10 @@ module Shoryuken
         entries << Entry.new(klass, *args) unless exists?(klass)
       end
 
+      def prepend(klass, *args)
+        entries.insert(0, Entry.new(klass, *args)) unless exists?(klass)
+      end
+
       def insert_before(oldklass, newklass, *args)
         i = entries.index { |entry| entry.klass == newklass }
         new_entry = i.nil? ? Entry.new(newklass, *args) : entries.delete_at(i)
