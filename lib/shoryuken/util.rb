@@ -4,13 +4,13 @@ module Shoryuken
       Shoryuken.logger
     end
 
-    def fire_event(event, reverse = false)
+    def fire_event(event, reverse = false, event_options = {})
       logger.debug { "Firing '#{event}' lifecycle event" }
       arr = Shoryuken.options[:lifecycle_events][event]
       arr.reverse! if reverse
       arr.each do |block|
         begin
-          block.call
+          block.call(event_options)
         rescue => ex
           logger.warn(event: event)
           logger.warn "#{ex.class.name}: #{ex.message}"
