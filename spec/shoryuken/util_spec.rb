@@ -9,7 +9,7 @@ describe 'Shoryuken::Util' do
 
   describe '#unparse_queues' do
     it 'returns queues and weights' do
-      queues = %w[queue1 queue1 queue2 queue3 queue4 queue4 queue4]
+      queues = %w(queue1 queue1 queue2 queue3 queue4 queue4 queue4)
 
       expect(subject.unparse_queues(queues)).to eq([['queue1', 2], ['queue2', 1], ['queue3', 1], ['queue4', 3]])
     end
@@ -28,25 +28,25 @@ describe 'Shoryuken::Util' do
   end
 
   describe '#fire_event' do
-    let(:value_holder ) { Object.new }
-    let(:callback_without_options ) { Proc.new { value_holder.value = :without_options } }
-    let(:callback_with_options ) { Proc.new { |options| value_holder.value = [:with_options, options] } }
+    let(:value_holder) { Object.new }
+    let(:callback_without_options) { proc { value_holder.value = :without_options } }
+    let(:callback_with_options) { proc { |options| value_holder.value = [:with_options, options] } }
 
     after :all do
-      Shoryuken.options[:lifecycle_events].delete( :some_event )
+      Shoryuken.options[:lifecycle_events].delete(:some_event)
     end
 
-    it "will trigger callbacks that do not accept arguments" do
+    it 'triggers callbacks that do not accept arguments' do
       Shoryuken.options[:lifecycle_events][:some_event] = [callback_without_options]
 
       expect(value_holder).to receive(:value=).with(:without_options)
       subject.fire_event(:some_event)
     end
 
-    it "will trigger callbacks that accept an argument" do
+    it 'triggers callbacks that accept an argument' do
       Shoryuken.options[:lifecycle_events][:some_event] = [callback_with_options]
 
-      expect( value_holder ).to receive( :value= ).with([:with_options, {my_option: :some_option}])
+      expect(value_holder).to receive(:value=).with([:with_options, { my_option: :some_option }])
       subject.fire_event(:some_event, false, my_option: :some_option)
     end
   end
