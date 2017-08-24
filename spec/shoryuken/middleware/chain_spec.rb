@@ -20,6 +20,12 @@ describe Shoryuken::Middleware::Chain do
     expect(CustomMiddleware).to eq subject.entries.last.klass
   end
 
+  it 'can add middleware to the front of chain' do
+    subject.prepend CustomMiddleware, 1, []
+
+    expect(CustomMiddleware).to eq subject.entries.first.klass
+  end
+
   it 'invokes a middleware' do
     recorder = []
     subject.add CustomMiddleware, 'Pablo', recorder
