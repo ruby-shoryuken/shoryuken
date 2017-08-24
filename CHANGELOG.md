@@ -1,3 +1,11 @@
+## [v3.1.9] - 2017-08-24
+
+- Add support for dispatch fire event
+ - [#426](https://github.com/phstc/shoryuken/pull/426)
+
+- Add support for adding a middleware to the front of chain
+ - [#427](https://github.com/phstc/shoryuken/pull/427)
+
 ## [v3.1.8] - 2017-08-17
 
 - Make Polling strategy backward compatibility
