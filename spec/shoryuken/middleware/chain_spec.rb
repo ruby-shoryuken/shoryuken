@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Shoryuken::Middleware::Chain do
+RSpec.describe Shoryuken::Middleware::Chain do
   class CustomMiddleware
     def initialize(name, recorder)
       @name     = name
@@ -14,6 +14,8 @@ describe Shoryuken::Middleware::Chain do
     end
   end
 
+  class CustomMiddlewareB < CustomMiddleware; end
+
   it 'supports custom middleware' do
     subject.add CustomMiddleware, 1, []
 
@@ -23,17 +25,21 @@ describe Shoryuken::Middleware::Chain do
   it 'can add middleware to the front of chain' do
     subject.prepend CustomMiddleware, 1, []
 
-    expect(CustomMiddleware).to eq subject.entries.first.klass
+    expect([CustomMiddleware]).to eq subject.entries.map(&:klass)
+
+    subject.prepend CustomMiddlewareB, 1, []
+
+    expect([CustomMiddlewareB, CustomMiddleware]).to eq subject.entries.map(&:klass)
   end
 
   it 'invokes a middleware' do
     recorder = []
-    subject.add CustomMiddleware, 'Pablo', recorder
+    subject.add CustomMiddleware, 'custom', recorder
 
     final_action = nil
     subject.invoke { final_action = true }
     expect(final_action).to eq true
-    expect(recorder).to eq [%w[Pablo before], %w[Pablo after]]
+    expect(recorder).to eq [%w(custom before), %w(custom after)]
   end
 
   class NonYieldingMiddleware
@@ -43,7 +49,7 @@ describe Shoryuken::Middleware::Chain do
   it 'allows middleware to abruptly stop processing rest of chain' do
     recorder = []
     subject.add NonYieldingMiddleware
-    subject.add CustomMiddleware, 'Pablo', recorder
+    subject.add CustomMiddleware, 'custom', recorder
 
     final_action = nil
     subject.invoke { final_action = true }
