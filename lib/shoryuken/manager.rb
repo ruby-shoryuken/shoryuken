@@ -12,6 +12,7 @@ module Shoryuken
       @max_processors   = concurrency
       @busy_processors  = Concurrent::AtomicFixnum.new(0)
       @executor         = executor
+      @running          = Concurrent::AtomicBoolean.new(true)
     end
 
     def start
@@ -21,7 +22,7 @@ module Shoryuken
     private
 
     def running?
-      @executor.running?
+      @running.true? && @executor.running?
     end
 
     def dispatch_loop
@@ -104,6 +105,8 @@ module Shoryuken
       logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
 
       Process.kill('USR1', Process.pid)
+
+      @running.make_false
     end
   end
 end

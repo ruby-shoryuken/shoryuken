@@ -9,19 +9,39 @@ module Shoryuken
     end
 
     def fetch(queue, limit)
-      started_at = Time.now
+      do_with_retry(10) do
+        started_at = Time.now
 
-      logger.debug { "Looking for new messages in #{queue}" }
+        logger.debug { "Looking for new messages in #{queue}" }
 
-      sqs_msgs = Array(receive_messages(queue, [FETCH_LIMIT, limit].min))
+        sqs_msgs = Array(receive_messages(queue, [FETCH_LIMIT, limit].min))
 
-      logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
-      logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
+        logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+        logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
 
-      sqs_msgs
+        sqs_msgs
+      end
     end
 
     private
+
+    def do_with_retry(max_attempts, &block)
+      attempts = 0
+
+      begin
+        yield
+      rescue => ex
+        raise if attempts >= max_attempts
+
+        attempts += 1
+
+        logger.debug { "Retrying fetch attempt #{attempts} for #{ex.message}" }
+
+        sleep(attempts)
+
+        retry
+      end
+    end
 
     def receive_messages(queue, limit)
       options = receive_options(queue)
