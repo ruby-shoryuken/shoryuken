@@ -116,7 +116,7 @@ RSpec.describe 'Shoryuken::Worker' do
       expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
     end
 
-    it 'not change arguments' do
+    it 'does not change the original hash' do
       class TestWorker
         include Shoryuken::Worker
 
@@ -126,6 +126,7 @@ RSpec.describe 'Shoryuken::Worker' do
       end
 
       expect(TestWorker::OPT['queue']).to eq(nil)
+      expect(TestWorker.get_shoryuken_options['queue']).to eq('default')
       expect(TestWorker::OPT[:queue]).to eq(:default)
     end
 
