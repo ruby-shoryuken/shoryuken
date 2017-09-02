@@ -1,3 +1,3 @@
 module Shoryuken
-  VERSION = '3.1.9'.freeze
+  VERSION = '3.1.10'.freeze
 end
