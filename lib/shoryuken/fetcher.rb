@@ -9,7 +9,7 @@ module Shoryuken
     end
 
     def fetch(queue, limit)
-      do_with_retry(10) do
+      fetch_with_auto_retry(3) do
         started_at = Time.now
 
         logger.debug { "Looking for new messages in #{queue}" }
@@ -25,19 +25,20 @@ module Shoryuken
 
     private
 
-    def do_with_retry(max_attempts, &block)
+    def fetch_with_auto_retry(max_attempts, &block)
       attempts = 0
 
       begin
         yield
       rescue => ex
+        # Tries to auto retry connectivity errors
         raise if attempts >= max_attempts
 
         attempts += 1
 
         logger.debug { "Retrying fetch attempt #{attempts} for #{ex.message}" }
 
-        sleep(attempts)
+        sleep((1..5).to_a.sample)
 
         retry
       end
