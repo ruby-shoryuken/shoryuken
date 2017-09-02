@@ -1,4 +1,5 @@
 language: ruby
+
 rvm:
   - 2.0.0
   - 2.1.10
@@ -11,9 +12,18 @@ notifications:
     on_success: change
     on_failure: always
 
-script: SPEC_ALL=true bundle exec rspec spec
+gemfile:
+  - Gemfile
+  - Gemfile.aws-sdk-core-v2
+
+env:
+  - SPEC_ALL=true
+
+script: bundle exec rspec spec
+
 before_install:
- - gem update bundler
+  - gem update bundler
+
 after_success:
   - bundle exec codeclimate-test-reporter
 

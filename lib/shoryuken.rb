@@ -1,6 +1,11 @@
 require 'yaml'
 require 'json'
 require 'aws-sdk-core'
+begin
+  require 'aws-sdk-sqs' unless defined?(Aws::SQS)
+rescue LoadError
+  fail "AWS SDK 3 requires aws-sdk-sqs to be installed separately. Please add gem 'aws-sdk-sqs' to your Gemfile"
+end
 require 'time'
 require 'concurrent'
 require 'forwardable'

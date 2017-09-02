@@ -61,10 +61,9 @@ module Shoryuken
       end
 
       def stringify_keys(hash) # :nodoc:
-        hash.keys.each do |key|
-          hash[key.to_s] = hash.delete(key)
-        end
-        hash
+        new_hash = {}
+        hash.each { |key, value| new_hash[key.to_s] = value }
+        new_hash
       end
 
       private

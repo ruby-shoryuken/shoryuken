@@ -116,6 +116,20 @@ RSpec.describe 'Shoryuken::Worker' do
       expect(NewTestWorker.get_shoryuken_options['queue']).to eq 'production_default'
     end
 
+    it 'does not change the original hash' do
+      class TestWorker
+        include Shoryuken::Worker
+
+        OPT = { queue: :default }
+
+        shoryuken_options OPT
+      end
+
+      expect(TestWorker::OPT['queue']).to eq(nil)
+      expect(TestWorker.get_shoryuken_options['queue']).to eq('default')
+      expect(TestWorker::OPT[:queue]).to eq(:default)
+    end
+
     it 'accepts an array as a queue' do
       class WorkerMultipleQueues
         include Shoryuken::Worker
