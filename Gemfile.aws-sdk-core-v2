@@ -5,8 +5,7 @@ gemspec
 
 group :test do
   gem 'activejob', '~> 4'
-  gem 'aws-sdk-core', '~> 3'
-  gem 'aws-sdk-sqs'
+  gem 'aws-sdk-core', '~> 2'
   gem 'codeclimate-test-reporter', require: nil
   gem 'httparty'
   gem 'multi_xml'
