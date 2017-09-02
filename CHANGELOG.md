@@ -1,3 +1,8 @@
+## [v3.1.11] - 2017-09-02
+
+- Auto retry (up to 3 times) fetch errors
+ - [#429](https://github.com/phstc/shoryuken/pull/429)
+
 ## [v3.1.10] - 2017-09-02
 
 - Make Shoryuken compatible with AWS SDK 3 and 2
