@@ -16,7 +16,7 @@ module Shoryuken
 
         sqs_msgs = Array(receive_messages(queue, [FETCH_LIMIT, limit].min))
 
-        logger.info { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+        logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
         logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
 
         sqs_msgs
