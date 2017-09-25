@@ -38,6 +38,22 @@ RSpec.describe Shoryuken::Fetcher do
       subject.fetch(queue_config, limit)
     end
 
+    it 'logs debug only' do
+      # See https://github.com/phstc/shoryuken/issues/435
+      logger = double 'logger'
+
+      allow(subject).to receive(:logger).and_return(logger)
+
+      expect(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+
+      expect(queue).to receive(:receive_messages).and_return([double('SQS Msg')])
+
+      expect(logger).to receive(:debug).exactly(3).times
+      expect(logger).to_not receive(:info)
+
+      subject.fetch(queue_config, limit)
+    end
+
     context 'when receive options per queue' do
       let(:limit) { 5 }
 
