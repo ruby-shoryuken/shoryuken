@@ -1,3 +1,8 @@
+## [v3.1.12] - 2017-09-25
+
+- Reduce fetch log verbosity
+ - [#436](https://github.com/phstc/shoryuken/pull/436)
+
 ## [v3.1.11] - 2017-09-02
 
 - Auto retry (up to 3 times) fetch errors
