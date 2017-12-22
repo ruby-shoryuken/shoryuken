@@ -34,6 +34,7 @@ require 'shoryuken/launcher'
 require 'shoryuken/processor'
 require 'shoryuken/fetcher'
 require 'shoryuken/options'
+require 'shoryuken/body_parser'
 
 module Shoryuken
   extend SingleForwardable
