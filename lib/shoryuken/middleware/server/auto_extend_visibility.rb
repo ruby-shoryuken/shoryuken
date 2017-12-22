@@ -31,16 +31,13 @@ module Shoryuken
             Concurrent::TimerTask.new(execution_interval: queue_visibility_timeout - EXTEND_UPFRONT_SECONDS) do
               begin
                 logger.debug do
-                  "Extending message #{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id} " \
-                  "visibility timeout by #{queue_visibility_timeout}s."
+                  "Extending message #{queue}/#{sqs_msg.message_id} visibility timeout by #{queue_visibility_timeout}s"
                 end
 
                 sqs_msg.change_visibility(visibility_timeout: queue_visibility_timeout)
               rescue => ex
                 logger.error do
-                  'Could not auto extend the message ' \
-                  "#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id} " \
-                  "visibility timeout. Error: #{ex.message}"
+                  "Could not auto extend the message #{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{ex.message}"
                 end
               end
             end
