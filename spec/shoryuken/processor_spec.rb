@@ -1,6 +1,4 @@
 require 'spec_helper'
-require 'shoryuken/processor'
-require 'shoryuken/manager'
 
 RSpec.describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager }
