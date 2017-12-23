@@ -19,6 +19,8 @@ require 'shoryuken/queue'
 require 'shoryuken/message'
 require 'shoryuken/client'
 require 'shoryuken/worker'
+require 'shoryuken/worker/default_executor'
+require 'shoryuken/worker/inline_executor'
 require 'shoryuken/worker_registry'
 require 'shoryuken/default_worker_registry'
 require 'shoryuken/middleware/chain'
@@ -32,9 +34,10 @@ require 'shoryuken/polling/strict_priority'
 require 'shoryuken/manager'
 require 'shoryuken/launcher'
 require 'shoryuken/processor'
+require 'shoryuken/body_parser'
 require 'shoryuken/fetcher'
 require 'shoryuken/options'
-require 'shoryuken/body_parser'
+
 
 module Shoryuken
   extend SingleForwardable
@@ -48,6 +51,8 @@ module Shoryuken
     :ungrouped_queues,
     :worker_registry,
     :worker_registry=,
+    :worker_executor,
+    :worker_executor=,
     :polling_strategy,
     :start_callback,
     :start_callback=,

@@ -1,6 +1,3 @@
-require 'shoryuken/worker/default_executor'
-require 'shoryuken/worker/inline_executor'
-
 module Shoryuken
   module Worker
     def self.included(base)
@@ -9,11 +6,11 @@ module Shoryuken
 
     module ClassMethods
       def perform_async(body, options = {})
-        DefaultExecutor.perform_async(self, body, options)
+        Shoryuken.worker_executor.perform_async(self, body, options)
       end
 
       def perform_in(interval, body, options = {})
-        DefaultExecutor.perform_in(self, interval, body, options)
+        Shoryuken.worker_executor.perform_in(self, interval, body, options)
       end
 
       alias_method :perform_at, :perform_in
