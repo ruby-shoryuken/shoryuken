@@ -18,8 +18,8 @@ module Shoryuken
           new.perform(sqs_msg, BodyParser.parse(self, sqs_msg))
         end
 
-        def perform_in(worker_class, interval, body, options = {})
-          perform_async(body, options)
+        def perform_in(worker_class, _interval, body, options = {})
+          perform_async(worker_class, body, options)
         end
       end
     end
