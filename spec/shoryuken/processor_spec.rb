@@ -8,12 +8,14 @@ RSpec.describe Shoryuken::Processor do
   let(:queue)     { 'default' }
 
   let(:sqs_msg) do
-    double Shoryuken::Message,
+    double(
+      Shoryuken::Message,
       queue_url: queue,
       body: 'test',
       message_attributes: {},
       message_id: SecureRandom.uuid,
       receipt_handle: SecureRandom.uuid
+    )
   end
 
   before do
@@ -25,101 +27,6 @@ RSpec.describe Shoryuken::Processor do
   subject { described_class.new(queue, sqs_msg) }
 
   describe '#process' do
-    it 'parses the body into JSON' do
-      TestWorker.get_shoryuken_options['body_parser'] = :json
-
-      body = { 'test' => 'hi' }
-
-      expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, body)
-
-      allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
-
-      subject.process
-    end
-
-    it 'parses the body calling the proc' do
-      TestWorker.get_shoryuken_options['body_parser'] = proc { |sqs_msg| "*#{sqs_msg.body}*" }
-
-      expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, '*test*')
-
-      allow(sqs_msg).to receive(:body).and_return('test')
-
-      subject.process
-    end
-
-    it 'parses the body as text' do
-      TestWorker.get_shoryuken_options['body_parser'] = :text
-
-      body = 'test'
-
-      expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, body)
-
-      allow(sqs_msg).to receive(:body).and_return(body)
-
-      subject.process
-    end
-
-    it 'parses calling `.load`' do
-      TestWorker.get_shoryuken_options['body_parser'] = Class.new do
-        def self.load(*args)
-          JSON.load(*args)
-        end
-      end
-
-      body = { 'test' => 'hi' }
-
-      expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, body)
-
-      allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
-
-      subject.process
-    end
-
-    it 'parses calling `.parse`' do
-      TestWorker.get_shoryuken_options['body_parser'] = Class.new do
-        def self.parse(*args)
-          JSON.parse(*args)
-        end
-      end
-
-      body = { 'test' => 'hi' }
-
-      expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, body)
-
-      allow(sqs_msg).to receive(:body).and_return(JSON.dump(body))
-
-      subject.process
-    end
-
-    context 'when parse errors' do
-      before do
-        TestWorker.get_shoryuken_options['body_parser'] = :json
-
-        allow(sqs_msg).to receive(:body).and_return('invalid JSON')
-      end
-
-      specify do
-        expect(subject.logger).to receive(:error).twice
-
-        expect { subject.process }.
-          to raise_error(JSON::ParserError, /unexpected token at 'invalid JSON'/)
-      end
-    end
-
-    context 'when `object_type: nil`' do
-      it 'parses the body as text' do
-        TestWorker.get_shoryuken_options['body_parser'] = nil
-
-        body = 'test'
-
-        expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, body)
-
-        allow(sqs_msg).to receive(:body).and_return(body)
-
-        subject.process
-      end
-    end
-
     context 'when custom middleware' do
       let(:queue) { 'worker_called_middleware' }
 
@@ -220,15 +127,19 @@ RSpec.describe Shoryuken::Processor do
 
     context 'when shoryuken_class header' do
       let(:sqs_msg) do
-        double Shoryuken::Message,
+        double(
+          Shoryuken::Message,
           queue_url: queue,
           body: 'test',
           message_attributes: {
             'shoryuken_class' => {
               string_value: TestWorker.to_s,
-              data_type: 'String' }},
-              message_id: SecureRandom.uuid,
-              receipt_handle: SecureRandom.uuid
+              data_type: 'String'
+            }
+          },
+          message_id: SecureRandom.uuid,
+          receipt_handle: SecureRandom.uuid
+        )
       end
 
       it 'performs without delete' do
