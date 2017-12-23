@@ -15,7 +15,7 @@ module Shoryuken
             receipt_handle: nil
           )
 
-          new.perform(sqs_msg, BodyParser.parse(self, sqs_msg))
+          worker_class.new.perform(sqs_msg, BodyParser.parse(worker_class, sqs_msg))
         end
 
         def perform_in(worker_class, _interval, body, options = {})
