@@ -122,6 +122,15 @@ RSpec.describe Shoryuken::Processor do
       end
     end
 
+    it 'sets log context' do
+      expect(Shoryuken::Logging).to receive(:with_context).with("TestWorker/#{queue}/#{sqs_msg.message_id}")
+
+      allow_any_instance_of(TestWorker).to receive(:perform)
+      allow(sqs_msg).to receive(:body)
+
+      subject.process
+    end
+
     context 'when custom middleware' do
       let(:queue) { 'worker_called_middleware' }
 
