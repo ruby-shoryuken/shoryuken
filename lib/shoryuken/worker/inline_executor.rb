@@ -12,7 +12,8 @@ module Shoryuken
             md5_of_message_attributes: nil,
             message_attributes: nil,
             message_id: nil,
-            receipt_handle: nil
+            receipt_handle: nil,
+            delete: nil
           )
 
           worker_class.new.perform(sqs_msg, BodyParser.parse(worker_class, sqs_msg))
