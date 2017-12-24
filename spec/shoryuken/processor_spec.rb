@@ -8,12 +8,14 @@ RSpec.describe Shoryuken::Processor do
   let(:queue)     { 'default' }
 
   let(:sqs_msg) do
-    double Shoryuken::Message,
+    double(
+      Shoryuken::Message,
       queue_url: queue,
       body: 'test',
       message_attributes: {},
       message_id: SecureRandom.uuid,
       receipt_handle: SecureRandom.uuid
+    )
   end
 
   before do
@@ -120,6 +122,15 @@ RSpec.describe Shoryuken::Processor do
       end
     end
 
+    it 'sets log context' do
+      expect(Shoryuken::Logging).to receive(:with_context).with("TestWorker/#{queue}/#{sqs_msg.message_id}")
+
+      allow_any_instance_of(TestWorker).to receive(:perform)
+      allow(sqs_msg).to receive(:body)
+
+      subject.process
+    end
+
     context 'when custom middleware' do
       let(:queue) { 'worker_called_middleware' }
 
@@ -220,15 +231,19 @@ RSpec.describe Shoryuken::Processor do
 
     context 'when shoryuken_class header' do
       let(:sqs_msg) do
-        double Shoryuken::Message,
+        double(
+          Shoryuken::Message,
           queue_url: queue,
           body: 'test',
           message_attributes: {
             'shoryuken_class' => {
               string_value: TestWorker.to_s,
-              data_type: 'String' }},
-              message_id: SecureRandom.uuid,
-              receipt_handle: SecureRandom.uuid
+              data_type: 'String'
+            }
+          },
+          message_id: SecureRandom.uuid,
+          receipt_handle: SecureRandom.uuid
+        )
       end
 
       it 'performs without delete' do
