@@ -1,8 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe Shoryuken::Worker::InlineExecutor do
-  let(:sqs_queue) { double 'SQS Queue' }
-
   before do
     Shoryuken.worker_executor = described_class
   end
