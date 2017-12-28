@@ -6,29 +6,11 @@ module Shoryuken
 
     module ClassMethods
       def perform_async(body, options = {})
-        options[:message_attributes] ||= {}
-        options[:message_attributes]['shoryuken_class'] = {
-          string_value: self.to_s,
-          data_type: 'String'
-        }
-
-        options[:message_body] = body
-
-        queue = options.delete(:queue) || get_shoryuken_options['queue']
-
-        Shoryuken::Client.queues(queue).send_message(options)
+        Shoryuken.worker_executor.perform_async(self, body, options)
       end
 
       def perform_in(interval, body, options = {})
-        interval = interval.to_f
-        now = Time.now.to_f
-        ts = (interval < 1_000_000_000 ? (now + interval).to_f : interval)
-
-        delay = (ts - now).ceil
-
-        raise 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
-
-        perform_async(body, options.merge(delay_seconds: delay))
+        Shoryuken.worker_executor.perform_in(self, interval, body, options)
       end
 
       alias_method :perform_at, :perform_in

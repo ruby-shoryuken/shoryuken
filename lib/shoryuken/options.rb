@@ -21,6 +21,7 @@ module Shoryuken
     @@sqs_client_receive_message_opts = {}
     @@start_callback                  = nil
     @@stop_callback                   = nil
+    @@worker_executor                 = Worker::DefaultExecutor
 
     class << self
       def active_job?
@@ -54,6 +55,14 @@ module Shoryuken
 
       def worker_registry=(worker_registry)
         @@worker_registry = worker_registry
+      end
+
+      def worker_executor
+        @@worker_executor
+      end
+
+      def worker_executor=(worker_executor)
+        @@worker_executor = worker_executor
       end
 
       def polling_strategy(group)
