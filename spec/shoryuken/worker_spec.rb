@@ -88,6 +88,23 @@ RSpec.describe Shoryuken::Worker do
       expect(Shoryuken.worker_registry.workers('symbol_queue2')).to eq([WorkerMultipleSymbolQueues])
       expect(Shoryuken.worker_registry.workers('symbol_queue3')).to eq([WorkerMultipleSymbolQueues])
     end
+
+    it 'preserves parent class options' do
+      class ParentWorker
+        include Shoryuken::Worker
+
+        shoryuken_options queue: "myqueue", auto_delete: false
+      end
+
+      class ChildWorker < ParentWorker
+        shoryuken_options auto_delete: true
+      end
+
+      expect(ParentWorker.get_shoryuken_options['queue']).to eq("myqueue")
+      expect(ChildWorker.get_shoryuken_options['queue']).to eq("myqueue")
+      expect(ParentWorker.get_shoryuken_options['auto_delete']).to eq(false)
+      expect(ChildWorker.get_shoryuken_options['auto_delete']).to eq(true)
+    end
   end
 
   describe '.server_middleware' do
