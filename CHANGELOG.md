@@ -1,3 +1,14 @@
+## [v3.2.0] - 2018-01-03
+
+- Preserve parent worker class options
+ - [#451](https://github.com/phstc/shoryuken/pull/451)
+
+- Add -t (shutdown timeout) option to CL
+ - [#449](https://github.com/phstc/shoryuken/pull/449)
+
+- Support inline (Active Job like) for standard workers
+ - [#448](https://github.com/phstc/shoryuken/pull/448)
+
 ## [v3.1.12] - 2017-09-25
 
 - Reduce fetch log verbosity
@@ -15,11 +26,11 @@
 
 ## [v3.1.9] - 2017-08-24
 
-- Add support for dispatch fire event
- - [#426](https://github.com/phstc/shoryuken/pull/426)
-
 - Add support for adding a middleware to the front of chain
  - [#427](https://github.com/phstc/shoryuken/pull/427)
+
+- Add support for dispatch fire event
+ - [#426](https://github.com/phstc/shoryuken/pull/426)
 
 ## [v3.1.8] - 2017-08-17
 
