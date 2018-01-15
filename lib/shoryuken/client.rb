@@ -12,6 +12,10 @@ module Shoryuken
       end
 
       def sqs=(sqs)
+        # Since the @@queues values (Shoryuken::Queue objects) are built referencing @@sqs, if it changes, we need to
+        #   re-build them on subsequent calls to `.queues(name)`.
+        @@queues = {}
+
         @@sqs = sqs
       end
     end
