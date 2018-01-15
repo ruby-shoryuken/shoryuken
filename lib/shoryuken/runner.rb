@@ -19,7 +19,7 @@ module Shoryuken
     def run(options)
       self_read, self_write = IO.pipe
 
-      %w(INT TERM USR1 TTIN).each do |sig|
+      %w(INT TERM USR1 USR2 TTIN).each do |sig|
         begin
           trap sig do
             self_write.puts(sig)
@@ -122,6 +122,11 @@ module Shoryuken
 
       case sig
       when 'USR1' then execute_soft_shutdown
+      when 'USR2'
+        if Shoryuken.options[:logfile]
+          Shoryuken.logger.info "Received USR2, reopening log file"
+          Shoryuken::Logging.reopen_logs
+        end
       when 'TTIN' then print_threads_backtrace
       when 'TERM', 'INT'
         logger.info { "Received #{sig}, will shutdown down" }
