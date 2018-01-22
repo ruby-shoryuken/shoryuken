@@ -8,11 +8,15 @@ module Shoryuken
       end
 
       def sqs
-        @@sqs ||= Shoryuken.sqs_client
+        Shoryuken.sqs_client
       end
 
       def sqs=(sqs)
-        @@sqs = sqs
+        # Since the @@queues values (Shoryuken::Queue objects) are built referencing @@sqs, if it changes, we need to
+        #   re-build them on subsequent calls to `.queues(name)`.
+        @@queues = {}
+
+        Shoryuken.sqs_client = sqs
       end
     end
   end
