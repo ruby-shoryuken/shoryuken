@@ -38,13 +38,17 @@ module ActiveJob
       end
 
       def enqueue_at(job, timestamp) #:nodoc:
-        delay = (timestamp - Time.current.to_f).round
-        raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
-
-        enqueue(job, delay_seconds: delay)
+        enqueue(job, delay_seconds: calculate_delay(timestamp))
       end
 
       private
+
+      def calculate_delay(timestamp)
+        delay = (timestamp - Time.current.to_f).round
+        raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
+
+        delay
+      end
 
       def message(queue, job, options = {})
         body = job.serialize

@@ -43,4 +43,22 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenAdapter do
       end
     end
   end
+
+  describe '#enqueue_at' do
+    specify do
+      delay = 1
+
+      expect(queue).to receive(:send_message) do |hash|
+        expect(hash[:message_deduplication_id]).to_not be
+        expect(hash[:delay_seconds]).to eq(delay)
+      end
+
+      expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+
+      # need to figure out what to require Time.current and N.minutes to remove the stub
+      allow(subject).to receive(:calculate_delay).and_return(delay)
+
+      subject.enqueue_at(job, nil)
+    end
+  end
 end
