@@ -34,7 +34,7 @@ module ActiveJob
         register_worker!(job)
 
         queue = Shoryuken::Client.queues(job.queue_name)
-        queue.send_message(message(job, options))
+        queue.send_message(message(queue, job, options))
       end
 
       def enqueue_at(job, timestamp) #:nodoc:
@@ -46,7 +46,7 @@ module ActiveJob
 
       private
 
-      def message(job, options = {})
+      def message(queue, job, options = {})
         body = job.serialize
 
         msg = {}
