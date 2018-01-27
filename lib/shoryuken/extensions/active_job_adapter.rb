@@ -30,30 +30,40 @@ module ActiveJob
         end
       end
 
-      def enqueue(job) #:nodoc:
+      def enqueue(job, options = {}) #:nodoc:
         register_worker!(job)
 
         queue = Shoryuken::Client.queues(job.queue_name)
-        queue.send_message(message(job))
+        queue.send_message(message(queue, job, options))
       end
 
       def enqueue_at(job, timestamp) #:nodoc:
-        register_worker!(job)
-
-        delay = (timestamp - Time.current.to_f).round
-        raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
-
-        queue = Shoryuken::Client.queues(job.queue_name)
-        queue.send_message(message(job, delay_seconds: delay))
+        enqueue(job, delay_seconds: calculate_delay(timestamp))
       end
 
       private
 
-      def message(job, options = {})
+      def calculate_delay(timestamp)
+        delay = (timestamp - Time.current.to_f).round
+        raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
+
+        delay
+      end
+
+      def message(queue, job, options = {})
         body = job.serialize
 
-        { message_body: body,
-          message_attributes: message_attributes }.merge(options)
+        msg = {}
+
+        if queue.fifo?
+          # See https://github.com/phstc/shoryuken/issues/457
+          msg[:message_deduplication_id] = Digest::SHA256.hexdigest(JSON.dump(body.except('job_id')))
+        end
+
+        msg[:message_body] = body
+        msg[:message_attributes] = message_attributes
+
+        msg.merge(options)
       end
 
       def register_worker!(job)
