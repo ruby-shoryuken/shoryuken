@@ -22,6 +22,7 @@ module Shoryuken
     @@start_callback                  = nil
     @@stop_callback                   = nil
     @@worker_executor                 = Worker::DefaultExecutor
+    @@launcher_executor               = nil
 
     class << self
       def active_job?
@@ -63,6 +64,14 @@ module Shoryuken
 
       def worker_executor=(worker_executor)
         @@worker_executor = worker_executor
+      end
+
+      def launcher_executor
+        @@launcher_executor
+      end
+
+      def launcher_executor=(launcher_executor)
+        @@launcher_executor = launcher_executor
       end
 
       def polling_strategy(group)

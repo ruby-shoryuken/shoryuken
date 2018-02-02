@@ -53,6 +53,8 @@ module Shoryuken
     :worker_registry=,
     :worker_executor,
     :worker_executor=,
+    :launcher_executor,
+    :launcher_executor=,
     :polling_strategy,
     :start_callback,
     :start_callback=,

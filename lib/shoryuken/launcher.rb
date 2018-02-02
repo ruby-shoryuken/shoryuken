@@ -35,7 +35,7 @@ module Shoryuken
     private
 
     def executor
-      Concurrent.global_io_executor
+      @_executor ||= Shoryuken.launcher_executor || Concurrent.global_io_executor
     end
 
     def start_managers
