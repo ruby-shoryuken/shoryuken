@@ -8,12 +8,14 @@ module Shoryuken
 
       no_commands do
         def normalize_dump_message(message)
-          message[:id] = message.delete(:message_id)
-          message[:message_body] = message.delete(:body)
-          message.delete(:receipt_handle)
-          message.delete(:md5_of_body)
-          message.delete(:md5_of_message_attributes)
-          message
+          attributes = message[:attributes].symbolize_keys
+          {
+            id: message[:message_id],
+            message_body: message[:body],
+            message_attributes: message[:message_attributes],
+            message_deduplication_id: attributes[:MessageDeduplicationId],
+            message_group_id: attributes[:MessageGroupId]
+          }
         end
 
         def sqs
@@ -59,6 +61,7 @@ module Shoryuken
             messages = sqs.receive_message(
               queue_url: url,
               max_number_of_messages: batch_size,
+              attribute_names: ['All'],
               message_attribute_names: ['All']
             ).messages
 
