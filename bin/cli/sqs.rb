@@ -8,13 +8,13 @@ module Shoryuken
 
       no_commands do
         def normalize_dump_message(message)
-          attributes = message[:attributes].symbolize_keys
+          attributes = message[:attributes]
           {
             id: message[:message_id],
             message_body: message[:body],
             message_attributes: message[:message_attributes],
-            message_deduplication_id: attributes[:MessageDeduplicationId],
-            message_group_id: attributes[:MessageGroupId]
+            message_deduplication_id: attributes['MessageDeduplicationId'],
+            message_group_id: attributes['MessageGroupId']
           }
         end
 
