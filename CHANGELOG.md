@@ -1,3 +1,14 @@
+## [v3.2.1] - 2018-02-12
+
+- Support FIFO queues in `shoryuken sqs` commands
+ - [#473](https://github.com/phstc/shoryuken/pull/473)
+
+- Allow customizing the default executor launcher
+ - [#469](https://github.com/phstc/shoryuken/pull/469)
+
+- Exclude job_id from message deduplication when ActiveJob
+ - [#462](https://github.com/phstc/shoryuken/pull/462)
+
 ## [v3.2.0] - 2018-01-03
 
 - Preserve parent worker class options
