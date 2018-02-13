@@ -1,3 +1,8 @@
+## [v3.2.2] - 2018-02-13
+
+- Fix requeue' for FIFO queues
+ - [#48fcb42](https://github.com/phstc/shoryuken/commit/48fcb4260c3b41a9e45fa29bb857e8fa37dcee82)
+
 ## [v3.2.1] - 2018-02-12
 
 - Support FIFO queues in `shoryuken sqs` commands
