@@ -43,8 +43,8 @@ module Shoryuken
           end
         end
 
-        def batch_send(url, messages)
-          messages.to_a.flatten.map(&method(:normalize_dump_message)).each_slice(10) do |batch|
+        def batch_send(url, messages, messages_per_batch = 10)
+          messages.to_a.flatten.map(&method(:normalize_dump_message)).each_slice(messages_per_batch) do |batch|
             sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
               say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
             end
@@ -152,12 +152,13 @@ module Shoryuken
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
+      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'number messages per batch to send'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 
         messages = File.readlines(path).map { |line| JSON.parse(line, symbolize_names: true) }
 
-        batch_send(find_queue_url(queue_name), messages)
+        batch_send(find_queue_url(queue_name), messages, options[:batch_size])
 
         say "Requeued #{messages.size} messages from #{path} to #{queue_name}", :green
       end
