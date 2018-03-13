@@ -66,8 +66,10 @@ module Shoryuken
       else
         # Painful contortions, see 1791 for discussion
         require File.expand_path('config/application.rb')
-        ::Rails::Application.initializer 'shoryuken.eager_load' do
-          ::Rails.application.config.eager_load = true
+        if ::Rails::VERSION::MAJOR == 4
+          ::Rails::Application.initializer 'shoryuken.eager_load' do
+            ::Rails.application.config.eager_load = true
+          end
         end
         require 'shoryuken/extensions/active_job_adapter' if Shoryuken.active_job?
         require File.expand_path('config/environment.rb')
