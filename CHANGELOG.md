@@ -1,3 +1,14 @@
+## [v3.2.3] - 2018-03-25
+
+- Don't force eager load for Rails 5
+  - [#480](https://github.com/phstc/shoryuken/pull/480)
+
+- Allow Batch Size to be Specified for Requeue
+  - [#478](https://github.com/phstc/shoryuken/pull/478)
+
+- Support FIFO queues in `shoryuken sqs` commands
+  - [#473](https://github.com/phstc/shoryuken/pull/473)
+
 ## [v3.2.2] - 2018-02-13
 
 - Fix requeue' for FIFO queues
