@@ -18,9 +18,9 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
       end
     end
 
-    def run_and_raise(worker, queue, sqs_msg, error_class)
+    def run_and_raise(worker, queue, sqs_msg, _error_class)
       Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
-        raise error_class.new
+        raise
       end
     end
   end

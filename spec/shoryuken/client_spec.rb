@@ -12,7 +12,7 @@ RSpec.describe Shoryuken::Client do
     end
 
     it 'memoizes queues' do
-      sqs.stub_responses(:get_queue_url, { queue_url: queue_url }, { queue_url: 'xyz' })
+      sqs.stub_responses(:get_queue_url, { queue_url: queue_url }, queue_url: 'xyz')
 
       expect(Shoryuken::Client.queues(queue_name).url).to eq queue_url
       expect(Shoryuken::Client.queues(queue_name).url).to eq queue_url

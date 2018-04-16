@@ -85,7 +85,7 @@ RSpec.describe Shoryuken::Launcher do
 
       shoryuken_options auto_delete: true
 
-      def perform(sqs_msg, body)
+      def perform(sqs_msg, _body)
         @@received_messages += Array(sqs_msg).size
       end
 

@@ -12,3 +12,7 @@ group :test do
   gem 'multi_xml'
   gem 'simplecov'
 end
+
+group :development do
+  gem 'rubocop'
+end

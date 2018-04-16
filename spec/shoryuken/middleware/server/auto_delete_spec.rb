@@ -6,9 +6,9 @@ describe Shoryuken::Middleware::Server::AutoDelete do
 
   def build_message
     double Shoryuken::Message,
-      queue_url: queue,
-      body: 'test',
-      receipt_handle: SecureRandom.uuid
+           queue_url: queue,
+           body: 'test',
+           receipt_handle: SecureRandom.uuid
   end
 
   let(:sqs_msg) { build_message }
@@ -21,7 +21,8 @@ describe Shoryuken::Middleware::Server::AutoDelete do
     TestWorker.get_shoryuken_options['auto_delete'] = true
 
     expect(sqs_queue).to receive(:delete_messages).with(entries: [
-      { id: '0', receipt_handle: sqs_msg.receipt_handle }])
+                                                          { id: '0', receipt_handle: sqs_msg.receipt_handle }
+                                                        ])
 
     subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) {}
   end
@@ -35,9 +36,10 @@ describe Shoryuken::Middleware::Server::AutoDelete do
     sqs_msgs = [sqs_msg, sqs_msg2, sqs_msg3]
 
     expect(sqs_queue).to receive(:delete_messages).with(entries: [
-      { id: '0', receipt_handle: sqs_msg.receipt_handle },
-      { id: '1', receipt_handle: sqs_msg2.receipt_handle },
-      { id: '2', receipt_handle: sqs_msg3.receipt_handle }])
+                                                          { id: '0', receipt_handle: sqs_msg.receipt_handle },
+                                                          { id: '1', receipt_handle: sqs_msg2.receipt_handle },
+                                                          { id: '2', receipt_handle: sqs_msg3.receipt_handle }
+                                                        ])
 
     subject.call(TestWorker.new, queue, sqs_msgs, [sqs_msg.body, sqs_msg2.body, sqs_msg3.body]) {}
   end

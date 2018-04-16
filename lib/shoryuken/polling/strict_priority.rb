@@ -4,13 +4,13 @@ module Shoryuken
       def initialize(queues)
         # Priority ordering of the queues, highest priority first
         @queues = queues
-        .group_by { |q| q }
-        .sort_by { |_, qs| -qs.count }
-        .map(&:first)
+                  .group_by { |q| q }
+                  .sort_by { |_, qs| -qs.count }
+                  .map(&:first)
 
         # Pause status of the queues, default to past time (unpaused)
         @paused_until = queues
-        .each_with_object(Hash.new) { |queue, h| h[queue] = Time.at(0) }
+                        .each_with_object({}) { |queue, h| h[queue] = Time.at(0) }
 
         # Start queues at 0
         reset_next_queue
@@ -31,10 +31,10 @@ module Shoryuken
 
       def active_queues
         @queues
-        .reverse
-        .map.with_index(1)
-        .reject { |q, _| queue_paused?(q) }
-        .reverse
+          .reverse
+          .map.with_index(1)
+          .reject { |q, _| queue_paused?(q) }
+          .reverse
       end
 
       private

@@ -12,7 +12,7 @@ class EndlessUninterruptiveWorker
     end
 
     def max_execution_time
-      ENV["MAX_EXECUTION_TIME"] ? ENV["MAX_EXECUTION_TIME"].to_i : 100
+      ENV['MAX_EXECUTION_TIME'] ? ENV['MAX_EXECUTION_TIME'].to_i : 100
     end
 
     def rng
@@ -25,13 +25,13 @@ class EndlessUninterruptiveWorker
     end
   end
 
-  def perform(sqs_msg, body)
+  def perform(_sqs_msg, body)
     Shoryuken.logger.info("Received message: #{body}")
 
     execution_ms = self.class.random_number(self.class.max_execution_time)
     Shoryuken.logger.info("Going to burn metal for #{execution_ms}ms")
     end_time = Time.now + execution_ms.to_f / 1000
-    while Time.now < end_time do
+    while Time.now < end_time
       # burn metal
     end
 

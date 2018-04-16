@@ -8,7 +8,6 @@ require 'shoryuken'
 
 module Shoryuken
   # rubocop:disable Lint/InheritException
-  # rubocop:disable Metrics/AbcSize
   # See: https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
   class Shutdown < Interrupt; end
 
@@ -19,7 +18,7 @@ module Shoryuken
     def run(options)
       self_read, self_write = IO.pipe
 
-      %w(INT TERM USR1 TSTP TTIN).each do |sig|
+      %w[INT TERM USR1 TSTP TTIN].each do |sig|
         begin
           trap sig do
             self_write.puts(sig)

@@ -84,7 +84,7 @@ module ActiveJob
 
         shoryuken_options body_parser: :json, auto_delete: true
 
-        def perform(sqs_msg, hash)
+        def perform(_sqs_msg, hash)
           Base.execute hash
         end
       end

@@ -9,13 +9,13 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenAdapter do
 
   before do
     allow(Shoryuken::Client).to receive(:queues).with(job.queue_name).and_return(queue)
-    allow(job).to receive(:serialize).and_return({
-      'job_class'  => 'Worker',
+    allow(job).to receive(:serialize).and_return(
+      'job_class' => 'Worker',
       'job_id'     => job.id,
       'queue_name' => job.queue_name,
       'arguments'  => nil,
       'locale'     => nil
-    })
+    )
   end
 
   describe '#enqueue' do

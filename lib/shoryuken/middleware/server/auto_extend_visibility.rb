@@ -25,7 +25,7 @@ module Shoryuken
         class MessageVisibilityExtender
           include Util
 
-          def auto_extend(worker, queue, sqs_msg, body)
+          def auto_extend(_worker, queue, sqs_msg, _body)
             queue_visibility_timeout = Shoryuken::Client.queues(queue).visibility_timeout
 
             Concurrent::TimerTask.new(execution_interval: queue_visibility_timeout - EXTEND_UPFRONT_SECONDS) do
@@ -35,7 +35,7 @@ module Shoryuken
                 end
 
                 sqs_msg.change_visibility(visibility_timeout: queue_visibility_timeout)
-              rescue => ex
+              rescue StandardError => ex
                 logger.error do
                   "Could not auto extend the message #{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{ex.message}"
                 end

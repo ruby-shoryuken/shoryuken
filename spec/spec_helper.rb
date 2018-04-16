@@ -13,7 +13,7 @@ if ENV['CODECLIMATE_REPO_TOKEN']
   SimpleCov.start
 end
 
-config_file = File.join(File.expand_path('../..', __FILE__), 'spec', 'shoryuken.yml')
+config_file = File.join(File.expand_path('..', __dir__), 'spec', 'shoryuken.yml')
 
 Shoryuken::EnvironmentLoader.setup_options(config_file: config_file)
 

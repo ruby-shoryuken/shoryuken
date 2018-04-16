@@ -2,7 +2,7 @@ module Shoryuken
   module Middleware
     module Server
       class AutoDelete
-        def call(worker, queue, sqs_msg, body)
+        def call(worker, queue, sqs_msg, _body)
           yield
 
           return unless worker.class.auto_delete?

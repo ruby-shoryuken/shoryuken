@@ -79,7 +79,7 @@ RSpec.describe Shoryuken::Manager do
 
     context 'when batch' do
       specify do
-        messages = %w(test1 test2 test3)
+        messages = %w[test1 test2 test3]
         q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
 
         expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)

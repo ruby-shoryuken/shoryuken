@@ -38,7 +38,7 @@ RSpec.describe Shoryuken::Processor do
       let(:queue) { 'worker_called_middleware' }
 
       class WorkerCalledMiddleware
-        def call(worker, queue, sqs_msg, body)
+        def call(worker, queue, sqs_msg, _body)
           # called is defined with `allow(...).to receive(...)`
           worker.called(sqs_msg, queue)
           yield

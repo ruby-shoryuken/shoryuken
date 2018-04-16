@@ -4,7 +4,7 @@ module Shoryuken
       class ExponentialBackoffRetry
         include Util
 
-        def call(worker, queue, sqs_msg, body)
+        def call(worker, _queue, sqs_msg, _body)
           return yield unless worker.class.exponential_backoff?
 
           if sqs_msg.is_a?(Array)
@@ -14,7 +14,7 @@ module Shoryuken
 
           started_at = Time.now
           yield
-        rescue => ex
+        rescue StandardError => ex
           retry_intervals = worker.class.get_shoryuken_options['retry_intervals']
 
           if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
