@@ -4,7 +4,7 @@ require 'shoryuken/launcher'
 require 'securerandom'
 
 RSpec.describe Shoryuken::Launcher do
-  describe 'Consuming messages', slow: :true do
+  describe 'Consuming messages', slow: true do
     before do
       Aws.config[:stub_responses] = false
       Aws.config[:region] = 'us-east-1'
