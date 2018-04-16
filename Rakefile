@@ -15,7 +15,7 @@ task :console do
   config_file = File.join File.expand_path(__dir__), 'shoryuken.yml'
 
   if File.exist? config_file
-    config = YAML.safe_load File.read(config_file)
+    config = YAML.load File.read(config_file)
 
     Aws.config = config['aws']
   end

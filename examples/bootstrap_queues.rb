@@ -2,7 +2,7 @@ require 'yaml'
 require 'shoryuken'
 
 # load SQS credentials
-config = YAML.safe_load File.read(File.join(File.expand_path(__dir__), 'shoryuken.yml'))
+config = YAML.load File.read(File.join(File.expand_path(__dir__), 'shoryuken.yml'))
 
 Aws.config = config['aws']
 
