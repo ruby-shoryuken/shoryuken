@@ -114,3 +114,6 @@ Style/RescueStandardError:
 
 Security/YAMLLoad:
   Enabled: false
+
+Naming/MemoizedInstanceVariableName:
+  Enabled: false
