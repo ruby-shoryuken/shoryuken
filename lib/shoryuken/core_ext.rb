@@ -34,7 +34,7 @@ module Shoryuken
   module StringExt
     module Constantize
       def constantize
-        names = self.split('::')
+        names = split('::')
         names.shift if names.empty? || names.first.empty?
 
         constant = Object

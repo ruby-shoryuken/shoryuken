@@ -25,7 +25,7 @@ module Shoryuken
 
     private
 
-    def fetch_with_auto_retry(max_attempts, &block)
+    def fetch_with_auto_retry(max_attempts)
       attempts = 0
 
       begin
@@ -48,8 +48,8 @@ module Shoryuken
       options = receive_options(queue)
 
       options[:max_number_of_messages]  = max_number_of_messages(limit, options)
-      options[:message_attribute_names] = %w(All)
-      options[:attribute_names]         = %w(All)
+      options[:message_attribute_names] = %w[All]
+      options[:attribute_names]         = %w[All]
 
       options.merge!(queue.options)
 

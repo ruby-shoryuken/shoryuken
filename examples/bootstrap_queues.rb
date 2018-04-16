@@ -2,7 +2,7 @@ require 'yaml'
 require 'shoryuken'
 
 # load SQS credentials
-config = YAML.load File.read(File.join(File.expand_path('..', __FILE__), 'shoryuken.yml'))
+config = YAML.load File.read(File.join(File.expand_path(__dir__), 'shoryuken.yml'))
 
 Aws.config = config['aws']
 
@@ -18,11 +18,11 @@ if sqs.config['endpoint'] =~ /amazonaws.com/
 
   dead_letter_queue_arn = sqs.get_queue_attributes(
     queue_url: dead_letter_queue_url,
-    attribute_names: %w(QueueArn)
+    attribute_names: %w[QueueArn]
   ).attributes['QueueArn']
 
   attributes = {}
-  attributes['RedrivePolicy'] = %Q({"maxReceiveCount":"7", "deadLetterTargetArn":"#{dead_letter_queue_arn}"})
+  attributes['RedrivePolicy'] = %({"maxReceiveCount":"7", "deadLetterTargetArn":"#{dead_letter_queue_arn}"})
 
   sqs.set_queue_attributes queue_url: default_queue_url, attributes: attributes
 end

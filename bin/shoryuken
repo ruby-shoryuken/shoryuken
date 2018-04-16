@@ -7,8 +7,6 @@ require 'aws-sdk-core'
 require_relative 'cli/base'
 require_relative 'cli/sqs'
 require_relative '../lib/shoryuken/runner'
-
-# rubocop:disable Metrics/AbcSize
 module Shoryuken
   module CLI
     class Runner < Base
@@ -32,18 +30,14 @@ module Shoryuken
       def start
         opts = options.to_h.symbolize_keys
 
-        if opts[:config_file]
-          say '[DEPRECATED] Please use --config instead of --config-file', :yellow
-        end
+        say '[DEPRECATED] Please use --config instead of --config-file', :yellow if opts[:config_file]
 
         opts[:config_file] = opts.delete(:config) if opts[:config]
 
         # Keep compatibility with old CLI queue format
         opts[:queues] = options[:queues].map { |q| q.split(',') } if options[:queues]
 
-        if options[:daemon] && options[:logfile].nil?
-          fail_task "You should set a logfile if you're going to daemonize"
-        end
+        fail_task "You should set a logfile if you're going to daemonize" if options[:daemon] && options[:logfile].nil?
 
         Shoryuken::Runner.instance.run(opts.freeze)
       end

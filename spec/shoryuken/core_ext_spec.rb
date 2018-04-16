@@ -10,7 +10,7 @@ RSpec.describe 'Core Extensions' do
 
     describe '#symbolize_keys' do
       it 'converts keys into symbols' do
-        expect({ :key1 => 'value1', 'key2' => 'value2' }.symbolize_keys).to eq(:key1 => 'value1', key2: 'value2')
+        expect({ :key1 => 'value1', 'key2' => 'value2' }.symbolize_keys).to eq(key1: 'value1', key2: 'value2')
       end
     end
 
@@ -20,11 +20,11 @@ RSpec.describe 'Core Extensions' do
                  'key2' => 'value2',
                  'key3' => {
                    'key31' => { 'key311' => 'value311' },
-                   'key32' => 'value32' } }.deep_symbolize_keys).to eq({ :key1 => 'value1',
-                                                                         :key2 => 'value2',
-                                                                         :key3 => { :key31 =>
-                                                                                    { :key311 => 'value311' },
-                                                                                      :key32 => 'value32' } })
+                   'key32' => 'value32'
+                 } }.deep_symbolize_keys).to eq(key1: 'value1',
+                                                key2: 'value2',
+                                                key3: { key31:                                                                                     { key311: 'value311' },
+                                                        key32: 'value32' })
       end
     end
   end

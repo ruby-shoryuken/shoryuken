@@ -18,9 +18,9 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
       end
     end
 
-    def run_and_raise(worker, queue, sqs_msg, error_class)
+    def run_and_raise(worker, queue, sqs_msg)
       Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
-        raise error_class.new
+        raise
       end
     end
   end
@@ -53,7 +53,7 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
     allow(sqs_msg).to receive(:queue) { sqs_queue }
     expect(sqs_msg).to_not receive(:change_visibility)
 
-    expect { Runner.new.run_and_raise(TestWorker.new, queue, sqs_msg, StandardError) }.to raise_error(StandardError)
+    expect { Runner.new.run_and_raise(TestWorker.new, queue, sqs_msg) }.to raise_error
   end
 
   it 'does not extend message visibility if auto_visibility_timeout is not true' do

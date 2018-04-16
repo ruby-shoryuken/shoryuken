@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
   let(:queue1) { 'shoryuken' }
   let(:queue2) { 'uppercut' }
-  let(:queues) { Array.new }
+  let(:queues) { [] }
   subject { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
 
   describe '#next_queue' do

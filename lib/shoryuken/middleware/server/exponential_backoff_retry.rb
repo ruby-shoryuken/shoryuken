@@ -4,7 +4,7 @@ module Shoryuken
       class ExponentialBackoffRetry
         include Util
 
-        def call(worker, queue, sqs_msg, body)
+        def call(worker, _queue, sqs_msg, _body)
           return yield unless worker.class.exponential_backoff?
 
           if sqs_msg.is_a?(Array)

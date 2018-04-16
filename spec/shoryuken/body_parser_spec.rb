@@ -69,8 +69,8 @@ RSpec.describe Shoryuken::BodyParser do
       end
 
       specify do
-        expect { described_class.parse(TestWorker, sqs_msg) }.
-          to raise_error(JSON::ParserError, /unexpected token at 'invalid JSON'/)
+        expect { described_class.parse(TestWorker, sqs_msg) }
+          .to raise_error(JSON::ParserError, /unexpected token at 'invalid JSON'/)
       end
     end
 

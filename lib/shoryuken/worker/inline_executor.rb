@@ -2,7 +2,7 @@ module Shoryuken
   module Worker
     class InlineExecutor
       class << self
-        def perform_async(worker_class, body, options = {})
+        def perform_async(worker_class, body, _options = {})
           body = JSON.dump(body) if body.is_a?(Hash)
 
           sqs_msg = OpenStruct.new(

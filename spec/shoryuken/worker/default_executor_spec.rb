@@ -18,7 +18,8 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
           }
         },
         message_body: 'message',
-        delay_seconds: 60)
+        delay_seconds: 60
+      )
 
       TestWorker.perform_in(60, 'message')
     end
@@ -40,7 +41,8 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
           }
         },
         message_body: 'message',
-        delay_seconds: 60)
+        delay_seconds: 60
+      )
 
       TestWorker.perform_in(Time.now + 60, 'message')
     end
@@ -61,7 +63,8 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
             data_type: 'String'
           }
         },
-        message_body: 'message')
+        message_body: 'message'
+      )
 
       TestWorker.perform_async('message')
     end
@@ -75,7 +78,8 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
             data_type: 'String'
           }
         },
-        message_body: 'delayed message')
+        message_body: 'delayed message'
+      )
 
       TestWorker.perform_async('delayed message', delay_seconds: 60)
     end
@@ -92,7 +96,8 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
             data_type: 'String'
           }
         },
-        message_body: 'delayed message')
+        message_body: 'delayed message'
+      )
 
       TestWorker.perform_async('delayed message', queue: new_queue)
     end

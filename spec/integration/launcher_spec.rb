@@ -4,7 +4,7 @@ require 'shoryuken/launcher'
 require 'securerandom'
 
 RSpec.describe Shoryuken::Launcher do
-  describe 'Consuming messages', slow: :true do
+  describe 'Consuming messages', slow: true do
     before do
       Aws.config[:stub_responses] = false
       Aws.config[:region] = 'us-east-1'
@@ -85,7 +85,7 @@ RSpec.describe Shoryuken::Launcher do
 
       shoryuken_options auto_delete: true
 
-      def perform(sqs_msg, body)
+      def perform(sqs_msg, _body)
         @@received_messages += Array(sqs_msg).size
       end
 

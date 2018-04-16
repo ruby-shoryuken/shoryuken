@@ -36,7 +36,7 @@ module Shoryuken
         fail NotImplementedError
       end
 
-      def messages_found(queue, messages_found)
+      def messages_found(_queue, _messages_found)
         fail NotImplementedError
       end
 

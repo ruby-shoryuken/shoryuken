@@ -7,7 +7,7 @@ RSpec.describe Shoryuken::Middleware::Chain do
       @recorder = recorder
     end
 
-    def call(*args)
+    def call(*_args)
       @recorder << [@name, 'before']
       yield
       @recorder << [@name, 'after']
@@ -39,7 +39,7 @@ RSpec.describe Shoryuken::Middleware::Chain do
     final_action = nil
     subject.invoke { final_action = true }
     expect(final_action).to eq true
-    expect(recorder).to eq [%w(custom before), %w(custom after)]
+    expect(recorder).to eq [%w[custom before], %w[custom after]]
   end
 
   class NonYieldingMiddleware

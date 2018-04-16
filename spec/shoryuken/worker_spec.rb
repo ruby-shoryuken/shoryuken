@@ -19,7 +19,7 @@ RSpec.describe Shoryuken::Worker do
       class NewTestWorker
         include Shoryuken::Worker
 
-        shoryuken_options queue: ->{ "#{$queue_prefix}_default" }
+        shoryuken_options queue: -> { "#{$queue_prefix}_default" }
       end
 
       expect(Shoryuken.worker_registry.workers('production_default')).to eq([NewTestWorker])
@@ -30,7 +30,7 @@ RSpec.describe Shoryuken::Worker do
       class TestWorker
         include Shoryuken::Worker
 
-        OPT = { queue: :default }
+        OPT = { queue: :default }.freeze
 
         shoryuken_options OPT
       end
@@ -93,15 +93,15 @@ RSpec.describe Shoryuken::Worker do
       class ParentWorker
         include Shoryuken::Worker
 
-        shoryuken_options queue: "myqueue", auto_delete: false
+        shoryuken_options queue: 'myqueue', auto_delete: false
       end
 
       class ChildWorker < ParentWorker
         shoryuken_options auto_delete: true
       end
 
-      expect(ParentWorker.get_shoryuken_options['queue']).to eq("myqueue")
-      expect(ChildWorker.get_shoryuken_options['queue']).to eq("myqueue")
+      expect(ParentWorker.get_shoryuken_options['queue']).to eq('myqueue')
+      expect(ChildWorker.get_shoryuken_options['queue']).to eq('myqueue')
       expect(ParentWorker.get_shoryuken_options['auto_delete']).to eq(false)
       expect(ChildWorker.get_shoryuken_options['auto_delete']).to eq(true)
     end
@@ -110,7 +110,7 @@ RSpec.describe Shoryuken::Worker do
   describe '.server_middleware' do
     before do
       class FakeMiddleware
-        def call(*args)
+        def call(*_args)
           yield
         end
       end
@@ -133,9 +133,7 @@ RSpec.describe Shoryuken::Worker do
         class NewTestWorker2
           include Shoryuken::Worker
 
-          server_middleware do |chain|
-            chain.clear
-          end
+          server_middleware(&:clear)
         end
       end
 

@@ -4,7 +4,7 @@ RSpec.describe Shoryuken::Polling::StrictPriority do
   let(:queue1) { 'shoryuken' }
   let(:queue2) { 'uppercut' }
   let(:queue3) { 'other' }
-  let(:queues) { Array.new }
+  let(:queues) { [] }
   subject { Shoryuken::Polling::StrictPriority.new(queues) }
 
   describe '#next_queue' do

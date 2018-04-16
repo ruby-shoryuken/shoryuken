@@ -1,28 +1,12 @@
 AllCops:
+  Exclude:
+    - '**/Gemfile'
   TargetRubyVersion: 2.1
-
-Style/SignalException:
-  Enabled: false
-
-Style/DoubleNegation:
-  Enabled: false
-
-Style/SpaceAroundEqualsInParameterDefault:
-  Enabled: false
-
-Style/Documentation:
-  Enabled: false
-
-Style/ClassAndModuleChildren:
-  Enabled: false
 
 Metrics/PerceivedComplexity:
   Enabled: false
 
 Metrics/CyclomaticComplexity:
-  Enabled: false
-
-Style/CommentAnnotation:
   Enabled: false
 
 Metrics/ClassLength:
@@ -31,26 +15,108 @@ Metrics/ClassLength:
 Metrics/ParameterLists:
   Enabled: false
 
-Metrics/LineLength:
-  Max: 130
+Metrics/MethodLength:
+  Enabled: false
 
-Metrics/MethodLength :
+Metrics/AbcSize:
+  # Disable "Assignment Branch Condition size for update_attributes is too high" from houndci
+  # because codeclimate already give that for us with more details
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 125
+
+Style/Alias:
   Enabled: false
 
 Style/PerlBackrefs:
   Enabled: false
 
+Style/TrailingBlankLines:
+  Enabled: false
+
+# Override the HoundCI custom rules (they do not use Rubocop defaults)
 Style/StringLiterals:
   EnforcedStyle: single_quotes
-  SupportedStyles:
-    - single_quotes
-    - double_quotes
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: single_quotes
-  SupportedStyles:
-    - single_quotes
-    - double_quotes
 
-Lint/UnusedMethodArgument:
+Style/ExtraSpacing:
+  # disabling that in favour of using:
+  # long_field_test_1 = 1
+  # field_test_2      = 2
+  # etc               = 3
+  Enabled: false
+
+Style/BlockDelimiters:
+  Enabled: false
+
+Style/CollectionMethods:
+  Enabled: false
+
+Style/SignalException:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/CommentAnnotation:
+  Enabled: false
+
+Style/DotPosition:
+  EnforcedStyle: leading
+
+Style/GuardClause:
+  Enabled: false
+
+Style/RegexpLiteral:
+  Enabled: false
+
+Lint/HandleExceptions:
+  Enabled: false
+
+Lint/AssignmentInCondition:
+  Enabled: false
+
+Style/DoubleNegation:
+  Enabled: false
+
+Style/AndOr:
+  Enabled: false
+
+Style/ClassVars:
+  Enabled: false
+
+Style/GlobalVars:
+  Enabled: false
+
+Style/SingleLineBlockParams:
+  Enabled: false
+
+Style/RescueModifier:
+  Enabled: false
+
+Style/ColonMethodCall:
+  Enabled: false
+
+Style/FileName:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/RescueStandardError:
+  Enabled: false
+
+Security/YAMLLoad:
+  Enabled: false
+
+Naming/MemoizedInstanceVariableName:
+  Enabled: false
+
+Performance/RedundantBlockCall:
   Enabled: false

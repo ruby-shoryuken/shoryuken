@@ -1,6 +1,6 @@
 require 'date'
 
-# rubocop:disable Metrics/AbcSize, Metrics/BlockLength
+# rubocop:disable Metrics/BlockLength
 module Shoryuken
   module CLI
     class SQS < Base
@@ -51,7 +51,7 @@ module Shoryuken
           end
         end
 
-        def find_all(url, limit, &block)
+        def find_all(url, limit)
           count = 0
           batch_size = limit > 10 ? 10 : limit
 
@@ -78,7 +78,7 @@ module Shoryuken
         end
 
         def list_and_print_queues(urls)
-          attrs = %w(QueueArn ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible LastModifiedTimestamp)
+          attrs = %w[QueueArn ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible LastModifiedTimestamp]
 
           entries = urls.map { |u| sqs.get_queue_attributes(queue_url: u, attribute_names: attrs).attributes }.map do |q|
             [

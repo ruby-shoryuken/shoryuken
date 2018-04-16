@@ -1,4 +1,3 @@
-# rubocop:disable Metrics/BlockLength
 module Shoryuken
   module CLI
     class Base < Thor
