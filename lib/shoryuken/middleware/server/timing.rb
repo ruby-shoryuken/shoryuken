@@ -18,7 +18,7 @@ module Shoryuken
           end
 
           logger.info { "completed in: #{total_time} ms" }
-        rescue StandardError
+        rescue
           logger.info { "failed in: #{elapsed(started_at)} ms" }
           raise
         end

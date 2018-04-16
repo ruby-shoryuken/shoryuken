@@ -20,7 +20,7 @@ module Shoryuken
 
       worker_class = begin
                        worker_class.constantize
-                     rescue StandardError
+                     rescue
                        @workers[queue]
                      end
 

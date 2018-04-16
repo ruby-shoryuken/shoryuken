@@ -11,7 +11,7 @@ module Shoryuken
       arr.each do |block|
         begin
           block.call(event_options)
-        rescue StandardError => ex
+        rescue => ex
           logger.warn(event: event)
           logger.warn "#{ex.class.name}: #{ex.message}"
         end

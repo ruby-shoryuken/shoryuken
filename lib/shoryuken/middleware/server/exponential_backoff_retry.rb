@@ -14,7 +14,7 @@ module Shoryuken
 
           started_at = Time.now
           yield
-        rescue StandardError => ex
+        rescue => ex
           retry_intervals = worker.class.get_shoryuken_options['retry_intervals']
 
           if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)

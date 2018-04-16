@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-# rubocop:disable Metrics/BlockLength, Metrics/
+# rubocop:disable /BlockLength, Metrics/
 RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   let(:queue)     { 'default' }
   let(:sqs_queue) { double Shoryuken::Queue }

@@ -30,7 +30,7 @@ module Shoryuken
 
       begin
         yield
-      rescue StandardError => ex
+      rescue => ex
         # Tries to auto retry connectivity errors
         raise if attempts >= max_attempts
 

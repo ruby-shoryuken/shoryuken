@@ -109,5 +109,8 @@ Style/FileName:
 Style/FrozenStringLiteralComment:
   Enabled: false
 
+Style/RescueStandardError:
+  Enabled: false
+
 Security/YAMLLoad:
   Enabled: false
