@@ -117,3 +117,6 @@ Security/YAMLLoad:
 
 Naming/MemoizedInstanceVariableName:
   Enabled: false
+
+Performance/RedundantBlockCall:
+  Enabled: false

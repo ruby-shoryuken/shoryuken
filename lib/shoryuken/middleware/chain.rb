@@ -91,11 +91,11 @@ module Shoryuken
         entries.clear
       end
 
-      def invoke(*args)
+      def invoke(*args, &final_action)
         chain = retrieve.dup
         traverse_chain = lambda do
           if chain.empty?
-            yield
+            final_action.call
           else
             chain.shift.call(*args, &traverse_chain)
           end
