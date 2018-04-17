@@ -45,10 +45,14 @@ module Shoryuken
       fail ArgumentError, "The supplied config file #{path} does not exist" unless File.exist?(path)
 
       if (result = YAML.load(ERB.new(IO.read(path)).result))
-        result.deep_symbolize_keys
+        merge_config_by_environment(result.deep_symbolize_keys, ENV['RAILS_ENV'].to_sym)
       else
         {}
       end
+    end
+
+    def merge_config_by_environment(config, environment)
+      config.merge!(config.delete(environment))
     end
 
     def initialize_logger
