@@ -35,7 +35,12 @@ module Shoryuken
         opts[:config_file] = opts.delete(:config) if opts[:config]
 
         # Keep compatibility with old CLI queue format
-        opts[:queues] = options[:queues].map { |q| q.split(',') } if options[:queues]
+        if options[:queues]
+          opts[:queues] = options[:queues].map do |q|
+            queue_name, batch_size = q.split(',')
+            [queue_name, batch_size.to_i]
+          end
+        end
 
         fail_task "You should set a logfile if you're going to daemonize" if options[:daemon] && options[:logfile].nil?
 
