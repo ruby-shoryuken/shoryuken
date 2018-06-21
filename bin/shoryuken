@@ -35,9 +35,9 @@ module Shoryuken
         opts[:config_file] = opts.delete(:config) if opts[:config]
 
         # Keep compatibility with old CLI queue format
-        opts[:queues] = options[:queues].map { |q| q.split(',') } if options[:queues]
+        opts[:queues] = opts[:queues].map { |q| q.split(',') } if opts[:queues]
 
-        fail_task "You should set a logfile if you're going to daemonize" if options[:daemon] && options[:logfile].nil?
+        fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
 
         Shoryuken::Runner.instance.run(opts.freeze)
       end
