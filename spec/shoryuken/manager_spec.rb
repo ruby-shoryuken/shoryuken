@@ -30,7 +30,7 @@ RSpec.describe Shoryuken::Manager do
     specify do
       allow(subject).to receive(:running?).and_return(true, true, false)
       expect(subject).to receive(:dispatch).once.and_call_original
-      expect(subject).to receive(:dispatch_loop).twice.and_call_original
+      expect(subject).to receive(:dispatch_loop).once.and_call_original
       subject.start
     end
   end
@@ -42,8 +42,8 @@ RSpec.describe Shoryuken::Manager do
     end
 
     it 'pauses when there are no active queues' do
-      expect(polling_strategy).to receive(:next_queue).and_return(nil)
-      expect(subject).to receive(:dispatch).and_call_original
+      expect(polling_strategy).to receive(:next_queue).twice.and_return(nil)
+      expect(subject).to_not receive(:dispatch).and_call_original
       subject.start
     end
 
@@ -74,7 +74,7 @@ RSpec.describe Shoryuken::Manager do
       expect(Shoryuken::Processor).to receive(:process).with(q, message)
       expect(Shoryuken.logger).to_not receive(:info)
 
-      subject.send(:dispatch)
+      subject.send(:dispatch, q)
     end
 
     context 'when batch' do
@@ -88,7 +88,7 @@ RSpec.describe Shoryuken::Manager do
         expect(Shoryuken::Processor).to receive(:process).with(q, messages)
         expect(Shoryuken.logger).to_not receive(:info)
 
-        subject.send(:dispatch)
+        subject.send(:dispatch, q)
       end
     end
   end

@@ -13,6 +13,7 @@ module Shoryuken
       @busy_processors  = Concurrent::AtomicFixnum.new(0)
       @executor         = executor
       @running          = Concurrent::AtomicBoolean.new(true)
+      @dispatch_running = Concurrent::AtomicBoolean.new(false)
     end
 
     def start
@@ -26,17 +27,19 @@ module Shoryuken
     end
 
     def dispatch_loop
-      return unless running?
-
-      @executor.post { dispatch }
+      while running?
+        if @dispatch_running.true? || ready <= 0 ||
+           (queue = @polling_strategy.next_queue).nil?
+          sleep(MIN_DISPATCH_INTERVAL)
+        else
+          @dispatch_running.make_true
+          @executor.post { dispatch(queue) }
+        end
+      end
     end
 
-    def dispatch
+    def dispatch(queue)
       return unless running?
-
-      if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
-        return sleep(MIN_DISPATCH_INTERVAL)
-      end
 
       fire_event(:dispatch, false, queue_name: queue.name)
 
@@ -46,7 +49,7 @@ module Shoryuken
     rescue => ex
       handle_dispatch_error(ex)
     ensure
-      dispatch_loop
+      @dispatch_running.make_false
     end
 
     def busy
