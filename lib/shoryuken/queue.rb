@@ -40,7 +40,10 @@ module Shoryuken
     end
 
     def receive_messages(options)
-      client.receive_message(options.merge(queue_url: url)).messages.map { |m| Message.new(client, self, m) }
+      client.receive_message(options.merge(queue_url: url)).messages.map do |m|
+        logger.info { "Received message from SQS(#{name}), message_id: #{m.message_id}, receipt_handle: #{m.receipt_handle}" }
+        Message.new(client, self, m)
+      end
     end
 
     def fifo?
