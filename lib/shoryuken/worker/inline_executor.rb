@@ -16,7 +16,7 @@ module Shoryuken
             delete: nil
           )
 
-          call(worker_class, sqs_msg, body)
+          call(worker_class, sqs_msg)
         end
 
         def perform_in(worker_class, _interval, body, options = {})
@@ -25,7 +25,7 @@ module Shoryuken
 
         private
 
-        def call(worker_class, sqs_msg, body)
+        def call(worker_class, sqs_msg)
           parsed_body = BodyParser.parse(worker_class, sqs_msg)
           batch = worker_class.shoryuken_options_hash['batch']
           args = batch ? [[sqs_msg], [parsed_body]] : [sqs_msg, parsed_body]
