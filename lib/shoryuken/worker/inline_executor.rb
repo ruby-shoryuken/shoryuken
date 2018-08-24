@@ -16,11 +16,14 @@ module Shoryuken
             delete: nil
           )
 
-          if worker_class.shoryuken_options_hash["batch"]
-            worker_class.new.perform([sqs_msg], [BodyParser.parse(worker_class, sqs_msg)])
-          else
-            worker_class.new.perform(sqs_msg, BodyParser.parse(worker_class, sqs_msg))
+          parsed_body = BodyParser.parse(worker_class, sqs_msg)
+          args = [sqs_msg, parsed_body]
+
+          if worker_class.shoryuken_options_hash['batch']
+            args.map! { |arg| [arg] }
           end
+
+          worker_class.new.perform(*args)
         end
 
         def perform_in(worker_class, _interval, body, options = {})
