@@ -2,11 +2,13 @@ module Shoryuken
   class BodyParser
     class << self
       def parse(worker_class, sqs_msg)
-        body_parser = worker_class.get_shoryuken_options['body_parser']
+        options = worker_class.get_shoryuken_options
+        body_parser = options['body_parser']
 
         case body_parser
         when :json
-          JSON.parse(sqs_msg.body)
+          json_options = options['json_parse'] || {}
+          JSON.parse(sqs_msg.body, json_options)
         when Proc
           body_parser.call(sqs_msg)
         when :text, nil

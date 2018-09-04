@@ -15,6 +15,16 @@ RSpec.describe Shoryuken::BodyParser do
       expect(described_class.parse(TestWorker, sqs_msg)).to eq(body)
     end
 
+    it 'invokes JSON.parse with the extra options' do
+      TestWorker.get_shoryuken_options['body_parser'] = :json
+      TestWorker.get_shoryuken_options['json_parse'] = { symbolize_names: true }
+
+      allow(sqs_msg).to receive(:body).and_return({})
+      expect(JSON).to receive(:parse).with({}, { symbolize_names: true })
+
+      described_class.parse(TestWorker, sqs_msg)
+    end
+
     it 'parses the body calling the proc' do
       TestWorker.get_shoryuken_options['body_parser'] = proc { |sqs_msg| "*#{sqs_msg.body}*" }
 
