@@ -1,3 +1,17 @@
+## [v3.3.0] - 2018-09-30
+
+- Add support for TSTP
+  - [#492](https://github.com/phstc/shoryuken/pull/492)
+
+- Support an empty list of queues as a CLI argument
+  - [#507](https://github.com/phstc/shoryuken/pull/507)
+
+- Add batch support for inline workers
+  - [#514](https://github.com/phstc/shoryuken/pull/514)
+
+- Make InlineExecutor to behave as the DefaultExecutor when calling perform_in
+  - [#518](https://github.com/phstc/shoryuken/pull/518)
+
 ## [v3.2.3] - 2018-03-25
 
 - Don't force eager load for Rails 5
