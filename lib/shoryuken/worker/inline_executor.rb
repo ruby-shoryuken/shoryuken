@@ -20,7 +20,7 @@ module Shoryuken
         end
 
         def perform_in(worker_class, _interval, body, options = {})
-          perform_async(worker_class, body, options)
+          worker_class.perform_async(body, options)
         end
 
         private
