@@ -11,6 +11,7 @@ module Shoryuken
     def initialize(client, name_or_url)
       self.client = client
       set_name_and_url(name_or_url)
+      @_fifo = :uninitialized
     end
 
     def visibility_timeout
@@ -44,7 +45,8 @@ module Shoryuken
     end
 
     def fifo?
-      @_fifo ||= queue_attributes.attributes[FIFO_ATTR] == 'true'
+      return @_fifo unless @_fifo == :uninitialized
+      @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
     end
 
     private

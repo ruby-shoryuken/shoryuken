@@ -193,9 +193,8 @@ RSpec.describe Shoryuken::Queue do
   end
 
   describe '#fifo?' do
+    let(:attribute_response) { double 'Aws::SQS::Types::GetQueueAttributesResponse' }
     before do
-      attribute_response = double 'Aws::SQS::Types::GetQueueAttributesResponse'
-
       allow(attribute_response).to(
         receive(:attributes).and_return('FifoQueue' => fifo.to_s, 'ContentBasedDeduplication' => 'true')
       )
@@ -209,12 +208,30 @@ RSpec.describe Shoryuken::Queue do
       let(:fifo) { true }
 
       specify { expect(subject.fifo?).to be }
+
+      it 'memoizes response' do
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+        ).exactly(1).times
+
+        subject.fifo?
+        subject.fifo?
+      end
     end
 
     context 'when queue is not FIFO' do
       let(:fifo) { false }
 
       specify { expect(subject.fifo?).to_not be }
+
+      it 'memoizes response' do
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+        ).exactly(1).times
+
+        subject.fifo?
+        subject.fifo?
+      end
     end
   end
 end
