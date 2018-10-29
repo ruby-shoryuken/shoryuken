@@ -44,7 +44,8 @@ module Shoryuken
     end
 
     def fifo?
-      @_fifo ||= queue_attributes.attributes[FIFO_ATTR] == 'true'
+      return @_fifo if defined?(@_fifo)
+      @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
     end
 
     private
