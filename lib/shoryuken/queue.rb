@@ -44,7 +44,10 @@ module Shoryuken
     end
 
     def fifo?
-      @_fifo ||= queue_attributes.attributes[FIFO_ATTR] == 'true'
+      # Make sure the memoization work with boolean to avoid multiple calls to SQS
+      # see https://github.com/phstc/shoryuken/pull/529
+      return @_fifo if defined?(@_fifo)
+      @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
     end
 
     private
