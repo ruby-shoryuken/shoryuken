@@ -1,3 +1,8 @@
+## [v3.3.1] - 2018-10-30
+
+- Memoization of boolean causes extra calls to SQS
+  - [#529](https://github.com/phstc/shoryuken/pull/529)
+
 ## [v3.3.0] - 2018-09-30
 
 - Add support for TSTP
