@@ -45,7 +45,12 @@ module Shoryuken
     end
 
     def fifo?
-      return @_fifo unless @_fifo == :uninitialized
+def fifo?
+  # Make sure the memoization work with boolean to avoid multiple calls to SQS
+  # see https://github.com/phstc/shoryuken/pull/529
+  return @_fifo if defined?(@_fifo)
+  @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
+end
       @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
     end
 
