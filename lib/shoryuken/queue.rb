@@ -11,7 +11,6 @@ module Shoryuken
     def initialize(client, name_or_url)
       self.client = client
       set_name_and_url(name_or_url)
-      @_fifo = :uninitialized
     end
 
     def visibility_timeout
