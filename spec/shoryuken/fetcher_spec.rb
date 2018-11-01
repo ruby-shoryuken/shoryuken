@@ -4,7 +4,7 @@ require 'shoryuken/fetcher'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::Fetcher do
-  let(:queue)        { instance_double('Shoryuken::Queue') }
+  let(:queue)        { instance_double('Shoryuken::Queue', fifo?: false) }
   let(:queue_name)   { 'default' }
   let(:queue_config) { Shoryuken::Polling::QueueConfiguration.new(queue_name, {}) }
   let(:group)        { 'default' }
@@ -95,6 +95,22 @@ RSpec.describe Shoryuken::Fetcher do
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
         expect(queue).to receive(:receive_messages).with(
           max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']
+        ).and_return([])
+
+        subject.fetch(queue_config, limit)
+      end
+    end
+
+    context 'when FIFO' do
+      let(:limit) { 10 }
+      let(:queue) { instance_double('Shoryuken::Queue', fifo?: true) }
+
+      it 'polls one message at the time' do
+        # see https://github.com/phstc/shoryuken/pull/530
+
+        allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+        expect(queue).to receive(:receive_messages).with(
+          max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']
         ).and_return([])
 
         subject.fetch(queue_config, limit)
