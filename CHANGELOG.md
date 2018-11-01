@@ -1,3 +1,8 @@
+## [v4.0.0] - 2018-11-01
+
+- Process messages to the same message group ID one by one
+  - [#530](https://github.com/phstc/shoryuken/pull/530)
+
 ## [v3.3.1] - 2018-10-30
 
 - Memoization of boolean causes extra calls to SQS

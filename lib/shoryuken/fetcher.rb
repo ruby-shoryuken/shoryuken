@@ -53,7 +53,10 @@ module Shoryuken
       # if we set max_number_of_messages greater than 1,
       # SQS may return more than one message for the same message group
       # since Shoryuken uses threads, it will try to process more than one at once
-      # > The message group ID is the tag that specifies that a message belongs to a specific message group. Messages that belong to the same message group are always processed one by one, in a strict order relative to the message group (however, messages that belong to different message groups might be processed out of order).
+      # > The message group ID is the tag that specifies that a message belongs to a specific message group.
+      # > Messages that belong to the same message group are always processed one by one,
+      # > in a strict order relative to the message group
+      # > (however, messages that belong to different message groups might be processed out of order).
       # > https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html
       options[:max_number_of_messages]  = shoryuken_queue.fifo? ? 1 : max_number_of_messages(limit, options)
       options[:message_attribute_names] = %w[All]
