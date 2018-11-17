@@ -32,7 +32,7 @@ Style/Alias:
 Style/PerlBackrefs:
   Enabled: false
 
-Style/TrailingBlankLines:
+Layout/TrailingBlankLines:
   Enabled: false
 
 # Override the HoundCI custom rules (they do not use Rubocop defaults)
@@ -42,7 +42,7 @@ Style/StringLiterals:
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: single_quotes
 
-Style/ExtraSpacing:
+Layout/ExtraSpacing:
   # disabling that in favour of using:
   # long_field_test_1 = 1
   # field_test_2      = 2
@@ -67,7 +67,7 @@ Style/ClassAndModuleChildren:
 Style/CommentAnnotation:
   Enabled: false
 
-Style/DotPosition:
+Layout/DotPosition:
   EnforcedStyle: leading
 
 Style/GuardClause:
@@ -103,7 +103,7 @@ Style/RescueModifier:
 Style/ColonMethodCall:
   Enabled: false
 
-Style/FileName:
+Naming/FileName:
   Enabled: false
 
 Style/FrozenStringLiteralComment:
