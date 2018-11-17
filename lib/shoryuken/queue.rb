@@ -14,7 +14,7 @@ module Shoryuken
     end
 
     def visibility_timeout
-      queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
+      @visibility_timeout ||= queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
     end
 
     def delete_messages(options)
