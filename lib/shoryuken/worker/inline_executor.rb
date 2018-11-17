@@ -2,8 +2,9 @@ module Shoryuken
   module Worker
     class InlineExecutor
       class << self
-        def perform_async(worker_class, body, _options = {})
+        def perform_async(worker_class, body, options = {})
           body = JSON.dump(body) if body.is_a?(Hash)
+          queue_name = options.delete(:queue) || worker_class.get_shoryuken_options['queue']
 
           sqs_msg = OpenStruct.new(
             body: body,
@@ -13,7 +14,8 @@ module Shoryuken
             message_attributes: nil,
             message_id: nil,
             receipt_handle: nil,
-            delete: nil
+            delete: nil,
+            queue_name: queue_name
           )
 
           call(worker_class, sqs_msg)
