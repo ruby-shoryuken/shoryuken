@@ -42,7 +42,7 @@ module Shoryuken
   extend SingleForwardable
 
   def_delegators(
-    :'Shoryuken::Options',
+    Shoryuken::Options.new,
     :active_job?,
     :add_group,
     :groups,
