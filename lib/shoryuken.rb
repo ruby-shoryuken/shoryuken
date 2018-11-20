@@ -77,7 +77,9 @@ module Shoryuken
     :default_worker_options=,
     :on_start,
     :on_stop,
-    :on
+    :on,
+    :cache_visiblity_timeout?,
+    :cache_visiblity_timeout=
   )
 end
 

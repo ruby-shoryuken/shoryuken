@@ -234,4 +234,41 @@ RSpec.describe Shoryuken::Queue do
       end
     end
   end
+
+  describe '#visiblity_timeout' do
+    let(:attribute_response) { double 'Aws::SQS::Types::GetQueueAttributesResponse' }
+
+    before do
+      allow(attribute_response).to(
+        receive(:attributes).and_return('VisibilityTimeout' => 30)
+      )
+      allow(subject).to receive(:url).and_return(queue_url)
+    end
+
+    context 'when cache is disabled' do
+      specify do
+        Shoryuken.cache_visiblity_timeout = false
+
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response).exactly(3).times
+        )
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+      end
+    end
+
+    context 'when cache is enabled' do
+      it 'memoizes response' do
+        Shoryuken.cache_visiblity_timeout = true
+
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response).once
+        )
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+      end
+    end
+  end
 end
