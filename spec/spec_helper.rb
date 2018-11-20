@@ -61,6 +61,8 @@ RSpec.configure do |config|
 
     Shoryuken.sqs_client_receive_message_opts.clear
 
+    Shoryuken.cache_visiblity_timeout = false
+
     allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
     allow(Shoryuken).to receive(:active_job?).and_return(false)
   end
