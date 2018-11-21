@@ -1,3 +1,11 @@
+## [v4.0.1] - 2018-11-21
+
+- Allow caching visibility_timeout lookups
+  - [#533](https://github.com/phstc/shoryuken/pull/533)
+
+- Add queue name to inline executor
+  - [#532](https://github.com/phstc/shoryuken/pull/532)
+
 ## [v4.0.0] - 2018-11-01
 
 - Process messages to the same message group ID one by one
