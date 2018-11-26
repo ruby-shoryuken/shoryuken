@@ -23,7 +23,7 @@ module Shoryuken
     @@stop_callback                   = nil
     @@worker_executor                 = Worker::DefaultExecutor
     @@launcher_executor               = nil
-    @@cache_visiblity_timeout         = false
+    @@cache_visibility_timeout         = false
 
     class << self
       def active_job?
@@ -222,12 +222,12 @@ module Shoryuken
         defined?(Shoryuken::CLI)
       end
 
-      def cache_visiblity_timeout?
-        @@cache_visiblity_timeout
+      def cache_visibility_timeout?
+        @@cache_visibility_timeout
       end
 
-      def cache_visiblity_timeout=(cache_visiblity_timeout)
-        @@cache_visiblity_timeout = cache_visiblity_timeout
+      def cache_visibility_timeout=(cache_visibility_timeout)
+        @@cache_visibility_timeout = cache_visibility_timeout
       end
     end
   end

@@ -14,9 +14,9 @@ module Shoryuken
     end
 
     def visibility_timeout
-      # Always lookup for the latest visiblity when cache is disabled
+      # Always lookup for the latest visibility when cache is disabled
       # setting it to nil, forces re-lookup
-      @_visibility_timeout = nil unless Shoryuken.cache_visiblity_timeout?
+      @_visibility_timeout = nil unless Shoryuken.cache_visibility_timeout?
       @_visibility_timeout ||= queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
     end
 
