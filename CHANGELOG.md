@@ -1,3 +1,14 @@
+## [v4.0.2] - 2018-11-26
+
+- Fix the delegated methods to public warning
+  - [#536](https://github.com/phstc/shoryuken/pull/536)
+
+- Specify exception class to `raise_error` matcher warning
+  - [#537](https://github.com/phstc/shoryuken/pull/537)
+
+- Fix spelling of "visibility"
+  - [#538](https://github.com/phstc/shoryuken/pull/538)
+
 ## [v4.0.1] - 2018-11-21
 
 - Allow caching visibility_timeout lookups
