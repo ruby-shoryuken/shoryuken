@@ -199,6 +199,18 @@ module Shoryuken
         options[:lifecycle_events][event] << block
       end
 
+      def server?
+        defined?(Shoryuken::CLI)
+      end
+
+      def cache_visibility_timeout?
+        @@cache_visibility_timeout
+      end
+
+      def cache_visibility_timeout=(cache_visibility_timeout)
+        @@cache_visibility_timeout = cache_visibility_timeout
+      end
+
       private
 
       def default_server_middleware
@@ -216,18 +228,6 @@ module Shoryuken
 
       def default_client_middleware
         Middleware::Chain.new
-      end
-
-      def server?
-        defined?(Shoryuken::CLI)
-      end
-
-      def cache_visibility_timeout?
-        @@cache_visibility_timeout
-      end
-
-      def cache_visibility_timeout=(cache_visibility_timeout)
-        @@cache_visibility_timeout = cache_visibility_timeout
       end
     end
   end
