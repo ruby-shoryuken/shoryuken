@@ -23,7 +23,7 @@ module Shoryuken
     @@stop_callback                   = nil
     @@worker_executor                 = Worker::DefaultExecutor
     @@launcher_executor               = nil
-    @@cache_visibility_timeout         = false
+    @@cache_visibility_timeout        = false
 
     class << self
       def active_job?
