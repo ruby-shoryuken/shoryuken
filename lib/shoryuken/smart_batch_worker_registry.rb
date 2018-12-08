@@ -14,5 +14,16 @@ module Shoryuken
       end
       worker_class.new if worker_class
     end
+
+    def register_worker(queue, clazz)
+      if (worker_class = @workers[queue])
+        if worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true
+          fail ArgumentError, "Could not register #{clazz} for #{queue}, "\
+            "because #{worker_class} is already registered for this queue."
+        end
+      end
+
+      @workers[queue] = clazz
+    end
   end
 end
