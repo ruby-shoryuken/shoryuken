@@ -30,9 +30,10 @@ module Shoryuken
         defined?(::ActiveJob)
       end
 
-      def add_group(group, concurrency)
+      def add_group(group, concurrency, delay: 0)
         groups[group] ||= {
           concurrency: concurrency,
+          delay: delay,
           queues: []
         }
       end

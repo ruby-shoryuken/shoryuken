@@ -1,19 +1,23 @@
 require 'spec_helper'
 
 RSpec.describe Shoryuken::Options do
-  describe '.add_group' do
+  describe '.add_group adds queues and optional delay' do
     before do
       Shoryuken.groups.clear
       Shoryuken.add_group('group1', 25)
       Shoryuken.add_group('group2', 25)
+      Shoryuken.add_group('group3', 25, delay: 5)
     end
 
     specify do
       described_class.add_queue('queue1', 1, 'group1')
       described_class.add_queue('queue2', 2, 'group2')
+      described_class.add_queue('queue3', 1, 'group3')
 
       expect(described_class.groups['group1'][:queues]).to eq(%w[queue1])
       expect(described_class.groups['group2'][:queues]).to eq(%w[queue2 queue2])
+      expect(described_class.groups['group3'][:queues]).to eq(%w[queue3])
+      expect(described_class.groups['group3'][:delay]).to eq(5)
     end
   end
 
