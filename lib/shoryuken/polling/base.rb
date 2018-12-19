@@ -60,11 +60,7 @@ module Shoryuken
       private
 
       def delay
-        if name == 'default'
-          Shoryuken.options[:delay].to_f
-        else # allow delay settings per group
-          Shoryuken.options[:groups].to_h[name].to_h[:delay].to_f
-        end
+        Shoryuken.options[:groups].to_h[name].to_h.fetch(:delay, Shoryuken.options[:delay]).to_f
       end
     end
   end
