@@ -60,8 +60,7 @@ module Shoryuken
       private
 
       def delay
-        opts = Shoryuken.options
-        opts[:groups].to_h[name].to_h.fetch(:delay, opts[:delay]).to_f
+        Shoryuken.options[:groups].to_h[name].to_h.fetch(:delay, Shoryuken.options[:delay]).to_f
       end
     end
   end
