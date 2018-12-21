@@ -38,7 +38,8 @@ module Shoryuken
 
       def pause(queue)
         return unless @queues.delete(queue)
-        @paused_queues << [Time.now + delay, queue]
+        delay_time = delay(queue)
+        @paused_queues << [Time.now + delay_time, queue]
         logger.debug "Paused #{queue}"
       end
 

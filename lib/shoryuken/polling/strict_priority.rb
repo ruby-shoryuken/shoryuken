@@ -68,8 +68,8 @@ module Shoryuken
       end
 
       def pause(queue)
-        return unless delay > 0
-        @paused_until[queue] = Time.now + delay
+        return unless delay(queue) > 0
+        @paused_until[queue] = Time.now + delay(queue)
         logger.debug "Paused #{queue}"
       end
     end
