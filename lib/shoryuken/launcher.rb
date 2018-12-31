@@ -72,7 +72,7 @@ module Shoryuken
       Shoryuken.groups.map do |group, options|
         Shoryuken::Manager.new(
           Shoryuken::Fetcher.new(group),
-          Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.delay(group)),
+          Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.options.delay(group)),
           options[:concurrency],
           executor
         )
