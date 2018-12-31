@@ -86,6 +86,14 @@ RSpec.describe Shoryuken::Polling::StrictPriority do
     end
   end
 
+  describe 'delay' do
+    it 'sets delay based on group' do
+      delay_polling = Shoryuken::Polling::StrictPriority.new(queues, 25)
+      expect(delay_polling.delay).to eq(25.0)
+      expect(subject.delay).to eq(1.0)
+    end
+  end
+
   describe '#messages_found' do
     it 'pauses a queue if there are no messages found' do
       # [shoryuken, 2]

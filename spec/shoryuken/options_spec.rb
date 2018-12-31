@@ -21,22 +21,15 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
-  describe '.group_for_queue' do
-    before do
-      Shoryuken.groups.clear
-      Shoryuken.add_group('group1', 25)
-      Shoryuken.add_group('group2', 25)
-      Shoryuken.add_group('group3', 25, delay: 5)
-    end
-
+  describe '.delay works for each group' do
     specify do
+      Shoryuken.add_group('group1', 25)
+      Shoryuken.add_group('group2', 25, delay: 5)
       described_class.add_queue('queue1', 1, 'group1')
       described_class.add_queue('queue2', 2, 'group2')
-      described_class.add_queue('queue3', 1, 'group3')
 
-      expect(described_class.group_for_queue('queue1')).to eq('group1')
-      expect(described_class.group_for_queue('queue2')).to eq('group2')
-      expect(described_class.group_for_queue('queue3')).to eq('group3')
+      expect(described_class.delay('group1')).to eq(0.0)
+      expect(described_class.delay('group2')).to eq(5.0)
     end
   end
 

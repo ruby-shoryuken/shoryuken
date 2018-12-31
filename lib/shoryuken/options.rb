@@ -48,16 +48,6 @@ module Shoryuken
         end
       end
 
-      def group_for_queue(queue)
-        groups.each do |group|
-          # note, there is a bug here where two queues with the same name
-          # will choose the first queue and group
-          if group[1][:queues].include?(queue)
-            return group.first # the group name
-          end
-        end
-      end
-
       def ungrouped_queues
         groups.values.flat_map { |options| options[:queues] }
       end
@@ -98,6 +88,10 @@ module Shoryuken
         else
           raise ArgumentError, "#{strategy} is not a valid polling_strategy"
         end
+      end
+
+      def delay(group)
+        groups[group].to_h.fetch(:delay, options[:delay]).to_f
       end
 
       def start_callback

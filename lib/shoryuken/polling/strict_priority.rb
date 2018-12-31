@@ -1,7 +1,7 @@
 module Shoryuken
   module Polling
     class StrictPriority < BaseStrategy
-      def initialize(queues)
+      def initialize(queues, delay = nil)
         # Priority ordering of the queues, highest priority first
         @queues = queues
                   .group_by { |q| q }
@@ -12,6 +12,7 @@ module Shoryuken
         @paused_until = queues
                         .each_with_object({}) { |queue, h| h[queue] = Time.at(0) }
 
+        @delay = delay
         # Start queues at 0
         reset_next_queue
       end
@@ -68,10 +69,8 @@ module Shoryuken
       end
 
       def pause(queue)
-        group_name = Shoryuken::Options.group_for_queue(queue)
-        delay_time = delay(group_name)
-        return unless delay_time > 0
-        @paused_until[queue] = Time.now + delay_time
+        return unless delay > 0
+        @paused_until[queue] = Time.now + delay
         logger.debug "Paused #{queue}"
       end
     end

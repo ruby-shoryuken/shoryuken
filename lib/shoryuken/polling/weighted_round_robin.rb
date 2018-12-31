@@ -1,10 +1,11 @@
 module Shoryuken
   module Polling
     class WeightedRoundRobin < BaseStrategy
-      def initialize(queues)
+      def initialize(queues, delay = nil)
         @initial_queues = queues
         @queues = queues.dup.uniq
         @paused_queues = []
+        @delay = delay
       end
 
       def next_queue
@@ -38,9 +39,7 @@ module Shoryuken
 
       def pause(queue)
         return unless @queues.delete(queue)
-        group_name = Shoryuken::Options.group_for_queue(queue)
-        delay_time = delay(group_name)
-        @paused_queues << [Time.now + delay_time, queue]
+        @paused_queues << [Time.now + delay, queue]
         logger.debug "Paused #{queue}"
       end
 

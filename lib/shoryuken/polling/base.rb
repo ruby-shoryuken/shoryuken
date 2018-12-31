@@ -57,10 +57,8 @@ module Shoryuken
         end
       end
 
-      private
-
-      def delay(group = nil)
-        Shoryuken.options[:groups].to_h[group].to_h.fetch(:delay, Shoryuken.options[:delay]).to_f
+      def delay
+        @delay || Shoryuken.options[:delay].to_f
       end
     end
   end
