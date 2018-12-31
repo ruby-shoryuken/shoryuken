@@ -48,6 +48,16 @@ module Shoryuken
         end
       end
 
+      def group_for_queue(queue)
+        groups.each do |group|
+          # note, there is a bug here where two queues with the same name
+          # will choose the first queue and group
+          if group[1][:queues].include?(queue)
+            return group.first # the group name
+          end
+        end
+      end
+
       def ungrouped_queues
         groups.values.flat_map { |options| options[:queues] }
       end
@@ -78,7 +88,6 @@ module Shoryuken
 
       def polling_strategy(group)
         strategy = (group == 'default' ? options : options[:groups].to_h[group]).to_h[:polling_strategy]
-
         case strategy
         when 'WeightedRoundRobin', nil # Default case
           Polling::WeightedRoundRobin

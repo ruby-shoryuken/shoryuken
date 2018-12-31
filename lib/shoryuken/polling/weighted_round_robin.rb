@@ -38,7 +38,8 @@ module Shoryuken
 
       def pause(queue)
         return unless @queues.delete(queue)
-        delay_time = delay(queue)
+        group_name = Shoryuken::Options.group_for_queue(queue)
+        delay_time = delay(group_name)
         @paused_queues << [Time.now + delay_time, queue]
         logger.debug "Paused #{queue}"
       end

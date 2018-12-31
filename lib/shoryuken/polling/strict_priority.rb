@@ -68,7 +68,8 @@ module Shoryuken
       end
 
       def pause(queue)
-        delay_time = delay(queue)
+        group_name = Shoryuken::Options.group_for_queue(queue)
+        delay_time = delay(group_name)
         return unless delay_time > 0
         @paused_until[queue] = Time.now + delay_time
         logger.debug "Paused #{queue}"
