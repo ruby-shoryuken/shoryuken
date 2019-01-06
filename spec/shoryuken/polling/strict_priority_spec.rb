@@ -86,7 +86,7 @@ RSpec.describe Shoryuken::Polling::StrictPriority do
     end
   end
 
-  describe 'delay' do
+  describe '#delay' do
     it 'sets delay based on group' do
       delay_polling = Shoryuken::Polling::StrictPriority.new(queues, 25)
       expect(delay_polling.delay).to eq(25.0)

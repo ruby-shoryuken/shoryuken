@@ -97,7 +97,7 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
     end
   end
 
-  describe 'delay' do
+  describe '#delay' do
     it 'sets delay based on group' do
       delay_polling = Shoryuken::Polling::WeightedRoundRobin.new(queues, 25)
       expect(delay_polling.delay).to eq(25.0)
