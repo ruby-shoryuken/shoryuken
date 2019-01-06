@@ -8,8 +8,8 @@ rvm:
   - 2.4.4
   - 2.5.1
 
-before_install:
-  - gem update --system
+# before_install:
+#  - gem update --system
 
 notifications:
   email:
@@ -23,7 +23,7 @@ gemfile:
 env:
   - SPEC_ALL=true
 
-script: bundle exec rspec spec
+# script: bundle exec rspec spec
 
 after_success:
   - bundle exec codeclimate-test-reporter
