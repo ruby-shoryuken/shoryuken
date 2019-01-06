@@ -23,7 +23,7 @@ env:
 script: bundle exec rspec spec
 
 before_install:
-  - gem install bundler
+  - gem install bundler -v ‘< 2’
 
 after_success:
   - bundle exec codeclimate-test-reporter
