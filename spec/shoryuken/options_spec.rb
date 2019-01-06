@@ -28,7 +28,7 @@ RSpec.describe Shoryuken::Options do
       described_class.add_queue('queue1', 1, 'group1')
       described_class.add_queue('queue2', 2, 'group2')
 
-      expect(described_class.delay('group1')).to eq(0.0)
+      expect(described_class.delay('group1')).to eq(Shoryuken.options[:delay])
       expect(described_class.delay('group2')).to eq(5.0)
     end
   end

@@ -122,7 +122,7 @@ module Shoryuken
 
     def parse_queues
       if Shoryuken.options[:queues].to_a.any?
-        Shoryuken.add_group('default', Shoryuken.options.fetch(:concurrency, 25))
+        Shoryuken.add_group('default', Shoryuken.options[:concurrency])
 
         Shoryuken.options[:queues].to_a.each do |queue, weight|
           parse_queue(queue, weight, 'default')
@@ -130,7 +130,8 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.each do |group, options|
-        Shoryuken.add_group(group, options.fetch(:concurrency, 25), delay: options.fetch(:delay, 0))
+        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay])
+
         options[:queues].to_a.each do |queue, weight|
           parse_queue(queue, weight, group)
         end

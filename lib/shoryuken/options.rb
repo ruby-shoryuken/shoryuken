@@ -4,7 +4,7 @@ module Shoryuken
       concurrency: 25,
       queues: [],
       aws: {},
-      delay: 0,
+      delay: 0.0,
       timeout: 8,
       lifecycle_events: {
         startup: [],
@@ -30,7 +30,10 @@ module Shoryuken
         defined?(::ActiveJob)
       end
 
-      def add_group(group, concurrency, delay: 0)
+      def add_group(group, concurrency = nil, delay: nil)
+        concurrency ||= options[:concurrency]
+        delay ||= options[:delay]
+
         groups[group] ||= {
           concurrency: concurrency,
           delay: delay,

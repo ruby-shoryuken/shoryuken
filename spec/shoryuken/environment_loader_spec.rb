@@ -38,7 +38,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       subject.load
 
       expect(Shoryuken.groups['default'][:queues]).to eq(%w[queue1 queue2])
-      expect(Shoryuken.groups['default'][:delay]).to eq(0)
+      expect(Shoryuken.groups['default'][:delay]).to eq(Shoryuken.options[:delay])
       expect(Shoryuken.groups['custom'][:queues]).to eq(%w[queue3])
       expect(Shoryuken.groups['custom'][:delay]).to eq(25)
     end
