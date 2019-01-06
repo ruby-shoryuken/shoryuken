@@ -1,3 +1,8 @@
+## [v4.0.3] - 2019-01-06
+
+- Support delay per processing group
+  - [#543](https://github.com/phstc/shoryuken/pull/543)
+
 ## [v4.0.2] - 2018-11-26
 
 - Fix the delegated methods to public warning
