@@ -66,7 +66,7 @@ module Shoryuken
     end
 
     def set_name_and_url(name_or_url)
-      if name_or_url.start_with?('https://sqs.')
+      if name_or_url.include?('://')
         set_by_url(name_or_url)
 
         # anticipate the fifo? checker for validating the queue URL
