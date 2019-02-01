@@ -26,6 +26,19 @@ RSpec.describe Shoryuken::Queue do
       end
     end
 
+    context 'when a non SQS queue URL' do
+      let(:queue_url) { "http://localhost:4576/queue/#{queue_name}" }
+
+      it 'instantiates by URL and validate the URL' do
+        # See https://github.com/phstc/shoryuken/pull/551
+        expect_any_instance_of(described_class).to receive(:fifo?).and_return(false)
+
+        subject = described_class.new(sqs, queue_url)
+
+        expect(subject.name).to eq(queue_name)
+      end
+    end
+
     context 'when queue name supplied' do
       subject { described_class.new(sqs, queue_name) }
 
