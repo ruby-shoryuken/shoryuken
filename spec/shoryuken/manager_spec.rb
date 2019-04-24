@@ -61,7 +61,7 @@ RSpec.describe Shoryuken::Manager do
 
   describe '#dispatch' do
     before do
-      allow(subject).to receive(:running?).and_return(true, true, false)
+      allow(subject).to receive(:running?).and_return(true, true, true, false)
     end
 
     specify do
