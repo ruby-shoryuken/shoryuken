@@ -74,16 +74,23 @@ module Shoryuken
     end
 
     def dispatch_batch(queue)
-      return if (batch = @fetcher.fetch(queue, BATCH_LIMIT)).none?
+      return if (batch = fetch(queue, batch_limit)).none?
       @polling_strategy.messages_found(queue.name, batch.size)
       assign(queue.name, patch_batch!(batch))
     end
 
     def dispatch_single_messages(queue)
-      messages = @fetcher.fetch(queue, ready)
+      messages = fetch(queue, ready)
 
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
+    end
+
+    def fetch(queue, limit)
+      # See https://github.com/phstc/shoryuken/issues/539
+      return [] unless running?
+
+      @fetcher.fetch(queue, limit)
     end
 
     def batched_queue?(queue)
