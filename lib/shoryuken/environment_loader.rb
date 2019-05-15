@@ -24,7 +24,6 @@ module Shoryuken
     end
 
     def load
-      load_rails if Shoryuken.options[:rails]
       prefix_active_job_queue_names
       parse_queues
       require_workers
@@ -54,26 +53,6 @@ module Shoryuken
     def initialize_logger
       Shoryuken::Logging.initialize_logger(Shoryuken.options[:logfile]) if Shoryuken.options[:logfile]
       Shoryuken.logger.level = Logger::DEBUG if Shoryuken.options[:verbose]
-    end
-
-    def load_rails
-      # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
-
-      require 'rails'
-      if ::Rails::VERSION::MAJOR < 4
-        require File.expand_path('config/environment.rb')
-        ::Rails.application.eager_load!
-      else
-        # Painful contortions, see 1791 for discussion
-        require File.expand_path('config/application.rb')
-        if ::Rails::VERSION::MAJOR == 4
-          ::Rails::Application.initializer 'shoryuken.eager_load' do
-            ::Rails.application.config.eager_load = true
-          end
-        end
-        require 'shoryuken/extensions/active_job_adapter' if Shoryuken.active_job?
-        require File.expand_path('config/environment.rb')
-      end
     end
 
     def merge_cli_defined_queues
