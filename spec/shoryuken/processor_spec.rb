@@ -57,8 +57,8 @@ RSpec.describe Shoryuken::Processor do
 
       context 'server' do
         before do
-          allow(Shoryuken::Options).to receive(:server?).and_return(true)
-          WorkerCalledMiddlewareWorker.instance_variable_set(:@server_chain, nil) # un-memoize middleware
+          allow_any_instance_of(Shoryuken::Options).to receive(:server?).and_return(true)
+          WorkerCalledMiddlewareWorker.instance_variable_set(:@_server_chain, nil) # un-memoize middleware
 
           Shoryuken.configure_server do |config|
             config.server_middleware do |chain|
@@ -85,8 +85,8 @@ RSpec.describe Shoryuken::Processor do
 
       context 'client' do
         before do
-          allow(Shoryuken).to receive(:server?).and_return(false)
-          WorkerCalledMiddlewareWorker.instance_variable_set(:@server_chain, nil) # un-memoize middleware
+          allow_any_instance_of(Shoryuken::Options).to receive(:server?).and_return(false)
+          WorkerCalledMiddlewareWorker.instance_variable_set(:@_server_chain, nil) # un-memoize middleware
 
           Shoryuken.configure_server do |config|
             config.server_middleware do |chain|

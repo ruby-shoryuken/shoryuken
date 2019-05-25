@@ -23,12 +23,8 @@ module Shoryuken
       @groups = {}
       @worker_registry = DefaultWorkerRegistry.new
       @active_job_queue_name_prefixing = false
-      # @sqs_client = nil
       @sqs_client_receive_message_opts = {}
-      # @start_callback = nil
-      # @stop_callback = nil
       @worker_executor = Worker::DefaultExecutor
-      # @launcher_executor = nil
       @cache_visibility_timeout = false
     end
 
@@ -154,7 +150,7 @@ module Shoryuken
     end
 
     def cache_visibility_timeout?
-      cache_visibility_timeout
+      @cache_visibility_timeout
     end
 
     private
