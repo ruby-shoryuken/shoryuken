@@ -17,9 +17,9 @@ module Shoryuken
       alias_method :perform_at, :perform_in
 
       def server_middleware
-        @server_chain ||= Shoryuken.server_middleware.dup
-        yield @server_chain if block_given?
-        @server_chain
+        @_server_chain ||= Shoryuken.server_middleware.dup
+        yield @_server_chain if block_given?
+        @_server_chain
       end
 
       def shoryuken_options(opts = {})
