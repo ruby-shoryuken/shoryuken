@@ -41,8 +41,12 @@ require 'shoryuken/options'
 module Shoryuken
   extend SingleForwardable
 
+  def self.shoryuken_options
+    @_shoryuken_options ||= Shoryuken::Options.new
+  end
+
   def_delegators(
-    :'Shoryuken::Options',
+    :shoryuken_options,
     :active_job?,
     :add_group,
     :groups,
@@ -59,7 +63,7 @@ module Shoryuken
     :start_callback=,
     :stop_callback,
     :stop_callback=,
-    :active_job_queue_name_prefixing,
+    :active_job_queue_name_prefixing?,
     :active_job_queue_name_prefixing=,
     :sqs_client,
     :sqs_client=,

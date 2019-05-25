@@ -1,6 +1,8 @@
 require 'spec_helper'
 
 RSpec.describe Shoryuken::Options do
+  subject { Shoryuken.shoryuken_options }
+
   describe '.add_group adds queues and optional delay' do
     before do
       Shoryuken.groups.clear
@@ -10,14 +12,14 @@ RSpec.describe Shoryuken::Options do
     end
 
     specify do
-      described_class.add_queue('queue1', 1, 'group1')
-      described_class.add_queue('queue2', 2, 'group2')
-      described_class.add_queue('queue3', 1, 'group3')
+      subject.add_queue('queue1', 1, 'group1')
+      subject.add_queue('queue2', 2, 'group2')
+      subject.add_queue('queue3', 1, 'group3')
 
-      expect(described_class.groups['group1'][:queues]).to eq(%w[queue1])
-      expect(described_class.groups['group2'][:queues]).to eq(%w[queue2 queue2])
-      expect(described_class.groups['group3'][:queues]).to eq(%w[queue3])
-      expect(described_class.groups['group3'][:delay]).to eq(5)
+      expect(subject.groups['group1'][:queues]).to eq(%w[queue1])
+      expect(subject.groups['group2'][:queues]).to eq(%w[queue2 queue2])
+      expect(subject.groups['group3'][:queues]).to eq(%w[queue3])
+      expect(subject.groups['group3'][:delay]).to eq(5)
     end
   end
 
@@ -25,11 +27,11 @@ RSpec.describe Shoryuken::Options do
     specify do
       Shoryuken.add_group('group1', 25)
       Shoryuken.add_group('group2', 25, delay: 5)
-      described_class.add_queue('queue1', 1, 'group1')
-      described_class.add_queue('queue2', 2, 'group2')
+      subject.add_queue('queue1', 1, 'group1')
+      subject.add_queue('queue2', 2, 'group2')
 
-      expect(described_class.delay('group1')).to eq(Shoryuken.options[:delay])
-      expect(described_class.delay('group2')).to eq(5.0)
+      expect(subject.delay('group1')).to eq(Shoryuken.options[:delay])
+      expect(subject.delay('group2')).to eq(5.0)
     end
   end
 
@@ -41,10 +43,10 @@ RSpec.describe Shoryuken::Options do
     end
 
     specify do
-      described_class.add_queue('queue1', 1, 'group1')
-      described_class.add_queue('queue2', 2, 'group2')
+      subject.add_queue('queue1', 1, 'group1')
+      subject.add_queue('queue2', 2, 'group2')
 
-      expect(described_class.ungrouped_queues).to eq(%w[queue1 queue2 queue2])
+      expect(subject.ungrouped_queues).to eq(%w[queue1 queue2 queue2])
     end
   end
 
@@ -68,22 +70,22 @@ RSpec.describe Shoryuken::Options do
 
   describe '.register_worker' do
     it 'registers a worker' do
-      described_class.worker_registry.clear
-      described_class.register_worker('default', TestWorker)
-      expect(described_class.worker_registry.workers('default')).to eq([TestWorker])
+      subject.worker_registry.clear
+      subject.register_worker('default', TestWorker)
+      expect(subject.worker_registry.workers('default')).to eq([TestWorker])
     end
 
     it 'registers a batchable worker' do
-      described_class.worker_registry.clear
+      subject.worker_registry.clear
       TestWorker.get_shoryuken_options['batch'] = true
-      described_class.register_worker('default', TestWorker)
-      expect(described_class.worker_registry.workers('default')).to eq([TestWorker])
+      subject.register_worker('default', TestWorker)
+      expect(subject.worker_registry.workers('default')).to eq([TestWorker])
     end
 
     it 'allows multiple workers' do
-      described_class.worker_registry.clear
-      described_class.register_worker('default', TestWorker)
-      expect(described_class.worker_registry.workers('default')).to eq([TestWorker])
+      subject.worker_registry.clear
+      subject.register_worker('default', TestWorker)
+      expect(subject.worker_registry.workers('default')).to eq([TestWorker])
 
       class Test2Worker
         include Shoryuken::Worker
@@ -93,13 +95,13 @@ RSpec.describe Shoryuken::Options do
         def perform(sqs_msg, body); end
       end
 
-      expect(described_class.worker_registry.workers('default')).to eq([Test2Worker])
+      expect(subject.worker_registry.workers('default')).to eq([Test2Worker])
     end
 
     it 'raises an exception when mixing batchable with non batchable' do
-      described_class.worker_registry.clear
+      subject.worker_registry.clear
       TestWorker.get_shoryuken_options['batch'] = true
-      described_class.register_worker('default', TestWorker)
+      subject.register_worker('default', TestWorker)
 
       expect {
         class BatchableWorker
