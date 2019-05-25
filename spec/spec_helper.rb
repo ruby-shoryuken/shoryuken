@@ -43,7 +43,7 @@ RSpec.configure do |config|
     Shoryuken.groups.clear
 
     Shoryuken.options[:concurrency] = 1
-    Shoryuken.options[:delay]       = 1
+    Shoryuken.options[:delay]       = 1.0
     Shoryuken.options[:timeout]     = 1
     Shoryuken.options[:daemon]      = nil
     Shoryuken.options[:logfile]     = nil
@@ -60,6 +60,8 @@ RSpec.configure do |config|
     Aws.config[:stub_responses] = true
 
     Shoryuken.sqs_client_receive_message_opts.clear
+
+    Shoryuken.cache_visibility_timeout = false
 
     allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
     allow(Shoryuken).to receive(:active_job?).and_return(false)

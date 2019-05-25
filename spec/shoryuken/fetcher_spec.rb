@@ -103,9 +103,9 @@ RSpec.describe Shoryuken::Fetcher do
 
     context 'when FIFO' do
       let(:limit) { 10 }
-      let(:queue) { instance_double('Shoryuken::Queue', fifo?: true) }
+      let(:queue) { instance_double('Shoryuken::Queue', fifo?: true, name: queue_name) }
 
-      it 'polls one message at the time' do
+      it 'polls one message at a time' do
         # see https://github.com/phstc/shoryuken/pull/530
 
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
@@ -114,6 +114,21 @@ RSpec.describe Shoryuken::Fetcher do
         ).and_return([])
 
         subject.fetch(queue_config, limit)
+      end
+
+      context 'with batch=true' do
+        it 'polls the provided limit' do
+          # see https://github.com/phstc/shoryuken/pull/530
+
+          allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+          allow(Shoryuken.worker_registry).to receive(:batch_receive_messages?).with(queue.name).and_return(true)
+
+          expect(queue).to receive(:receive_messages).with(
+            max_number_of_messages: limit, attribute_names: ['All'], message_attribute_names: ['All']
+          ).and_return([])
+
+          subject.fetch(queue_config, limit)
+        end
       end
     end
   end

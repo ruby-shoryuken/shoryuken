@@ -41,8 +41,12 @@ require 'shoryuken/options'
 module Shoryuken
   extend SingleForwardable
 
+  def self.shoryuken_options
+    @@_shoryuken_options ||= Shoryuken::Options.new
+  end
+
   def_delegators(
-    Shoryuken::Options.new,
+    :shoryuken_options,
     :active_job?,
     :add_group,
     :groups,
@@ -77,7 +81,9 @@ module Shoryuken
     :default_worker_options=,
     :on_start,
     :on_stop,
-    :on
+    :on,
+    :cache_visibility_timeout?,
+    :cache_visibility_timeout=
   )
 end
 

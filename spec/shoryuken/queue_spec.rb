@@ -26,6 +26,19 @@ RSpec.describe Shoryuken::Queue do
       end
     end
 
+    context 'when a non SQS queue URL' do
+      let(:queue_url) { "http://localhost:4576/queue/#{queue_name}" }
+
+      it 'instantiates by URL and validate the URL' do
+        # See https://github.com/phstc/shoryuken/pull/551
+        expect_any_instance_of(described_class).to receive(:fifo?).and_return(false)
+
+        subject = described_class.new(sqs, queue_url)
+
+        expect(subject.name).to eq(queue_name)
+      end
+    end
+
     context 'when queue name supplied' do
       subject { described_class.new(sqs, queue_name) }
 
@@ -231,6 +244,43 @@ RSpec.describe Shoryuken::Queue do
 
         subject.fifo?
         subject.fifo?
+      end
+    end
+  end
+
+  describe '#visibility_timeout' do
+    let(:attribute_response) { double 'Aws::SQS::Types::GetQueueAttributesResponse' }
+
+    before do
+      allow(attribute_response).to(
+        receive(:attributes).and_return('VisibilityTimeout' => 30)
+      )
+      allow(subject).to receive(:url).and_return(queue_url)
+    end
+
+    context 'when cache is disabled' do
+      specify do
+        Shoryuken.cache_visibility_timeout = false
+
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response).exactly(3).times
+        )
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+      end
+    end
+
+    context 'when cache is enabled' do
+      it 'memoizes response' do
+        Shoryuken.cache_visibility_timeout = true
+
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response).once
+        )
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
+        expect(subject.visibility_timeout).to eq(30)
       end
     end
   end

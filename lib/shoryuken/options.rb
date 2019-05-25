@@ -4,7 +4,7 @@ module Shoryuken
       concurrency: 25,
       queues: [],
       aws: {},
-      delay: 0,
+      delay: 0.0,
       timeout: 8,
       lifecycle_events: {
         startup: [],
@@ -14,36 +14,37 @@ module Shoryuken
       }
     }.freeze
 
-    attr_accessor(
-      :worker_registry,
-      :worker_executor,
-      :launcher_executor,
-      :start_callback,
-      :stop_callback,
-      :active_job_queue_name_prefixing,
-      :sqs_client
-    )
     attr_reader :groups, :sqs_client_receive_message_opts
-    attr_writer :default_worker_options
+    attr_writer :sqs_client, :default_worker_options, :cache_visibility_timeout
+    attr_accessor :worker_registry, :active_job_queue_name_prefixing, :start_callback,
+                  :worker_executor, :launcher_executor
 
     def initialize
-      @groups                          = {}
-      @worker_registry                 = DefaultWorkerRegistry.new
+      @groups = {}
+      @worker_registry = DefaultWorkerRegistry.new
       @active_job_queue_name_prefixing = false
-      @sqs_client                      = nil
+      # @sqs_client = nil
       @sqs_client_receive_message_opts = {}
-      @start_callback                  = nil
-      @stop_callback                   = nil
-      @worker_executor                 = Worker::DefaultExecutor
-      @launcher_executor               = nil
+      # @start_callback = nil
+      # @stop_callback = nil
+      @worker_executor = Worker::DefaultExecutor
+      # @launcher_executor = nil
+      @cache_visibility_timeout = false
     end
 
     def active_job?
       defined?(::ActiveJob)
     end
 
-    def add_group(group, concurrency)
-      groups[group] ||= { concurrency: concurrency, queues: [] }
+    def add_group(group, concurrency = nil, delay: nil)
+      concurrency ||= options[:concurrency]
+      delay ||= options[:delay]
+
+      groups[group] ||= {
+        concurrency: concurrency,
+        delay: delay,
+        queues: []
+      }
     end
 
     def add_queue(queue, weight, group)
@@ -58,7 +59,6 @@ module Shoryuken
 
     def polling_strategy(group)
       strategy = (group == 'default' ? options : options[:groups].to_h[group]).to_h[:polling_strategy]
-
       case strategy
       when 'WeightedRoundRobin', nil # Default case
         Polling::WeightedRoundRobin
@@ -69,6 +69,14 @@ module Shoryuken
       else
         raise ArgumentError, "#{strategy} is not a valid polling_strategy"
       end
+    end
+
+    def delay(group)
+      groups[group].to_h.fetch(:delay, options[:delay]).to_f
+    end
+
+    def sqs_client
+      @sqs_client ||= Aws::SQS::Client.new
     end
 
     def sqs_client_receive_message_opts=(sqs_client_receive_message_opts)
@@ -84,7 +92,7 @@ module Shoryuken
     end
 
     def register_worker(*args)
-      @worker_registry.register_worker(*args)
+      worker_registry.register_worker(*args)
     end
 
     def configure_server
@@ -92,9 +100,9 @@ module Shoryuken
     end
 
     def server_middleware
-      @server_chain ||= default_server_middleware
-      yield @server_chain if block_given?
-      @server_chain
+      @_server_chain ||= default_server_middleware
+      yield @_server_chain if block_given?
+      @_server_chain
     end
 
     def configure_client
@@ -102,28 +110,28 @@ module Shoryuken
     end
 
     def client_middleware
-      @client_chain ||= default_client_middleware
-      yield @client_chain if block_given?
-      @client_chain
+      @_client_chain ||= default_client_middleware
+      yield @_client_chain if block_given?
+      @_client_chain
     end
 
     def default_worker_options
       @default_worker_options ||= {
-        'queue'                   => 'default',
-        'delete'                  => false,
-        'auto_delete'             => false,
+        'queue' => 'default',
+        'delete' => false,
+        'auto_delete' => false,
         'auto_visibility_timeout' => false,
-        'retry_intervals'         => nil,
-        'batch'                   => false
+        'retry_intervals' => nil,
+        'batch' => false
       }
     end
 
     def on_start(&block)
-      @start_callback = block
+      self.start_callback = block
     end
 
     def on_stop(&block)
-      @stop_callback = block
+      self.stop_callback = block
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
@@ -137,7 +145,16 @@ module Shoryuken
     def on(event, &block)
       fail ArgumentError, "Symbols only please: #{event}" unless event.is_a?(Symbol)
       fail ArgumentError, "Invalid event name: #{event}" unless options[:lifecycle_events].key?(event)
+
       options[:lifecycle_events][event] << block
+    end
+
+    def server?
+      defined?(Shoryuken::CLI)
+    end
+
+    def cache_visibility_timeout?
+      cache_visibility_timeout
     end
 
     private
@@ -157,10 +174,6 @@ module Shoryuken
 
     def default_client_middleware
       Middleware::Chain.new
-    end
-
-    def server?
-      defined?(Shoryuken::CLI)
     end
   end
 end

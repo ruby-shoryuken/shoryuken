@@ -14,7 +14,10 @@ module Shoryuken
     end
 
     def visibility_timeout
-      queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
+      # Always lookup for the latest visibility when cache is disabled
+      # setting it to nil, forces re-lookup
+      @_visibility_timeout = nil unless Shoryuken.cache_visibility_timeout?
+      @_visibility_timeout ||= queue_attributes.attributes[VISIBILITY_TIMEOUT_ATTR].to_i
     end
 
     def delete_messages(options)
@@ -63,7 +66,7 @@ module Shoryuken
     end
 
     def set_name_and_url(name_or_url)
-      if name_or_url.start_with?('https://sqs.')
+      if name_or_url.include?('://')
         set_by_url(name_or_url)
 
         # anticipate the fifo? checker for validating the queue URL

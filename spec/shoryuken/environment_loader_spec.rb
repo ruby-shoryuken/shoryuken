@@ -4,7 +4,7 @@ require 'active_job'
 RSpec.describe Shoryuken::EnvironmentLoader do
   subject { described_class.new({}) }
 
-  describe '#parse_queues' do
+  describe '#parse_queues loads default queues' do
     before do
       allow(subject).to receive(:load_rails)
       allow(subject).to receive(:prefix_active_job_queue_names)
@@ -21,6 +21,29 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['default'][:queues]).to eq(%w[queue1 queue2 queue2])
     end
   end
+
+  describe '#parse_queues includes delay per groups' do
+    before do
+      allow(subject).to receive(:load_rails)
+      allow(subject).to receive(:prefix_active_job_queue_names)
+      allow(subject).to receive(:require_workers)
+      allow(subject).to receive(:validate_queues)
+      allow(subject).to receive(:validate_workers)
+      allow(subject).to receive(:patch_deprecated_workers)
+    end
+
+    specify do
+      Shoryuken.options[:queues] = ['queue1', 'queue2'] # default queues
+      Shoryuken.options[:groups] = [[ 'custom', { queues: ['queue3'], delay: 25 }]]
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to eq(%w[queue1 queue2])
+      expect(Shoryuken.groups['default'][:delay]).to eq(Shoryuken.options[:delay])
+      expect(Shoryuken.groups['custom'][:queues]).to eq(%w[queue3])
+      expect(Shoryuken.groups['custom'][:delay]).to eq(25)
+    end
+  end
+
 
   describe '#prefix_active_job_queue_names' do
     before do

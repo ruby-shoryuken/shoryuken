@@ -57,10 +57,8 @@ module Shoryuken
         end
       end
 
-      private
-
       def delay
-        Shoryuken.options[:delay].to_f
+        @delay || Shoryuken.options[:delay].to_f
       end
     end
   end

@@ -1,3 +1,27 @@
+## [v4.0.3] - 2019-01-06
+
+- Support delay per processing group
+  - [#543](https://github.com/phstc/shoryuken/pull/543)
+
+## [v4.0.2] - 2018-11-26
+
+- Fix the delegated methods to public warning
+  - [#536](https://github.com/phstc/shoryuken/pull/536)
+
+- Specify exception class to `raise_error` matcher warning
+  - [#537](https://github.com/phstc/shoryuken/pull/537)
+
+- Fix spelling of "visibility"
+  - [#538](https://github.com/phstc/shoryuken/pull/538)
+
+## [v4.0.1] - 2018-11-21
+
+- Allow caching visibility_timeout lookups
+  - [#533](https://github.com/phstc/shoryuken/pull/533)
+
+- Add queue name to inline executor
+  - [#532](https://github.com/phstc/shoryuken/pull/532)
+
 ## [v4.0.0] - 2018-11-01
 
 - Process messages to the same message group ID one by one
