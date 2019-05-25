@@ -42,7 +42,7 @@ module Shoryuken
   extend SingleForwardable
 
   def self.shoryuken_options
-    @@_shoryuken_options ||= Shoryuken::Options.new
+    @_shoryuken_options ||= Shoryuken::Options.new
   end
 
   def_delegators(
