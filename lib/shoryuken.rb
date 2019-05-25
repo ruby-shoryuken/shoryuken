@@ -63,7 +63,7 @@ module Shoryuken
     :start_callback=,
     :stop_callback,
     :stop_callback=,
-    :active_job_queue_name_prefixing,
+    :active_job_queue_name_prefixing?,
     :active_job_queue_name_prefixing=,
     :sqs_client,
     :sqs_client=,

@@ -99,7 +99,7 @@ module Shoryuken
 
     def prefix_active_job_queue_names
       return unless Shoryuken.active_job?
-      return unless Shoryuken.active_job_queue_name_prefixing
+      return unless Shoryuken.active_job_queue_name_prefixing?
 
       Shoryuken.options[:queues].to_a.map! do |queue_name, weight|
         prefix_active_job_queue_name(queue_name, weight)

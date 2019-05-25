@@ -15,9 +15,8 @@ module Shoryuken
     }.freeze
 
     attr_reader :groups, :sqs_client_receive_message_opts
-    attr_writer :sqs_client, :default_worker_options, :cache_visibility_timeout
-    attr_accessor :worker_registry, :active_job_queue_name_prefixing, :start_callback,
-                  :worker_executor, :launcher_executor
+    attr_writer :sqs_client, :default_worker_options, :cache_visibility_timeout, :active_job_queue_name_prefixing
+    attr_accessor :worker_registry, :start_callback, :worker_executor, :launcher_executor
 
     def initialize
       @groups = {}
@@ -151,6 +150,10 @@ module Shoryuken
 
     def cache_visibility_timeout?
       @cache_visibility_timeout
+    end
+
+    def active_job_queue_name_prefixing?
+      @active_job_queue_name_prefixing
     end
 
     private
