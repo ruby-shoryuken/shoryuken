@@ -14,9 +14,9 @@ module Shoryuken
       }
     }.freeze
 
-    attr_reader :groups, :sqs_client_receive_message_opts
-    attr_writer :sqs_client, :default_worker_options, :cache_visibility_timeout, :active_job_queue_name_prefixing
-    attr_accessor :worker_registry, :start_callback, :worker_executor, :launcher_executor
+    attr_accessor :groups, :sqs_client_receive_message_opts,
+      :sqs_client, :default_worker_options, :cache_visibility_timeout, :active_job_queue_name_prefixing,
+      :worker_registry, :start_callback, :worker_executor, :launcher_executor
 
     def initialize
       @groups = {}
