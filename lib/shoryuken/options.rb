@@ -14,19 +14,17 @@ module Shoryuken
       }
     }.freeze
 
-    attr_writer :sqs_client, :default_worker_options
-    attr_reader :sqs_client_receive_message_opts
-
-    attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :groups,
-                  :launcher_executor, :start_callback, :worker_executor, :worker_registry
+    attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :default_worker_options, :groups,
+                  :launcher_executor, :sqs_client, :sqs_client_receive_message_opts,
+                  :start_callback, :worker_executor, :worker_registry
 
     def initialize
-      @groups = {}
-      @worker_registry = DefaultWorkerRegistry.new
-      @active_job_queue_name_prefixing = false
-      @sqs_client_receive_message_opts = {}
-      @worker_executor = Worker::DefaultExecutor
-      @cache_visibility_timeout = false
+      self.groups = {}
+      self.worker_registry = DefaultWorkerRegistry.new
+      self.active_job_queue_name_prefixing = false
+      self.worker_executor = Worker::DefaultExecutor
+      self.sqs_client_receive_message_opts = {}
+      self.cache_visibility_timeout = false
     end
 
     def active_job?
@@ -77,6 +75,7 @@ module Shoryuken
     end
 
     def sqs_client_receive_message_opts=(sqs_client_receive_message_opts)
+      @sqs_client_receive_message_opts ||= {}
       @sqs_client_receive_message_opts['default'] = sqs_client_receive_message_opts
     end
 
