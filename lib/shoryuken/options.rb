@@ -24,7 +24,7 @@ module Shoryuken
       self.active_job_queue_name_prefixing = false
       self.worker_executor = Worker::DefaultExecutor
       self.cache_visibility_timeout = false
-      # this is needed for keep backward compatibility
+      # this is needed for keeping backward compatibility
       @sqs_client_receive_message_opts ||= {}
     end
 
