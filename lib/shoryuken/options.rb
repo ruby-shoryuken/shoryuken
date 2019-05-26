@@ -23,8 +23,9 @@ module Shoryuken
       self.worker_registry = DefaultWorkerRegistry.new
       self.active_job_queue_name_prefixing = false
       self.worker_executor = Worker::DefaultExecutor
-      self.sqs_client_receive_message_opts = {}
       self.cache_visibility_timeout = false
+      # this is needed for keep backward compatibility
+      @sqs_client_receive_message_opts ||= {}
     end
 
     def active_job?
@@ -75,7 +76,6 @@ module Shoryuken
     end
 
     def sqs_client_receive_message_opts=(sqs_client_receive_message_opts)
-      @sqs_client_receive_message_opts ||= {}
       @sqs_client_receive_message_opts['default'] = sqs_client_receive_message_opts
     end
 
