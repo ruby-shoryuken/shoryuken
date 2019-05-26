@@ -1,3 +1,11 @@
+## [v4.0.4] - 2019-05-25
+
+- Preserve batch limit when receiving messages from a FIFO queue
+  - [#563](https://github.com/phstc/shoryuken/pull/563)
+
+- Replace static options with instance options
+  - [#534](https://github.com/phstc/shoryuken/pull/534)
+
 ## [v4.0.3] - 2019-01-06
 
 - Support delay per processing group
