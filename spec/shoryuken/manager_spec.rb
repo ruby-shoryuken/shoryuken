@@ -90,6 +90,21 @@ RSpec.describe Shoryuken::Manager do
 
         subject.send(:dispatch)
       end
+
+      context "and there are no messages in the queue" do
+        specify do
+          messages = %w[]
+          q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
+
+          expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
+          expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
+          allow(subject).to receive(:batched_queue?).with(q).and_return(true)
+          expect(polling_strategy).to receive(:messages_found).with(q.name, 0)
+          expect_any_instance_of(described_class).to receive(:assign).never
+
+          subject.send(:dispatch)
+        end
+      end
     end
   end
 

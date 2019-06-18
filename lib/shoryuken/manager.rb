@@ -74,9 +74,9 @@ module Shoryuken
     end
 
     def dispatch_batch(queue)
-      return if (batch = @fetcher.fetch(queue, BATCH_LIMIT)).none?
+      batch = @fetcher.fetch(queue, BATCH_LIMIT)
       @polling_strategy.messages_found(queue.name, batch.size)
-      assign(queue.name, patch_batch!(batch))
+      assign(queue.name, patch_batch!(batch)) if batch.any?
     end
 
     def dispatch_single_messages(queue)
