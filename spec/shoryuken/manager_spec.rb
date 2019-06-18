@@ -72,9 +72,25 @@ RSpec.describe Shoryuken::Manager do
       expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
       expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
       expect(Shoryuken::Processor).to receive(:process).with(q, message)
-      expect(Shoryuken.logger).to_not receive(:info)
+      expect(Shoryuken.logger).to receive(:info).never
 
       subject.send(:dispatch)
+    end
+
+    context 'and there are no messages in the queue' do
+      specify do
+        messages = %w[]
+        q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
+
+        expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
+        expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
+        expect(polling_strategy).to receive(:messages_found).with(q.name, 0)
+        expect(Shoryuken.logger).to receive(:info).never
+        expect(Shoryuken::Processor).to receive(:process).never
+        expect_any_instance_of(described_class).to receive(:assign).never
+
+        subject.send(:dispatch)
+      end
     end
 
     context 'when batch' do
@@ -86,7 +102,7 @@ RSpec.describe Shoryuken::Manager do
         expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
         allow(subject).to receive(:batched_queue?).with(q).and_return(true)
         expect(Shoryuken::Processor).to receive(:process).with(q, messages)
-        expect(Shoryuken.logger).to_not receive(:info)
+        expect(Shoryuken.logger).to receive(:info).never
 
         subject.send(:dispatch)
       end
@@ -100,6 +116,8 @@ RSpec.describe Shoryuken::Manager do
           expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
           allow(subject).to receive(:batched_queue?).with(q).and_return(true)
           expect(polling_strategy).to receive(:messages_found).with(q.name, 0)
+          expect(Shoryuken.logger).to receive(:info).never
+          expect(Shoryuken::Processor).to receive(:process).never
           expect_any_instance_of(described_class).to receive(:assign).never
 
           subject.send(:dispatch)
