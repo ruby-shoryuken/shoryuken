@@ -91,7 +91,7 @@ RSpec.describe Shoryuken::Manager do
         subject.send(:dispatch)
       end
 
-      context "and there are no messages in the queue" do
+      context 'and there are no messages in the queue' do
         specify do
           messages = %w[]
           q = Shoryuken::Polling::QueueConfiguration.new(queue, {})

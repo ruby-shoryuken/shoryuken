@@ -43,8 +43,8 @@ module Shoryuken
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
-    rescue => ex
-      handle_dispatch_error(ex)
+    rescue => e
+      handle_dispatch_error(e)
     ensure
       dispatch_loop
     end
