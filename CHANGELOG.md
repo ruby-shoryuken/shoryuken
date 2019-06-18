@@ -1,4 +1,7 @@
-## [v4.0.4] - 2019-05-25
+## [v5.0.0] - 2019-06-18
+
+- Fix bug where empty queues were not paused in batch processing mode
+  - [#569](https://github.com/phstc/shoryuken/pull/569)
 
 - Preserve batch limit when receiving messages from a FIFO queue
   - [#563](https://github.com/phstc/shoryuken/pull/563)
