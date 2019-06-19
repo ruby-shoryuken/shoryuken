@@ -3,6 +3,24 @@ require 'spec_helper'
 RSpec.describe Shoryuken::Options do
   subject { Shoryuken.shoryuken_options }
 
+  describe '.on_stop' do
+    specify do
+      on_stop = Proc.new {}
+      Shoryuken.on_stop(&on_stop)
+
+      expect(Shoryuken.stop_callback).to eq(on_stop)
+    end
+  end
+
+  describe '.on_start' do
+    specify do
+      on_start = Proc.new {}
+      Shoryuken.on_start(&on_start)
+
+      expect(Shoryuken.start_callback).to eq(on_start)
+    end
+  end
+
   describe '.add_group adds queues and optional delay' do
     before do
       Shoryuken.groups.clear
