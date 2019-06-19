@@ -1,3 +1,8 @@
+## [v5.0.1] - 2019-06-19
+
+- Add back attr_accessor for `stop_callback`
+  - [#571](https://github.com/phstc/shoryuken/pull/571)
+
 ## [v5.0.0] - 2019-06-18
 
 - Fix bug where empty queues were not paused in batch processing mode
