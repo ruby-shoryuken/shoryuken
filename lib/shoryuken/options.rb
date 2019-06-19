@@ -16,7 +16,7 @@ module Shoryuken
 
     attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :default_worker_options, :groups,
                   :launcher_executor, :sqs_client, :sqs_client_receive_message_opts,
-                  :start_callback, :worker_executor, :worker_registry
+                  :start_callback, :stop_callback, :worker_executor, :worker_registry
 
     def initialize
       self.groups = {}
