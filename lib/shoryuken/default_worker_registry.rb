@@ -1,7 +1,7 @@
 module Shoryuken
   class DefaultWorkerRegistry < WorkerRegistry
     def initialize
-      @workers = {}
+      @workers = Concurrent::Hash.new
     end
 
     def batch_receive_messages?(queue)
