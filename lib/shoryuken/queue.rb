@@ -11,6 +11,7 @@ module Shoryuken
     def initialize(client, name_or_url)
       self.client = client
       set_name_and_url(name_or_url)
+      @thread_pool = Concurrent::CachedThreadPool.new(fallback_policy: :caller_runs, auto_terminate: true)
     end
 
     def visibility_timeout
@@ -34,12 +35,14 @@ module Shoryuken
       options = sanitize_message!(options).merge(queue_url: url)
 
       Shoryuken.client_middleware.invoke(options) do
-        client.send_message(options)
+        send_concurrently { client.send_message(options) }
       end
     end
 
     def send_messages(options)
-      client.send_message_batch(sanitize_messages!(options).merge(queue_url: url))
+      send_concurrently do
+        client.send_message_batch(sanitize_messages!(options).merge(queue_url: url))
+      end
     end
 
     def receive_messages(options)
@@ -54,6 +57,10 @@ module Shoryuken
     end
 
     private
+
+    def send_concurrently(&block)
+      @thread_pool << block
+    end
 
     def set_by_name(name)
       self.name = name

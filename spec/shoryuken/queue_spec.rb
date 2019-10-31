@@ -86,12 +86,14 @@ RSpec.describe Shoryuken::Queue do
       expect(sqs).to receive(:send_message).with(hash_including(message_body: 'msg1'))
 
       subject.send_message(message_body: 'msg1')
+      sleep(0.0001)
     end
 
     it 'accepts a string' do
       expect(sqs).to receive(:send_message).with(hash_including(message_body: 'msg1'))
 
       subject.send_message('msg1')
+      sleep(0.0001)
     end
 
     context 'when a client middleware' do
