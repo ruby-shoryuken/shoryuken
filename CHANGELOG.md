@@ -1,3 +1,8 @@
+## [v5.0.2] - 2019-11-02
+
+- Fix Queue order is reversed if passed through CLI
+  - [#571](https://github.com/phstc/shoryuken/pull/583)
+
 ## [v5.0.1] - 2019-06-19
 
 - Add back attr_accessor for `stop_callback`
