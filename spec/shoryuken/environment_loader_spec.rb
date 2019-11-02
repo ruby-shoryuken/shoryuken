@@ -74,4 +74,28 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['group1'][:queues]).to eq(%w[test_group1_queue1 test_group1_queue2])
     end
   end
+  describe "#setup_options" do
+    let (:cli_queues) { { "queue1"=> 10, "queue2" => 20 } }
+    let (:config_queues) { [["queue1", 8], ["queue2", 4]] }
+    context "when given queues through config and CLI" do
+      specify do
+        allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:config_file_options).and_return({ queues: config_queues })
+        Shoryuken::EnvironmentLoader.setup_options(queues: cli_queues)
+        expect(Shoryuken.options[:queues]).to eq(cli_queues)
+      end
+    end
+    context "when given queues through config only" do
+      specify do
+        allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:config_file_options).and_return({ queues: config_queues })
+        Shoryuken::EnvironmentLoader.setup_options({})
+        expect(Shoryuken.options[:queues]).to eq(config_queues)
+      end
+    end
+    context "when given queues through CLI only" do
+      specify do
+        Shoryuken::EnvironmentLoader.setup_options(queues: cli_queues)
+        expect(Shoryuken.options[:queues]).to eq(cli_queues)
+      end
+    end
+  end
 end

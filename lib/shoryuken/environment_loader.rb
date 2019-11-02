@@ -20,7 +20,6 @@ module Shoryuken
     def setup_options
       initialize_options
       initialize_logger
-      merge_cli_defined_queues
     end
 
     def load
@@ -73,17 +72,6 @@ module Shoryuken
         end
         require 'shoryuken/extensions/active_job_adapter' if Shoryuken.active_job?
         require File.expand_path('config/environment.rb')
-      end
-    end
-
-    def merge_cli_defined_queues
-      cli_defined_queues = options[:queues].to_a
-
-      cli_defined_queues.each do |cli_defined_queue|
-        # CLI defined queues override config_file defined queues
-        Shoryuken.options[:queues].delete_if { |config_file_queue| config_file_queue[0] == cli_defined_queue[0] }
-
-        Shoryuken.options[:queues] << cli_defined_queue
       end
     end
 
