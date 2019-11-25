@@ -10,8 +10,8 @@ module ActiveJob
     # To use this adapter, set up as:
     #
     # adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new
-    # adapter.success_handler = ->(job, options) { StatsD.increment(job.class.name + "success") }
-    # adapter.error_handler = ->(err, (job, options)) { StatsD.increment(job.class.name + "failure") }
+    # adapter.success_handler = ->(response, job, options) { StatsD.increment(job.class.name + ".success") }
+    # adapter.error_handler = ->(err, job, options) { StatsD.increment(job.class.name + ".failure") }
     #
     # config.active_job.queue_adapter = adapter
     class ShoryukenConcurrentSendAdapter < ShoryukenAdapter
@@ -22,7 +22,7 @@ module ActiveJob
         self.error_handler = lambda { |error, job, _options|
           Shoryuken.logger.warn("Failed to enqueue job: #{job.inspect} due to error: #{error}")
         }
-        self.success_handler = ->(_job, _options) { nil }
+        self.success_handler = ->(_send_message_response, _job, _options) { nil }
       end
 
       def enqueue(job, options = {})
@@ -33,9 +33,9 @@ module ActiveJob
 
       def send_concurrently(job, options)
         Concurrent::Promises
-          .future(job, options) { |f_job, f_options| yield(f_job, f_options) }
-          .then(job, options) { |f_job, f_options| success_handler.call(f_job, f_options) }
-          .rescue(job, options) { |err, (f_job, f_options)| error_handler.call(err, f_job, f_options) }
+          .future(job, options) { |f_job, f_options| [ yield(f_job, f_options), f_job, f_options ] }
+          .then { |send_message_response, f_job, f_options| success_handler.call(send_message_response, f_job, f_options) }
+          .rescue(job, options) { |err, f_job, f_options| error_handler.call(err, f_job, f_options) }
       end
     end
   end
