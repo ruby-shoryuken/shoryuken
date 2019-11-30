@@ -32,7 +32,7 @@ Style/Alias:
 Style/PerlBackrefs:
   Enabled: false
 
-Layout/TrailingBlankLines:
+Layout/TrailingEmptyLines:
   Enabled: false
 
 # Override the HoundCI custom rules (they do not use Rubocop defaults)
@@ -76,7 +76,7 @@ Style/GuardClause:
 Style/RegexpLiteral:
   Enabled: false
 
-Lint/HandleExceptions:
+Lint/SuppressedException:
   Enabled: false
 
 Lint/AssignmentInCondition:
@@ -116,7 +116,4 @@ Security/YAMLLoad:
   Enabled: false
 
 Naming/MemoizedInstanceVariableName:
-  Enabled: false
-
-Performance/RedundantBlockCall:
   Enabled: false
