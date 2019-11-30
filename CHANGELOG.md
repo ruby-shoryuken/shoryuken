@@ -1,3 +1,9 @@
+## [v5.0.3] - 2019-11-30
+
+- Add support for sending messages asynchronous with Active Job using `shoryuken_concurrent_send`
+  - [#589](https://github.com/phstc/shoryuken/pull/589)
+  - [#588](https://github.com/phstc/shoryuken/pull/588)
+
 ## [v5.0.2] - 2019-11-02
 
 - Fix Queue order is reversed if passed through CLI
