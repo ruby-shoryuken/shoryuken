@@ -12,8 +12,8 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
 
   subject { described_class.new(success_handler, error_handler) }
 
-  context '#success_hander' do
-    it 'is called when a job succeeds' do
+  context 'when success' do
+    it 'calls success_handler' do
       response = true
       allow(queue).to receive(:send_message).and_return(response)
       expect(success_handler).to receive(:call).with(response, job, options)
@@ -22,8 +22,8 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
     end
   end
 
-  context '#error_handler' do
-    it 'is called when sending a job fails' do
+  context 'when failure' do
+    it 'calls error_handler' do
       response = Aws::SQS::Errors::InternalError.new('error', 'error')
 
       allow(queue).to receive(:send_message).and_raise(response)
