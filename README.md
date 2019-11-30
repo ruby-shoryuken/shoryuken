@@ -37,7 +37,7 @@ If you are using AWS SDK version 3, please also add this line:
 gem 'aws-sdk-sqs'
 ```
 
-The extra gem `aws-sdk-sqs` is required in order to keep Shoryuken compatible with AWS SDK version 2 and 3. 
+The extra gem `aws-sdk-sqs` is required in order to keep Shoryuken compatible with AWS SDK version 2 and 3.
 
 And then execute:
 
