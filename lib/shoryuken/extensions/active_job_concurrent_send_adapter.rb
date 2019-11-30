@@ -15,8 +15,10 @@ module ActiveJob
     #
     # config.active_job.queue_adapter = adapter
     class ShoryukenConcurrentSendAdapter < ShoryukenAdapter
-      attr_writer :error_handler
-      attr_writer :success_handler
+      def initialize(success_handler = nil, error_handler = nil)
+        @success_handler = success_handler
+        @error_handler = error_handler
+      end
 
       def enqueue(job, options = {})
         send_concurrently(job, options) { |f_job, f_options| super(f_job, f_options) }
