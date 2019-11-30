@@ -9,9 +9,10 @@ module ActiveJob
     #
     # To use this adapter, set up as:
     #
-    # adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new
-    # adapter.success_handler = ->(response, job, options) { StatsD.increment(job.class.name + ".success") }
-    # adapter.error_handler = ->(err, job, options) { StatsD.increment(job.class.name + ".failure") }
+    # success_handler = ->(response, job, options) { StatsD.increment("#{job.class.name}.success") }
+    # error_handler = ->(err, job, options) { StatsD.increment("#{job.class.name}.failure") }
+    #
+    # adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new(success_handler, error_handler)
     #
     # config.active_job.queue_adapter = adapter
     class ShoryukenConcurrentSendAdapter < ShoryukenAdapter
