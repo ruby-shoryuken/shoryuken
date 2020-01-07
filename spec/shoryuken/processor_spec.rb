@@ -12,7 +12,8 @@ RSpec.describe Shoryuken::Processor do
       body: 'test',
       message_attributes: {},
       message_id: SecureRandom.uuid,
-      receipt_handle: SecureRandom.uuid
+      receipt_handle: SecureRandom.uuid,
+      become_available_at: Time.now + 1_200
     )
   end
 
@@ -145,7 +146,8 @@ RSpec.describe Shoryuken::Processor do
             }
           },
           message_id: SecureRandom.uuid,
-          receipt_handle: SecureRandom.uuid
+          receipt_handle: SecureRandom.uuid,
+          become_available_at: Time.now + 1_200
         )
       end
 

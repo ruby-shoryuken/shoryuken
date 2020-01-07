@@ -4,17 +4,20 @@ module Shoryuken
       class Timing
         include Util
 
-        def call(_worker, queue, _sqs_msg, _body)
+        def call(_worker, _queue, sqs_msg, _body)
           started_at = Time.now
 
           logger.info { "started at #{started_at}" }
 
           yield
 
-          total_time = elapsed(started_at)
+          ended_at = Time.now
+          total_time = (ended_at - started_at) * 1000
 
-          if (total_time / 1000.0) > (timeout = Shoryuken::Client.queues(queue).visibility_timeout)
-            logger.warn { "exceeded the queue visibility timeout by #{total_time - (timeout * 1000)} ms" }
+          if ended_at > sqs_msg.become_available_at
+            log_msg = 'exceeded the message visibility timeout by ' \
+              "#{(ended_at - sqs_msg.become_available_at) * 1000} ms"
+            logger.warn { log_msg }
           end
 
           logger.info { "completed in: #{total_time} ms" }

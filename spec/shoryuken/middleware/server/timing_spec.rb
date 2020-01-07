@@ -18,6 +18,8 @@ RSpec.describe Shoryuken::Middleware::Server::Timing do
   end
 
   it 'logs timing' do
+    expect(sqs_msg).to receive(:become_available_at).and_return(Time.now + 1_000)
+
     expect(Shoryuken.logger).to receive(:info) do |&block|
       expect(block.call).to match(/started at/)
     end
@@ -29,8 +31,14 @@ RSpec.describe Shoryuken::Middleware::Server::Timing do
   end
 
   context 'when exceeded the `visibility_timeout`' do
+    before do
+      @started_at = Time.now 
+      @ended_at = @started_at + 120
+    end
+
     it 'logs exceeded' do
-      allow(subject).to receive(:elapsed).and_return(120_000)
+      expect(Time).to receive(:now).and_return(@started_at, @ended_at)
+      expect(sqs_msg).to receive(:become_available_at).and_return(@ended_at - 30).twice
 
       expect(Shoryuken.logger).to receive(:info) do |&block|
         expect(block.call).to match(/started at/)
@@ -39,7 +47,7 @@ RSpec.describe Shoryuken::Middleware::Server::Timing do
         expect(block.call).to match(/completed in/)
       end
       expect(Shoryuken.logger).to receive(:warn) do |&block|
-        expect(block.call).to match('exceeded the queue visibility timeout by 60000 ms')
+        expect(block.call).to match('exceeded the message visibility timeout by 30000.0 ms')
       end
 
       subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) {}
