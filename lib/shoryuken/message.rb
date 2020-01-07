@@ -1,12 +1,16 @@
 module Shoryuken
   class Message
     attr_accessor :client, :queue_url, :queue_name, :data
+    attr_reader :become_available_at, :visibility_timeout
 
     def initialize(client, queue, data)
       self.client     = client
       self.data       = data
       self.queue_url  = queue.url
       self.queue_name = queue.name
+
+      @visibility_timeout = Shoryuken::Client.queues(queue).visibility_timeout
+      self.become_available_at = Time.now + @visibility_timeout
     end
 
     def delete
@@ -28,6 +32,8 @@ module Shoryuken
         receipt_handle: data.receipt_handle,
         visibility_timeout: timeout
       )
+      @visibility_timeout = timeout
+      self.become_available_at = Time.now + timeout
     end
 
     def message_id
