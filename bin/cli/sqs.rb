@@ -5,6 +5,7 @@ module Shoryuken
   module CLI
     class SQS < Base
       namespace :sqs
+      class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
       no_commands do
         def normalize_dump_message(message)
@@ -19,8 +20,15 @@ module Shoryuken
           }
         end
 
+        def client_options
+          endpoint = options[:endpoint]
+          {}.tap do |hash|
+            hash[:endpoint] = endpoint unless endpoint.to_s.empty?
+          end
+        end
+
         def sqs
-          @_sqs ||= Aws::SQS::Client.new
+          @_sqs ||= Aws::SQS::Client.new(client_options)
         end
 
         def find_queue_url(queue_name)
