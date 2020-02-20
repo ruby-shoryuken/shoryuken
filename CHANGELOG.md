@@ -1,3 +1,8 @@
+## [v5.0.4] - 2020-02-20
+
+- Add endpoint option to SQS CLI
+  - [#595](https://github.com/phstc/shoryuken/pull/595)
+
 ## [v5.0.3] - 2019-11-30
 
 - Add support for sending messages asynchronous with Active Job using `shoryuken_concurrent_send`
