@@ -66,13 +66,14 @@ module Shoryuken
     end
 
     def arn_to_url(arn_str)
-      _,_,_,region,account_id,resource = arn_str.split(":")
+      _, _, _, region, account_id, resource = arn_str.split(':')
 
       required = [region, account_id, resource]
+      valid = required.none?(&:empty?)
 
-      raise "please pass a shoryuken queue ARN containing, account_id, and resource values (#{arn_str})" if required.any?(&:empty?)
+      raise "please pass a shoryuken queue ARN containing, account_id, and resource values (#{arn_str})" unless valid
 
-      result = "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
+      "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
     end
 
     def set_name_and_url(name_or_url_or_arn)
