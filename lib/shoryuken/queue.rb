@@ -8,9 +8,9 @@ module Shoryuken
 
     attr_accessor :name, :client, :url
 
-    def initialize(client, name_or_url)
+    def initialize(client, name_or_url_or_arn)
       self.client = client
-      set_name_and_url(name_or_url)
+      set_name_and_url(name_or_url_or_arn)
     end
 
     def visibility_timeout
@@ -75,23 +75,23 @@ module Shoryuken
       result = "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
     end
 
-    def set_name_and_url(name_or_url)
-      if name_or_url.include?('://')
-        set_by_url(name_or_url)
+    def set_name_and_url(name_or_url_or_arn)
+      if name_or_url_or_arn.include?('://')
+        set_by_url(name_or_url_or_arn)
 
         # anticipate the fifo? checker for validating the queue URL
         return fifo?
       end
 
-      if name_or_url.include?('arn:')
-        url = arn_to_url(name_or_url)
+      if name_or_url_or_arn.include?('arn:')
+        url = arn_to_url(name_or_url_or_arn)
         set_by_url(url)
         return
       end
 
-      set_by_name(name_or_url)
+      set_by_name(name_or_url_or_arn)
     rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
-      raise ex, "The specified queue #{name_or_url} does not exist."
+      raise ex, "The specified queue #{name_or_url_or_arn} does not exist."
     end
 
     def queue_attributes
