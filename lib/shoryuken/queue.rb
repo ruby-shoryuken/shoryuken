@@ -65,12 +65,28 @@ module Shoryuken
       self.url  = url
     end
 
+    def arn_to_url(arn_str)
+      _,_,_,region,account_id,resource = arn_str.split(":")
+
+      required = [region, account_id, resource]
+
+      raise "please pass a shoryuken queue ARN containing, account_id, and resource values (#{arn_str})" if required.any?(&:empty?)
+
+      result = "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
+    end
+
     def set_name_and_url(name_or_url)
       if name_or_url.include?('://')
         set_by_url(name_or_url)
 
         # anticipate the fifo? checker for validating the queue URL
         return fifo?
+      end
+
+      if name_or_url.include?('arn:')
+        url = arn_to_url(name_or_url)
+        set_by_url(url)
+        return
       end
 
       set_by_name(name_or_url)
