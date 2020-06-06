@@ -135,6 +135,39 @@ RSpec.describe Shoryuken::Options do
 
           expect(subject.worker_registry.workers('default')).to eq([Test2Worker])
         end
+
+        context 'when testing two dispatcher registration' do
+          it 'allows multiple workers' do
+            subject.worker_registry.clear
+            subject.register_worker('default', TestWorker)
+            expect(subject.worker_registry.workers('default')).to eq([TestWorker])
+
+            class Test2Worker
+              include Shoryuken::Worker
+
+              shoryuken_options queue: 'default', dispatcher: true
+
+              def perform(sqs_msg, body); end
+            end
+
+            expect {
+              class Test3Worker
+                include Shoryuken::Worker
+
+                shoryuken_options queue: 'default', dispatcher: true
+
+                def perform(sqs_msg, body); end
+              end
+            }.to raise_error(
+              ArgumentError,
+              'Could not register Test3Worker for default, because default queue can have only one ' \
+              'dispatcher job for queue and Test2Worker was already registered.'
+            )
+
+
+            expect(subject.worker_registry.workers('default')).to eq([Test2Worker])
+          end
+        end
       end
     end
 
