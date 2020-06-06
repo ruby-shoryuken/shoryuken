@@ -50,49 +50,60 @@ module Shoryuken
       # Make sure the memoization work with boolean to avoid multiple calls to SQS
       # see https://github.com/phstc/shoryuken/pull/529
       return @_fifo if defined?(@_fifo)
+
       @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
+      @_fifo
     end
 
     private
 
-    def set_by_name(name)
+    def initialize_fifo_attribute
+      # calling fifo? will also initialize it
+      fifo?
+    end
+
+    def set_by_name(name) # rubocop:disable Naming/AccessorMethodName
       self.name = name
       self.url  = client.get_queue_url(queue_name: name).queue_url
     end
 
-    def set_by_url(url)
+    def set_by_url(url) # rubocop:disable Naming/AccessorMethodName
       self.name = url.split('/').last
       self.url  = url
     end
 
     def arn_to_url(arn_str)
-      _, _, _, region, account_id, resource = arn_str.split(':')
+      *, region, account_id, resource = arn_str.split(':')
 
-      required = [region, account_id, resource]
+      required = [region, account_id, resource].map(&:to_s)
       valid = required.none?(&:empty?)
 
-      raise "please pass a shoryuken queue ARN containing, account_id, and resource values (#{arn_str})" unless valid
+      abort "Invalid ARN: #{arn_str}. A valid ARN must include: region, account_id and resource." unless valid
 
       "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
     end
 
-    def set_name_and_url(name_or_url_or_arn)
+    def set_name_and_url(name_or_url_or_arn) # rubocop:disable Naming/AccessorMethodName
       if name_or_url_or_arn.include?('://')
         set_by_url(name_or_url_or_arn)
 
         # anticipate the fifo? checker for validating the queue URL
-        return fifo?
+        initialize_fifo_attribute
+        return
       end
 
-      if name_or_url_or_arn.include?('arn:')
+      if name_or_url_or_arn.start_with?('arn:')
         url = arn_to_url(name_or_url_or_arn)
         set_by_url(url)
+
+        # anticipate the fifo? checker for validating the queue URL
+        initialize_fifo_attribute
         return
       end
 
       set_by_name(name_or_url_or_arn)
-    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => ex
-      raise ex, "The specified queue #{name_or_url_or_arn} does not exist."
+    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => e
+      raise e, "The specified queue #{name_or_url_or_arn} does not exist."
     end
 
     def queue_attributes

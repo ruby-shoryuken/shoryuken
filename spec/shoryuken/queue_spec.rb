@@ -40,23 +40,25 @@ RSpec.describe Shoryuken::Queue do
     end
 
     context 'when queue ARN supplied' do
-      let(:queue_arn) { "arn:aws:sqs:ap-southeast-2:000000000000:queue-name" }
+      let(:queue_arn) { 'arn:aws:sqs:ap-southeast-2:000000000000:queue-name' }
 
-      it 'instantiates by URL and validate the URL' do
+      it 'initializes by URL and validate the URL' do
         subject = described_class.new(sqs, queue_arn)
 
-        expect(subject.name).to eq("queue-name")
-        expect(subject.url).to eq("https://sqs.ap-southeast-2.amazonaws.com/000000000000/queue-name")
+        expect(subject.name).to eq('queue-name')
+        expect(subject.url).to eq('https://sqs.ap-southeast-2.amazonaws.com/000000000000/queue-name')
       end
     end
 
-    context 'when inadequate queue ARN supplied' do
-      let(:queue_arn) { "arn:aws:sqs::000000000000:queue-name" }
+    context 'when invalid queue ARN supplied' do
+      let(:queue_arn) { 'arn:aws:sqs::000000000000:queue-name' }
 
       it 'raises an error' do
         expect do
           described_class.new(sqs, queue_arn)
-        end.to raise_error("please pass a shoryuken queue ARN containing, account_id, and resource values (arn:aws:sqs::000000000000:queue-name)")
+        end.to raise_error(
+          'Invalid ARN: arn:aws:sqs::000000000000:queue-name. A valid ARN must include: region, account_id and resource.'
+        )
       end
     end
 
