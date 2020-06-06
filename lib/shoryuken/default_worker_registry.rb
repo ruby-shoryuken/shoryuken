@@ -40,7 +40,7 @@ module Shoryuken
         end
       end
 
-      @workers[queue] = clazz
+      @workers[queue] = clazz if !@workers[queue] || clazz.get_shoryuken_options['dispatcher']
     end
 
     def workers(queue)

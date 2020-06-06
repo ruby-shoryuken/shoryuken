@@ -100,20 +100,42 @@ RSpec.describe Shoryuken::Options do
       expect(subject.worker_registry.workers('default')).to eq([TestWorker])
     end
 
-    it 'allows multiple workers' do
-      subject.worker_registry.clear
-      subject.register_worker('default', TestWorker)
-      expect(subject.worker_registry.workers('default')).to eq([TestWorker])
+    context 'when have two workers' do
+      context 'when no one is a dispatcher' do
+        it 'allows multiple workers and register only the first worker' do
+          subject.worker_registry.clear
+          subject.register_worker('default', TestWorker)
+          expect(subject.worker_registry.workers('default')).to eq([TestWorker])
 
-      class Test2Worker
-        include Shoryuken::Worker
+          class Test2Worker
+            include Shoryuken::Worker
 
-        shoryuken_options queue: 'default'
+            shoryuken_options queue: 'default'
 
-        def perform(sqs_msg, body); end
+            def perform(sqs_msg, body); end
+          end
+
+          expect(subject.worker_registry.workers('default')).to eq([TestWorker])
+        end
       end
 
-      expect(subject.worker_registry.workers('default')).to eq([Test2Worker])
+      context 'when have a dispatcher options' do
+        it 'allows multiple workers' do
+          subject.worker_registry.clear
+          subject.register_worker('default', TestWorker)
+          expect(subject.worker_registry.workers('default')).to eq([TestWorker])
+
+          class Test2Worker
+            include Shoryuken::Worker
+
+            shoryuken_options queue: 'default', dispatcher: true
+
+            def perform(sqs_msg, body); end
+          end
+
+          expect(subject.worker_registry.workers('default')).to eq([Test2Worker])
+        end
+      end
     end
 
     it 'raises an exception when mixing batchable with non batchable' do
