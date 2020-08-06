@@ -80,4 +80,59 @@ RSpec.describe Shoryuken::DefaultWorkerRegistry do
       end
     end
   end
+
+  describe 'when worker is already registered to queue' do
+    def initialize_worker_class(queue:, batch:)
+      Class.new do
+        include Shoryuken::Worker
+
+        shoryuken_options(queue: queue, batch: batch)
+
+        def perform(sqs_msg, body); end
+      end
+    end
+
+    let(:worker_class) { initialize_worker_class(queue: queue, batch: batch) }
+    let(:other_worker_class) { initialize_worker_class(queue: queue, batch: batch) }
+    let(:queue) { 'some-queue-name' }
+    let(:batch) { true }
+
+    before do
+      subject.register_worker(queue, worker_class)
+    end
+
+    context 'a worker is batchable' do
+      context 'when re-registering a worker' do
+        it 'does not error' do
+          expect { subject.register_worker(queue, worker_class) }.
+            to_not raise_error
+        end
+      end
+
+      context 'when registering a different worker' do
+        it 'raises an error' do
+          expect { subject.register_worker(queue, other_worker_class) }.
+            to raise_error(ArgumentError)
+        end
+      end
+    end
+
+    context 'a worker is not batchable' do
+      let(:batch) { false }
+
+      context 'when re-registering a worker' do
+        it 'does not error' do
+          expect { subject.register_worker(queue, worker_class) }.
+            to_not raise_error
+        end
+      end
+
+      context 'when registering a different worker' do
+        it 'raises an error' do
+          expect { subject.register_worker(queue, other_worker_class) }.
+            to_not raise_error
+        end
+      end
+    end
+  end
 end
