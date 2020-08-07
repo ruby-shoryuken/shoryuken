@@ -34,7 +34,10 @@ module Shoryuken
     def register_worker(queue, clazz)
       if (worker_class = @workers[queue])
         if worker_class != clazz &&
-           (configured_batch?(worker_class) || configured_batch?(clazz))
+           (
+             worker_class.get_shoryuken_options['batch'] == true ||
+             clazz.get_shoryuken_options['batch'] == true
+           )
           fail ArgumentError, "Could not register #{clazz} for #{queue}, "\
             "because #{worker_class} is already registered for this queue, "\
             "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
@@ -46,12 +49,6 @@ module Shoryuken
 
     def workers(queue)
       [@workers.fetch(queue, [])].flatten
-    end
-
-    private
-
-    def configured_batch?(klass)
-      klass.get_shoryuken_options['batch'] == true
     end
   end
 end
