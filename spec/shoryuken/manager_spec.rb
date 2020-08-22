@@ -129,7 +129,7 @@ RSpec.describe Shoryuken::Manager do
   describe '#dispatch_single_messages' do
     let(:concurrency) { 3 }
 
-    it 'assings messages from batch one by one' do
+    it 'assigns messages from batch one by one' do
       q = polling_strategy.next_queue
       messages = [1, 2, 3]
       expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
