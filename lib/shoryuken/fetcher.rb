@@ -49,7 +49,7 @@ module Shoryuken
 
       shoryuken_queue = Shoryuken::Client.queues(queue.name)
 
-      options[:max_number_of_messages]  = max_number_of_messages(shoryuken_queue, limit, options)
+      options[:max_number_of_messages]  = max_number_of_messages(limit, options)
       options[:message_attribute_names] = %w[All]
       options[:attribute_names]         = %w[All]
 
@@ -58,7 +58,7 @@ module Shoryuken
       shoryuken_queue.receive_messages(options)
     end
 
-    def max_number_of_messages(shoryuken_queue, limit, options)
+    def max_number_of_messages(limit, options)
       [limit, FETCH_LIMIT, options[:max_number_of_messages]].compact.min
     end
 
