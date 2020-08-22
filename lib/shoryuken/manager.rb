@@ -3,6 +3,7 @@ module Shoryuken
     include Util
 
     BATCH_LIMIT = 10
+    FIFO_LIMIT = 10
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
@@ -42,7 +43,13 @@ module Shoryuken
 
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
-      batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
+      if batched_queue?(queue)
+        dispatch_batch(queue)
+      elsif Shoryuken::Client.queues(queue.name).fifo?
+        dispatch_fifo_messages(queue)
+      else
+        dispatch_single_messages(queue)
+      end
     rescue => e
       handle_dispatch_error(e)
     ensure
@@ -81,20 +88,20 @@ module Shoryuken
       assign(queue.name, [patch_batch!(batch)]) if batch.any?
     end
 
-    def dispatch_single_messages(queue)
-      messages = @fetcher.fetch(queue, ready)
-      shoryuken_queue = Shoryuken::Client.queues(queue.name)
-
+    def dispatch_fifo_messages(queue)
+      messages = @fetcher.fetch(queue, FIFO_LIMIT)
       @polling_strategy.messages_found(queue.name, messages.size)
 
-      if shoryuken_queue.fifo?
-        messages
-          .group_by { |message| message.attributes['MessageGroupId'] }
-          .values
-          .each { |group_of_messages| assign(queue.name, group_of_messages) }
-      else
-        messages.each { |message| assign(queue.name, [message]) }
-      end
+      messages
+        .group_by { |message| message.attributes['MessageGroupId'] }
+        .each_value { |group_of_messages| assign(queue.name, group_of_messages) }
+    end
+
+    def dispatch_single_messages(queue)
+      messages = @fetcher.fetch(queue, ready)
+
+      @polling_strategy.messages_found(queue.name, messages.size)
+      messages.each { |message| assign(queue.name, [message]) }
     end
 
     def batched_queue?(queue)

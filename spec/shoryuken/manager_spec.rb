@@ -148,42 +148,40 @@ RSpec.describe Shoryuken::Manager do
       expect_any_instance_of(described_class).to receive(:assign).with(q.name, [3])
       subject.send(:dispatch_single_messages, q)
     end
+  end
 
-    context 'and the queue is FIFO' do
-      it 'assigns messages in groups based on message group ID' do
-        q = polling_strategy.next_queue
-        messages = %w[msg1 msg2 msg3]
+  describe '#dispatch_fifo_messages' do
+    it 'assigns messages in groups based on message group ID' do
+      q = polling_strategy.next_queue
+      messages = %w[msg1 msg2 msg3]
 
-        expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
-        expect(shoryuken_queue).to receive(:fifo?).and_return(true)
+      expect(fetcher).to receive(:fetch).with(q, 10).and_return(messages)
 
-        expect(messages[0]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
-        expect(messages[1]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group2' })
-        expect(messages[2]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+      expect(messages[0]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+      expect(messages[1]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group2' })
+      expect(messages[2]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
 
-        expect_any_instance_of(described_class).to receive(:assign).with(q.name, %w[msg1 msg3])
-        expect_any_instance_of(described_class).to receive(:assign).with(q.name, ['msg2'])
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, %w[msg1 msg3])
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, ['msg2'])
 
-        subject.send(:dispatch_single_messages, q)
-      end
+      subject.send(:dispatch_fifo_messages, q)
+    end
 
-      it 'processes messages in a message group serially' do
-        q = polling_strategy.next_queue
-        messages = %w[msg1 msg2 msg3]
+    it 'processes messages in a message group serially' do
+      q = polling_strategy.next_queue
+      messages = %w[msg1 msg2 msg3]
 
-        expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
-        expect(shoryuken_queue).to receive(:fifo?).and_return(true)
+      expect(fetcher).to receive(:fetch).with(q, 10).and_return(messages)
 
-        expect(messages[0]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
-        expect(messages[1]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
-        expect(messages[2]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+      expect(messages[0]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+      expect(messages[1]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+      expect(messages[2]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
 
-        expect(Shoryuken::Processor).to receive(:process).with(q, 'msg1').ordered
-        expect(Shoryuken::Processor).to receive(:process).with(q, 'msg2').ordered
-        expect(Shoryuken::Processor).to receive(:process).with(q, 'msg3').ordered
+      expect(Shoryuken::Processor).to receive(:process).with(q, 'msg1').ordered
+      expect(Shoryuken::Processor).to receive(:process).with(q, 'msg2').ordered
+      expect(Shoryuken::Processor).to receive(:process).with(q, 'msg3').ordered
 
-        subject.send(:dispatch_single_messages, q)
-      end
+      subject.send(:dispatch_fifo_messages, q)
     end
   end
 end
