@@ -84,9 +84,18 @@ module Shoryuken
 
     def dispatch_single_messages(queue)
       messages = @fetcher.fetch(queue, ready)
+      shoryuken_queue = Shoryuken::Client.queues(queue.name)
 
       @polling_strategy.messages_found(queue.name, messages.size)
-      messages.each { |message| assign(queue.name, [message]) }
+
+      if shoryuken_queue.fifo?
+        messages
+          .group_by { |message| message.attributes['MessageGroupId'] }
+          .values
+          .each { |group_of_messages| assign(queue.name, group_of_messages) }
+      else
+        messages.each { |message| assign(queue.name, [message]) }
+      end
     end
 
     def batched_queue?(queue)

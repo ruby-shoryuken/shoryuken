@@ -15,10 +15,20 @@ RSpec.describe Shoryuken::Manager do
   let(:concurrency) { 1 }
   let(:executor) { Concurrent::ImmediateExecutor.new }
 
+  let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }
+  let(:sqs) { Aws::SQS::Client.new(stub_responses: true, credentials: credentials) }
+  let(:queue_url) { 'https://sqs.eu-west-1.amazonaws.com:6059/0123456789/shoryuken' }
+  let(:shoryuken_queue) { Shoryuken::Queue.new(sqs, queue_url) }
+
   subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency, executor) }
 
   before do
     allow(fetcher).to receive(:fetch).and_return([])
+
+    # Required as Aws::SQS::Client.get_queue_url returns 'String' when responses are stubbed,
+    # which is not accepted by Aws::SQS::Client.get_queue_attributes for :queue_name parameter.
+    allow(queue).to receive(:url).and_return(queue_url)
+    allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(shoryuken_queue)
   end
 
   after do
@@ -137,6 +147,43 @@ RSpec.describe Shoryuken::Manager do
       expect_any_instance_of(described_class).to receive(:assign).with(q.name, [2])
       expect_any_instance_of(described_class).to receive(:assign).with(q.name, [3])
       subject.send(:dispatch_single_messages, q)
+    end
+
+    context 'and the queue is FIFO' do
+      it 'assigns messages in groups based on message group ID' do
+        q = polling_strategy.next_queue
+        messages = %w[msg1 msg2 msg3]
+
+        expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
+        expect(shoryuken_queue).to receive(:fifo?).and_return(true)
+
+        expect(messages[0]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+        expect(messages[1]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group2' })
+        expect(messages[2]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+
+        expect_any_instance_of(described_class).to receive(:assign).with(q.name, %w[msg1 msg3])
+        expect_any_instance_of(described_class).to receive(:assign).with(q.name, ['msg2'])
+
+        subject.send(:dispatch_single_messages, q)
+      end
+
+      it 'processes messages in a message group serially' do
+        q = polling_strategy.next_queue
+        messages = %w[msg1 msg2 msg3]
+
+        expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
+        expect(shoryuken_queue).to receive(:fifo?).and_return(true)
+
+        expect(messages[0]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+        expect(messages[1]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+        expect(messages[2]).to receive(:attributes).and_return({ 'MessageGroupId' => 'group1' })
+
+        expect(Shoryuken::Processor).to receive(:process).with(q, 'msg1').ordered
+        expect(Shoryuken::Processor).to receive(:process).with(q, 'msg2').ordered
+        expect(Shoryuken::Processor).to receive(:process).with(q, 'msg3').ordered
+
+        subject.send(:dispatch_single_messages, q)
+      end
     end
   end
 end
