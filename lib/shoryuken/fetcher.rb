@@ -59,17 +59,6 @@ module Shoryuken
     end
 
     def max_number_of_messages(shoryuken_queue, limit, options)
-      # For FIFO queues we want to make sure we process one message per group at a time
-      # if we set max_number_of_messages greater than 1,
-      # SQS may return more than one message for the same message group
-      # since Shoryuken uses threads, it will try to process more than one message at once
-      # > The message group ID is the tag that specifies that a message belongs to a specific message group.
-      # > Messages that belong to the same message group are always processed one by one,
-      # > in a strict order relative to the message group
-      # > (however, messages that belong to different message groups might be processed out of order).
-      # > https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html
-      limit = 1 if shoryuken_queue.fifo? && !batched_queue?(shoryuken_queue)
-
       [limit, FETCH_LIMIT, options[:max_number_of_messages]].compact.min
     end
 
