@@ -68,12 +68,11 @@ module Shoryuken
 
       @busy_processors.increment
 
-      base_promise = Concurrent::Promise.new(executor: @executor)
-      promise_chain = sqs_msgs.reduce(base_promise) do |chain, sqs_msg|
-        chain.then { Processor.process(queue_name, sqs_msg) }
+      promise = Concurrent::Promise.execute(executor: @executor) do
+        sqs_msgs.each { |sqs_msg| Processor.process(queue_name, sqs_msg) }
       end
 
-      promise_chain.then { processor_done }.rescue { processor_done }.execute
+      promise.then { processor_done }.rescue { processor_done }
     end
 
     def dispatch_batch(queue)
