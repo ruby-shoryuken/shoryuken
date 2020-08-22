@@ -133,9 +133,9 @@ RSpec.describe Shoryuken::Manager do
       q = polling_strategy.next_queue
       messages = [1, 2, 3]
       expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, 1)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, 2)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, 3)
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, [1])
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, [2])
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, [3])
       subject.send(:dispatch_single_messages, q)
     end
   end

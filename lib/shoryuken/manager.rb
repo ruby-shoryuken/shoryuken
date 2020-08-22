@@ -61,29 +61,32 @@ module Shoryuken
       @busy_processors.decrement
     end
 
-    def assign(queue_name, sqs_msg)
+    def assign(queue_name, sqs_msgs)
       return unless running?
 
-      logger.debug { "Assigning #{sqs_msg.message_id}" }
+      logger.debug { "Assigning #{sqs_msgs.map(&:message_id)}" }
 
       @busy_processors.increment
 
-      Concurrent::Promise.execute(
-        executor: @executor
-      ) { Processor.process(queue_name, sqs_msg) }.then { processor_done }.rescue { processor_done }
+      base_promise = Concurrent::Promise.new(executor: @executor)
+      promise_chain = sqs_msgs.reduce(base_promise) do |chain, sqs_msg|
+        chain.then { Processor.process(queue_name, sqs_msg) }
+      end
+
+      promise_chain.then { processor_done }.rescue { processor_done }.execute
     end
 
     def dispatch_batch(queue)
       batch = @fetcher.fetch(queue, BATCH_LIMIT)
       @polling_strategy.messages_found(queue.name, batch.size)
-      assign(queue.name, patch_batch!(batch)) if batch.any?
+      assign(queue.name, [patch_batch!(batch)]) if batch.any?
     end
 
     def dispatch_single_messages(queue)
       messages = @fetcher.fetch(queue, ready)
 
       @polling_strategy.messages_found(queue.name, messages.size)
-      messages.each { |message| assign(queue.name, message) }
+      messages.each { |message| assign(queue.name, [message]) }
     end
 
     def batched_queue?(queue)
