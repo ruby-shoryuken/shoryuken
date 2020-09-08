@@ -106,8 +106,6 @@ RSpec.describe Shoryuken::Fetcher do
       let(:queue) { instance_double('Shoryuken::Queue', fifo?: true, name: queue_name) }
 
       it 'polls the provided limit' do
-        # see https://github.com/phstc/shoryuken/pull/530
-
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
         expect(queue).to receive(:receive_messages).with(
           max_number_of_messages: limit, attribute_names: ['All'], message_attribute_names: ['All']
