@@ -1,4 +1,4 @@
-## [v5.0.5] - 2020-02-20
+## [v5.0.5] - 2020-06-07
 
 - Add ability to configure queue by ARN
   - [#603](https://github.com/phstc/shoryuken/pull/603)
