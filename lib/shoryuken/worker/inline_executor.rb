@@ -28,13 +28,16 @@ module Shoryuken
         private
 
         def call(worker_class, sqs_msg)
-          parsed_body = BodyParser.parse(worker_class, sqs_msg)
-          batch = worker_class.shoryuken_options_hash['batch']
-          args = batch ? [[sqs_msg], [parsed_body]] : [sqs_msg, parsed_body]
           worker = worker_class.new
           worker_class.server_middleware.invoke(worker, 'default', sqs_msg, sqs_msg.body) do
-            worker.perform(*args)
+            worker.perform(*perform_arguments(worker_class, sqs_msg))
           end
+        end
+
+        def perform_arguments(worker_class, sqs_msg)
+          parsed_body = BodyParser.parse(worker_class, sqs_msg)
+          batch = worker_class.shoryuken_options_hash['batch']
+          batch ? [[sqs_msg], [parsed_body]] : [sqs_msg, parsed_body]
         end
       end
     end
