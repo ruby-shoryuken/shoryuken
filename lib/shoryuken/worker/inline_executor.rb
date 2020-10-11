@@ -31,7 +31,10 @@ module Shoryuken
           parsed_body = BodyParser.parse(worker_class, sqs_msg)
           batch = worker_class.shoryuken_options_hash['batch']
           args = batch ? [[sqs_msg], [parsed_body]] : [sqs_msg, parsed_body]
-          worker_class.new.perform(*args)
+          worker = worker_class.new
+          worker_class.server_middleware.invoke(worker, 'default', sqs_msg, sqs_msg.body) do
+            worker.perform(*args)
+          end
         end
       end
     end
