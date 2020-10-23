@@ -61,22 +61,13 @@ module ActiveJob
         end
 
         msg[:message_body] = body
-        msg[:message_attributes] = message_attributes
+        msg[:message_attributes] = MESSAGE_ATTRIBUTES
 
         msg.merge(options)
       end
 
       def register_worker!(job)
         Shoryuken.register_worker(job.queue_name, JobWrapper)
-      end
-
-      def message_attributes
-        @message_attributes ||= {
-          'shoryuken_class' => {
-            string_value: JobWrapper.to_s,
-            data_type: 'String'
-          }
-        }
       end
 
       class JobWrapper #:nodoc:
@@ -88,6 +79,13 @@ module ActiveJob
           Base.execute hash
         end
       end
+
+      MESSAGE_ATTRIBUTES = {
+        'shoryuken_class' => {
+          string_value: JobWrapper.to_s,
+          data_type: 'String'
+        }
+      }.freeze
     end
   end
 end
