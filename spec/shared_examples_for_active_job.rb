@@ -19,6 +19,9 @@ RSpec.shared_examples 'active_job_adapters' do
     specify do
       expect(queue).to receive(:send_message) do |hash|
         expect(hash[:message_deduplication_id]).to_not be
+        expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(described_class::JobWrapper.to_s)
+        expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq("String")
+        expect(hash[:message_attributes].keys).to eq(['shoryuken_class'])
       end
       expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
 
@@ -37,6 +40,27 @@ RSpec.shared_examples 'active_job_adapters' do
         expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
 
         subject.enqueue(job)
+      end
+    end
+
+    context 'with additional message attributes' do
+      it 'should combine with activejob attributes' do
+        custom_message_attributes = {
+          'tracer_id' => {
+            string_value: SecureRandom.hex,
+            data_type: 'String'
+          }
+        }
+
+        expect(queue).to receive(:send_message) do |hash|
+          expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(described_class::JobWrapper.to_s)
+          expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq("String")
+          expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(custom_message_attributes['tracer_id'][:string_value])
+          expect(hash[:message_attributes]['tracer_id'][:data_type]).to eq("String")
+        end
+        expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+
+        subject.enqueue(job, message_attributes: custom_message_attributes)
       end
     end
   end
