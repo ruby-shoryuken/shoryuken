@@ -70,7 +70,10 @@ module Shoryuken
             ::Rails.application.config.eager_load = true
           end
         end
-        require 'shoryuken/extensions/active_job_adapter' if Shoryuken.active_job?
+        if Shoryuken.active_job?
+          require 'shoryuken/extensions/active_job_adapter'
+          require 'shoryuken/extensions/active_job_concurrent_send_adapter'
+        end
         require File.expand_path('config/environment.rb')
       end
     end
