@@ -167,6 +167,7 @@ module Shoryuken
         m.add Middleware::Server::ExponentialBackoffRetry
         m.add Middleware::Server::AutoDelete
         m.add Middleware::Server::AutoExtendVisibility
+        m.add Middleware::Server::UnpauseQueue
         if defined?(::ActiveRecord::Base)
           require 'shoryuken/middleware/server/active_record'
           m.add Middleware::Server::ActiveRecord

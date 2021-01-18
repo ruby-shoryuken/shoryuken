@@ -2,28 +2,29 @@ module Shoryuken
   class Processor
     include Util
 
-    attr_reader :queue, :sqs_msg
+    attr_reader :queue, :sqs_msg, :polling_strategy
 
-    def self.process(queue, sqs_msg)
-      new(queue, sqs_msg).process
+    def self.process(queue, sqs_msg, polling_strategy)
+      new(queue, sqs_msg, polling_strategy).process
     end
 
-    def initialize(queue, sqs_msg)
+    def initialize(queue, sqs_msg, polling_strategy)
       @queue   = queue
       @sqs_msg = sqs_msg
+      @polling_strategy = polling_strategy
     end
 
     def process
       return logger.error { "No worker found for #{queue}" } unless worker
 
       Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id}") do
-        worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
+        worker.class.server_middleware.invoke(worker, queue, sqs_msg, body, polling_strategy) do
           worker.perform(sqs_msg, body)
         end
       end
-    rescue Exception => ex
-      logger.error { "Processor failed: #{ex.message}" }
-      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+    rescue Exception => e
+      logger.error { "Processor failed: #{e.message}" }
+      logger.error { e.backtrace.join("\n") } unless e.backtrace.nil?
 
       raise
     end

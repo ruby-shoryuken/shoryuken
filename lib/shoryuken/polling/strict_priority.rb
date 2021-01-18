@@ -38,6 +38,10 @@ module Shoryuken
           .reverse
       end
 
+      def unpause_queue(queue)
+        @paused_until[queue] = Time.now
+      end
+
       private
 
       def next_active_queue
@@ -70,6 +74,7 @@ module Shoryuken
 
       def pause(queue)
         return unless delay > 0
+
         @paused_until[queue] = Time.now + delay
         logger.debug "Paused #{queue}"
       end

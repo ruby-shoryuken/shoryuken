@@ -70,7 +70,7 @@ module Shoryuken
 
       Concurrent::Promise.execute(
         executor: @executor
-      ) { Processor.process(queue_name, sqs_msg) }.then { processor_done }.rescue { processor_done }
+      ) { Processor.process(queue_name, sqs_msg, @polling_strategy) }.then { processor_done }.rescue { processor_done }
     end
 
     def dispatch_batch(queue)
