@@ -6,7 +6,7 @@ module Shoryuken
 
         EXTEND_UPFRONT_SECONDS = 5
 
-        def call(worker, queue, sqs_msg, body, _strategy = nil)
+        def call(worker, queue, sqs_msg, body)
           return yield unless worker.class.auto_visibility_timeout?
 
           if sqs_msg.is_a?(Array)
@@ -35,9 +35,9 @@ module Shoryuken
                 end
 
                 sqs_msg.change_visibility(visibility_timeout: queue_visibility_timeout)
-              rescue => e
+              rescue => ex
                 logger.error do
-                  "Could not auto extend the message #{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{e.message}"
+                  "Could not auto extend the message #{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{ex.message}"
                 end
               end
             end

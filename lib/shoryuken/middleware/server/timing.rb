@@ -4,7 +4,7 @@ module Shoryuken
       class Timing
         include Util
 
-        def call(_worker, queue, _sqs_msg, _body, _strategy = nil)
+        def call(_worker, queue, _sqs_msg, _body)
           started_at = Time.now
 
           logger.info { "started at #{started_at}" }

@@ -4,7 +4,7 @@ module Shoryuken
       class ExponentialBackoffRetry
         include Util
 
-        def call(worker, _queue, sqs_msg, _body, _strategy = nil)
+        def call(worker, _queue, sqs_msg, _body)
           return yield unless worker.class.exponential_backoff?
 
           if sqs_msg.is_a?(Array)
@@ -14,7 +14,7 @@ module Shoryuken
 
           started_at = Time.now
           yield
-        rescue => e
+        rescue => ex
           retry_intervals = worker.class.get_shoryuken_options['retry_intervals']
 
           if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
@@ -23,9 +23,9 @@ module Shoryuken
             raise
           end
 
-          logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{e.message}" }
+          logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{ex.message}" }
           # since we didn't raise, lets log the backtrace for debugging purposes.
-          logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
+          logger.debug { ex.backtrace.join("\n") } unless ex.backtrace.nil?
         end
 
         private
