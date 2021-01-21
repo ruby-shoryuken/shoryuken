@@ -39,6 +39,7 @@ module Shoryuken
       end
 
       def unpause_queue(queue)
+        logger.debug "Unpausing #{queue}"
         @paused_until[queue] = Time.now
       end
 

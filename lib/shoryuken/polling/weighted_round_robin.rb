@@ -38,7 +38,7 @@ module Shoryuken
       def unpause_queue(queue)
         return if @paused_queues.empty?
 
-        logger.debug "Unapusing #{queue}"
+        logger.debug "Unpausing #{queue}"
         @paused_queues.reject! { |_time, name| name == queue }
         @queues << queue
         @queues.uniq!
