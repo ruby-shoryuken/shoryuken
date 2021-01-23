@@ -148,17 +148,17 @@ RSpec.describe Shoryuken::Manager do
     end
 
     context 'when queue.fifo? is true' do
-      it 'calls unpause_queue on strategy' do
+      it 'calls message_processed on strategy' do
         expect(sqs_queue).to receive(:fifo?).and_return(true)
-        expect(polling_strategy).to receive(:unpause_queue).with(queue)
+        expect(polling_strategy).to receive(:message_processed).with(queue)
         subject.send(:processor_done, queue)
       end
     end
 
     context 'when queue.fifo? is false' do
-      it 'does not call unpause_queue on strategy' do
+      it 'does not call message_processed on strategy' do
         expect(sqs_queue).to receive(:fifo?).and_return(false)
-        expect(polling_strategy).to_not receive(:unpause_queue)
+        expect(polling_strategy).to_not receive(:message_processed)
         subject.send(:processor_done, queue)
       end
     end

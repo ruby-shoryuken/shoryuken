@@ -61,8 +61,9 @@ module Shoryuken
       @busy_processors.decrement
       client_queue = Shoryuken::Client.queues(queue)
       return unless client_queue.fifo?
+      return unless @polling_strategy.respond_to?(:message_processed)
 
-      @polling_strategy.unpause_queue(queue)
+      @polling_strategy.message_processed(queue)
     end
 
     def assign(queue_name, sqs_msg)

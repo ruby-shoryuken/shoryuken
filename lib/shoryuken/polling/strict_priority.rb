@@ -38,7 +38,7 @@ module Shoryuken
           .reverse
       end
 
-      def unpause_queue(queue)
+      def message_processed(queue)
         logger.debug "Unpausing #{queue}"
         @paused_until[queue] = Time.now
       end

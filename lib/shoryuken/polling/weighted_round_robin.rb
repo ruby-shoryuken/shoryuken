@@ -35,7 +35,7 @@ module Shoryuken
         unparse_queues(@queues)
       end
 
-      def unpause_queue(queue)
+      def message_processed(queue)
         return if @paused_queues.empty?
 
         logger.debug "Unpausing #{queue}"

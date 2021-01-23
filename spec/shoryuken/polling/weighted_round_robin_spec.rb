@@ -105,12 +105,12 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
     end
   end
 
-  describe '#unpause_queue' do
+  describe '#message_processed' do
     it 'removes paused queue, adds to active queues' do
       strategy = Shoryuken::Polling::WeightedRoundRobin.new([queue1, queue2])
       strategy.send(:pause, queue1)
       expect(strategy.active_queues).to eq([[queue2, 1]])
-      strategy.unpause_queue(queue1)
+      strategy.message_processed(queue1)
       expect(strategy.active_queues).to eq([[queue2, 1], [queue1, 1]])
     end
   end
