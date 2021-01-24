@@ -53,30 +53,23 @@ module ActiveJob
       def message(queue, job, options = {})
         body = job.serialize
 
-        msg = {}
+        attributes = options.delete(:message_attributes) || {}
+
+        msg = {
+          message_body: body,
+          message_attributes: attributes.merge(MESSAGE_ATTRIBUTES)
+        }
 
         if queue.fifo?
           # See https://github.com/phstc/shoryuken/issues/457
           msg[:message_deduplication_id] = Digest::SHA256.hexdigest(JSON.dump(body.except('job_id')))
         end
 
-        msg[:message_body] = body
-        msg[:message_attributes] = message_attributes
-
         msg.merge(options)
       end
 
       def register_worker!(job)
         Shoryuken.register_worker(job.queue_name, JobWrapper)
-      end
-
-      def message_attributes
-        @message_attributes ||= {
-          'shoryuken_class' => {
-            string_value: JobWrapper.to_s,
-            data_type: 'String'
-          }
-        }
       end
 
       class JobWrapper #:nodoc:
@@ -88,6 +81,13 @@ module ActiveJob
           Base.execute hash
         end
       end
+
+      MESSAGE_ATTRIBUTES = {
+        'shoryuken_class' => {
+          string_value: JobWrapper.to_s,
+          data_type: 'String'
+        }
+      }.freeze
     end
   end
 end
