@@ -40,6 +40,8 @@ module Shoryuken
         fail NotImplementedError
       end
 
+      def message_processed(_queue); end
+
       def active_queues
         fail NotImplementedError
       end
