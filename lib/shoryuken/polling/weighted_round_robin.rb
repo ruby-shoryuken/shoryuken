@@ -35,10 +35,20 @@ module Shoryuken
         unparse_queues(@queues)
       end
 
+      def message_processed(queue)
+        return if @paused_queues.empty?
+
+        logger.debug "Unpausing #{queue}"
+        @paused_queues.reject! { |_time, name| name == queue }
+        @queues << queue
+        @queues.uniq!
+      end
+
       private
 
       def pause(queue)
         return unless @queues.delete(queue)
+
         @paused_queues << [Time.now + delay, queue]
         logger.debug "Paused #{queue}"
       end
@@ -46,6 +56,7 @@ module Shoryuken
       def unpause_queues
         return if @paused_queues.empty?
         return if Time.now < @paused_queues.first[0]
+
         pause = @paused_queues.shift
         @queues << pause[1]
         logger.debug "Unpaused #{pause[1]}"

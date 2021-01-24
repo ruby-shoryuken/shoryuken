@@ -1,3 +1,8 @@
+## [v5.0.6] - 2020-12-30
+
+- Load ShoryukenConcurrentSendAdapter when loading Rails
+  - [#642](https://github.com/phstc/shoryuken/pull/642)
+
 ## [v5.0.5] - 2020-06-07
 
 - Add ability to configure queue by ARN
