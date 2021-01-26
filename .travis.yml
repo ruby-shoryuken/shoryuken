@@ -15,9 +15,9 @@ gemfile:
   - Gemfile.aws-sdk-core-v2
 
 env:
-  - SPEC_ALL=true
+  - SPEC_ALL=true RAKE_TASK=spec
 
-script: bundle exec rspec spec
+script: bundle exec rake "$RAKE_TASK"
 
 before_install:
   - gem install bundler -v '< 2'
