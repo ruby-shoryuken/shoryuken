@@ -21,7 +21,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pry-byebug', '3.9.0'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec'
-  spec.add_development_dependency 'appraisal'
 
   spec.add_dependency 'aws-sdk-core', '>= 2'
   spec.add_dependency 'concurrent-ruby'
