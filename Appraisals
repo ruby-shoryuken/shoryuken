@@ -2,6 +2,10 @@ appraise 'rails_4_2' do
   group :test do
     gem 'activejob', '~> 4.2'
   end
+
+  group :development do
+    remove_gem 'pry-byebug'
+  end
 end
 
 appraise 'rails_5_2' do
