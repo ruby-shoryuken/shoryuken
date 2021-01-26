@@ -17,6 +17,21 @@ gemfile:
 env:
   - SPEC_ALL=true RAKE_TASK=spec
 
+jobs:
+  include:
+  - rvm: 2.2
+    gemfile: gemfiles/rails_4_2.gemfile
+    env: RAKE_TASK=rails_specs
+  - rvm: 2.5
+    gemfile: gemfiles/rails_5_2.gemfile
+    env: RAKE_TASK=rails_specs
+  - rvm: 2.6
+    gemfile: gemfiles/rails_6_0.gemfile
+    env: RAKE_TASK=rails_specs
+  - rvm: 3.0
+    gemfile: gemfiles/rails_6_1.gemfile
+    env: RAKE_TASK=rails_specs
+
 script: bundle exec rake "$RAKE_TASK"
 
 before_install:
