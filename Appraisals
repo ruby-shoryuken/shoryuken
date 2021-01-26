@@ -4,6 +4,7 @@ appraise 'rails_4_2' do
   end
 
   group :development do
+    gem 'appraisal', '~> 2.2'
     remove_gem 'pry-byebug'
   end
 end
