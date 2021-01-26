@@ -4,7 +4,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :test do
-  gem 'activejob', '~> 4'
+  gem 'activejob'
   gem 'aws-sdk-core', '~> 3'
   gem 'aws-sdk-sqs'
   gem 'codeclimate-test-reporter', require: nil
