@@ -66,3 +66,17 @@ For more information check the [wiki page](https://github.com/phstc/shoryuken/wi
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+### Testing
+
+To run all specs against the latest dependency vesions, execute
+
+```sh
+bundle exec rake spec
+```
+
+To run all Rails-related specs against all supported versions of Rails, execute
+
+```sh
+bundle exec appraisal rake rails_specs
+```

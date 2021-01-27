@@ -4,6 +4,9 @@ $stdout.sync = true
 begin
   require 'rspec/core/rake_task'
   RSpec::Core::RakeTask.new(:spec)
+
+  rails_task = RSpec::Core::RakeTask.new(:rails_specs)
+  rails_task.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
 rescue LoadError
 end
 

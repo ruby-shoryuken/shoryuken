@@ -1,7 +1,11 @@
 require 'bundler/setup'
 Bundler.setup
 
-require 'pry-byebug'
+begin
+  require 'pry-byebug'
+rescue LoadError
+end
+
 require 'shoryuken'
 require 'json'
 require 'dotenv'

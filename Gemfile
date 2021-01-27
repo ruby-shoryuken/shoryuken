@@ -4,7 +4,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :test do
-  gem 'activejob', '~> 4'
+  gem 'activejob'
   gem 'aws-sdk-core', '~> 3'
   gem 'aws-sdk-sqs'
   gem 'codeclimate-test-reporter', require: nil
@@ -14,5 +14,7 @@ group :test do
 end
 
 group :development do
+  gem 'appraisal', git: 'https://github.com/thoughtbot/appraisal.git'
+  gem 'pry-byebug', '3.9.0'
   gem 'rubocop'
 end
