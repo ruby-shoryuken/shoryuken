@@ -71,6 +71,7 @@ module Shoryuken
           end
         end
         if Shoryuken.active_job?
+          require 'shoryuken/extensions/active_job_extensions'
           require 'shoryuken/extensions/active_job_adapter'
           require 'shoryuken/extensions/active_job_concurrent_send_adapter'
         end

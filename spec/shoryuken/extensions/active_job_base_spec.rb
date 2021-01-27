@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'active_job'
+require 'shoryuken/extensions/active_job_extensions'
 require 'shoryuken/extensions/active_job_adapter'
 
 RSpec.describe ActiveJob::Base do

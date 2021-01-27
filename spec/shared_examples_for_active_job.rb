@@ -1,6 +1,7 @@
 # rubocop:disable Metrics/BlockLength
 RSpec.shared_examples 'active_job_adapters' do
-  let(:job) { double 'Job', id: '123', queue_name: 'queue' }
+  let(:job_sqs_send_message_parameters) { {} }
+  let(:job) { double 'Job', id: '123', queue_name: 'queue', sqs_send_message_parameters: job_sqs_send_message_parameters }
   let(:fifo) { false }
   let(:queue) { double 'Queue', fifo?: fifo }
 
