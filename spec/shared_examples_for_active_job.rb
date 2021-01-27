@@ -64,6 +64,28 @@ RSpec.shared_examples 'active_job_adapters' do
           subject.enqueue(job, message_group_id: 'options-group-id')
         end
       end
+
+      context 'when message_group_id is specified on the job' do
+        let(:job_sqs_send_message_parameters) { { message_group_id: 'job-group-id' } }
+
+        it 'should enqueue a message with the group_id specified on the job' do
+          expect(queue).to receive(:send_message) do |hash|
+            expect(hash[:message_group_id]).to eq('job-group-id')
+          end
+          subject.enqueue job
+        end
+      end
+
+      context 'when message_group_id is specified on the job and also in options' do
+        let(:job_sqs_send_message_parameters) { { message_group_id: 'job-group-id' } }
+
+        it 'should enqueue a message with the group_id specified in options' do
+          expect(queue).to receive(:send_message) do |hash|
+            expect(hash[:message_group_id]).to eq('options-group-id')
+          end
+          subject.enqueue(job, message_group_id: 'options-group-id')
+        end
+      end
     end
 
     context 'with additional message attributes' do

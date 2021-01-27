@@ -25,5 +25,13 @@ RSpec.describe ActiveJob::Base do
 
       subject.perform_later 1, 2
     end
+
+    it 'passes message_group_id to the queue_adapter' do
+      expect(queue_adapter).to receive(:enqueue) do |job|
+        expect(job.sqs_send_message_parameters[:message_group_id]).to eq('group-2')
+      end
+
+      subject.set(message_group_id: 'group-2').perform_later 1, 2
+    end
   end
 end

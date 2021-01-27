@@ -13,6 +13,12 @@ module Shoryuken
         super(*arguments)
         self.sqs_send_message_parameters = {}
       end
+
+      def enqueue(options = {})
+        sqs_send_message_parameters[:message_group_id] = options[:message_group_id] if options[:message_group_id]
+
+        super
+      end
     end
   end
 end
