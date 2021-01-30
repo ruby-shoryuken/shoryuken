@@ -87,6 +87,24 @@ RSpec.shared_examples 'active_job_adapters' do
     end
   end
 
+  context 'with message_system_attributes' do
+    context 'when message_system_attributes are specified in options' do
+      it 'should enqueue a message with message_system_attributes specified in options' do
+        system_attributes = {
+          'AWSTraceHeader' => {
+            string_value: 'trace_id',
+            data_type: 'String'
+          }
+        }
+        expect(queue).to receive(:send_message) do |hash|
+          expect(hash[:message_system_attributes]['AWSTraceHeader'][:string_value]).to eq('trace_id')
+          expect(hash[:message_system_attributes]['AWSTraceHeader'][:data_type]).to eq('String')
+        end
+        subject.enqueue(job, message_system_attributes: system_attributes)
+      end
+    end
+  end
+
   describe '#enqueue_at' do
     specify do
       delay = 1
