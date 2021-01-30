@@ -16,6 +16,7 @@ module Shoryuken
 
       def enqueue(options = {})
         sqs_send_message_parameters[:message_group_id] = options[:message_group_id] if options[:message_group_id]
+        sqs_send_message_parameters[:message_deduplication_id] = options[:message_deduplication_id] if options[:message_deduplication_id]
 
         super
       end

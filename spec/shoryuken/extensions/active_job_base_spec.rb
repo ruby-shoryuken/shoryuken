@@ -33,5 +33,13 @@ RSpec.describe ActiveJob::Base do
 
       subject.set(message_group_id: 'group-2').perform_later 1, 2
     end
+
+    it 'passes message_deduplication_id to the queue_adapter' do
+      expect(queue_adapter).to receive(:enqueue) do |job|
+        expect(job.sqs_send_message_parameters[:message_deduplication_id]).to eq('dedupe-id')
+      end
+
+      subject.set(message_deduplication_id: 'dedupe-id').perform_later 1, 2
+    end
   end
 end

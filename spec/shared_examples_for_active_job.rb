@@ -52,6 +52,28 @@ RSpec.shared_examples 'active_job_adapters' do
             subject.enqueue(job, message_deduplication_id: 'options-dedupe-id')
           end
         end
+
+        context 'when message_deduplication_id is specified on the job' do
+          let(:job_sqs_send_message_parameters) { { message_deduplication_id: 'job-dedupe-id' } }
+
+          it 'should enqueue a message with the deduplication_id specified on the job' do
+            expect(queue).to receive(:send_message) do |hash|
+              expect(hash[:message_deduplication_id]).to eq('job-dedupe-id')
+            end
+            subject.enqueue job
+          end
+        end
+
+        context 'when message_deduplication_id is specified on the job and also in options' do
+          let(:job_sqs_send_message_parameters) { { message_deduplication_id: 'job-dedupe-id' } }
+
+          it 'should enqueue a message with the deduplication_id specified in options' do
+            expect(queue).to receive(:send_message) do |hash|
+              expect(hash[:message_deduplication_id]).to eq('options-dedupe-id')
+            end
+            subject.enqueue(job, message_deduplication_id: 'options-dedupe-id')
+          end
+        end
       end
     end
 
