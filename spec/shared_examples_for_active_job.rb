@@ -43,6 +43,17 @@ RSpec.shared_examples 'active_job_adapters' do
       end
     end
 
+    context 'with message_group_id' do
+      context 'when message_group_id is specified in options' do
+        it 'should enqueue a message with the group_id specified in options' do
+          expect(queue).to receive(:send_message) do |hash|
+            expect(hash[:message_group_id]).to eq('options-group-id')
+          end
+          subject.enqueue(job, message_group_id: 'options-group-id')
+        end
+      end
+    end
+
     context 'with additional message attributes' do
       it 'should combine with activejob attributes' do
         custom_message_attributes = {
