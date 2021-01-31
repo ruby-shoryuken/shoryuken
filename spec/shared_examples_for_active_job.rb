@@ -129,6 +129,56 @@ RSpec.shared_examples 'active_job_adapters' do
 
         subject.enqueue(job, message_attributes: custom_message_attributes)
       end
+
+      context 'when message_attributes are specified on the job' do
+        let(:job_sqs_send_message_parameters) do
+          {
+            message_attributes: {
+              'tracer_id' => {
+                data_type: 'String',
+                string_value: 'job-value'
+              }
+            }
+          }
+        end
+
+        it 'should enqueue a message with the message_attributes specified on the job' do
+          expect(queue).to receive(:send_message) do |hash|
+            expect(hash[:message_attributes]['tracer_id']).to eq({ data_type: 'String', string_value: 'job-value' })
+            expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String', string_value: described_class::JobWrapper.to_s })
+          end
+          subject.enqueue job
+        end
+      end
+
+      context 'when message_attributes are specified on the job and also in options' do
+        let(:job_sqs_send_message_parameters) do
+          {
+            message_attributes: {
+              'tracer_id' => {
+                data_type: 'String',
+                string_value: 'job-value'
+              }
+            }
+          }
+        end
+
+        it 'should enqueue a message with the message_attributes speficied in options' do
+          custom_message_attributes = {
+            'options_tracer_id' => {
+              string_value: 'options-value',
+              data_type: 'String'
+            }
+          }
+
+          expect(queue).to receive(:send_message) do |hash|
+            expect(hash[:message_attributes]['tracer_id']).to be_nil
+            expect(hash[:message_attributes]['options_tracer_id']).to eq({ data_type: 'String', string_value: 'options-value' })
+            expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String', string_value: described_class::JobWrapper.to_s })
+          end
+          subject.enqueue job, message_attributes: custom_message_attributes
+        end
+      end
     end
   end
 

@@ -41,5 +41,19 @@ RSpec.describe ActiveJob::Base do
 
       subject.set(message_deduplication_id: 'dedupe-id').perform_later 1, 2
     end
+
+    it 'passes message_attributes to the queue_adapter' do
+      message_attributes = {
+        'custom_tracing_id' => {
+          string_value: 'value',
+          data_type: 'String'
+        }
+      }
+      expect(queue_adapter).to receive(:enqueue) do |job|
+        expect(job.sqs_send_message_parameters[:message_attributes]).to eq(message_attributes)
+      end
+
+      subject.set(message_attributes: message_attributes).perform_later 1, 2
+    end
   end
 end
