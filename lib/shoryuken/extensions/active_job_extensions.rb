@@ -15,10 +15,11 @@ module Shoryuken
       end
 
       def enqueue(options = {})
-        sqs_send_message_parameters[:message_group_id] = options[:message_group_id] if options[:message_group_id]
-        sqs_send_message_parameters[:message_deduplication_id] = options[:message_deduplication_id] if options[:message_deduplication_id]
-        sqs_send_message_parameters[:message_attributes] = options[:message_attributes] if options[:message_attributes]
-        sqs_send_message_parameters[:message_system_attributes] = options[:message_system_attributes] if options[:message_system_attributes]
+        sqs_options = options.extract! :message_attributes,
+                                       :message_system_attributes,
+                                       :message_deduplication_id,
+                                       :message_group_id
+        sqs_send_message_parameters.merge! sqs_options
 
         super
       end
