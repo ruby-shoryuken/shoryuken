@@ -198,6 +198,54 @@ RSpec.shared_examples 'active_job_adapters' do
         subject.enqueue(job, message_system_attributes: system_attributes)
       end
     end
+
+    context 'when message_system_attributes are specified on the job' do
+      let(:job_sqs_send_message_parameters) do
+        {
+          message_system_attributes: {
+            'AWSTraceHeader' => {
+              string_value: 'job-value',
+              data_type: 'String'
+            }
+          }
+        }
+      end
+
+      it 'should enqueue a message with the message_system_attributes specified on the job' do
+        expect(queue).to receive(:send_message) do |hash|
+          expect(hash[:message_system_attributes]['AWSTraceHeader']).to eq({ data_type: 'String', string_value: 'job-value' })
+        end
+        subject.enqueue job
+      end
+    end
+
+    context 'when message_system_attributes are specified on the job and also in options' do
+      let(:job_sqs_send_message_parameters) do
+        {
+          message_system_attributes: {
+            'job_trace_header' => {
+              string_value: 'job-value',
+              data_type: 'String'
+            }
+          }
+        }
+      end
+
+      it 'should enqueue a message with the message_system_attributes speficied in options' do
+        custom_message_attributes = {
+          'options_trace_header' => {
+            string_value: 'options-value',
+            data_type: 'String'
+          }
+        }
+
+        expect(queue).to receive(:send_message) do |hash|
+          expect(hash[:message_system_attributes]['job_trace_header']).to be_nil
+          expect(hash[:message_system_attributes]['options_trace_header']).to eq({ data_type: 'String', string_value: 'options-value' })
+        end
+        subject.enqueue job, message_system_attributes: custom_message_attributes
+      end
+    end
   end
 
   describe '#enqueue_at' do

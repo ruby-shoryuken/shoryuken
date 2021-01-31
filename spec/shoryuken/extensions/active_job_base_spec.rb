@@ -55,5 +55,19 @@ RSpec.describe ActiveJob::Base do
 
       subject.set(message_attributes: message_attributes).perform_later 1, 2
     end
+
+    it 'passes message_system_attributes to the queue_adapter' do
+      message_system_attributes = {
+        'AWSTraceHeader' => {
+          string_value: 'trace_id',
+          data_type: 'String'
+        }
+      }
+      expect(queue_adapter).to receive(:enqueue) do |job|
+        expect(job.sqs_send_message_parameters[:message_system_attributes]).to eq(message_system_attributes)
+      end
+
+      subject.set(message_system_attributes: message_system_attributes).perform_later 1, 2
+    end
   end
 end
