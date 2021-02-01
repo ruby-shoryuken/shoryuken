@@ -1,5 +1,8 @@
 module Shoryuken
   module ActiveJobExtensions
+    # Adds an accessor for SQS SendMessage parameters on ActiveJob jobs
+    # (instances of ActiveJob::Base). Shoryuken ActiveJob queue adapters use
+    # these parameters when enqueueing jobs; other adapters can ignore them.
     module SQSSendMessageParametersAccessor
       extend ActiveSupport::Concern
 
@@ -8,6 +11,9 @@ module Shoryuken
       end
     end
 
+    # Initializes SQS SendMessage parameters on instances of ActiveJobe::Base
+    # to the empty hash, and populates it whenever `#enqueue` is called, such
+    # as when using ActiveJob::Base.set.
     module SQSSendMessageParametersSupport
       def initialize(*arguments)
         super(*arguments)
