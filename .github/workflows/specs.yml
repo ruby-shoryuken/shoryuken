@@ -1,0 +1,55 @@
+name: Specs
+
+on: push
+
+jobs:
+  all_specs:
+    name: All Specs
+    strategy:
+      matrix:
+        ruby: ['2.4.4', '2.5.1', '2.6.3']
+        gemfile: ['Gemfile', 'Gemfile.aws-sdk-core-v2']
+    runs-on: ubuntu-20.04
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run specs
+        env:
+          SPEC_ALL: true
+        run: bundle exec rake spec
+  rails_specs:
+    name: Rails Specs
+    strategy:
+      matrix:
+        rails: ['4.2', '5.2', '6.0', '6.1']
+        include:
+          - rails: '4.2'
+            ruby: '2.2'
+            gemfile: gemfiles/rails_4_2.gemfile
+          - rails: '5.2'
+            ruby: '2.5'
+            gemfile: gemfiles/rails_5_2.gemfile
+          - rails: '6.0'
+            ruby: '2.6'
+            gemfile: gemfiles/rails_6_0.gemfile
+          - rails: '6.1'
+            ruby: '3.0'
+            gemfile: gemfiles/rails_6_1.gemfile
+    runs-on: ubuntu-20.04
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run Rails specs
+        run: bundle exec rake rails_specs
