@@ -33,8 +33,10 @@ module ActiveJob
       def enqueue(job, options = {}) #:nodoc:
         register_worker!(job)
 
+        job.sqs_send_message_parameters.merge! options
+
         queue = Shoryuken::Client.queues(job.queue_name)
-        queue.send_message(message(queue, job, options))
+        queue.send_message(message(queue, job))
       end
 
       def enqueue_at(job, timestamp) #:nodoc:
@@ -50,10 +52,11 @@ module ActiveJob
         delay
       end
 
-      def message(queue, job, options = {})
+      def message(queue, job)
         body = job.serialize
+        job_params = job.sqs_send_message_parameters
 
-        attributes = options.delete(:message_attributes) || {}
+        attributes = job_params[:message_attributes] || {}
 
         msg = {
           message_body: body,
@@ -65,7 +68,7 @@ module ActiveJob
           msg[:message_deduplication_id] = Digest::SHA256.hexdigest(JSON.dump(body.except('job_id')))
         end
 
-        msg.merge(options)
+        msg.merge(job_params.except(:message_attributes))
       end
 
       def register_worker!(job)
