@@ -1,0 +1,22 @@
+name: Specs
+
+on: push
+
+jobs:
+  all_specs:
+    name: All Specs
+    strategy:
+      matrix:
+        ruby: ['2.4.4', '2.5.1', '2.6.3']
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run specs
+        env:
+          SPEC_ALL: true
+        run: bundle exec rake spec
