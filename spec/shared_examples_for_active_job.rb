@@ -32,6 +32,13 @@ RSpec.shared_examples 'active_job_adapters' do
       subject.enqueue(job)
     end
 
+    it "should mutate the job's sqs_send_message_parameters reference to match those sent to the queue" do
+      expect(queue).to receive(:send_message) do |options|
+        expect(options).to be(job.sqs_send_message_parameters)
+      end
+      subject.enqueue(job)
+    end
+
     context 'when fifo' do
       let(:fifo) { true }
 
