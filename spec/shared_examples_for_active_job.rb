@@ -1,19 +1,22 @@
+require 'active_job'
+require 'shoryuken/extensions/active_job_extensions'
+
+# Stand-in for a job class specified by the user
+class TestJob < ActiveJob::Base; end
+
 # rubocop:disable Metrics/BlockLength
 RSpec.shared_examples 'active_job_adapters' do
   let(:job_sqs_send_message_parameters) { {} }
-  let(:job) { double 'Job', id: '123', queue_name: 'queue', sqs_send_message_parameters: job_sqs_send_message_parameters }
+  let(:job) do
+    job = TestJob.new
+    job.sqs_send_message_parameters = job_sqs_send_message_parameters
+    job
+  end
   let(:fifo) { false }
   let(:queue) { double 'Queue', fifo?: fifo }
 
   before do
     allow(Shoryuken::Client).to receive(:queues).with(job.queue_name).and_return(queue)
-    allow(job).to receive(:serialize).and_return(
-      'job_class' => 'Worker',
-      'job_id' => job.id,
-      'queue_name' => job.queue_name,
-      'arguments' => nil,
-      'locale' => nil
-    )
   end
 
   describe '#enqueue' do
@@ -26,6 +29,13 @@ RSpec.shared_examples 'active_job_adapters' do
       end
       expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
 
+      subject.enqueue(job)
+    end
+
+    it "should mutate the job's sqs_send_message_parameters reference to match those sent to the queue" do
+      expect(queue).to receive(:send_message) do |options|
+        expect(options).to be(job.sqs_send_message_parameters)
+      end
       subject.enqueue(job)
     end
 
