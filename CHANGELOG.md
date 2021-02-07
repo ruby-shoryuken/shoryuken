@@ -1,3 +1,21 @@
+## [v5.1.0] - 2021-02-06
+
+- Add support for specifying SQS SendMessage parameters with ActiveJob `.set`
+  - [#635](https://github.com/phstc/shoryuken/pull/635)
+  - [#648](https://github.com/phstc/shoryuken/pull/648)
+  - [#651](https://github.com/phstc/shoryuken/pull/651)
+
+- Unpause FIFO queues on worker completion
+  - [#644](https://github.com/phstc/shoryuken/pull/644)
+
+- Add multiple versions of Rails to test matrix
+  - [#647](https://github.com/phstc/shoryuken/pull/647)
+
+- Migrate from Travis CI to Github Actions
+  - [#649](https://github.com/phstc/shoryuken/pull/649)
+  - [#650](https://github.com/phstc/shoryuken/pull/650)
+  - [#652](https://github.com/phstc/shoryuken/pull/652)
+
 ## [v5.0.6] - 2020-12-30
 
 - Load ShoryukenConcurrentSendAdapter when loading Rails
