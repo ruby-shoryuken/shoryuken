@@ -17,6 +17,17 @@ RSpec.describe ActiveJob::Base do
     Object.send :remove_const, :MyWorker
   end
 
+  describe '#perform_now' do
+    it 'allows keyward args' do
+      collaborator = double 'worker collaborator'
+      subject.send(:define_method, :perform) do |**kwargs|
+        collaborator.foo(**kwargs)
+      end
+      expect(collaborator).to receive(:foo).with(foo: 'bar')
+      subject.perform_now foo: 'bar'
+    end
+  end
+
   describe '#perform_later' do
     it 'calls enqueue on the adapter with the expected job' do
       expect(queue_adapter).to receive(:enqueue) do |job|
