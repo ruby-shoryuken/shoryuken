@@ -1,3 +1,8 @@
+## [v5.1.1] - 2021-02-10
+
+- Fix regression in Ruby 3.0 introduced in Shoryuken 5.1.0, where enqueueing jobs with ActiveJob to workers that used keyword arguments would fail
+  - [#654](https://github.com/phstc/shoryuken/pull/654)
+
 ## [v5.1.0] - 2021-02-06
 
 - Add support for specifying SQS SendMessage parameters with ActiveJob `.set`
