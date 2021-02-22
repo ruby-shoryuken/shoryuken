@@ -82,8 +82,10 @@ module ActiveJob
 
         shoryuken_options body_parser: :json, auto_delete: true
 
-        def perform(_sqs_msg, hash)
-          Base.execute hash
+        def perform(sqs_msg, hash)
+          receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
+          past_receives = receive_count - 1
+          Base.execute hash.merge({ 'executions' => past_receives })
         end
       end
 
