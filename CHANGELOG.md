@@ -1,3 +1,8 @@
+## [v5.2.0] - 2021-02-26
+
+- Set `executions` correctly for ActiveJob jobs
+  - [#657](https://github.com/phstc/shoryuken/pull/657)
+
 ## [v5.1.1] - 2021-02-10
 
 - Fix regression in Ruby 3.0 introduced in Shoryuken 5.1.0, where enqueueing jobs with ActiveJob to workers that used keyword arguments would fail
