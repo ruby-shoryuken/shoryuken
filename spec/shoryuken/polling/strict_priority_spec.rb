@@ -145,4 +145,14 @@ RSpec.describe Shoryuken::Polling::StrictPriority do
       expect(subject.next_queue).to eq(queue3)
     end
   end
+
+  describe '#message_processed' do
+    it 'removes paused queue, adds to active queues' do
+      strategy = Shoryuken::Polling::StrictPriority.new([queue1, queue2])
+      strategy.send(:pause, queue1)
+      expect(strategy.active_queues).to eq([[queue2, 1]])
+      strategy.message_processed(queue1)
+      expect(strategy.active_queues).to eq([[queue1, 2], [queue2, 1]])
+    end
+  end
 end

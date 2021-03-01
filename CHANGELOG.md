@@ -1,4 +1,37 @@
-## [v5.0.5] - 2020-02-20
+## [v5.2.0] - 2021-02-26
+
+- Set `executions` correctly for ActiveJob jobs
+  - [#657](https://github.com/phstc/shoryuken/pull/657)
+
+## [v5.1.1] - 2021-02-10
+
+- Fix regression in Ruby 3.0 introduced in Shoryuken 5.1.0, where enqueueing jobs with ActiveJob to workers that used keyword arguments would fail
+  - [#654](https://github.com/phstc/shoryuken/pull/654)
+
+## [v5.1.0] - 2021-02-06
+
+- Add support for specifying SQS SendMessage parameters with ActiveJob `.set`
+  - [#635](https://github.com/phstc/shoryuken/pull/635)
+  - [#648](https://github.com/phstc/shoryuken/pull/648)
+  - [#651](https://github.com/phstc/shoryuken/pull/651)
+
+- Unpause FIFO queues on worker completion
+  - [#644](https://github.com/phstc/shoryuken/pull/644)
+
+- Add multiple versions of Rails to test matrix
+  - [#647](https://github.com/phstc/shoryuken/pull/647)
+
+- Migrate from Travis CI to Github Actions
+  - [#649](https://github.com/phstc/shoryuken/pull/649)
+  - [#650](https://github.com/phstc/shoryuken/pull/650)
+  - [#652](https://github.com/phstc/shoryuken/pull/652)
+
+## [v5.0.6] - 2020-12-30
+
+- Load ShoryukenConcurrentSendAdapter when loading Rails
+  - [#642](https://github.com/phstc/shoryuken/pull/642)
+
+## [v5.0.5] - 2020-06-07
 
 - Add ability to configure queue by ARN
   - [#603](https://github.com/phstc/shoryuken/pull/603)

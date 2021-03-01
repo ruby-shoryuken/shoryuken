@@ -33,8 +33,12 @@ module ActiveJob
       def enqueue(job, options = {}) #:nodoc:
         register_worker!(job)
 
+        job.sqs_send_message_parameters.merge! options
+
         queue = Shoryuken::Client.queues(job.queue_name)
-        queue.send_message(message(queue, job, options))
+        send_message_params = message queue, job
+        job.sqs_send_message_parameters = send_message_params
+        queue.send_message send_message_params
       end
 
       def enqueue_at(job, timestamp) #:nodoc:
@@ -50,33 +54,27 @@ module ActiveJob
         delay
       end
 
-      def message(queue, job, options = {})
+      def message(queue, job)
         body = job.serialize
+        job_params = job.sqs_send_message_parameters
 
-        msg = {}
+        attributes = job_params[:message_attributes] || {}
+
+        msg = {
+          message_body: body,
+          message_attributes: attributes.merge(MESSAGE_ATTRIBUTES)
+        }
 
         if queue.fifo?
           # See https://github.com/phstc/shoryuken/issues/457
           msg[:message_deduplication_id] = Digest::SHA256.hexdigest(JSON.dump(body.except('job_id')))
         end
 
-        msg[:message_body] = body
-        msg[:message_attributes] = message_attributes
-
-        msg.merge(options)
+        msg.merge(job_params.except(:message_attributes))
       end
 
       def register_worker!(job)
         Shoryuken.register_worker(job.queue_name, JobWrapper)
-      end
-
-      def message_attributes
-        @message_attributes ||= {
-          'shoryuken_class' => {
-            string_value: JobWrapper.to_s,
-            data_type: 'String'
-          }
-        }
       end
 
       class JobWrapper #:nodoc:
@@ -84,10 +82,19 @@ module ActiveJob
 
         shoryuken_options body_parser: :json, auto_delete: true
 
-        def perform(_sqs_msg, hash)
-          Base.execute hash
+        def perform(sqs_msg, hash)
+          receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
+          past_receives = receive_count - 1
+          Base.execute hash.merge({ 'executions' => past_receives })
         end
       end
+
+      MESSAGE_ATTRIBUTES = {
+        'shoryuken_class' => {
+          string_value: JobWrapper.to_s,
+          data_type: 'String'
+        }
+      }.freeze
     end
   end
 end

@@ -1,10 +1,12 @@
+**I'm looking for Shoryuken maintainers, are you interested on helping to maintain Shoryuken? Fill up this form https://forms.gle/8kTso8ixa9Sfp6rJ9**
+
 # Shoryuken
 
 ![Shoryuken](shoryuken.jpg)
 
 Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com/sqs/) thread-based message processor.
 
-[![Build Status](https://travis-ci.org/phstc/shoryuken.svg)](https://travis-ci.org/phstc/shoryuken)
+[![Build Status](https://github.com/ruby-shoryuken/shoryuken/workflows/Specs/badge.svg)](https://github.com/ruby-shoryuken/shoryuken/actions)
 [![Code Climate](https://codeclimate.com/github/phstc/shoryuken/badges/gpa.svg)](https://codeclimate.com/github/phstc/shoryuken)
 
 ## Key features
@@ -64,3 +66,17 @@ For more information check the [wiki page](https://github.com/phstc/shoryuken/wi
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+### Testing
+
+To run all specs against the latest dependency vesions, execute
+
+```sh
+bundle exec rake spec
+```
+
+To run all Rails-related specs against all supported versions of Rails, execute
+
+```sh
+bundle exec appraisal rake rails_specs
+```

@@ -57,8 +57,13 @@ module Shoryuken
       @max_processors - busy
     end
 
-    def processor_done
+    def processor_done(queue)
       @busy_processors.decrement
+      client_queue = Shoryuken::Client.queues(queue)
+      return unless client_queue.fifo?
+      return unless @polling_strategy.respond_to?(:message_processed)
+
+      @polling_strategy.message_processed(queue)
     end
 
     def assign(queue_name, sqs_msg)
@@ -68,9 +73,10 @@ module Shoryuken
 
       @busy_processors.increment
 
-      Concurrent::Promise.execute(
-        executor: @executor
-      ) { Processor.process(queue_name, sqs_msg) }.then { processor_done }.rescue { processor_done }
+      Concurrent::Promise
+        .execute(executor: @executor) { Processor.process(queue_name, sqs_msg) }
+        .then { processor_done(queue_name) }
+        .rescue { processor_done(queue_name) }
     end
 
     def dispatch_batch(queue)
