@@ -54,4 +54,4 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Run Rails specs
-        run: bundle exec rake rails_specs
+        run: bundle exec rake spec:rails

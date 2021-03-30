@@ -78,5 +78,5 @@ bundle exec rake spec
 To run all Rails-related specs against all supported versions of Rails, execute
 
 ```sh
-bundle exec appraisal rake rails_specs
+bundle exec appraisal rake spec:rails
 ```
