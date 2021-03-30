@@ -5,8 +5,9 @@ begin
   require 'rspec/core/rake_task'
   RSpec::Core::RakeTask.new(:spec)
 
-  rails_task = RSpec::Core::RakeTask.new(:rails_specs)
-  rails_task.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
+  RSpec::Core::RakeTask.new(:rails_specs) do |t|
+    t.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
+  end
 rescue LoadError
 end
 
