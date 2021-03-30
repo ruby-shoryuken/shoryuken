@@ -12,6 +12,11 @@ begin
     RSpec::Core::RakeTask.new(:rails) do |t|
       t.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
     end
+
+    desc 'Run integration specs only'
+    RSpec::Core::RakeTask.new(:integration) do |t|
+      t.pattern = 'spec/integration/**/*_spec.rb'
+    end
   end
 rescue LoadError
 end

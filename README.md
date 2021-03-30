@@ -69,7 +69,7 @@ For more information check the [wiki page](https://github.com/phstc/shoryuken/wi
 
 ### Testing
 
-To run all specs against the latest dependency vesions, execute
+To run all unit specs against the latest dependency vesions, execute
 
 ```sh
 bundle exec rake spec
@@ -79,4 +79,10 @@ To run all Rails-related specs against all supported versions of Rails, execute
 
 ```sh
 bundle exec appraisal rake spec:rails
+```
+
+To run integration specs, start a mock SQS server on `localhost:5000`. One such option is [cjlarose/moto-sqs-server](https://github.com/cjlarose/moto-sqs-server). Then execute
+
+```sh
+bundle exec rake spec:integration
 ```
