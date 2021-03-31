@@ -3,10 +3,21 @@ $stdout.sync = true
 
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec)
+  RSpec::Core::RakeTask.new(:spec) do |t|
+    t.exclude_pattern = 'spec/integration/**/*_spec.rb'
+  end
 
-  rails_task = RSpec::Core::RakeTask.new(:rails_specs)
-  rails_task.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
+  namespace :spec do
+    desc 'Run Rails specs only'
+    RSpec::Core::RakeTask.new(:rails) do |t|
+      t.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
+    end
+
+    desc 'Run integration specs only'
+    RSpec::Core::RakeTask.new(:integration) do |t|
+      t.pattern = 'spec/integration/**/*_spec.rb'
+    end
+  end
 rescue LoadError
 end
 

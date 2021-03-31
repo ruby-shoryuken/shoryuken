@@ -4,10 +4,29 @@ require 'shoryuken/launcher'
 require 'securerandom'
 
 RSpec.describe Shoryuken::Launcher do
-  describe 'Consuming messages', slow: true do
+  let(:sqs_client) do
+    Aws::SQS::Client.new(
+      region: 'us-east-1',
+      endpoint: 'http://localhost:5000',
+      access_key_id: 'fake',
+      secret_access_key: 'fake'
+    )
+  end
+
+  describe 'Consuming messages' do
     before do
       Aws.config[:stub_responses] = false
-      Aws.config[:region] = 'us-east-1'
+
+      executor = Concurrent::ThreadPoolExecutor.new(min_threads: 4)
+      Shoryuken.launcher_executor = executor
+
+      Shoryuken.configure_client do |config|
+        config.sqs_client = sqs_client
+      end
+
+      Shoryuken.configure_server do |config|
+        config.sqs_client = sqs_client
+      end
 
       StandardWorker.received_messages = 0
 
@@ -25,6 +44,7 @@ RSpec.describe Shoryuken::Launcher do
 
     after do
       Aws.config[:stub_responses] = true
+      Shoryuken.launcher_executor = nil
 
       queue_url = Shoryuken::Client.sqs.get_queue_url(
         queue_name: StandardWorker.get_shoryuken_options['queue']

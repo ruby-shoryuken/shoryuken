@@ -32,9 +32,6 @@ class TestWorker
 end
 
 RSpec.configure do |config|
-  # TODO: Run these tests again on CI
-  config.filter_run_excluding slow: true
-
   config.before do
     Shoryuken::Client.class_variable_set :@@queues, {}
 
