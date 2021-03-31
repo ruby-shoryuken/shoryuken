@@ -12,6 +12,11 @@ jobs:
         ruby: ['2.4.4', '2.5.1', '2.6.3']
         gemfile: ['Gemfile', 'Gemfile.aws-sdk-core-v2']
     runs-on: ubuntu-20.04
+    services:
+      moto_sqs:
+        image: quay.io/cjlarose/moto-sqs-server:1.1.0
+        ports:
+          - 5000:5000
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
@@ -23,6 +28,8 @@ jobs:
           bundler-cache: true
       - name: Run specs
         run: bundle exec rake spec
+      - name: Run integration specs
+        run: bundle exec rake spec:integration
   rails_specs:
     name: Rails Specs
     strategy:
