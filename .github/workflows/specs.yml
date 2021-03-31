@@ -22,8 +22,6 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Run specs
-        env:
-          SPEC_ALL: true
         run: bundle exec rake spec
   rails_specs:
     name: Rails Specs
