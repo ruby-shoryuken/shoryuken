@@ -4,6 +4,8 @@ require 'date'
 module Shoryuken
   module CLI
     class SQS < Base
+      MAX_BATCH_SIZE = 256 * 1024
+
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
@@ -51,10 +53,15 @@ module Shoryuken
           end
         end
 
-        def batch_send(url, messages, messages_per_batch = 10)
-          messages.to_a.flatten.map(&method(:normalize_dump_message)).each_slice(messages_per_batch) do |batch|
-            sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
-              say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
+        def batch_send(url, messages, messages_per_batch = 10, rerun = false)
+          messages.to_a.flatten.map{ |message| rerun == false ? normalize_dump_message(message) : message }.each_slice(messages_per_batch) do |batch|
+            if messages_per_batch == 1 || batch.join.bytesize < MAX_BATCH_SIZE
+              sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
+                say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
+              end
+            else
+              less_messages_per_batch = ((messages_per_batch / 2.0)).ceil
+              batch_send(url, batch, less_messages_per_batch, true)
             end
           end
         end
