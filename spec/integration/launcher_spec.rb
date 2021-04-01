@@ -13,12 +13,15 @@ RSpec.describe Shoryuken::Launcher do
     )
   end
 
+  let(:executor) do
+    Concurrent::ThreadPoolExecutor.new(min_threads: 4)
+  end
+
   describe 'Consuming messages' do
     before do
       Aws.config[:stub_responses] = false
 
-      executor = Concurrent::ThreadPoolExecutor.new(min_threads: 4)
-      Shoryuken.launcher_executor = executor
+      allow(Shoryuken).to receive(:launcher_executor).and_return(executor)
 
       Shoryuken.configure_client do |config|
         config.sqs_client = sqs_client
@@ -44,7 +47,6 @@ RSpec.describe Shoryuken::Launcher do
 
     after do
       Aws.config[:stub_responses] = true
-      Shoryuken.launcher_executor = nil
 
       queue_url = Shoryuken::Client.sqs.get_queue_url(
         queue_name: StandardWorker.get_shoryuken_options['queue']
