@@ -13,12 +13,20 @@ RSpec.describe Shoryuken::Launcher do
     )
   end
 
+  let(:executor) do
+    # We can't use Concurrent.global_io_executor in these tests since once you
+    # shut down a thread pool, you can't start it back up. Instead, we create
+    # one new thread pool executor for each spec. We use a new
+    # CachedThreadPool, since that most closely resembles
+    # Concurrent.global_io_executor
+    Concurrent::CachedThreadPool.new auto_terminate: true
+  end
+
   describe 'Consuming messages' do
     before do
       Aws.config[:stub_responses] = false
 
-      executor = Concurrent::ThreadPoolExecutor.new(min_threads: 4)
-      Shoryuken.launcher_executor = executor
+      allow(Shoryuken).to receive(:launcher_executor).and_return(executor)
 
       Shoryuken.configure_client do |config|
         config.sqs_client = sqs_client
@@ -44,7 +52,6 @@ RSpec.describe Shoryuken::Launcher do
 
     after do
       Aws.config[:stub_responses] = true
-      Shoryuken.launcher_executor = nil
 
       queue_url = Shoryuken::Client.sqs.get_queue_url(
         queue_name: StandardWorker.get_shoryuken_options['queue']

@@ -10,6 +10,10 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
   let(:error_handler) { -> {} }
   let(:success_handler) { -> {} }
 
+  before do
+    allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
+  end
+
   subject { described_class.new(success_handler, error_handler) }
 
   context 'when success' do
