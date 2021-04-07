@@ -61,7 +61,7 @@ module Shoryuken
 
         def batch_send_normalized_messages(url, messages, max_batch_size)
           messages.each_slice(max_batch_size) do |batch|
-            if max_batch_size == 1 || batch.join.bytesize < MAX_BATCH_SIZE
+            if max_batch_size == 1 || batch_payload_size(batch) < MAX_BATCH_SIZE
               sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
               end
@@ -70,6 +70,27 @@ module Shoryuken
               batch_send_normalized_messages(url, batch, new_max_batch_size)
             end
           end
+        end
+
+        def batch_payload_size(messages)
+          messages.sum(&method(:message_size))
+        end
+
+        def message_size(message)
+          attribute_size = (message[:message_attributes] || []).sum do |name, value|
+            name_size = name.to_s.bytesize
+            data_type_size = value[:data_type].bytesize
+            value_size = if value[:string_value]
+                           value[:string_value].bytesize
+                         elsif value[:binary_value]
+                           value[:binary_value].bytesize
+                         end
+            name_size + data_type_size + value_size
+          end
+
+          body_size = message[:message_body].bytesize
+
+          attribute_size + body_size
         end
 
         def find_all(url, limit)
