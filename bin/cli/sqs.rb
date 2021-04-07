@@ -54,15 +54,20 @@ module Shoryuken
           end
         end
 
-        def batch_send(url, messages, messages_per_batch = 10, rerun = false)
-          messages.to_a.flatten.map{ |message| !rerun ? normalize_dump_message(message) : message }.each_slice(messages_per_batch) do |batch|
+        def batch_send(url, messages, messages_per_batch = 10)
+          messages = messages.to_a.flatten.map(&method(:normalize_dump_message))
+          batch_send_normalized_messages url, messages, messages_per_batch
+        end
+
+        def batch_send_normalized_messages(url, messages, messages_per_batch)
+          messages.each_slice(messages_per_batch) do |batch|
             if messages_per_batch == 1 || batch.join.bytesize < MAX_BATCH_SIZE
               sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
               end
             else
               less_messages_per_batch = ((messages_per_batch / 2.0)).ceil
-              batch_send(url, batch, less_messages_per_batch, true)
+              batch_send_normalized_messages(url, batch, less_messages_per_batch)
             end
           end
         end
