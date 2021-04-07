@@ -54,20 +54,20 @@ module Shoryuken
           end
         end
 
-        def batch_send(url, messages, messages_per_batch = 10)
+        def batch_send(url, messages, max_batch_size = 10)
           messages = messages.to_a.flatten.map(&method(:normalize_dump_message))
-          batch_send_normalized_messages url, messages, messages_per_batch
+          batch_send_normalized_messages url, messages, max_batch_size
         end
 
-        def batch_send_normalized_messages(url, messages, messages_per_batch)
-          messages.each_slice(messages_per_batch) do |batch|
-            if messages_per_batch == 1 || batch.join.bytesize < MAX_BATCH_SIZE
+        def batch_send_normalized_messages(url, messages, max_batch_size)
+          messages.each_slice(max_batch_size) do |batch|
+            if max_batch_size == 1 || batch.join.bytesize < MAX_BATCH_SIZE
               sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
               end
             else
-              less_messages_per_batch = ((messages_per_batch / 2.0)).ceil
-              batch_send_normalized_messages(url, batch, less_messages_per_batch)
+              new_max_batch_size = ((max_batch_size / 2.0)).ceil
+              batch_send_normalized_messages(url, batch, new_max_batch_size)
             end
           end
         end
@@ -173,7 +173,7 @@ module Shoryuken
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
-      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'number of messages per batch to send'
+      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'maximum number of messages per batch to send'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 
