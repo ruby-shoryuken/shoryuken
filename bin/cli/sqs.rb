@@ -60,14 +60,25 @@ module Shoryuken
         end
 
         def batch_send_normalized_messages(url, messages, max_batch_size)
-          messages.each_slice(max_batch_size) do |batch|
-            if max_batch_size == 1 || batch_payload_size(batch) < MAX_BATCH_SIZE
+          # Repeatedly take the longest prefix of messages such that
+          # 1. The number of messages is less than or equal to max_batch_size
+          # 2. The total message payload size is less than or equal to the
+          #    batch payload limit
+          while messages.size.positive?
+            batch_size = max_batch_size
+            loop do
+              batch = messages.take batch_size
+
+              unless batch.size == 1 || batch_payload_size(batch) <= MAX_BATCH_SIZE
+                batch_size = batch.size - 1
+                next
+              end
+
               sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
               end
-            else
-              new_max_batch_size = ((max_batch_size / 2.0)).ceil
-              batch_send_normalized_messages(url, batch, new_max_batch_size)
+              messages = messages.drop batch.size
+              break
             end
           end
         end
