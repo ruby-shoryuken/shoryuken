@@ -1,3 +1,18 @@
+## [v5.2.1] - 2021-04-06
+
+- Reduce message batch sizes in `shoryuken sqs requeue` and `shoryuken sqs mv` commands
+  - [#666](https://github.com/ruby-shoryuken/shoryuken/pull/666)
+
+- Fix bug in `shoryuken sqs requeue` and `shoryuken sqs mv` where those commands would exceed the SQS `SendMessageBatch` maximum payload size
+  - [#663](https://github.com/ruby-shoryuken/shoryuken/issues/663)
+  - [#664](https://github.com/ruby-shoryuken/shoryuken/pull/664)
+
+- Remove test stub for `Concurrent.global_io_executor`
+  - [#662](https://github.com/ruby-shoryuken/shoryuken/pull/662)
+
+- Run integration tests on CI
+  - [#660](https://github.com/ruby-shoryuken/shoryuken/pull/660)
+
 ## [v5.2.0] - 2021-02-26
 
 - Set `executions` correctly for ActiveJob jobs
