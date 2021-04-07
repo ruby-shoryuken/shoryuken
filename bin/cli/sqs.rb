@@ -54,17 +54,54 @@ module Shoryuken
           end
         end
 
-        def batch_send(url, messages, messages_per_batch = 10, rerun = false)
-          messages.to_a.flatten.map{ |message| !rerun ? normalize_dump_message(message) : message }.each_slice(messages_per_batch) do |batch|
-            if messages_per_batch == 1 || batch.join.bytesize < MAX_BATCH_SIZE
+        def batch_send(url, messages, max_batch_size = 10)
+          messages = messages.to_a.flatten.map(&method(:normalize_dump_message))
+          batch_send_normalized_messages url, messages, max_batch_size
+        end
+
+        def batch_send_normalized_messages(url, messages, max_batch_size)
+          # Repeatedly take the longest prefix of messages such that
+          # 1. The number of messages is less than or equal to max_batch_size
+          # 2. The total message payload size is less than or equal to the
+          #    batch payload limit
+          while messages.size.positive?
+            batch_size = max_batch_size
+            loop do
+              batch = messages.take batch_size
+
+              unless batch.size == 1 || batch_payload_size(batch) <= MAX_BATCH_SIZE
+                batch_size = batch.size - 1
+                next
+              end
+
               sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
               end
-            else
-              less_messages_per_batch = ((messages_per_batch / 2.0)).ceil
-              batch_send(url, batch, less_messages_per_batch, true)
+              messages = messages.drop batch.size
+              break
             end
           end
+        end
+
+        def batch_payload_size(messages)
+          messages.sum(&method(:message_size))
+        end
+
+        def message_size(message)
+          attribute_size = (message[:message_attributes] || []).sum do |name, value|
+            name_size = name.to_s.bytesize
+            data_type_size = value[:data_type].bytesize
+            value_size = if value[:string_value]
+                           value[:string_value].bytesize
+                         elsif value[:binary_value]
+                           value[:binary_value].bytesize
+                         end
+            name_size + data_type_size + value_size
+          end
+
+          body_size = message[:message_body].bytesize
+
+          attribute_size + body_size
         end
 
         def find_all(url, limit)
@@ -168,7 +205,7 @@ module Shoryuken
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
-      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'number of messages per batch to send'
+      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'maximum number of messages per batch to send'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 
