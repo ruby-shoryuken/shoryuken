@@ -74,7 +74,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['group1'][:queues]).to eq(%w[test_group1_queue1 test_group1_queue2])
     end
 
-    it 'does not prefix url-based queues', pending: 'current behaviour' do
+    it 'does not prefix url-based queues' do
       Shoryuken.options[:queues] = ['https://example.com/test_queue1']
       Shoryuken.options[:groups] = {'group1' => {queues: ['https://example.com/test_group1_queue1']}}
 
