@@ -73,6 +73,16 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['default'][:queues]).to eq(%w[test_queue1 test_queue2 test_queue2])
       expect(Shoryuken.groups['group1'][:queues]).to eq(%w[test_group1_queue1 test_group1_queue2])
     end
+
+    it 'does not prefix url-based queues', pending: 'current behaviour' do
+      Shoryuken.options[:queues] = ['https://example.com/test_queue1']
+      Shoryuken.options[:groups] = {'group1' => {queues: ['https://example.com/test_group1_queue1']}}
+
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to(eq(['https://example.com/test_queue1']))
+      expect(Shoryuken.groups['group1'][:queues]).to(eq(['https://example.com/test_group1_queue1']))
+    end
   end
   describe "#setup_options" do
     let (:cli_queues) { { "queue1"=> 10, "queue2" => 20 } }
