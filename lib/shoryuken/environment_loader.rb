@@ -80,7 +80,7 @@ module Shoryuken
     end
 
     def prefix_active_job_queue_name(queue_name, weight)
-      return [queue_name, weight] if queue_name.start_with?('https://')
+      return [queue_name, weight] if queue_name.start_with?('https://', 'arn:')
 
       queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
       queue_name_delimiter = ::ActiveJob::Base.queue_name_delimiter

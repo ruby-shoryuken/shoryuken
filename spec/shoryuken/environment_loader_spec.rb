@@ -84,7 +84,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['group1'][:queues]).to(eq(['https://example.com/test_group1_queue1']))
     end
 
-    it 'does not prefix arn-based queues', pending: 'current behaviour' do
+    it 'does not prefix arn-based queues' do
       Shoryuken.options[:queues] = ['arn:aws:sqs:fake-region-1:1234:test_queue1']
       Shoryuken.options[:groups] = {'group1' => {queues: ['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']}}
 
