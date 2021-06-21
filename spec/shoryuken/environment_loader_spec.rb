@@ -83,6 +83,16 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['default'][:queues]).to(eq(['https://example.com/test_queue1']))
       expect(Shoryuken.groups['group1'][:queues]).to(eq(['https://example.com/test_group1_queue1']))
     end
+
+    it 'does not prefix arn-based queues', pending: 'current behaviour' do
+      Shoryuken.options[:queues] = ['arn:aws:sqs:fake-region-1:1234:test_queue1']
+      Shoryuken.options[:groups] = {'group1' => {queues: ['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']}}
+
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to(eq(['arn:aws:sqs:fake-region-1:1234:test_queue1']))
+      expect(Shoryuken.groups['group1'][:queues]).to(eq(['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']))
+    end
   end
   describe "#setup_options" do
     let (:cli_queues) { { "queue1"=> 10, "queue2" => 20 } }
