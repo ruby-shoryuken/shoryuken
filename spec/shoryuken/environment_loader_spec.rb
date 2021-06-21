@@ -57,11 +57,11 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       ActiveJob::Base.queue_name_delimiter = '_'
 
       allow(Shoryuken).to receive(:active_job?).and_return(true)
+
+      Shoryuken.active_job_queue_name_prefixing = true
     end
 
     specify do
-      Shoryuken.active_job_queue_name_prefixing = true
-
       Shoryuken.options[:queues] = ['queue1', ['queue2', 2]]
 
       Shoryuken.options[:groups] = {
