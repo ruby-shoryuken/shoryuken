@@ -57,11 +57,11 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       ActiveJob::Base.queue_name_delimiter = '_'
 
       allow(Shoryuken).to receive(:active_job?).and_return(true)
+
+      Shoryuken.active_job_queue_name_prefixing = true
     end
 
     specify do
-      Shoryuken.active_job_queue_name_prefixing = true
-
       Shoryuken.options[:queues] = ['queue1', ['queue2', 2]]
 
       Shoryuken.options[:groups] = {
@@ -72,6 +72,26 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
       expect(Shoryuken.groups['default'][:queues]).to eq(%w[test_queue1 test_queue2 test_queue2])
       expect(Shoryuken.groups['group1'][:queues]).to eq(%w[test_group1_queue1 test_group1_queue2])
+    end
+
+    it 'does not prefix url-based queues' do
+      Shoryuken.options[:queues] = ['https://example.com/test_queue1']
+      Shoryuken.options[:groups] = {'group1' => {queues: ['https://example.com/test_group1_queue1']}}
+
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to(eq(['https://example.com/test_queue1']))
+      expect(Shoryuken.groups['group1'][:queues]).to(eq(['https://example.com/test_group1_queue1']))
+    end
+
+    it 'does not prefix arn-based queues' do
+      Shoryuken.options[:queues] = ['arn:aws:sqs:fake-region-1:1234:test_queue1']
+      Shoryuken.options[:groups] = {'group1' => {queues: ['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']}}
+
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to(eq(['arn:aws:sqs:fake-region-1:1234:test_queue1']))
+      expect(Shoryuken.groups['group1'][:queues]).to(eq(['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']))
     end
   end
   describe "#setup_options" do
