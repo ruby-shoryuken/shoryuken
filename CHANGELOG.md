@@ -1,3 +1,8 @@
+## [v5.2.2] - 2021-06-22
+
+- When using ActiveJob queue name prefixing, avoid applying prefix to queues configured with a URL or ARN
+  - [#667](https://github.com/ruby-shoryuken/shoryuken/pull/667)
+
 ## [v5.2.1] - 2021-04-06
 
 - Reduce message batch sizes in `shoryuken sqs requeue` and `shoryuken sqs mv` commands
