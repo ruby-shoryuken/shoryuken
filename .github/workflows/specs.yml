@@ -9,7 +9,7 @@ jobs:
     name: All Specs
     strategy:
       matrix:
-        ruby: ['2.4.4', '2.5.1', '2.6.3']
+        ruby: ['2.4', '2.5', '2.6', '2.7', '3.0']
         gemfile: ['Gemfile', 'gemfiles/aws_sdk_core_2.gemfile']
     runs-on: ubuntu-20.04
     services:
