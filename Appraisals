@@ -1,3 +1,11 @@
+appraise 'aws_sdk_core_2' do
+  group :test do
+    gem 'aws-sdk-core', '~> 2'
+    gem 'webrick' # required for Ruby 3
+    remove_gem 'aws-sdk-sqs'
+  end
+end
+
 appraise 'rails_4_2' do
   group :test do
     gem 'activejob', '~> 4.2'
