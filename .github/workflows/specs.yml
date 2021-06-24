@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         ruby: ['2.4.4', '2.5.1', '2.6.3']
-        gemfile: ['Gemfile', 'Gemfile.aws-sdk-core-v2']
+        gemfile: ['Gemfile', 'gemfiles/aws_sdk_core_2.gemfile']
     runs-on: ubuntu-20.04
     services:
       moto_sqs:
