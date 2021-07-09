@@ -38,7 +38,7 @@ module Shoryuken
         return sleep(MIN_DISPATCH_INTERVAL)
       end
 
-      fire_event(:dispatch, false, queue_name: queue.name)
+      fire_event(:dispatch, false, busy: busy, queue_name: queue.name, ready: ready)
 
       logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
 
