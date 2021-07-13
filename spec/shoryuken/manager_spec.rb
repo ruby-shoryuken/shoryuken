@@ -15,7 +15,7 @@ RSpec.describe Shoryuken::Manager do
   let(:concurrency) { 1 }
   let(:executor) { Concurrent::ImmediateExecutor.new }
 
-  subject { Shoryuken::Manager.new(fetcher, polling_strategy, concurrency, executor) }
+  subject { Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor) }
 
   before do
     allow(fetcher).to receive(:fetch).and_return([])

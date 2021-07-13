@@ -71,6 +71,7 @@ module Shoryuken
     def create_managers
       Shoryuken.groups.map do |group, options|
         Shoryuken::Manager.new(
+          group,
           Shoryuken::Fetcher.new(group),
           Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.delay(group)),
           options[:concurrency],

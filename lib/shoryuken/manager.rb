@@ -6,7 +6,8 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy, concurrency, executor)
+    def initialize(group, fetcher, polling_strategy, concurrency, executor)
+      @group            = group
       @fetcher          = fetcher
       @polling_strategy = polling_strategy
       @max_processors   = concurrency
