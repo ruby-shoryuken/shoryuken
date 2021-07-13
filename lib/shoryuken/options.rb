@@ -9,6 +9,7 @@ module Shoryuken
       lifecycle_events: {
         startup: [],
         dispatch: [],
+        utilization_update: [],
         quiet: [],
         shutdown: []
       }

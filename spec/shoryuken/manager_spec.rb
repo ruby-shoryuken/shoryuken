@@ -71,6 +71,11 @@ RSpec.describe Shoryuken::Manager do
 
       expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
       expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
+      expect(subject).to receive(:fire_event).with(:utilization_update,
+                                                   false,
+                                                   group: 'default',
+                                                   busy_processors: 1,
+                                                   max_processors: 1)
       expect(Shoryuken::Processor).to receive(:process).with(q, message)
       expect(Shoryuken.logger).to receive(:info).never
 
@@ -99,6 +104,11 @@ RSpec.describe Shoryuken::Manager do
         q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
 
         expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
+        expect(subject).to receive(:fire_event).with(:utilization_update,
+                                                     false,
+                                                     group: 'default',
+                                                     busy_processors: 1,
+                                                     max_processors: 1)
         expect(subject).to receive(:fire_event).with(:dispatch, false, queue_name: q.name)
         allow(subject).to receive(:batched_queue?).with(q).and_return(true)
         expect(Shoryuken::Processor).to receive(:process).with(q, messages)
