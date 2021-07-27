@@ -6,7 +6,8 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
-    def initialize(fetcher, polling_strategy, concurrency, executor)
+    def initialize(group, fetcher, polling_strategy, concurrency, executor)
+      @group            = group
       @fetcher          = fetcher
       @polling_strategy = polling_strategy
       @max_processors   = concurrency
@@ -16,6 +17,7 @@ module Shoryuken
     end
 
     def start
+      fire_utilization_update_event
       dispatch_loop
     end
 
@@ -59,6 +61,8 @@ module Shoryuken
 
     def processor_done(queue)
       @busy_processors.decrement
+      fire_utilization_update_event
+
       client_queue = Shoryuken::Client.queues(queue)
       return unless client_queue.fifo?
       return unless @polling_strategy.respond_to?(:message_processed)
@@ -72,6 +76,7 @@ module Shoryuken
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
       @busy_processors.increment
+      fire_utilization_update_event
 
       Concurrent::Promise
         .execute(executor: @executor) { Processor.process(queue_name, sqs_msg) }
@@ -113,6 +118,14 @@ module Shoryuken
       Process.kill('USR1', Process.pid)
 
       @running.make_false
+    end
+
+    def fire_utilization_update_event
+      fire_event :utilization_update, false, {
+        group: @group,
+        max_processors: @max_processors,
+        busy_processors: busy
+      }
     end
   end
 end
