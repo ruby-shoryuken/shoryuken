@@ -1,3 +1,8 @@
+## [v5.2.3] - 2021-07-29
+
+- Fire new `:utilization_update` event any time a worker pool's utilization changes
+  - [#673](https://github.com/ruby-shoryuken/shoryuken/pull/673)
+
 ## [v5.2.2] - 2021-06-22
 
 - When using ActiveJob queue name prefixing, avoid applying prefix to queues configured with a URL or ARN
