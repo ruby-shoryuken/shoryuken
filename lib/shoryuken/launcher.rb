@@ -28,11 +28,24 @@ module Shoryuken
 
       initiate_stop
 
+      stop_new_dispatching
+      await_dispatching_in_progress
+
       executor.shutdown
       executor.wait_for_termination
     end
 
     private
+
+    def stop_new_dispatching
+      @managers.each do |manager|
+        manager.stop_new_dispatching
+      end
+    end
+
+    def await_dispatching_in_progress
+      sleep(Shoryuken.await_dispatching_timeout) if @managers.any? { |manager| manager.dispatching_in_progress? }
+    end
 
     def executor
       @_executor ||= Shoryuken.launcher_executor || Concurrent.global_io_executor

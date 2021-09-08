@@ -14,11 +14,21 @@ module Shoryuken
       @busy_processors  = Concurrent::AtomicFixnum.new(0)
       @executor         = executor
       @running          = Concurrent::AtomicBoolean.new(true)
+      @stop_new_dispatching  = Concurrent::AtomicBoolean.new(false)
+      @dispatching_in_progress  = Concurrent::AtomicBoolean.new(false)
     end
 
     def start
       fire_utilization_update_event
       dispatch_loop
+    end
+
+    def stop_new_dispatching
+      @stop_new_dispatching.make_true
+    end
+
+    def dispatching_in_progress?
+      @dispatching_in_progress
     end
 
     private
@@ -29,6 +39,7 @@ module Shoryuken
 
     def dispatch_loop
       return unless running?
+      return if @stop_new_dispatching.true?
 
       @executor.post { dispatch }
     end
@@ -85,16 +96,24 @@ module Shoryuken
     end
 
     def dispatch_batch(queue)
+      @dispatching_in_progress.make_true
+
       batch = @fetcher.fetch(queue, BATCH_LIMIT)
       @polling_strategy.messages_found(queue.name, batch.size)
       assign(queue.name, patch_batch!(batch)) if batch.any?
+
+      @dispatching_in_progress.make_false
     end
 
     def dispatch_single_messages(queue)
+      @dispatching_in_progress.make_true
+
       messages = @fetcher.fetch(queue, ready)
 
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
+
+      @dispatching_in_progress.make_false
     end
 
     def batched_queue?(queue)

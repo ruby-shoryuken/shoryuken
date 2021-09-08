@@ -84,7 +84,9 @@ module Shoryuken
     :on,
     :cache_visibility_timeout?,
     :cache_visibility_timeout=,
-    :delay
+    :delay,
+    :await_dispatching_timeout,
+    :await_dispatching_timeout=,
   )
 end
 
