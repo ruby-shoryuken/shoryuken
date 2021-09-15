@@ -7,15 +7,15 @@ module Shoryuken
     MIN_DISPATCH_INTERVAL = 0.1
 
     def initialize(group, fetcher, polling_strategy, concurrency, executor)
-      @group            = group
-      @fetcher          = fetcher
-      @polling_strategy = polling_strategy
-      @max_processors   = concurrency
-      @busy_processors  = Concurrent::AtomicFixnum.new(0)
-      @executor         = executor
-      @running          = Concurrent::AtomicBoolean.new(true)
-      @stop_new_dispatching  = Concurrent::AtomicBoolean.new(false)
-      @dispatching_in_progress  = Concurrent::AtomicBoolean.new(false)
+      @group                = group
+      @fetcher              = fetcher
+      @polling_strategy     = polling_strategy
+      @max_processors       = concurrency
+      @busy_processors      = Concurrent::AtomicFixnum.new(0)
+      @executor             = executor
+      @running              = Concurrent::AtomicBoolean.new(true)
+      @stop_new_dispatching = Concurrent::AtomicBoolean.new(false)
+      @dispatch_mutex       = Mutex.new
     end
 
     def start
@@ -27,8 +27,8 @@ module Shoryuken
       @stop_new_dispatching.make_true
     end
 
-    def dispatching_in_progress?
-      @dispatching_in_progress
+    def await_dispatching_in_progress
+      @dispatch_mutex.synchronize {}
     end
 
     private
@@ -96,24 +96,19 @@ module Shoryuken
     end
 
     def dispatch_batch(queue)
-      @dispatching_in_progress.make_true
-
-      batch = @fetcher.fetch(queue, BATCH_LIMIT)
-      @polling_strategy.messages_found(queue.name, batch.size)
-      assign(queue.name, patch_batch!(batch)) if batch.any?
-
-      @dispatching_in_progress.make_false
+      @dispatch_mutex.synchronize {
+        batch = @fetcher.fetch(queue, BATCH_LIMIT)
+        @polling_strategy.messages_found(queue.name, batch.size)
+        assign(queue.name, patch_batch!(batch)) if batch.any?
+      }
     end
 
     def dispatch_single_messages(queue)
-      @dispatching_in_progress.make_true
-
-      messages = @fetcher.fetch(queue, ready)
-
-      @polling_strategy.messages_found(queue.name, messages.size)
-      messages.each { |message| assign(queue.name, message) }
-
-      @dispatching_in_progress.make_false
+      @dispatch_mutex.synchronize {
+        messages = @fetcher.fetch(queue, ready)
+        @polling_strategy.messages_found(queue.name, messages.size)
+        messages.each { |message| assign(queue.name, message) }
+      }
     end
 
     def batched_queue?(queue)

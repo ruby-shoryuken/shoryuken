@@ -38,13 +38,11 @@ module Shoryuken
     private
 
     def stop_new_dispatching
-      @managers.each do |manager|
-        manager.stop_new_dispatching
-      end
+      @managers.each(&:stop_new_dispatching)
     end
 
     def await_dispatching_in_progress
-      sleep(Shoryuken.await_dispatching_timeout) if @managers.any? { |manager| manager.dispatching_in_progress? }
+      @managers.each(&:await_dispatching_in_progress)
     end
 
     def executor
