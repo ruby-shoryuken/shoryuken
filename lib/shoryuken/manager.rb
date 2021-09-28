@@ -7,20 +7,21 @@ module Shoryuken
     MIN_DISPATCH_INTERVAL = 0.1
 
     def initialize(group, fetcher, polling_strategy, concurrency, executor)
-      @group                = group
-      @fetcher              = fetcher
-      @polling_strategy     = polling_strategy
-      @max_processors       = concurrency
-      @busy_processors      = Concurrent::AtomicFixnum.new(0)
-      @executor             = executor
-      @running              = Concurrent::AtomicBoolean.new(true)
-      @stop_new_dispatching = Concurrent::AtomicBoolean.new(false)
-      @dispatch_mutex       = Mutex.new
+      @group                         = group
+      @fetcher                       = fetcher
+      @polling_strategy              = polling_strategy
+      @max_processors                = concurrency
+      @busy_processors               = Concurrent::AtomicFixnum.new(0)
+      @executor                      = executor
+      @running                       = Concurrent::AtomicBoolean.new(true)
+      @stop_new_dispatching          = Concurrent::AtomicBoolean.new(false)
+      @dispatch_mutex                = Mutex.new
+      @dispatch_mutex_release_signal = ::Queue.new
     end
 
     def start
       fire_utilization_update_event
-      dispatch_loop
+      dispatch_loop(first_run: true)
     end
 
     def stop_new_dispatching
@@ -37,11 +38,21 @@ module Shoryuken
       @running.true? && @executor.running?
     end
 
-    def dispatch_loop
-      return unless running?
-      return if @stop_new_dispatching.true?
+    def dispatch_loop(first_run: false)
+      # dispatch_mutex_release_signal is a queue meant to implement a wait between different threads which could run
+      # that dispatch_loop method. We want it to be empty for the first occurence of the loop, as no other thread is involved yet.
+      @dispatch_mutex_release_signal << 1 if !first_run
 
-      @executor.post { dispatch }
+      @dispatch_mutex.synchronize {
+        return unless running?
+        return if @stop_new_dispatching.true?
+  
+        @executor.post { dispatch }
+
+        # we don't want to release @dispatch_mutex until the next execution of dispatch_loop
+        # pop will wait until there's an element inserted by a subsequent dispatch_loop execution in another thread
+        @dispatch_mutex_release_signal.pop
+      }
     end
 
     def dispatch
@@ -96,19 +107,15 @@ module Shoryuken
     end
 
     def dispatch_batch(queue)
-      @dispatch_mutex.synchronize {
-        batch = @fetcher.fetch(queue, BATCH_LIMIT)
-        @polling_strategy.messages_found(queue.name, batch.size)
-        assign(queue.name, patch_batch!(batch)) if batch.any?
-      }
+      batch = @fetcher.fetch(queue, BATCH_LIMIT)
+      @polling_strategy.messages_found(queue.name, batch.size)
+      assign(queue.name, patch_batch!(batch)) if batch.any?
     end
 
     def dispatch_single_messages(queue)
-      @dispatch_mutex.synchronize {
-        messages = @fetcher.fetch(queue, ready)
-        @polling_strategy.messages_found(queue.name, messages.size)
-        messages.each { |message| assign(queue.name, message) }
-      }
+      messages = @fetcher.fetch(queue, ready)
+      @polling_strategy.messages_found(queue.name, messages.size)
+      messages.each { |message| assign(queue.name, message) }
     end
 
     def batched_queue?(queue)
