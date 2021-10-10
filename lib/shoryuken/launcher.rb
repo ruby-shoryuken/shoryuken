@@ -32,6 +32,14 @@ module Shoryuken
       executor.wait_for_termination
     end
 
+    def healthy?
+      Shoryuken.groups.keys.each do |group|
+        return false unless @managers.find { |m| m.group == group }&.running?
+      end
+
+      true
+    end
+
     private
 
     def executor
