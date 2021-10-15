@@ -1,5 +1,16 @@
 module Shoryuken
   class Message
+    extend SingleForwardable
+
+    def_delegators(:data,
+                   :message_id,
+                   :receipt_handle,
+                   :md5_of_body,
+                   :body,
+                   :attributes,
+                   :md5_of_message_attributes,
+                   :message_attributes)
+
     attr_accessor :client, :queue_url, :queue_name, :data
 
     def initialize(client, queue, data)
@@ -28,34 +39,6 @@ module Shoryuken
         receipt_handle: data.receipt_handle,
         visibility_timeout: timeout
       )
-    end
-
-    def message_id
-      data.message_id
-    end
-
-    def receipt_handle
-      data.receipt_handle
-    end
-
-    def md5_of_body
-      data.md5_of_body
-    end
-
-    def body
-      data.body
-    end
-
-    def attributes
-      data.attributes
-    end
-
-    def md5_of_message_attributes
-      data.md5_of_message_attributes
-    end
-
-    def message_attributes
-      data.message_attributes
     end
   end
 end
