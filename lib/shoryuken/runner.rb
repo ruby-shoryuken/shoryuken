@@ -56,7 +56,7 @@ module Shoryuken
     end
 
     def healthy?
-      @launcher&.healthy? || false
+      (@launcher && @launcher.healthy?) || false
     end
 
     private
