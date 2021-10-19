@@ -23,7 +23,7 @@ Metrics/AbcSize:
   # because codeclimate already give that for us with more details
   Enabled: false
 
-Metrics/LineLength:
+Layout/LineLength:
   Max: 125
 
 Style/Alias:

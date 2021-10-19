@@ -173,4 +173,26 @@ RSpec.describe Shoryuken::Manager do
       end
     end
   end
+
+  describe '#running?' do
+    context 'when the executor is running' do
+      before do
+        allow(executor).to receive(:running?).and_return(true)
+      end
+
+      it 'returns true' do
+        expect(subject.running?).to be true
+      end
+    end
+
+    context 'when the executor is not running' do
+      before do
+        allow(executor).to receive(:running?).and_return(false)
+      end
+
+      it 'returns false' do
+        expect(subject.running?).to be false
+      end
+    end
+  end
 end

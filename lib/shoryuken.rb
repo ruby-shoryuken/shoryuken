@@ -45,6 +45,10 @@ module Shoryuken
     @_shoryuken_options ||= Shoryuken::Options.new
   end
 
+  def self.healthy?
+    Shoryuken::Runner.instance.healthy?
+  end
+
   def_delegators(
     :shoryuken_options,
     :active_job?,
