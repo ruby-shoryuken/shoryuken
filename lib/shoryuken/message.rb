@@ -1,6 +1,6 @@
 module Shoryuken
   class Message
-    extend SingleForwardable
+    extend Forwardable
 
     def_delegators(:data,
                    :message_id,
