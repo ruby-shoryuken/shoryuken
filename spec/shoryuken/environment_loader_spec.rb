@@ -6,7 +6,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
   describe '#parse_queues loads default queues' do
     before do
-      allow(subject).to receive(:load_rails)
+      allow(subject).to receive(:initialize_rails)
       allow(subject).to receive(:prefix_active_job_queue_names)
       allow(subject).to receive(:require_workers)
       allow(subject).to receive(:validate_queues)
@@ -24,7 +24,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
   describe '#parse_queues includes delay per groups' do
     before do
-      allow(subject).to receive(:load_rails)
+      allow(subject).to receive(:initialize_rails)
       allow(subject).to receive(:prefix_active_job_queue_names)
       allow(subject).to receive(:require_workers)
       allow(subject).to receive(:validate_queues)
@@ -47,7 +47,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
   describe '#prefix_active_job_queue_names' do
     before do
-      allow(subject).to receive(:load_rails)
+      allow(subject).to receive(:initialize_rails)
       allow(subject).to receive(:require_workers)
       allow(subject).to receive(:validate_queues)
       allow(subject).to receive(:validate_workers)

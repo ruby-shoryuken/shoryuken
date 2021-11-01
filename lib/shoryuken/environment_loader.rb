@@ -18,7 +18,7 @@ module Shoryuken
     end
 
     def setup_options
-      load_rails if options[:rails] || Shoryuken.options[:rails]
+      initialize_rails if load_rails?
       initialize_options
       initialize_logger
     end
@@ -55,7 +55,7 @@ module Shoryuken
       Shoryuken.logger.level = Logger::DEBUG if Shoryuken.options[:verbose]
     end
 
-    def load_rails
+    def initialize_rails
       # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
 
       require 'rails'
@@ -77,6 +77,10 @@ module Shoryuken
         end
         require File.expand_path('config/environment.rb')
       end
+    end
+
+    def load_rails?
+      options[:rails] || Shoryuken.options[:rails]
     end
 
     def prefix_active_job_queue_name(queue_name, weight)
