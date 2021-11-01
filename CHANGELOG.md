@@ -1,3 +1,11 @@
+## [v5.3.0] - 2021-10-31
+
+- (Refactor) Use Forwardable within Message to avoid method boilerplate
+  - [#681](https://github.com/ruby-shoryuken/shoryuken/pull/681)
+
+- Add basic health check API
+  - [#679](https://github.com/ruby-shoryuken/shoryuken/pull/679)
+
 ## [v5.2.3] - 2021-07-29
 
 - Fire new `:utilization_update` event any time a worker pool's utilization changes
