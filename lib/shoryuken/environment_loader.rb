@@ -18,7 +18,7 @@ module Shoryuken
     end
 
     def setup_options
-      load_rails if Shoryuken.options[:rails]
+      load_rails if options[:rails] || Shoryuken.options[:rails]
       initialize_options
       initialize_logger
     end
