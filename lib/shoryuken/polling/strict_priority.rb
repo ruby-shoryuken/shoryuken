@@ -39,8 +39,10 @@ module Shoryuken
       end
 
       def message_processed(queue)
-        logger.debug "Unpausing #{queue}"
-        @paused_until[queue] = Time.at 0
+        if queue_paused?(queue)
+          logger.debug "Unpausing #{queue}"
+          @paused_until[queue] = Time.at 0
+        end
       end
 
       private
