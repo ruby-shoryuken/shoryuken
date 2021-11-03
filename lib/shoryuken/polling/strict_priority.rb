@@ -40,7 +40,7 @@ module Shoryuken
 
       def message_processed(queue)
         logger.debug "Unpausing #{queue}"
-        @paused_until[queue] = Time.now
+        @paused_until[queue] = Time.at 0
       end
 
       private
