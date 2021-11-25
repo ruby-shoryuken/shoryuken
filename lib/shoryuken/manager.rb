@@ -17,13 +17,12 @@ module Shoryuken
       @executor                      = executor
       @running                       = Concurrent::AtomicBoolean.new(true)
       @stop_new_dispatching          = Concurrent::AtomicBoolean.new(false)
-      @dispatch_mutex                = Mutex.new
       @dispatch_mutex_release_signal = ::Queue.new
     end
 
     def start
       fire_utilization_update_event
-      dispatch_loop(first_run: true)
+      dispatch_loop
     end
 
     def stop_new_dispatching
@@ -31,7 +30,8 @@ module Shoryuken
     end
 
     def await_dispatching_in_progress
-      @dispatch_mutex.synchronize {}
+      # this is executed in the main thread
+      @dispatch_mutex_release_signal.pop
     end
 
     def running?
@@ -40,21 +40,13 @@ module Shoryuken
 
     private
 
-    def dispatch_loop(first_run: false)
-      # dispatch_mutex_release_signal is a queue meant to implement a wait between different threads which could run
-      # that dispatch_loop method. We want it to be empty for the first occurence of the loop, as no other thread is involved yet.
-      @dispatch_mutex_release_signal << 1 if !first_run
+    def dispatch_loop
+      if @stop_new_dispatching.true? || !running?
+        @dispatch_mutex_release_signal << 1
+        return
+      end
 
-      @dispatch_mutex.synchronize {
-        return unless running?
-        return if @stop_new_dispatching.true?
-  
-        @executor.post { dispatch }
-
-        # we don't want to release @dispatch_mutex until the next execution of dispatch_loop
-        # pop will wait until there's an element inserted by a subsequent dispatch_loop execution in another thread
-        @dispatch_mutex_release_signal.pop
-      }
+      @executor.post { dispatch }
     end
 
     def dispatch
