@@ -9,18 +9,31 @@ module Shoryuken
     attr_reader :group
 
     def initialize(group, fetcher, polling_strategy, concurrency, executor)
-      @group            = group
-      @fetcher          = fetcher
-      @polling_strategy = polling_strategy
-      @max_processors   = concurrency
-      @busy_processors  = Concurrent::AtomicFixnum.new(0)
-      @executor         = executor
-      @running          = Concurrent::AtomicBoolean.new(true)
+      @group                      = group
+      @fetcher                    = fetcher
+      @polling_strategy           = polling_strategy
+      @max_processors             = concurrency
+      @busy_processors            = Concurrent::AtomicFixnum.new(0)
+      @executor                   = executor
+      @running                    = Concurrent::AtomicBoolean.new(true)
+      @stop_new_dispatching       = Concurrent::AtomicBoolean.new(false)
+      @dispatching_release_signal = ::Queue.new
     end
 
     def start
       fire_utilization_update_event
       dispatch_loop
+    end
+
+    def stop_new_dispatching
+      @stop_new_dispatching.make_true
+    end
+
+    def await_dispatching_in_progress
+      # There might still be a dispatching on-going, as the response from SQS could take some time
+      # We don't want to stop the process before processing incoming messages, as they would stay "in-flight" for some time on SQS
+      # We use a queue, as the dispatch_loop is running on another thread, and this is a efficient way of communicating between threads.
+      @dispatching_release_signal.pop
     end
 
     def running?
@@ -30,7 +43,10 @@ module Shoryuken
     private
 
     def dispatch_loop
-      return unless running?
+      if @stop_new_dispatching.true? || !running?
+        @dispatching_release_signal << 1
+        return
+      end
 
       @executor.post { dispatch }
     end
@@ -94,7 +110,6 @@ module Shoryuken
 
     def dispatch_single_messages(queue)
       messages = @fetcher.fetch(queue, ready)
-
       @polling_strategy.messages_found(queue.name, messages.size)
       messages.each { |message| assign(queue.name, message) }
     end
