@@ -55,6 +55,10 @@ module Shoryuken
       end
     end
 
+    def healthy?
+      (@launcher && @launcher.healthy?) || false
+    end
+
     private
 
     def initialize_concurrent_logger

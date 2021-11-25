@@ -6,6 +6,8 @@ module Shoryuken
     # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
+    attr_reader :group
+
     def initialize(group, fetcher, polling_strategy, concurrency, executor)
       @group                         = group
       @fetcher                       = fetcher
@@ -32,11 +34,11 @@ module Shoryuken
       @dispatch_mutex.synchronize {}
     end
 
-    private
-
     def running?
       @running.true? && @executor.running?
     end
+
+    private
 
     def dispatch_loop(first_run: false)
       # dispatch_mutex_release_signal is a queue meant to implement a wait between different threads which could run
