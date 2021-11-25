@@ -9,15 +9,15 @@ module Shoryuken
     attr_reader :group
 
     def initialize(group, fetcher, polling_strategy, concurrency, executor)
-      @group                         = group
-      @fetcher                       = fetcher
-      @polling_strategy              = polling_strategy
-      @max_processors                = concurrency
-      @busy_processors               = Concurrent::AtomicFixnum.new(0)
-      @executor                      = executor
-      @running                       = Concurrent::AtomicBoolean.new(true)
-      @stop_new_dispatching          = Concurrent::AtomicBoolean.new(false)
-      @dispatch_mutex_release_signal = ::Queue.new
+      @group                      = group
+      @fetcher                    = fetcher
+      @polling_strategy           = polling_strategy
+      @max_processors             = concurrency
+      @busy_processors            = Concurrent::AtomicFixnum.new(0)
+      @executor                   = executor
+      @running                    = Concurrent::AtomicBoolean.new(true)
+      @stop_new_dispatching       = Concurrent::AtomicBoolean.new(false)
+      @dispatching_release_signal = ::Queue.new
     end
 
     def start
@@ -30,8 +30,10 @@ module Shoryuken
     end
 
     def await_dispatching_in_progress
-      # this is executed in the main thread
-      @dispatch_mutex_release_signal.pop
+      # There might still be a dispatching on-going, as the response from SQS could take some time
+      # We don't want to stop the process before processing incoming messages, as they would stay "in-flight" for some time on SQS
+      # We use a queue, as the dispatch_loop is running on another thread, and this is a efficient way of communicating between threads.
+      @dispatching_release_signal.pop
     end
 
     def running?
@@ -42,7 +44,7 @@ module Shoryuken
 
     def dispatch_loop
       if @stop_new_dispatching.true? || !running?
-        @dispatch_mutex_release_signal << 1
+        @dispatching_release_signal << 1
         return
       end
 
