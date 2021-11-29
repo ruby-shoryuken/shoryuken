@@ -109,26 +109,33 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
     it 'removes delay from paused queue' do
       queues << queue1
       queues << queue2
-      subject.send(:pause, queue1)
+
+      expect(subject.next_queue).to eq(queue1)
+      subject.messages_found(queue1, 0) # pauses queue1
 
       expect(subject.active_queues).to eq([[queue2, 1]])
-      subject.message_processed(queue1)
-      expect(subject.active_queues).to eq([[queue2, 1]])
-      subject.send(:unpause_queues)
-      expect(subject.active_queues).to eq([[queue2, 1], [queue1, 1]])
+
+      subject.message_processed(queue1) # marks queue1 to be unpaused
+
+      expect(subject.next_queue).to eq(queue2) # implicitly unpauses queue1
+      expect(subject.active_queues).to eq([[queue1, 1], [queue2, 1]])
     end
 
     it 'preserves weight of queues when unpausing' do
       queues << queue1
       queues << queue1
       queues << queue2
+
+      expect(subject.next_queue).to eq(queue1)
       subject.messages_found(queue1, 1)
-      subject.send(:pause, queue2)
+
+      expect(subject.next_queue).to eq(queue2)
+      subject.messages_found(queue2, 0) # pauses queue2
 
       expect(subject.active_queues).to eq([[queue1, 2]])
-      subject.message_processed(queue2)
-      expect(subject.active_queues).to eq([[queue1, 2]])
-      subject.send(:unpause_queues)
+      subject.message_processed(queue2) # marks queue2 to be unpaused
+
+      expect(subject.next_queue).to eq(queue1) # implicitly unpauses queue2
       expect(subject.active_queues).to eq([[queue1, 2], [queue2, 1]])
     end
   end
