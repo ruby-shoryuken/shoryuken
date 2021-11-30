@@ -6,6 +6,7 @@ module Shoryuken
       aws: {},
       delay: 0.0,
       timeout: 8,
+      interval: 0.0,
       lifecycle_events: {
         startup: [],
         dispatch: [],
@@ -35,13 +36,15 @@ module Shoryuken
       defined?(::ActiveJob)
     end
 
-    def add_group(group, concurrency = nil, delay: nil)
+    def add_group(group, concurrency = nil, delay: nil, interval: nil)
       concurrency ||= options[:concurrency]
       delay ||= options[:delay]
+      interval ||= options[:interval]
 
       groups[group] ||= {
         concurrency: concurrency,
         delay: delay,
+        interval: interval,
         queues: []
       }
     end
@@ -72,6 +75,10 @@ module Shoryuken
 
     def delay(group)
       groups[group].to_h.fetch(:delay, options[:delay]).to_f
+    end
+
+    def interval(group)
+      groups[group].to_h.fetch(:interval, options[:interval]).to_f
     end
 
     def sqs_client

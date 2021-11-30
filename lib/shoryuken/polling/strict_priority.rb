@@ -1,7 +1,7 @@
 module Shoryuken
   module Polling
     class StrictPriority < BaseStrategy
-      def initialize(queues, delay = nil)
+      def initialize(queues, delay = nil, options = {})
         # Priority ordering of the queues, highest priority first
         @queues = queues
                   .group_by { |q| q }
@@ -13,6 +13,7 @@ module Shoryuken
                         .each_with_object({}) { |queue, h| h[queue] = Time.at(0) }
 
         @delay = delay
+        @interval = options[:interval]
         # Start queues at 0
         reset_next_queue
       end
@@ -24,7 +25,9 @@ module Shoryuken
 
       def messages_found(queue, messages_found)
         if messages_found == 0
-          pause(queue)
+          delay_pause(queue)
+        elsif interval > 0
+          interval_pause(queue, messages_found)
         else
           reset_next_queue
         end
@@ -39,6 +42,8 @@ module Shoryuken
       end
 
       def message_processed(queue)
+        return if interval > 0
+
         logger.debug "Unpausing #{queue}"
         @paused_until[queue] = Time.now
       end
@@ -73,11 +78,22 @@ module Shoryuken
         @paused_until[queue] > Time.now
       end
 
-      def pause(queue)
+      def delay_pause(queue)
         return unless delay > 0
 
         @paused_until[queue] = Time.now + delay
-        logger.debug "Paused #{queue}"
+        logger.debug "Paused #{queue}, no messages found"
+      end
+
+      def interval_pause(queue, messages_found)
+        return unless interval > 0
+
+        @paused_until[queue] = Time.now + interval * messages_found
+        logger.debug "Paused #{queue}, found #{messages_found} messages"
+      end
+
+      def interval
+        @interval || Shoryuken.options[:interval].to_f
       end
     end
   end

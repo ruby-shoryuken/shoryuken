@@ -124,7 +124,7 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.each do |group, options|
-        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay])
+        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay], interval: options[:interval])
 
         options[:queues].to_a.each do |queue, weight|
           parse_queue(queue, weight, group)

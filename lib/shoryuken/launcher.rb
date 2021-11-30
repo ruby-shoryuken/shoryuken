@@ -88,10 +88,12 @@ module Shoryuken
 
     def create_managers
       Shoryuken.groups.map do |group, options|
+        polling_options = { interval: Shoryuken.interval(group) }
+
         Shoryuken::Manager.new(
           group,
           Shoryuken::Fetcher.new(group),
-          Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.delay(group)),
+          Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.delay(group), polling_options),
           options[:concurrency],
           executor
         )

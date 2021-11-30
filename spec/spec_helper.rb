@@ -41,6 +41,7 @@ RSpec.configure do |config|
 
     Shoryuken.options[:concurrency] = 1
     Shoryuken.options[:delay]       = 1.0
+    Shoryuken.options[:interval]    = nil
     Shoryuken.options[:timeout]     = 1
     Shoryuken.options[:daemon]      = nil
     Shoryuken.options[:logfile]     = nil

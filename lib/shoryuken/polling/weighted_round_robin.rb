@@ -1,7 +1,7 @@
 module Shoryuken
   module Polling
     class WeightedRoundRobin < BaseStrategy
-      def initialize(queues, delay = nil)
+      def initialize(queues, delay = nil, _options = {})
         @initial_queues = queues
         @queues = queues.dup.uniq
         @paused_queues = []
