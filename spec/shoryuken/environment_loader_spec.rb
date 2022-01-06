@@ -44,7 +44,6 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
   end
 
-
   describe '#prefix_active_job_queue_names' do
     before do
       allow(subject).to receive(:load_rails)
@@ -94,6 +93,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['group1'][:queues]).to(eq(['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']))
     end
   end
+
   describe "#setup_options" do
     let (:cli_queues) { { "queue1"=> 10, "queue2" => 20 } }
     let (:config_queues) { [["queue1", 8], ["queue2", 4]] }
