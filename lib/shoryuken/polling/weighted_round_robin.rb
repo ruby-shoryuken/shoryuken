@@ -36,12 +36,10 @@ module Shoryuken
       end
 
       def message_processed(queue)
-        return if @paused_queues.empty?
+        paused_queue = @paused_queues.find { |_time, name| name == queue }
+        return unless paused_queue
 
-        logger.debug "Unpausing #{queue}"
-        @paused_queues.reject! { |_time, name| name == queue }
-        @queues << queue
-        @queues.uniq!
+        paused_queue[0] = Time.at 0
       end
 
       private
