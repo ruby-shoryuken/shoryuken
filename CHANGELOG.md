@@ -1,3 +1,8 @@
+## [v5.3.1] - 2022-01-07
+
+- (Bugfix) Fix issue where, when using the TSTP or USR1 signals for soft shutdowns, it was possible for shoryuken to terminate without first attempting to handle all messages it fetched from SQS
+  - [#676](https://github.com/ruby-shoryuken/shoryuken/pull/676)
+
 ## [v5.3.0] - 2021-10-31
 
 - (Refactor) Use Forwardable within Message to avoid method boilerplate
