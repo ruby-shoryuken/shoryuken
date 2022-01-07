@@ -159,7 +159,7 @@ module Shoryuken
 
       return if non_existent_queues.none?
 
-      error_msg = <<~MSG
+      error_msg = <<-MSG
         "The specified queue(s) #{non_existent_queues.join(', ')} do not exist.
          Try 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings.
          It's also possible that you don't have permission to access the specified queues."
