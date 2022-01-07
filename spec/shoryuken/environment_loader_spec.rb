@@ -4,6 +4,36 @@ require 'active_job'
 RSpec.describe Shoryuken::EnvironmentLoader do
   subject { described_class.new({}) }
 
+  describe '#load' do
+    before do
+      Shoryuken.groups.clear
+      # See issue: https://stackoverflow.com/a/63699568 for stubbing AWS errors
+      allow(Shoryuken::Client)
+        .to receive(:queues)
+        .with('stubbed_queue')
+        .and_raise(Aws::SQS::Errors::NonExistentQueue.new(nil, nil))
+      allow(subject).to receive(:load_rails)
+      allow(subject).to receive(:prefix_active_job_queue_names)
+      allow(subject).to receive(:require_workers)
+      allow(subject).to receive(:validate_workers)
+      allow(subject).to receive(:patch_deprecated_workers)
+      Shoryuken.options[:groups] = [['custom', { queues: ['stubbed_queue'] }]]
+    end
+
+    context "when given queues don't exist" do
+      specify do
+        expect { subject.load }.to raise_error(
+          ArgumentError,
+          <<-MSG.gsub(/^\s+/, '')
+            The specified queue(s) stubbed_queue do not exist.
+            Try 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings.
+            It's also possible that you don't have permission to access the specified queues.
+          MSG
+        )
+      end
+    end
+  end
+
   describe '#parse_queues loads default queues' do
     before do
       allow(subject).to receive(:load_rails)
@@ -34,7 +64,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
     specify do
       Shoryuken.options[:queues] = ['queue1', 'queue2'] # default queues
-      Shoryuken.options[:groups] = [[ 'custom', { queues: ['queue3'], delay: 25 }]]
+      Shoryuken.options[:groups] = [['custom', { queues: ['queue3'], delay: 25 }]]
       subject.load
 
       expect(Shoryuken.groups['default'][:queues]).to eq(%w[queue1 queue2])
@@ -75,7 +105,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
     it 'does not prefix url-based queues' do
       Shoryuken.options[:queues] = ['https://example.com/test_queue1']
-      Shoryuken.options[:groups] = {'group1' => {queues: ['https://example.com/test_group1_queue1']}}
+      Shoryuken.options[:groups] = { 'group1' => { queues: ['https://example.com/test_group1_queue1'] } }
 
       subject.load
 
@@ -85,7 +115,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
     it 'does not prefix arn-based queues' do
       Shoryuken.options[:queues] = ['arn:aws:sqs:fake-region-1:1234:test_queue1']
-      Shoryuken.options[:groups] = {'group1' => {queues: ['arn:aws:sqs:fake-region-1:1234:test_group1_queue1']}}
+      Shoryuken.options[:groups] = { 'group1' => { queues: ['arn:aws:sqs:fake-region-1:1234:test_group1_queue1'] } }
 
       subject.load
 
@@ -95,8 +125,9 @@ RSpec.describe Shoryuken::EnvironmentLoader do
   end
 
   describe "#setup_options" do
-    let (:cli_queues) { { "queue1"=> 10, "queue2" => 20 } }
-    let (:config_queues) { [["queue1", 8], ["queue2", 4]] }
+    let(:cli_queues) { { "queue1" => 10, "queue2" => 20 } }
+    let(:config_queues) { [["queue1", 8], ["queue2", 4]] }
+
     context "when given queues through config and CLI" do
       specify do
         allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:config_file_options).and_return({ queues: config_queues })
@@ -104,6 +135,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
         expect(Shoryuken.options[:queues]).to eq(cli_queues)
       end
     end
+
     context "when given queues through config only" do
       specify do
         allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:config_file_options).and_return({ queues: config_queues })
@@ -111,6 +143,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
         expect(Shoryuken.options[:queues]).to eq(config_queues)
       end
     end
+
     context "when given queues through CLI only" do
       specify do
         Shoryuken::EnvironmentLoader.setup_options(queues: cli_queues)
