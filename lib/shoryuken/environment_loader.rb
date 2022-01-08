@@ -159,9 +159,17 @@ module Shoryuken
 
       return if non_existent_queues.none?
 
+      # NOTE: HEREDOC's ~ operator removes indents, but is only available Ruby 2.3+
+      # See github PR: https://github.com/ruby-shoryuken/shoryuken/pull/691#issuecomment-1007653595
+      error_msg = <<-MSG.gsub(/^\s+/, '')
+        The specified queue(s) #{non_existent_queues.join(', ')} do not exist.
+        Try 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings.
+        It's also possible that you don't have permission to access the specified queues.
+      MSG
+
       fail(
         ArgumentError,
-        "The specified queue(s) #{non_existent_queues.join(', ')} do not exist.\nTry 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings"
+        error_msg
       )
     end
 
