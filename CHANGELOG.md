@@ -1,3 +1,11 @@
+## Unreleased
+
+- (Bugfix) Preserve queue weights when unpausing queues
+  - [#687](https://github.com/ruby-shoryuken/shoryuken/pull/687)
+
+- Improve error message on startup when shoryuken has insufficient permissions to access a queue
+  - [#691](https://github.com/ruby-shoryuken/shoryuken/pull/691)
+
 ## [v5.3.1] - 2022-01-07
 
 - (Bugfix) Fix issue where, when using the TSTP or USR1 signals for soft shutdowns, it was possible for shoryuken to terminate without first attempting to handle all messages it fetched from SQS
