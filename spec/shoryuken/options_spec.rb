@@ -193,6 +193,24 @@ RSpec.describe Shoryuken::Options do
       end
     end
 
+    context 'when providing a custom strategy' do
+      before do
+        class CustomStrategy < Shoryuken::Polling::BaseStrategy; end
+
+        Shoryuken.options[:polling_strategy] = 'CustomStrategy'
+        Shoryuken.options[:groups] = {
+          'group1' => {
+            polling_strategy: 'CustomStrategy'
+          }
+        }
+      end
+
+      specify do
+        expect(Shoryuken.polling_strategy('default')).to eq CustomStrategy
+        expect(Shoryuken.polling_strategy('group1')).to eq CustomStrategy
+      end
+    end
+
     context 'when set to a class' do
       before do
         class Foo < Shoryuken::Polling::BaseStrategy; end
