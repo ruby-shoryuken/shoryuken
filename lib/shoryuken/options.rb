@@ -69,7 +69,6 @@ module Shoryuken
 
       return Polling::WeightedRoundRobin if strategy.nil?
 
-      # check if error is raised, otherwise just return
       begin
         case strategy
         when String
