@@ -63,8 +63,10 @@ module Shoryuken
                    options[:groups].to_h[group].to_h[:polling_strategy]
                  end
 
+      return Polling::WeightedRoundRobin if strategy.nil?
+
       case strategy
-      when 'WeightedRoundRobin', nil # Default case
+      when 'WeightedRoundRobin' # Default case
         Polling::WeightedRoundRobin
       when 'StrictPriority'
         Polling::StrictPriority
