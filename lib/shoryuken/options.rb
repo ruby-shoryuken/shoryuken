@@ -14,6 +14,10 @@ module Shoryuken
         shutdown: []
       }
     }.freeze
+    SHORYUKEN_POLLING_STRATEGIES = {
+      'StrictPriority' => Shoryuken::Polling::StrictPriority,
+      'WeightedRoundRobin' => Shoryuken::Polling::WeightedRoundRobin
+    }.freeze
 
     attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :groups,
                   :launcher_executor,
@@ -65,14 +69,15 @@ module Shoryuken
 
       return Polling::WeightedRoundRobin if strategy.nil?
 
-      case strategy
-      when 'WeightedRoundRobin' # Default case
-        Polling::WeightedRoundRobin
-      when 'StrictPriority'
-        Polling::StrictPriority
-      when Class
-        strategy
-      else
+      # check if error is raised, otherwise just return
+      begin
+        case strategy
+        when String
+          SHORYUKEN_POLLING_STRATEGIES[strategy] || Object.const_get(strategy)
+        when Class
+          strategy
+        end
+      rescue NameError
         raise ArgumentError, "#{strategy} is not a valid polling_strategy"
       end
     end
