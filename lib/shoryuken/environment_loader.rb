@@ -80,7 +80,7 @@ module Shoryuken
     end
 
     def load_rails?
-      options[:rails] || Shoryuken.options[:rails]
+      options[:rails]
     end
 
     def prefix_active_job_queue_name(queue_name, weight)
