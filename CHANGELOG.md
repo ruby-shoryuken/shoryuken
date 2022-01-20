@@ -1,4 +1,4 @@
-## Unreleased
+## [v5.3.2] - 2022-01-19
 
 - (Bugfix) Preserve queue weights when unpausing queues
   - [#687](https://github.com/ruby-shoryuken/shoryuken/pull/687)
