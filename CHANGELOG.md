@@ -1,3 +1,9 @@
+## Unreleased
+
+- Breaking changes: Initialize Rails before parsing config file
+  - [#686](https://github.com/ruby-shoryuken/shoryuken/pull/686)
+  - Previously, Shoryuken read its configuration from an optional YAML file, then allowed CLI arguments to override those, then initialized the Rails application (provided that `--rails` or `-R` was specified). This behavior meant that the config file did not have access to things like environment variables that were initialized by Rails (such as when using `dotenv`). With this change, Rails is initialized much earlier in the process. After Rails is initialized, the YAML configuration file is interpreted, and CLI arguments are finally interpreted last. Most applications will not need to undergo changes in order to upgrade, but the new load order could technically result in different behavior depending on the application's YAML configuration file or Rails initializers.
+
 ## [v5.3.2] - 2022-01-19
 
 - (Bugfix) Preserve queue weights when unpausing queues
