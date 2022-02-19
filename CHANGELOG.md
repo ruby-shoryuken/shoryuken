@@ -1,4 +1,4 @@
-## Unreleased
+## [v6.0.0] - 2022-02-18
 
 - Breaking changes: Initialize Rails before parsing config file
   - [#686](https://github.com/ruby-shoryuken/shoryuken/pull/686)
