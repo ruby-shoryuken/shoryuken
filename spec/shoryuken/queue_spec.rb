@@ -80,7 +80,8 @@ RSpec.describe Shoryuken::Queue do
     end
 
     it 'deletes' do
-      expect(sqs).to receive(:delete_message_batch).with(entries: entries, queue_url: queue_url).and_return(double(failed: []))
+      expect(sqs).to receive(:delete_message_batch).with({ entries: entries,
+                                                           queue_url: queue_url }).and_return(double(failed: []))
 
       subject.delete_messages(entries: entries)
     end
@@ -91,7 +92,8 @@ RSpec.describe Shoryuken::Queue do
         logger = double 'Logger'
 
         expect(sqs).to(
-          receive(:delete_message_batch).with(entries: entries, queue_url: queue_url).and_return(double(failed: [failure]))
+          receive(:delete_message_batch).with({ entries: entries,
+                                                queue_url: queue_url }).and_return(double(failed: [failure]))
         )
         expect(subject).to receive(:logger).and_return(logger)
         expect(logger).to receive(:error)
@@ -157,7 +159,8 @@ RSpec.describe Shoryuken::Queue do
     it 'accepts SQS request parameters' do
       # https://docs.aws.amazon.com/sdkforruby/api/Aws/SQS/Client.html#send_message_batch-instance_method
       expect(sqs).to(
-        receive(:send_message_batch).with(hash_including(entries: [{ id: '0', message_body: 'msg1' }, { id: '1', message_body: 'msg2' }]))
+        receive(:send_message_batch).with(hash_including(entries: [{ id: '0', message_body: 'msg1' },
+                                                                   { id: '1', message_body: 'msg2' }]))
       )
 
       subject.send_messages(entries: [{ id: '0', message_body: 'msg1' }, { id: '1', message_body: 'msg2' }])
@@ -286,7 +289,8 @@ RSpec.describe Shoryuken::Queue do
         Shoryuken.cache_visibility_timeout = false
 
         expect(sqs).to(
-          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response).exactly(3).times
+          receive(:get_queue_attributes).with(queue_url: queue_url,
+                                              attribute_names: ['All']).and_return(attribute_response).exactly(3).times
         )
         expect(subject.visibility_timeout).to eq(30)
         expect(subject.visibility_timeout).to eq(30)
@@ -299,7 +303,8 @@ RSpec.describe Shoryuken::Queue do
         Shoryuken.cache_visibility_timeout = true
 
         expect(sqs).to(
-          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response).once
+          receive(:get_queue_attributes).with({ queue_url: queue_url,
+                                                attribute_names: ['All'] }).and_return(attribute_response).once
         )
         expect(subject.visibility_timeout).to eq(30)
         expect(subject.visibility_timeout).to eq(30)
