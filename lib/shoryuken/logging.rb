@@ -30,11 +30,11 @@ module Shoryuken
     end
 
     def self.logger
-      @logger || initialize_logger
+      @logger ||= initialize_logger
     end
 
     def self.logger=(log)
-      @logger = (log ? log : Logger.new('/dev/null'))
+      @logger = (log || Logger.new('/dev/null'))
     end
   end
 end
