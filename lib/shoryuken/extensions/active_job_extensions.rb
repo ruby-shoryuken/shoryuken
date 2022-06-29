@@ -11,7 +11,7 @@ module Shoryuken
       end
     end
 
-    # Initializes SQS SendMessage parameters on instances of ActiveJobe::Base
+    # Initializes SQS SendMessage parameters on instances of ActiveJob::Base
     # to the empty hash, and populates it whenever `#enqueue` is called, such
     # as when using ActiveJob::Base.set.
     module SQSSendMessageParametersSupport
