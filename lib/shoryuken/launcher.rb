@@ -38,7 +38,7 @@ module Shoryuken
     def healthy?
       Shoryuken.groups.keys.all? do |group|
         manager = @managers.find { |m| m.group == group }
-        manager && manager.running?
+        manager&.running?
       end
     end
 
