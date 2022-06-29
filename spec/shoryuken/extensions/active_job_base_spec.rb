@@ -18,7 +18,7 @@ RSpec.describe ActiveJob::Base do
   end
 
   describe '#perform_now' do
-    it 'allows keyward args' do
+    it 'allows keyword args' do
       collaborator = double 'worker collaborator'
       subject.send(:define_method, :perform) do |**kwargs|
         collaborator.foo(**kwargs)
