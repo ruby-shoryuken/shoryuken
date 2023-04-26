@@ -6,11 +6,11 @@ module Shoryuken
     end
 
     module ClassMethods
-      def perform_async(body, options = {})
+      def perform_async(body = ' ', options = {})
         Shoryuken.worker_executor.perform_async(self, body, options)
       end
 
-      def perform_in(interval, body, options = {})
+      def perform_in(interval, body = ' ', options = {})
         Shoryuken.worker_executor.perform_in(self, interval, body, options)
       end
 

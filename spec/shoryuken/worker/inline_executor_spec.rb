@@ -21,6 +21,24 @@ RSpec.describe Shoryuken::Worker::InlineExecutor do
     end
   end
 
+  context 'without arguments' do
+    describe '.perform_async' do
+      specify do
+        expect_any_instance_of(TestWorker).to receive(:perform).with(anything, ' ')
+
+        TestWorker.perform_async
+      end
+    end
+
+    describe '.perform_in' do
+      specify do
+        expect_any_instance_of(TestWorker).to receive(:perform).with(anything, ' ')
+
+        TestWorker.perform_in(60)
+      end
+    end
+  end
+
   context 'batch' do
     before do
       TestWorker.get_shoryuken_options['batch'] = true
