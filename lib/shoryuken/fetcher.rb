@@ -76,6 +76,7 @@ module Shoryuken
     def receive_options(queue)
       options = Shoryuken.sqs_client_receive_message_opts[queue.name]
       options ||= Shoryuken.sqs_client_receive_message_opts[@group]
+      options ||= Shoryuken.sqs_client_receive_message_opts['default']
 
       options.to_h.dup
     end

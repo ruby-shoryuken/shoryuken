@@ -72,6 +72,59 @@ RSpec.describe Shoryuken::Fetcher do
       end
     end
 
+    context 'when receive options with a non default group' do
+      let(:limit) { 5 }
+      let(:non_default_group) { 'non-default-group' }
+      let(:non_default_queue_name) { 'non-default-queue' }
+      let(:non_default_queue_config) { Shoryuken::Polling::QueueConfiguration.new(non_default_queue_name, {}) }
+
+      subject { Shoryuken::Fetcher.new(non_default_group) }
+
+      before do
+        Shoryuken.add_group(non_default_group)
+        Shoryuken.add_queue(non_default_queue_name, 1, non_default_group)
+      end
+
+      it 'fetches the client option by queue name' do
+        expect(Shoryuken::Client).to receive(:queues).with(non_default_queue_name).and_return(queue)
+        Shoryuken.sqs_client_receive_message_opts[non_default_queue_name] = { max_number_of_messages: 1 }
+
+        expect(queue).to receive(:receive_messages).with({
+                                                           max_number_of_messages: 1,
+                                                           message_attribute_names: ['All'],
+                                                           attribute_names: ['All']
+                                                         }).and_return([])
+
+        subject.fetch(non_default_queue_config, limit)
+      end
+
+      it 'fetches the client option by group name' do
+        expect(Shoryuken::Client).to receive(:queues).with(non_default_queue_name).and_return(queue)
+        Shoryuken.sqs_client_receive_message_opts[non_default_group] = { max_number_of_messages: 2 }
+
+        expect(queue).to receive(:receive_messages).with({
+                                                           max_number_of_messages: 2,
+                                                           message_attribute_names: ['All'],
+                                                           attribute_names: ['All']
+                                                         }).and_return([])
+
+        subject.fetch(non_default_queue_config, limit)
+      end
+
+      it 'uses the default option if not set per group' do
+        expect(Shoryuken::Client).to receive(:queues).with(non_default_queue_name).and_return(queue)
+        Shoryuken.sqs_client_receive_message_opts = { max_number_of_messages: 3 }
+
+        expect(queue).to receive(:receive_messages).with({
+                                                           max_number_of_messages: 3,
+                                                           message_attribute_names: ['All'],
+                                                           attribute_names: ['All']
+                                                         }).and_return([])
+
+        subject.fetch(non_default_queue_config, limit)
+      end
+    end
+
     context 'when max_number_of_messages opt is great than limit' do
       it 'uses limit' do
         expect(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
