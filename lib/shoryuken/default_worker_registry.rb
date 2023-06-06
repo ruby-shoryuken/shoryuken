@@ -8,6 +8,10 @@ module Shoryuken
       !!(@workers[queue] && @workers[queue].get_shoryuken_options['batch'])
     end
 
+    def batch_options(queue)
+      @workers[queue].get_shoryuken_options['batch_options']
+    end
+
     def clear
       @workers.clear
     end

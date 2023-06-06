@@ -121,7 +121,8 @@ module Shoryuken
         'auto_delete' => false,
         'auto_visibility_timeout' => false,
         'retry_intervals' => nil,
-        'batch' => false
+        'batch' => false,
+        'batch_options' => nil
       }
     end
 

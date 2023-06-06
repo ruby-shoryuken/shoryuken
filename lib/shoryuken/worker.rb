@@ -23,7 +23,7 @@ module Shoryuken
       end
 
       def shoryuken_options(opts = {})
-        self.shoryuken_options_hash = get_shoryuken_options.merge(stringify_keys(opts || {}))
+        self.shoryuken_options_hash = get_shoryuken_options.merge((opts || {}).deep_stringify_keys)
         normalize_worker_queue!
       end
 
@@ -41,12 +41,6 @@ module Shoryuken
 
       def get_shoryuken_options # :nodoc:
         shoryuken_options_hash || Shoryuken.default_worker_options
-      end
-
-      def stringify_keys(hash) # :nodoc:
-        new_hash = {}
-        hash.each { |key, value| new_hash[key.to_s] = value }
-        new_hash
       end
 
       def shoryuken_class_attribute(*attrs) # :nodoc:

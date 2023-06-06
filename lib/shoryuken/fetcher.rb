@@ -14,9 +14,25 @@ module Shoryuken
 
         logger.debug { "Looking for new messages in #{queue}" }
 
-        sqs_msgs = Array(receive_messages(queue, limit))
+        batch_options = Shoryuken.worker_registry.batch_options(queue.name)
+        if batch_options.nil?
+          sqs_msgs = Array(receive_messages(queue, limit))
+          logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+        else
+          batch_max_size = batch_options['max_size']
+          batch_timeout = batch_options['timeout']
+          batch = Shoryuken::MessageBatch.new(max_size: batch_max_size, timeout: batch_timeout)
 
-        logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+          loop do
+            check_visibility_timeout(queue, batch.timeout)
+            sqs_msgs = Array(receive_messages(queue, [limit, batch.max_size, batch.max_size - batch.size].min))
+            logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+            sqs_msgs.each { |sqs_msg| batch.add_message!(sqs_msg) }
+            break if batch.full? || batch.timeout_expired?
+          end
+          sqs_msgs = batch.messages
+        end
+
         logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
 
         sqs_msgs
@@ -41,6 +57,18 @@ module Shoryuken
         sleep((1..5).to_a.sample)
 
         retry
+      end
+    end
+
+    def check_visibility_timeout(queue, batch_timeout)
+      return if @visibility_timeout_ok
+
+      visibility_timeout = Shoryuken::Client.queues(queue.name).visibility_timeout
+      if visibility_timeout < batch_timeout
+        @visibility_timeout_ok = false
+        logger.warn "#{queue} visibility timeout is lower than batch timeout. This could lead to duplicated message processing"
+      else
+        @visibility_timeout_ok = true
       end
     end
 
