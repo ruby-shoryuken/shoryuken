@@ -130,6 +130,51 @@ RSpec.describe Shoryuken::Fetcher do
           subject.fetch(queue_config, limit)
         end
       end
+
+      context 'with batch_options' do
+        it 'perform multiple fetches until batch max size' do
+          allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+          # Must be greater than batch timeout
+          allow(queue).to receive(:visibility_timeout).and_return(70)
+          allow(Shoryuken.worker_registry).to receive(:batch_receive_messages?).with(queue.name).and_return(true)
+          allow(Shoryuken.worker_registry).to receive(:batch_options).with(queue.name).and_return(
+            { 'max_size' => 20, 'timeout' => 60 }
+          )
+
+          # Read messages until we have a batch of 10 elements
+          expect(queue).to receive(:receive_messages).with(
+            max_number_of_messages: 10, attribute_names: ['All'], message_attribute_names: ['All']
+          ).and_return(['sqs_msg'] * 10)
+          expect(queue).to receive(:receive_messages).with(
+            max_number_of_messages: 10, attribute_names: ['All'], message_attribute_names: ['All']
+          ).and_return(['sqs_msg'] * 6)
+          expect(queue).to receive(:receive_messages).with(
+            max_number_of_messages: 4, attribute_names: ['All'], message_attribute_names: ['All']
+          ).and_return(['sqs_msg'] * 4)
+
+          subject.fetch(queue_config, 10)
+        end
+
+        it 'perform multiple fetches until batch timeout' do
+          allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+          # Must be greater than batch timeout
+          allow(queue).to receive(:visibility_timeout).and_return(70)
+          allow(Shoryuken.worker_registry).to receive(:batch_receive_messages?).with(queue.name).and_return(true)
+          batch_timeout = 2
+          allow(Shoryuken.worker_registry).to receive(:batch_options).with(queue.name).and_return(
+            { 'max_size' => 20, 'timeout' => batch_timeout }
+          )
+
+          expect(queue).to receive(:receive_messages).with(
+            max_number_of_messages: 10, attribute_names: ['All'], message_attribute_names: ['All']
+          ) do
+            # Let the batch timeout expires
+            sleep batch_timeout + 1
+            ['sqs_msg']
+          end
+          subject.fetch(queue_config, 10)
+        end
+      end
     end
   end
 end
