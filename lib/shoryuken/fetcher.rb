@@ -15,23 +15,11 @@ module Shoryuken
         logger.debug { "Looking for new messages in #{queue}" }
 
         batch_options = Shoryuken.worker_registry.batch_options(queue.name)
-        if batch_options.nil?
-          sqs_msgs = Array(receive_messages(queue, limit))
-          logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
-        else
-          batch_max_size = batch_options['max_size']
-          batch_timeout = batch_options['timeout']
-          batch = Shoryuken::MessageBatch.new(max_size: batch_max_size, timeout: batch_timeout)
-
-          loop do
-            check_visibility_timeout(queue, batch.timeout)
-            sqs_msgs = Array(receive_messages(queue, [limit, batch.max_size, batch.max_size - batch.size].min))
-            logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
-            sqs_msgs.each { |sqs_msg| batch.add_message!(sqs_msg) }
-            break if batch.full? || batch.timeout_expired?
-          end
-          sqs_msgs = batch.messages
-        end
+        sqs_msgs = if batch_options && batched_queue?(Shoryuken::Client.queues(queue.name))
+                     fetch_with_batch_options(queue, limit, batch_options['max_size'], batch_options['timeout'])
+                   else
+                     regular_fetch(queue, limit)
+                   end
 
         logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
 
@@ -58,6 +46,24 @@ module Shoryuken
 
         retry
       end
+    end
+
+    def regular_fetch(queue, limit)
+      sqs_msgs = Array(receive_messages(queue, limit))
+      logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+      sqs_msgs
+    end
+
+    def fetch_with_batch_options(queue, limit, batch_max_size, batch_timeout)
+      batch = Shoryuken::MessageBatch.new(max_size: batch_max_size, timeout: batch_timeout)
+      loop do
+        check_visibility_timeout(queue, batch.timeout)
+        sqs_msgs = Array(receive_messages(queue, [limit, batch.max_size, batch.max_size - batch.size].min))
+        logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
+        sqs_msgs.each { |sqs_msg| batch.add_message!(sqs_msg) }
+        break if batch.full? || batch.timeout_expired?
+      end
+      batch.messages
     end
 
     def check_visibility_timeout(queue, batch_timeout)

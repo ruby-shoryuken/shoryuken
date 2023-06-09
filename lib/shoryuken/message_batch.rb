@@ -5,7 +5,7 @@ module Shoryuken
     def initialize(max_size:, timeout:)
       @max_size = max_size
       @timeout = timeout
-      @batch_timeout_start = Time.now
+      @batch_timeout_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       @messages = []
     end
 
@@ -24,7 +24,7 @@ module Shoryuken
     end
 
     def timeout_expired?
-      Time.now - @batch_timeout_start > timeout
+      Process.clock_gettime(Process::CLOCK_MONOTONIC) - @batch_timeout_start > timeout
     end
   end
 end
