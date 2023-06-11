@@ -67,14 +67,14 @@ module Shoryuken
     end
 
     def check_visibility_timeout(queue, batch_timeout)
-      return if @visibility_timeout_ok
+      return if @_visibility_timeout_ok
 
       visibility_timeout = Shoryuken::Client.queues(queue.name).visibility_timeout
       if visibility_timeout < batch_timeout
-        @visibility_timeout_ok = false
+        @_visibility_timeout_ok = false
         logger.warn "#{queue} visibility timeout is lower than batch timeout. This could lead to duplicated message processing"
       else
-        @visibility_timeout_ok = true
+        @_visibility_timeout_ok = true
       end
     end
 
