@@ -2,7 +2,7 @@ require 'bundler/setup'
 Bundler.setup
 
 begin
-  require 'pry-byebug'
+  require 'pry-byebug' if RUBY_VERSION <= '3.2'
 rescue LoadError
 end
 
