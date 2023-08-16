@@ -3,19 +3,20 @@
 source "https://rubygems.org"
 
 group :test do
-  gem "activejob"
-  gem "aws-sdk-core", "~> 2"
+  gem "activejob", "~> 7.0"
+  gem "aws-sdk-core", "~> 3"
+  gem "aws-sdk-sqs"
   gem "codeclimate-test-reporter", require: nil
   gem "httparty"
   gem "multi_xml"
   gem "simplecov"
-  gem "webrick"
 end
 
 group :development do
   gem "appraisal", git: "https://github.com/thoughtbot/appraisal.git"
-  gem "pry-byebug"
   gem "rubocop"
+  gem "pry", ">= 0.14.2"
+  gem "pry-byebug", ">= 3.10.1"
 end
 
 gemspec path: "../"
