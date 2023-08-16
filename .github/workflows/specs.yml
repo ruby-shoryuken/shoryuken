@@ -11,9 +11,6 @@ jobs:
       matrix:
         ruby: ['2.4', '2.5', '2.6', '2.7', '3.0', '3.1', '3.2']
         gemfile: ['Gemfile', 'gemfiles/aws_sdk_core_2.gemfile']
-        include:
-          - ruby: '3.2'
-            gemfile: ['Gemfile', 'gemfiles/aws_sdk_core_ruby_3_2.gemfile']
     runs-on: ubuntu-20.04
     services:
       moto_sqs:
