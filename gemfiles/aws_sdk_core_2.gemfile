@@ -14,7 +14,7 @@ end
 
 group :development do
   gem "appraisal", git: "https://github.com/thoughtbot/appraisal.git"
-  gem "pry-byebug", "3.9.0"
+  gem "pry-byebug", ">= 3.10.1"
   gem "pry", ">= 0.14.2"
   gem "rubocop"
 end
