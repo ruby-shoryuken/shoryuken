@@ -17,10 +17,9 @@ module Shoryuken
       initiate_stop
 
       executor.shutdown
+      executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
 
-      return if executor.wait_for_termination(Shoryuken.options[:timeout])
-
-      executor.kill
+      fire_event(:stopped)
     end
 
     def stop
@@ -33,6 +32,8 @@ module Shoryuken
 
       executor.shutdown
       executor.wait_for_termination
+
+      fire_event(:stopped)
     end
 
     def healthy?

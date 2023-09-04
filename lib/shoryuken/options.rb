@@ -11,7 +11,8 @@ module Shoryuken
         dispatch: [],
         utilization_update: [],
         quiet: [],
-        shutdown: []
+        shutdown: [],
+        stopped: []
       }
     }.freeze
 
@@ -134,7 +135,7 @@ module Shoryuken
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
-    # :startup, :quiet or :shutdown are valid events.
+    # :startup, :quiet, :shutdown or :stopped are valid events.
     #
     #   Shoryuken.configure_server do |config|
     #     config.on(:shutdown) do
