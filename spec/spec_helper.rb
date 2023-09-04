@@ -46,6 +46,8 @@ RSpec.configure do |config|
     Shoryuken.options[:logfile]     = nil
     Shoryuken.options[:queues]      = nil
 
+    Shoryuken.options[:exception_handlers] = []
+
     TestWorker.get_shoryuken_options.clear
     TestWorker.get_shoryuken_options['queue'] = 'default'
 

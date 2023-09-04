@@ -22,8 +22,7 @@ module Shoryuken
         end
       end
     rescue Exception => ex
-      logger.error { "Processor failed: #{ex.message}" }
-      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+      Array(Shoryuken.exception_handlers).each { |handler| handler.call(ex, queue, sqs_msg) }
 
       raise
     end

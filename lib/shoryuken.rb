@@ -23,6 +23,7 @@ require 'shoryuken/worker/default_executor'
 require 'shoryuken/worker/inline_executor'
 require 'shoryuken/worker_registry'
 require 'shoryuken/default_worker_registry'
+require 'shoryuken/default_exception_handler'
 require 'shoryuken/middleware/chain'
 require 'shoryuken/middleware/server/auto_delete'
 Shoryuken::Middleware::Server.autoload :AutoExtendVisibility, 'shoryuken/middleware/server/auto_extend_visibility'
@@ -73,6 +74,8 @@ module Shoryuken
     :sqs_client=,
     :sqs_client_receive_message_opts,
     :sqs_client_receive_message_opts=,
+    :exception_handlers,
+    :exception_handlers=,
     :options,
     :logger,
     :register_worker,
