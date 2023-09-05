@@ -17,6 +17,10 @@ RSpec.describe Shoryuken::DefaultExceptionHandler do
     allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
   end
 
+  after do
+    Shoryuken.worker_executor = Shoryuken::Worker::DefaultExecutor
+  end
+
   let(:manager) { double Shoryuken::Manager }
   let(:sqs_queue) { double Shoryuken::Queue, visibility_timeout: 30 }
   let(:queue) { 'default' }
