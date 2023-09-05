@@ -57,4 +57,35 @@ RSpec.describe Shoryuken::Launcher do
       end
     end
   end
+
+  describe '#stop' do
+    before do
+      allow(first_group_manager).to receive(:stop_new_dispatching)
+      allow(first_group_manager).to receive(:await_dispatching_in_progress)
+      allow(second_group_manager).to receive(:stop_new_dispatching)
+      allow(second_group_manager).to receive(:await_dispatching_in_progress)
+    end
+
+    it 'fires quiet, shutdown and stopped event' do
+      expect(subject).to receive(:fire_event).with(:quiet, true)
+      expect(subject).to receive(:fire_event).with(:shutdown, true)
+      expect(subject).to receive(:fire_event).with(:stopped)
+      subject.stop
+    end
+  end
+
+  describe '#stop!' do
+    before do
+      allow(first_group_manager).to receive(:stop_new_dispatching)
+      allow(first_group_manager).to receive(:await_dispatching_in_progress)
+      allow(second_group_manager).to receive(:stop_new_dispatching)
+      allow(second_group_manager).to receive(:await_dispatching_in_progress)
+    end
+
+    it 'fires shutdown and stopped event' do
+      expect(subject).to receive(:fire_event).with(:shutdown, true)
+      expect(subject).to receive(:fire_event).with(:stopped)
+      subject.stop!
+    end
+  end
 end
