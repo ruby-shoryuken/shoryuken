@@ -9,7 +9,7 @@ jobs:
     name: All Specs
     strategy:
       matrix:
-        ruby: ['2.4', '2.5', '2.6', '2.7', '3.0']
+        ruby: ['2.4', '2.5', '2.6', '2.7', '3.0', '3.1', '3.2']
         gemfile: ['Gemfile', 'gemfiles/aws_sdk_core_2.gemfile']
     runs-on: ubuntu-20.04
     services:
@@ -34,7 +34,7 @@ jobs:
     name: Rails Specs
     strategy:
       matrix:
-        rails: ['4.2', '5.2', '6.0', '6.1']
+        rails: ['4.2', '5.2', '6.0', '6.1', '7.0']
         include:
           - rails: '4.2'
             ruby: '2.2'
@@ -48,6 +48,9 @@ jobs:
           - rails: '6.1'
             ruby: '3.0'
             gemfile: gemfiles/rails_6_1.gemfile
+          - rails: '7.0'
+            ruby: '3.1'
+            gemfile: gemfiles/rails_7_0.gemfile
     runs-on: ubuntu-20.04
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}

@@ -11,19 +11,21 @@ module Shoryuken
         dispatch: [],
         utilization_update: [],
         quiet: [],
-        shutdown: []
+        shutdown: [],
+        stopped: []
       }
     }.freeze
 
     attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :groups,
                   :launcher_executor,
-                  :start_callback, :stop_callback, :worker_executor, :worker_registry
+                  :start_callback, :stop_callback, :worker_executor, :worker_registry, :exception_handlers
     attr_writer :default_worker_options, :sqs_client
     attr_reader :sqs_client_receive_message_opts
 
     def initialize
       self.groups = {}
       self.worker_registry = DefaultWorkerRegistry.new
+      self.exception_handlers = [DefaultExceptionHandler]
       self.active_job_queue_name_prefixing = false
       self.worker_executor = Worker::DefaultExecutor
       self.cache_visibility_timeout = false
@@ -135,7 +137,7 @@ module Shoryuken
     end
 
     # Register a block to run at a point in the Shoryuken lifecycle.
-    # :startup, :quiet or :shutdown are valid events.
+    # :startup, :quiet, :shutdown or :stopped are valid events.
     #
     #   Shoryuken.configure_server do |config|
     #     config.on(:shutdown) do
