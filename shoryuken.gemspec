@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Pablo Cantero']
   spec.email         = ['pablo@pablocantero.com']
   spec.description = spec.summary = 'Shoryuken is a super efficient AWS SQS thread based message processor'
-  spec.homepage      = 'https://github.com/phstc/shoryuken'
+  spec.homepage      = 'https://github.com/ruby-shoryuken/shoryuken'
   spec.license       = 'LGPL-3.0'
 
   spec.files         = `git ls-files -z`.split("\x0")
