@@ -67,10 +67,17 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     it 'fires quiet, shutdown and stopped event' do
-      expect(subject).to receive(:fire_event).with(:quiet, true)
-      expect(subject).to receive(:fire_event).with(:shutdown, true)
-      expect(subject).to receive(:fire_event).with(:stopped)
+      allow(subject).to receive(:fire_event)
       subject.stop
+      expect(subject).to have_received(:fire_event).with(:quiet, true)
+      expect(subject).to have_received(:fire_event).with(:shutdown, true)
+      expect(subject).to have_received(:fire_event).with(:stopped)
+    end
+
+    it 'stops the managers' do
+      subject.stop
+      expect(first_group_manager).to have_received(:stop_new_dispatching)
+      expect(second_group_manager).to have_received(:stop_new_dispatching)
     end
   end
 
@@ -83,9 +90,16 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     it 'fires shutdown and stopped event' do
-      expect(subject).to receive(:fire_event).with(:shutdown, true)
-      expect(subject).to receive(:fire_event).with(:stopped)
+      allow(subject).to receive(:fire_event)
       subject.stop!
+      expect(subject).to have_received(:fire_event).with(:shutdown, true)
+      expect(subject).to have_received(:fire_event).with(:stopped)
+    end
+
+    it 'stops the managers' do
+      subject.stop!
+      expect(first_group_manager).to have_received(:stop_new_dispatching)
+      expect(second_group_manager).to have_received(:stop_new_dispatching)
     end
   end
 end
