@@ -1,14 +1,11 @@
 require 'active_job'
 require 'shoryuken/extensions/active_job_extensions'
-require 'active_support/testing/time_helpers'
 
 # Stand-in for a job class specified by the user
 class TestJob < ActiveJob::Base; end
 
 # rubocop:disable Metrics/BlockLength
 RSpec.shared_examples 'active_job_adapters' do
-  include ActiveSupport::Testing::TimeHelpers
-
   let(:job_sqs_send_message_parameters) { {} }
   let(:job) do
     job = TestJob.new
@@ -46,16 +43,14 @@ RSpec.shared_examples 'active_job_adapters' do
       let(:fifo) { true }
 
       it 'does not include job_id in the deduplication_id' do
-        freeze_time do
-          expect(queue).to receive(:send_message) do |hash|
-            message_deduplication_id = Digest::SHA256.hexdigest(JSON.dump(job.serialize.except('job_id')))
+        expect(queue).to receive(:send_message) do |hash|
+          message_deduplication_id = Digest::SHA256.hexdigest(JSON.dump(job.serialize.except('job_id')))
 
-            expect(hash[:message_deduplication_id]).to eq(message_deduplication_id)
-          end
-          expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
-
-          subject.enqueue(job)
+          expect(hash[:message_deduplication_id]).to eq(message_deduplication_id)
         end
+        expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+
+        subject.enqueue(job)
       end
 
       context 'with message_deduplication_id' do

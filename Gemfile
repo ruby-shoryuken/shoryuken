@@ -5,7 +5,6 @@ gemspec
 
 group :test do
   gem 'activejob'
-  gem 'activesupport'
   gem 'aws-sdk-core', '~> 3'
   gem 'aws-sdk-sqs'
   gem 'codeclimate-test-reporter', require: nil
