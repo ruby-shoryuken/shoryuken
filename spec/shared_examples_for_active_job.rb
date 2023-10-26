@@ -42,9 +42,11 @@ RSpec.shared_examples 'active_job_adapters' do
     context 'when fifo' do
       let(:fifo) { true }
 
-      it 'does not include job_id in the deduplication_id' do
+      it 'does not include job_id and enqueued_at in the deduplication_id' do
         expect(queue).to receive(:send_message) do |hash|
-          message_deduplication_id = Digest::SHA256.hexdigest(JSON.dump(job.serialize.except('job_id')))
+          message_deduplication_id = Digest::SHA256.hexdigest(
+            JSON.dump(job.serialize.except('job_id', 'enqueued_at'))
+          )
 
           expect(hash[:message_deduplication_id]).to eq(message_deduplication_id)
         end

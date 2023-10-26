@@ -66,8 +66,11 @@ module ActiveJob
         }
 
         if queue.fifo?
-          # See https://github.com/phstc/shoryuken/issues/457
-          msg[:message_deduplication_id] = Digest::SHA256.hexdigest(JSON.dump(body.except('job_id')))
+          # See https://github.com/ruby-shoryuken/shoryuken/issues/457 and
+          # https://github.com/ruby-shoryuken/shoryuken/pull/750#issuecomment-1781317929
+          msg[:message_deduplication_id] = Digest::SHA256.hexdigest(
+            JSON.dump(body.except('job_id', 'enqueued_at'))
+          )
         end
 
         msg.merge(job_params.except(:message_attributes))
