@@ -1,3 +1,26 @@
+## [v6.1.0] - 2023-11-01
+
+- Add GitHub Codespaces
+  - [#698](https://github.com/ruby-shoryuken/shoryuken/pull/698)
+
+- Fix spec for ruby 3.0
+  - [#727](https://github.com/ruby-shoryuken/shoryuken/pull/727)
+
+- Upgrade test matrix. Add Ruby 3.1, Ruby 3.2 and Rails 7
+  - [#739](https://github.com/ruby-shoryuken/shoryuken/pull/739)
+
+- Fire stopped event after executor is stopped
+  - [#741](https://github.com/ruby-shoryuken/shoryuken/pull/741)
+
+- Allow setup custom exception handlers for failing jobs
+  - [#742](https://github.com/ruby-shoryuken/shoryuken/pull/742)
+
+- Configure dependabot to update GH Actions
+  - [#745](https://github.com/ruby-shoryuken/shoryuken/pull/745)
+
+- Stop the dispatching of new messages when a SIGTERM signal has been received
+  - [#750](https://github.com/ruby-shoryuken/shoryuken/pull/750)
+
 ## [v6.0.0] - 2022-02-18
 
 - Breaking changes: Initialize Rails before parsing config file

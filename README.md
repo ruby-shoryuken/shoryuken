@@ -86,3 +86,21 @@ To run integration specs, start a mock SQS server on `localhost:5000`. One such 
 ```sh
 bundle exec rake spec:integration
 ```
+
+### To release a new version
+
+Compare latest tag with HEAD:
+
+```sh
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
+```
+
+then update CHANGELOG.md.
+
+Update version in `lib/shoryuken/version.rb` with the appropriate version number [SEMVER](https://semver.org/).
+
+then run:
+
+```sh
+bundle exec rake release
+```
