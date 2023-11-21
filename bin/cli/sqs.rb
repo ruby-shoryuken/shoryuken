@@ -117,7 +117,7 @@ module Shoryuken
               max_number_of_messages: batch_size,
               attribute_names: ['All'],
               message_attribute_names: ['All']
-            ).messages
+            ).messages || []
 
             messages.each { |m| yield m }
 
