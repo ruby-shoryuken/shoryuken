@@ -6,7 +6,10 @@ gemspec
 group :test do
   gem 'activejob'
   gem 'aws-sdk-core', '~> 3'
-  gem 'aws-sdk-sqs'
+  # Pin to 1.65.0 because of below issues:
+  # - https://github.com/ruby-shoryuken/shoryuken/pull/753#issuecomment-1822720647
+  # - https://github.com/getmoto/moto/issues/7054
+  gem 'aws-sdk-sqs', '1.65.0'
   gem 'codeclimate-test-reporter', require: nil
   gem 'httparty'
   gem 'multi_xml'
