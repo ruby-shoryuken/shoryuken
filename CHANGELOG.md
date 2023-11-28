@@ -1,3 +1,9 @@
+## [v6.1.1] - 2023-11-27
+
+- Fix SQS API Changes causing nil returns instead of empty arrays
+  - [#754](https://github.com/ruby-shoryuken/shoryuken/pull/754)
+  - [#753](https://github.com/ruby-shoryuken/shoryuken/pull/753)
+
 ## [v6.1.0] - 2023-11-01
 
 - Add GitHub Codespaces
