@@ -65,8 +65,8 @@ module Shoryuken
         Polling::WeightedRoundRobin
       when 'StrictPriority'
         Polling::StrictPriority
-      when Class
-        strategy
+      when String
+        Object.const_get(strategy)
       else
         raise ArgumentError, "#{strategy} is not a valid polling_strategy"
       end
