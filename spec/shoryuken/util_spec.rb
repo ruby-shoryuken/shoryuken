@@ -17,14 +17,34 @@ describe 'Shoryuken::Util' do
 
   describe '#worker_name' do
     let(:sqs_msg) do
-      double Shoryuken::Message, message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', message_attributes: {}
+      double Shoryuken::Message, message_id: 'fc754df7-9cc2-4c41-96ca-5996a44b771e', message_attributes: message_attributes
     end
 
-    it 'returns Shoryuken worker name' do
-      expect(subject.worker_name(TestWorker, sqs_msg)).to eq 'TestWorker'
+    context 'when has integration with ActiveJob' do
+      before do
+        allow(Shoryuken).to receive(:active_job?).and_return(true)
+      end
+
+      let(:message_attributes) do
+        { 'shoryuken_class' => { string_value: ActiveJob::QueueAdapters::ShoryukenAdapter::JobWrapper.to_s } }
+      end
+
+      let(:body) do
+        { 'job_class' => 'TestJob' }
+      end
+
+      it 'returns ActiveJob worker name' do
+        expect(subject.worker_name(TestWorker, sqs_msg, body)).to eq 'ActiveJob/TestJob'
+      end
     end
 
-    it 'returns ActiveJob worker name'
+    context 'when has not integration with ActiveJob' do
+      let(:message_attributes) { {} }
+
+      it 'returns Shoryuken worker name' do
+        expect(subject.worker_name(TestWorker, sqs_msg)).to eq 'TestWorker'
+      end
+    end
   end
 
   describe '#fire_event' do
