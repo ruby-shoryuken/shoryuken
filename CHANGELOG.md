@@ -1,3 +1,8 @@
+## [v6.1.2] - 2024-01-30
+
+- Fix activerecord 7.1 deprecation warnings
+  - [#755](https://github.com/ruby-shoryuken/shoryuken/pull/755)
+
 ## [v6.1.1] - 2023-11-27
 
 - Fix SQS API Changes causing nil returns instead of empty arrays
@@ -7,21 +12,27 @@
 ## [v6.1.0] - 2023-11-01
 
 - Add GitHub Codespaces
+
   - [#698](https://github.com/ruby-shoryuken/shoryuken/pull/698)
 
 - Fix spec for ruby 3.0
+
   - [#727](https://github.com/ruby-shoryuken/shoryuken/pull/727)
 
 - Upgrade test matrix. Add Ruby 3.1, Ruby 3.2 and Rails 7
+
   - [#739](https://github.com/ruby-shoryuken/shoryuken/pull/739)
 
 - Fire stopped event after executor is stopped
+
   - [#741](https://github.com/ruby-shoryuken/shoryuken/pull/741)
 
 - Allow setup custom exception handlers for failing jobs
+
   - [#742](https://github.com/ruby-shoryuken/shoryuken/pull/742)
 
 - Configure dependabot to update GH Actions
+
   - [#745](https://github.com/ruby-shoryuken/shoryuken/pull/745)
 
 - Stop the dispatching of new messages when a SIGTERM signal has been received
@@ -36,6 +47,7 @@
 ## [v5.3.2] - 2022-01-19
 
 - (Bugfix) Preserve queue weights when unpausing queues
+
   - [#687](https://github.com/ruby-shoryuken/shoryuken/pull/687)
 
 - Improve error message on startup when shoryuken has insufficient permissions to access a queue
@@ -49,6 +61,7 @@
 ## [v5.3.0] - 2021-10-31
 
 - (Refactor) Use Forwardable within Message to avoid method boilerplate
+
   - [#681](https://github.com/ruby-shoryuken/shoryuken/pull/681)
 
 - Add basic health check API
@@ -67,13 +80,16 @@
 ## [v5.2.1] - 2021-04-06
 
 - Reduce message batch sizes in `shoryuken sqs requeue` and `shoryuken sqs mv` commands
+
   - [#666](https://github.com/ruby-shoryuken/shoryuken/pull/666)
 
 - Fix bug in `shoryuken sqs requeue` and `shoryuken sqs mv` where those commands would exceed the SQS `SendMessageBatch` maximum payload size
+
   - [#663](https://github.com/ruby-shoryuken/shoryuken/issues/663)
   - [#664](https://github.com/ruby-shoryuken/shoryuken/pull/664)
 
 - Remove test stub for `Concurrent.global_io_executor`
+
   - [#662](https://github.com/ruby-shoryuken/shoryuken/pull/662)
 
 - Run integration tests on CI
@@ -92,14 +108,17 @@
 ## [v5.1.0] - 2021-02-06
 
 - Add support for specifying SQS SendMessage parameters with ActiveJob `.set`
+
   - [#635](https://github.com/phstc/shoryuken/pull/635)
   - [#648](https://github.com/phstc/shoryuken/pull/648)
   - [#651](https://github.com/phstc/shoryuken/pull/651)
 
 - Unpause FIFO queues on worker completion
+
   - [#644](https://github.com/phstc/shoryuken/pull/644)
 
 - Add multiple versions of Rails to test matrix
+
   - [#647](https://github.com/phstc/shoryuken/pull/647)
 
 - Migrate from Travis CI to Github Actions
@@ -141,9 +160,11 @@
 ## [v5.0.0] - 2019-06-18
 
 - Fix bug where empty queues were not paused in batch processing mode
+
   - [#569](https://github.com/phstc/shoryuken/pull/569)
 
 - Preserve batch limit when receiving messages from a FIFO queue
+
   - [#563](https://github.com/phstc/shoryuken/pull/563)
 
 - Replace static options with instance options
@@ -157,9 +178,11 @@
 ## [v4.0.2] - 2018-11-26
 
 - Fix the delegated methods to public warning
+
   - [#536](https://github.com/phstc/shoryuken/pull/536)
 
 - Specify exception class to `raise_error` matcher warning
+
   - [#537](https://github.com/phstc/shoryuken/pull/537)
 
 - Fix spelling of "visibility"
@@ -168,6 +191,7 @@
 ## [v4.0.1] - 2018-11-21
 
 - Allow caching visibility_timeout lookups
+
   - [#533](https://github.com/phstc/shoryuken/pull/533)
 
 - Add queue name to inline executor
@@ -186,12 +210,15 @@
 ## [v3.3.0] - 2018-09-30
 
 - Add support for TSTP
+
   - [#492](https://github.com/phstc/shoryuken/pull/492)
 
 - Support an empty list of queues as a CLI argument
+
   - [#507](https://github.com/phstc/shoryuken/pull/507)
 
 - Add batch support for inline workers
+
   - [#514](https://github.com/phstc/shoryuken/pull/514)
 
 - Make InlineExecutor to behave as the DefaultExecutor when calling perform_in
@@ -200,9 +227,11 @@
 ## [v3.2.3] - 2018-03-25
 
 - Don't force eager load for Rails 5
+
   - [#480](https://github.com/phstc/shoryuken/pull/480)
 
 - Allow Batch Size to be Specified for Requeue
+
   - [#478](https://github.com/phstc/shoryuken/pull/478)
 
 - Support FIFO queues in `shoryuken sqs` commands
@@ -216,9 +245,11 @@
 ## [v3.2.1] - 2018-02-12
 
 - Support FIFO queues in `shoryuken sqs` commands
+
   - [#473](https://github.com/phstc/shoryuken/pull/473)
 
 - Allow customizing the default executor launcher
+
   - [#469](https://github.com/phstc/shoryuken/pull/469)
 
 - Exclude job_id from message deduplication when ActiveJob
@@ -227,9 +258,11 @@
 ## [v3.2.0] - 2018-01-03
 
 - Preserve parent worker class options
+
   - [#451](https://github.com/phstc/shoryuken/pull/451)
 
 - Add -t (shutdown timeout) option to CL
+
   - [#449](https://github.com/phstc/shoryuken/pull/449)
 
 - Support inline (Active Job like) for standard workers
@@ -253,6 +286,7 @@
 ## [v3.1.9] - 2017-08-24
 
 - Add support for adding a middleware to the front of chain
+
   - [#427](https://github.com/phstc/shoryuken/pull/427)
 
 - Add support for dispatch fire event
@@ -266,9 +300,11 @@
 ## [v3.1.7] - 2017-07-31
 
 - Allow polling strategy per group
+
   - [#417](https://github.com/phstc/shoryuken/pull/417)
 
 - Add support for creating FIFO queues
+
   - [#419](https://github.com/phstc/shoryuken/pull/419)
 
 - Allow receive message options per queue
@@ -282,6 +318,7 @@
 ## [v3.1.5] - 2017-07-23
 
 - Fix memory leak
+
   - [#414](https://github.com/phstc/shoryuken/pull/414)
 
 - Fail fast on bad queue URLs
@@ -295,6 +332,7 @@
 ## [v3.1.3] - 2017-07-11
 
 - Add queue prefixing support for groups
+
   - [#405](https://github.com/phstc/shoryuken/pull/405)
 
 - Remove dead code
@@ -308,6 +346,7 @@
 ## [v3.1.1] - 2017-07-05
 
 - Reduce log verbosity introduced in 3.1.0
+
   - [#397](https://github.com/phstc/shoryuken/pull/397)
 
 - Try to prevent stack level too deep on Ubuntu
@@ -316,9 +355,11 @@
 ## [v3.1.0] - 2017-07-02
 
 - Add shoryuken sqs delete command
+
   - [#395](https://github.com/phstc/shoryuken/pull/395)
 
 - Add processing groups support; Concurrency per queue support
+
   - [#389](https://github.com/phstc/shoryuken/pull/389)
 
 - Terminate Shoryuken if the fetcher crashes
@@ -332,6 +373,7 @@
 ## [v3.0.10] - 2017-06-24
 
 - Allow aws sdk v3
+
   - [#381](https://github.com/phstc/shoryuken/pull/381)
 
 - Allow configuring Rails via the config file
@@ -345,9 +387,11 @@
 ## [v3.0.8] - 2017-06-02
 
 - Fix miss handling empty batch fetches
+
   - [#376](https://github.com/phstc/shoryuken/pull/376)
 
 - Various minor styling changes :lipstick:
+
   - [#373](https://github.com/phstc/shoryuken/pull/373)
 
 - Logout when batch delete returns any failure
@@ -356,9 +400,11 @@
 ## [v3.0.7] - 2017-05-18
 
 - Trigger events for dispatch
+
   - [#362](https://github.com/phstc/shoryuken/pull/362)
 
 - Log (warn) exponential backoff tries
+
   - [#365](https://github.com/phstc/shoryuken/pull/365)
 
 - Fix displaying of long queue names in `shoryuken sqs ls`
@@ -372,12 +418,15 @@
 ## [v3.0.5] - 2017-04-09
 
 - Pause endless dispatcher to avoid CPU overload
+
   - [#354](https://github.com/phstc/shoryuken/pull/354)
 
 - Auto log processor errors
+
   - [#355](https://github.com/phstc/shoryuken/pull/355)
 
 - Add a delay as a CLI param
+
   - [#350](https://github.com/phstc/shoryuken/pull/350)
 
 - Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
@@ -386,6 +435,7 @@
 ## [v3.0.4] - 2017-03-24
 
 - Add `sqs purge` command. See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_PurgeQueue.html
+
   - [#344](https://github.com/phstc/shoryuken/pull/344)
 
 - Fix "Thread exhaustion" error. This issue was most noticed when using long polling. @waynerobinson :beers: for pairing up on this.
@@ -409,18 +459,23 @@
 ## [v3.0.0] - 2017-03-12
 
 - Replace Celluloid with Concurrent Ruby
+
   - [#291](https://github.com/phstc/shoryuken/pull/291)
 
 - Remove AWS configuration from Shoryuken. Now AWS should be configured from outside. Check [this](https://github.com/phstc/shoryuken/wiki/Configure-the-AWS-Client) for more details
+
   - [#317](https://github.com/phstc/shoryuken/pull/317)
 
 - Remove deprecation warnings
+
   - [#326](https://github.com/phstc/shoryuken/pull/326)
 
 - Allow dynamic adding queues
+
   - [#322](https://github.com/phstc/shoryuken/pull/322)
 
 - Support retry_intervals passed in as a lambda. Auto coerce intervals into integer
+
   - [#329](https://github.com/phstc/shoryuken/pull/329)
 
 - Add SQS commands `shoryuken help sqs`, such as `ls`, `mv`, `dump` and `requeue`
@@ -429,9 +484,11 @@
 ## [v2.1.3] - 2017-01-27
 
 - Show a warn message when batch isn't supported
+
   - [#302](https://github.com/phstc/shoryuken/pull/302)
 
 - Require Celluloid ~> 17
+
   - [#305](https://github.com/phstc/shoryuken/pull/305)
 
 - Fix excessive logging when 0 messages found
@@ -440,18 +497,23 @@
 ## [v2.1.2] - 2016-12-22
 
 - Fix loading `logfile` from shoryuken.yml
+
   - [#296](https://github.com/phstc/shoryuken/pull/296)
 
 - Add support for Strict priority polling (pending documentation)
+
   - [#288](https://github.com/phstc/shoryuken/pull/288)
 
 - Add `test_workers` for end-to-end testing supporting
+
   - [#286](https://github.com/phstc/shoryuken/pull/286)
 
 - Update README documenting `configure_client` and `configure_server`
+
   - [#283](https://github.com/phstc/shoryuken/pull/283)
 
 - Fix memory leak caused by async tracking busy threads
+
   - [#289](https://github.com/phstc/shoryuken/pull/289)
 
 - Refactor fetcher, polling strategy and manager
@@ -465,24 +527,31 @@
 ## [v2.1.0] - 2016-12-03
 
 - Fix celluloid "running in BACKPORTED mode" warning
+
   - [#260](https://github.com/phstc/shoryuken/pull/260)
 
 - Allow setting the aws configuration in 'Shoryuken.configure_server'
+
   - [#252](https://github.com/phstc/shoryuken/pull/252)
 
 - Allow requiring a file or dir a through `-r`
+
   - [#248](https://github.com/phstc/shoryuken/pull/248)
 
 - Reduce info log verbosity
+
   - [#243](https://github.com/phstc/shoryuken/pull/243)
 
 - Fix auto extender when using ActiveJob
+
   - [#3213](https://github.com/phstc/shoryuken/pull/213)
 
 - Add FIFO queue support
+
   - [#272](https://github.com/phstc/shoryuken/issues/272)
 
 - Deprecates initialize_aws
+
   - [#269](https://github.com/phstc/shoryuken/pull/269)
 
 - [Other miscellaneous updates](https://github.com/phstc/shoryuken/compare/v2.0.11...v2.1.0)
@@ -510,22 +579,28 @@
 ## [v2.0.7] - 2016-06-06
 
 - Daemonize before loading environment
+
   - [#219](https://github.com/phstc/shoryuken/pull/219)
 
 - Fix initialization when using rails
+
   - [#197](https://github.com/phstc/shoryuken/pull/197)
 
 - Improve message fetching
+
   - [#214](https://github.com/phstc/shoryuken/pull/214)
   - [#f4640d9](https://github.com/phstc/shoryuken/commit/f4640d9)
 
 - Fix hard shutdown if there are some busy workers when signal received
+
   - [#215](https://github.com/phstc/shoryuken/pull/215)
 
 - Fix `rake console` task
+
   - [#208](https://github.com/phstc/shoryuken/pull/208)
 
 - Isolate `MessageVisibilityExtender` as new middleware
+
   - [#199](https://github.com/phstc/shoryuken/pull/190)
 
 - Fail on non-existent queues
@@ -539,6 +614,7 @@
 ## [v2.0.5] - 2016-04-17
 
 - Fix log initialization when using `Shoryuken::EnvironmentLoader#load`
+
   - [#191](https://github.com/phstc/shoryuken/pull/191)
 
   - Fix `enqueue_at` in the ActiveJob Adapter
@@ -547,12 +623,15 @@
 ## [v2.0.4] - 2016-02-04
 
 - Add Rails 3 support
+
   - [#175](https://github.com/phstc/shoryuken/pull/175)
 
 - Allow symbol as a queue name in shoryuken_options
+
   - [#177](https://github.com/phstc/shoryuken/pull/177)
 
 - Make sure bundler is always updated on Travis CI
+
   - [#176](https://github.com/phstc/shoryuken/pull/176)
 
 - Add Rails 5 compatibility
@@ -561,6 +640,7 @@
 ## [v2.0.3] - 2015-12-30
 
 - Allow multiple queues per worker
+
   - [#164](https://github.com/phstc/shoryuken/pull/164)
 
 - Fix typo
@@ -569,15 +649,19 @@
 ## [v2.0.2] - 2015-10-27
 
 - Fix warnings that are triggered in some cases with the raise_error matcher
+
   - [#144](https://github.com/phstc/shoryuken/pull/144)
 
 - Add lifecycle event registration support
+
   - [#141](https://github.com/phstc/shoryuken/pull/141)
 
 - Allow passing array of messages to send_messages
+
   - [#140](https://github.com/phstc/shoryuken/pull/140)
 
 - Fix Active Job queue prefixing in Rails apps
+
   - [#139](https://github.com/phstc/shoryuken/pull/139)
 
 - Enable override the default queue with a :queue option
@@ -591,9 +675,11 @@
 ## [v2.0.0] - 2015-09-22
 
 - Allow configuration of SQS/SNS endpoints via environment variables
+
   - [#130](https://github.com/phstc/shoryuken/pull/130)
 
 - Expose queue_name in the message object
+
   - [#127](https://github.com/phstc/shoryuken/pull/127)
 
 - README updates
