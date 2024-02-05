@@ -171,11 +171,30 @@ RSpec.describe Shoryuken::Processor do
         Shoryuken.reloader = proc { |&block| block.call }
       end
 
-      it 'wraps execution in reloader' do
-        expect_any_instance_of(TestWorker).to receive(:called)
-        expect_any_instance_of(TestWorker).to_not receive(:perform)
+      context 'when reloader is enabled' do
+        before do
+          Shoryuken.enable_reloading = true
+        end
 
-        subject.process
+        it 'wraps execution in reloader' do
+          expect_any_instance_of(TestWorker).to receive(:called)
+          expect_any_instance_of(TestWorker).to_not receive(:perform)
+
+          subject.process
+        end
+
+        after do
+          Shoryuken.enable_reloading = false
+        end
+      end
+
+      context 'when reloader is disabled' do
+        it 'does not wrap execution in reloader' do
+          expect_any_instance_of(TestWorker).to_not receive(:called)
+          expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, sqs_msg.body)
+
+          subject.process
+        end
       end
     end
   end
