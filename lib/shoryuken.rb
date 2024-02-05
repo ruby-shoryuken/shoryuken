@@ -91,6 +91,10 @@ module Shoryuken
     :on,
     :cache_visibility_timeout?,
     :cache_visibility_timeout=,
+    :reloader,
+    :reloader=,
+    :enable_reloading,
+    :enable_reloading=,
     :delay
   )
 end
