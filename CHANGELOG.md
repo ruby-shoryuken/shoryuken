@@ -1,3 +1,8 @@
+## [v6.2.0] - 2024-02-04
+
+- Enable hot-reload via adding ActiveSupport::Reloader delegate (#756)
+  - [#756](https://github.com/ruby-shoryuken/shoryuken/pull/756)
+
 ## [v6.1.2] - 2024-01-30
 
 - Fix activerecord 7.1 deprecation warnings
