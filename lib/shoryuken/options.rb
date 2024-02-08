@@ -67,6 +67,8 @@ module Shoryuken
         Polling::StrictPriority
       when String
         Object.const_get(strategy)
+      when Class
+        strategy
       else
         raise ArgumentError, "#{strategy} is not a valid polling_strategy"
       end
