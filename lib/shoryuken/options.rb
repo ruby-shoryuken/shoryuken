@@ -68,11 +68,13 @@ module Shoryuken
       when 'StrictPriority'
         Polling::StrictPriority
       when String
+        begin
         Object.const_get(strategy)
+        rescue NameError
+          raise ArgumentError, "#{strategy} is not a valid polling_strategy"
+        end
       when Class
         strategy
-      else
-        raise ArgumentError, "#{strategy} is not a valid polling_strategy"
       end
     end
 
