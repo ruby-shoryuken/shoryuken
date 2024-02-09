@@ -1,3 +1,8 @@
+## [v6.2.1] - 2024-02-09
+
+- Bugfix: Not able to use extended polling strategy (#759)
+  - [#759](https://github.com/ruby-shoryuken/shoryuken/pull/759)
+
 ## [v6.2.0] - 2024-02-04
 
 - Enable hot-reload via adding ActiveSupport::Reloader delegate (#756)
