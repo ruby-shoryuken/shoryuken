@@ -68,7 +68,7 @@ For more information check the [wiki page](https://github.com/phstc/shoryuken/wi
 
 ### Testing
 
-To run all unit specs against the latest dependency vesions, execute
+To run all unit specs against the latest dependency versions, execute
 
 ```sh
 bundle exec rake spec
