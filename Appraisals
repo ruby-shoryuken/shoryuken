@@ -40,3 +40,9 @@ appraise 'rails_7_0' do
     gem 'activejob', '~> 7.0'
   end
 end
+
+appraise 'rails_7_1' do
+  group :test do
+    gem 'activejob', '~> 7.1'
+  end
+end
