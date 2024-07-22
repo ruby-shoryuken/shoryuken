@@ -14,10 +14,17 @@ module Shoryuken
         def normalize_dump_message(message)
           # symbolize_keys is needed for keeping it compatible with `requeue`
           attributes = message[:attributes].symbolize_keys
+
+          # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+          # The `string_list_values` and `binary_list_values` are not implemented. Reserved for future use.
+          message_attributes = message[:message_attributes].each_with_object({}) do |(k, v), result|
+            result[k] = v.slice(:data_type, :string_value, :binary_value)
+          end
+
           {
             id: message[:message_id],
             message_body: message[:body],
-            message_attributes: message[:message_attributes],
+            message_attributes: message_attributes,
             message_deduplication_id: attributes[:MessageDeduplicationId],
             message_group_id: attributes[:MessageGroupId]
           }
