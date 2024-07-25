@@ -16,10 +16,12 @@ module Shoryuken
       }
     }.freeze
 
-    attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :groups,
-                  :launcher_executor, :reloader, :enable_reloading,
-                  :start_callback, :stop_callback, :worker_executor, :worker_registry, :exception_handlers
-    attr_writer :default_worker_options, :sqs_client
+    attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout,
+      :groups, :launcher_executor, :reloader, :enable_reloading,
+      :start_callback, :stop_callback, :worker_executor, :worker_registry,
+      :exception_handlers
+
+    attr_writer :default_worker_options, :sqs_client, :logger
     attr_reader :sqs_client_receive_message_opts
 
     def initialize
@@ -95,7 +97,7 @@ module Shoryuken
     end
 
     def logger
-      Shoryuken::Logging.logger
+      @logger ||= Shoryuken::Logging.logger
     end
 
     def register_worker(*args)
