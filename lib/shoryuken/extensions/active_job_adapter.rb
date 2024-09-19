@@ -14,7 +14,7 @@ module ActiveJob
     # To use Shoryuken set the queue_adapter config to +:shoryuken+.
     #
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
-    class ShoryukenAdapter
+    class ShoryukenAdapter < ActiveJob::QueueAdapters::AbstractAdapter
       class << self
         def instance
           # https://github.com/phstc/shoryuken/pull/174#issuecomment-174555657
@@ -43,10 +43,6 @@ module ActiveJob
 
       def enqueue_at(job, timestamp) #:nodoc:
         enqueue(job, delay_seconds: calculate_delay(timestamp))
-      end
-
-      def enqueue_after_transaction_commit?
-        true
       end
 
       private
