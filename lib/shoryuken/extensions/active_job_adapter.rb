@@ -45,6 +45,10 @@ module ActiveJob
         enqueue(job, delay_seconds: calculate_delay(timestamp))
       end
 
+      def enqueue_after_transaction_commit?
+        true
+      end
+
       private
 
       def calculate_delay(timestamp)

@@ -277,5 +277,10 @@ RSpec.shared_examples 'active_job_adapters' do
       subject.enqueue_at(job, nil)
     end
   end
+
+  describe '#enqueue_after_transaction_commit?' do
+    # see https://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/AbstractAdapter.html#method-i-enqueue_after_transaction_commit-3F
+    it { expect(subject.enqueue_after_transaction_commit?).to be true }
+  end
 end
 # rubocop:enable Metrics/BlockLength
