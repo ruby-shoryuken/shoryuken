@@ -1,4 +1,4 @@
-**I'm looking for Shoryuken maintainers, are you interested on helping to maintain Shoryuken? [Join our Slack](https://join.slack.com/t/shoryuken/shared_invite/zt-19xjq3iqc-KmoJ6eU6~qvZNqcLzIrjww)**
+**I'm looking for Shoryuken maintainers, are you interested in helping to maintain Shoryuken? [Join our Slack](https://join.slack.com/t/shoryuken/shared_invite/zt-19xjq3iqc-KmoJ6eU6~qvZNqcLzIrjww)**
 
 # Shoryuken
 
