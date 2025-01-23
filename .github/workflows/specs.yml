@@ -34,11 +34,8 @@ jobs:
     name: Rails Specs
     strategy:
       matrix:
-        rails: ['4.2', '5.2', '6.0', '6.1', '7.0', '7.1']
+        rails: ['5.2', '6.0', '6.1', '7.0', '7.1']
         include:
-          - rails: '4.2'
-            ruby: '2.2'
-            gemfile: gemfiles/rails_4_2.gemfile
           - rails: '5.2'
             ruby: '2.5'
             gemfile: gemfiles/rails_5_2.gemfile
