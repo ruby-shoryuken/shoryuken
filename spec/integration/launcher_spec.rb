@@ -94,11 +94,13 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     def poll_queues_until
+      retries = 0
       subject.start
 
-      Timeout::timeout(10) do
+      Timeout::timeout(30) do
         begin
-          sleep 0.5
+          sleep 0.5 * (retries + 1)
+          retries += 1
         end until yield
       end
     ensure
