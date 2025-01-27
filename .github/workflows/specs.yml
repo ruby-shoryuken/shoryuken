@@ -14,16 +14,16 @@ jobs:
     runs-on: ubuntu-20.04
     services:
       localstack:
-      image: localstack/localstack:latest
-      environment:
-        - SERVICES=sqs
-      ports:
-        - 4566:4566
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-        interval: 5s
-        timeout: 10s
-        retries: 5
+        image: localstack/localstack:latest
+        environment:
+          - SERVICES=sqs
+        ports:
+          - 4566:4566
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+          interval: 5s
+          timeout: 10s
+          retries: 5
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
