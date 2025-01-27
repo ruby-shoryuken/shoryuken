@@ -7,7 +7,7 @@ RSpec.describe Shoryuken::Launcher do
   let(:sqs_client) do
     Aws::SQS::Client.new(
       region: 'us-east-1',
-      endpoint: 'http://localhost:5000',
+      endpoint: 'http://localhost:4566',
       access_key_id: 'fake',
       secret_access_key: 'fake'
     )
@@ -52,6 +52,12 @@ RSpec.describe Shoryuken::Launcher do
 
     after do
       Aws.config[:stub_responses] = true
+
+      queue_url = Shoryuken::Client.sqs.get_queue_url(
+        queue_name: StandardWorker.get_shoryuken_options['queue']
+      ).queue_url
+
+      Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
     end
 
     it 'consumes as a command worker' do
