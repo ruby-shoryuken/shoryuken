@@ -13,10 +13,17 @@ jobs:
         gemfile: ['Gemfile', 'gemfiles/aws_sdk_core_2.gemfile']
     runs-on: ubuntu-20.04
     services:
-      moto_sqs:
-        image: quay.io/cjlarose/moto-sqs-server:1.1.0
-        ports:
-          - 5000:5000
+      localstack:
+      image: localstack/localstack:latest
+      environment:
+        - SERVICES=sqs
+      ports:
+        - 4566:4566
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+        interval: 5s
+        timeout: 10s
+        retries: 5
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
