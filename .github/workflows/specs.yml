@@ -15,15 +15,15 @@ jobs:
     services:
       localstack:
         image: localstack/localstack:latest
-        environment:
-          - SERVICES=sqs
+        env:
+          SERVICES: sqs
         ports:
           - 4566:4566
-        healthcheck:
-          test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-          interval: 5s
-          timeout: 10s
-          retries: 5
+        options: >-
+          --healthcheck-cmd "curl -f http://localhost:4566/_localstack/health"
+          --healthcheck-interval 5s
+          --healthcheck-timeout 10s
+          --healthcheck-retries 5
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
