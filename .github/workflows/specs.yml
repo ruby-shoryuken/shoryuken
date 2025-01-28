@@ -20,10 +20,10 @@ jobs:
         ports:
           - 4566:4566
         options: >-
-          --healthcheck-cmd "curl -f http://localhost:4566/_localstack/health"
-          --healthcheck-interval 5s
-          --healthcheck-timeout 10s
-          --healthcheck-retries 5
+          --health-cmd "curl -f http://localhost:4566/_localstack/health"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 5
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
