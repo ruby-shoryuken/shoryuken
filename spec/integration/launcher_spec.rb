@@ -7,7 +7,7 @@ RSpec.describe Shoryuken::Launcher do
   let(:sqs_client) do
     Aws::SQS::Client.new(
       region: 'us-east-1',
-      endpoint: 'http://localhost:5000',
+      endpoint: 'http://localhost:4566',
       access_key_id: 'fake',
       secret_access_key: 'fake'
     )

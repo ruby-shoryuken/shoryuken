@@ -8,6 +8,7 @@ group :test do
   gem "codeclimate-test-reporter", require: nil
   gem "httparty"
   gem "multi_xml"
+  gem "nokogiri"
   gem "simplecov"
   gem "webrick"
 end
