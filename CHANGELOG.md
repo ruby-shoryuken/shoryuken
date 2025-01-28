@@ -1,5 +1,8 @@
 ## [7.0.0] - Unreleased
 
+- Enhancement: Add enqueue_after_transaction_commit? for Rails 7.2 compatibility
+  - [#777](https://github.com/ruby-shoryuken/shoryuken/pull/777)
+
 - Fix integration tests by updating aws-sdk-sqs and replacing moto with LocalStack
   - [#782](https://github.com/ruby-shoryuken/shoryuken/pull/782)
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
