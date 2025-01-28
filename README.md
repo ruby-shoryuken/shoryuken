@@ -20,7 +20,7 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 
 ## Requirements
 
-Ruby 2.4 or greater.
+Ruby 2.7 or greater.
 
 ## Installation
 
@@ -29,14 +29,6 @@ Add this line to your application's Gemfile:
 ```ruby
 gem 'shoryuken'
 ```
-
-If you are using AWS SDK version 3, please also add this line:
-
-```ruby
-gem 'aws-sdk-sqs'
-```
-
-The extra gem `aws-sdk-sqs` is required in order to keep Shoryuken compatible with AWS SDK version 2 and 3.
 
 And then execute:
 
