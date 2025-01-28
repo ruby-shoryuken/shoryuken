@@ -1,3 +1,18 @@
+## [7.0.0] - Unreleased
+
+- Fix integration tests by updating aws-sdk-sqs and replacing moto with LocalStack
+  - [#782](https://github.com/ruby-shoryuken/shoryuken/pull/782)
+  - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
+
+- Breaking: Remove support of Ruby versions older than 2.7
+  - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
+
+- Breaking: Remove support of Rails versions older than 6.1
+  - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
+
+- Breaking: Require `aws-sdk-sqs` `>=` `1.66`:
+  - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
+
 ## [v6.2.1] - 2024-02-09
 
 - Bugfix: Not able to use extended polling strategy (#759)
