@@ -30,6 +30,11 @@ module ActiveJob
         end
       end
 
+      # only required for Rails 7.2.x
+      def enqueue_after_transaction_commit?
+        true
+      end
+
       def enqueue(job, options = {}) #:nodoc:
         register_worker!(job)
 
