@@ -16,5 +16,5 @@ end
 group :development do
   gem 'appraisal', git: 'https://github.com/thoughtbot/appraisal.git'
   gem 'pry-byebug'
-  gem 'rubocop', '<= 1.12'
+  gem 'rubocop', '<= 1.71.2'
 end
