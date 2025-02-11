@@ -24,4 +24,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'aws-sdk-sqs', '>= 1.66.0'
   spec.add_dependency 'concurrent-ruby'
   spec.add_dependency 'thor'
+
+  spec.required_ruby_version = '>= 3.0.0'
 end
