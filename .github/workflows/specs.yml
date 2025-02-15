@@ -41,7 +41,7 @@ jobs:
     name: Rails Specs
     strategy:
       matrix:
-        rails: ['6.1', '7.0', '7.1', '7.2']
+        rails: ['6.1', '7.0', '7.1', '7.2', '8.0']
         include:
           - rails: '6.1'
             ruby: '3.0'
