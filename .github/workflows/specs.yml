@@ -55,6 +55,9 @@ jobs:
           - rails: '7.2'
             ruby: '3.3'
             gemfile: gemfiles/rails_7_2.gemfile
+          - rails: '8.0'
+            ruby: '3.4'
+            gemfile: gemfiles/rails_8_0.gemfile
     runs-on: ubuntu-24.04
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}

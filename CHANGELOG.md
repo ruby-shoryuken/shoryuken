@@ -3,6 +3,9 @@
 - Enhancement: Add enqueue_after_transaction_commit? for Rails 7.2 compatibility
   - [#777](https://github.com/ruby-shoryuken/shoryuken/pull/777)
 
+- Enhancement: Bring Ruby 3.4 into the CI
+  - [#805](https://github.com/ruby-shoryuken/shoryuken/pull/805)
+
 - Fix integration tests by updating aws-sdk-sqs and replacing moto with LocalStack
   - [#782](https://github.com/ruby-shoryuken/shoryuken/pull/782)
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
