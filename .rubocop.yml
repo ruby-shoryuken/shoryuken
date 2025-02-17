@@ -1,7 +1,7 @@
 AllCops:
   Exclude:
     - '**/Gemfile'
-  TargetRubyVersion: 2.4
+  TargetRubyVersion: 3.4
 
 Metrics/PerceivedComplexity:
   Enabled: false
