@@ -1,9 +1,7 @@
 name: Specs
-
 on:
   - push
   - pull_request
-
 jobs:
   all_specs:
     name: All Specs
@@ -11,32 +9,38 @@ jobs:
       matrix:
         ruby: ['3.0', '3.1', '3.2', '3.3', '3.4']
         gemfile: ['Gemfile']
-    runs-on: ubuntu-24.04
-    services:
-      localstack:
-        image: localstack/localstack:latest
-        env:
-          SERVICES: sqs
-        ports:
-          - 4566:4566
-        options: >-
-          --health-cmd "curl -f http://localhost:4566/_localstack/health"
-          --health-interval 5s
-          --health-timeout 10s
-          --health-retries 5
-    env:
-      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Start LocalStack
+        run: docker-compose up -d
+
+      - name: Wait for LocalStack
+        run: |
+          timeout 30s bash -c '
+          until curl -s http://localhost:4566/_localstack/health | grep -q "\"sqs\": \"running\""; do
+            echo "Waiting for LocalStack..."
+            sleep 2
+          done
+          '
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+
       - name: Run specs
         run: bundle exec rake spec
+        env:
+          BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+
       - name: Run integration specs
         run: bundle exec rake spec:integration
+        env:
+          BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+
   rails_specs:
     name: Rails Specs
     strategy:
@@ -58,15 +62,17 @@ jobs:
           - rails: '8.0'
             ruby: '3.4'
             gemfile: gemfiles/rails_8_0.gemfile
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+
       - name: Run Rails specs
         run: bundle exec rake spec:rails
