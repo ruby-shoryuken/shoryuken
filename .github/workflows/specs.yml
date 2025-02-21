@@ -19,12 +19,28 @@ jobs:
 
       - name: Wait for LocalStack
         run: |
-          timeout 30s bash -c '
-          until curl -s http://localhost:4566/_localstack/health | grep -q "\"sqs\": \"running\""; do
-            echo "Waiting for LocalStack..."
+          echo "Waiting for LocalStack to be ready..."
+          TIMEOUT=30
+          COUNTER=0
+          until curl -s http://localhost:4566/_localstack/health > health.json; do
+            if [ $COUNTER -gt $TIMEOUT ]; then
+              echo "Timeout waiting for LocalStack"
+              cat health.json || true
+              exit 1
+            fi
+            echo "Waiting for LocalStack endpoint... ($COUNTER/$TIMEOUT)"
             sleep 2
+            let COUNTER=COUNTER+2
           done
-          '
+
+          cat health.json
+          if cat health.json | grep -q "\"sqs\": \"running\""; then
+            echo "LocalStack SQS is running!"
+            exit 0
+          else
+            echo "LocalStack SQS is not running"
+            exit 1
+          fi
 
       - uses: ruby/setup-ruby@v1
         with:
