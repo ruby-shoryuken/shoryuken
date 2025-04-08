@@ -1,6 +1,7 @@
 module Shoryuken
   class Options
     DEFAULTS = {
+      thread_priority: -1,
       concurrency: 25,
       queues: [],
       aws: {},
@@ -18,7 +19,7 @@ module Shoryuken
 
     attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :groups,
                   :launcher_executor, :reloader, :enable_reloading,
-                  :start_callback, :stop_callback, :worker_executor, :worker_registry, :exception_handlers
+                  :start_callback, :stop_callback, :worker_executor, :worker_registry, :exception_handlers, :thread_priority
     attr_writer :default_worker_options, :sqs_client
     attr_reader :sqs_client_receive_message_opts
 
@@ -96,6 +97,10 @@ module Shoryuken
 
     def logger
       Shoryuken::Logging.logger
+    end
+
+    def thread_priority
+      @thread_priority ||= options[:thread_priority]
     end
 
     def register_worker(*args)
