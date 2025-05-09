@@ -19,7 +19,7 @@ module Shoryuken
 
     attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout, :groups,
                   :launcher_executor, :reloader, :enable_reloading,
-                  :start_callback, :stop_callback, :worker_executor, :worker_registry, :exception_handlers, :thread_priority
+                  :start_callback, :stop_callback, :worker_executor, :worker_registry, :exception_handlers
     attr_writer :default_worker_options, :sqs_client
     attr_reader :sqs_client_receive_message_opts
 
