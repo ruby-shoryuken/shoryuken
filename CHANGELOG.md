@@ -1,5 +1,14 @@
 ## [7.0.0] - Unreleased
 
+- Enhancement: Use -1 as thread priority
+  - [#825]()https://github.com/ruby-shoryuken/shoryuken/pull/825
+
+- Enhancement: Add Support for message_attributes to InlineExecutor
+  - [#835](https://github.com/ruby-shoryuken/shoryuken/pull/835)
+
+- Enhancement: Introduce trusted publishing
+  - [#840](https://github.com/ruby-shoryuken/shoryuken/pull/840)
+
 - Enhancement: Add enqueue_after_transaction_commit? for Rails 7.2 compatibility
   - [#777](https://github.com/ruby-shoryuken/shoryuken/pull/777)
 
