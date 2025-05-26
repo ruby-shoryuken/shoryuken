@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   push:
-    if: github.repository_owner == 'shoryuken'
+    if: github.repository_owner == 'ruby-shoryuken'
     runs-on: ubuntu-latest
     environment: deployment
 
