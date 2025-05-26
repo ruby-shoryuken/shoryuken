@@ -98,8 +98,13 @@ module Shoryuken
 
       Concurrent::Promise
         .execute(executor: @executor) do
-          Thread.current.priority = Shoryuken.thread_priority
-          Processor.process(queue_name, sqs_msg)
+          original_priority = Thread.current.priority
+          begin
+            Thread.current.priority = Shoryuken.thread_priority
+            Processor.process(queue_name, sqs_msg)
+          ensure
+            Thread.current.priority = original_priority
+          end
         end
         .then { processor_done(queue_name) }
         .rescue { processor_done(queue_name) }
