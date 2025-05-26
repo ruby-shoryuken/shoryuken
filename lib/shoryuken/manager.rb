@@ -97,7 +97,15 @@ module Shoryuken
       fire_utilization_update_event
 
       Concurrent::Promise
-        .execute(executor: @executor) { Processor.process(queue_name, sqs_msg) }
+        .execute(executor: @executor) do
+          original_priority = Thread.current.priority
+          begin
+            Thread.current.priority = Shoryuken.thread_priority
+            Processor.process(queue_name, sqs_msg)
+          ensure
+            Thread.current.priority = original_priority
+          end
+        end
         .then { processor_done(queue_name) }
         .rescue { processor_done(queue_name) }
     end

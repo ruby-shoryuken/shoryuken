@@ -1,6 +1,7 @@
 module Shoryuken
   class Options
     DEFAULTS = {
+      thread_priority: -1,
       concurrency: 25,
       queues: [],
       aws: {},
@@ -96,6 +97,10 @@ module Shoryuken
 
     def logger
       Shoryuken::Logging.logger
+    end
+
+    def thread_priority
+      @thread_priority ||= options[:thread_priority]
     end
 
     def register_worker(*args)
