@@ -3,6 +3,11 @@ AllCops:
     - '**/Gemfile'
   TargetRubyVersion: 3.4
 
+Metrics/BlockLength:
+  AllowedMethods:
+    - describe
+    - context
+
 Metrics/PerceivedComplexity:
   Enabled: false
 
