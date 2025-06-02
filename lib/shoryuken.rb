@@ -75,6 +75,7 @@ module Shoryuken
     :exception_handlers=,
     :options,
     :logger,
+    :logger=,
     :register_worker,
     :configure_server,
     :server?,
