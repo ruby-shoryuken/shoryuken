@@ -5,7 +5,7 @@ module Shoryuken
   module Logging
     class Base < ::Logger::Formatter
       def tid
-        Thread.current["sidekiq_tid"] ||= (Thread.current.object_id ^ ::Process.pid).to_s(36)
+        Thread.current['shoryuken_tid'] ||= (Thread.current.object_id ^ ::Process.pid).to_s(36)
       end
 
       def context
