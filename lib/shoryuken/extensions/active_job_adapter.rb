@@ -2,11 +2,10 @@
 # Example adapters ref: https://github.com/rails/rails/tree/master/activejob/lib/active_job/queue_adapters
 
 require 'shoryuken'
-require 'active_job/queue_adapters/abstract_adapter'
 
 module ActiveJob
   module QueueAdapters
-    if ActiveJob.version > Gem::Version.new("6.1.0")
+    if ActiveJob.version >= Gem::Version.new("7.0.0")
       class BaseAdapter < ActiveJob::QueueAdapters::AbstractAdapter; end
     else
       class BaseAdapter; end
