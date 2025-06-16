@@ -6,7 +6,7 @@ require 'active_job/queue_adapters/abstract_adapter'
 
 module ActiveJob
   module QueueAdapters
-    if Gem::Version.new(Rails.version) > Gem::Version.new("6.1.0")
+    if ActiveJob.version > Gem::Version.new("6.1.0")
       class BaseAdapter < ActiveJob::QueueAdapters::AbstractAdapter; end
     else
       class BaseAdapter; end
