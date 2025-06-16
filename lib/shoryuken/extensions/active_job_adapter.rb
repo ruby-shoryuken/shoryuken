@@ -2,6 +2,7 @@
 # Example adapters ref: https://github.com/rails/rails/tree/master/activejob/lib/active_job/queue_adapters
 
 require 'shoryuken'
+require 'active_job/queue_adapters/abstract_adapter'
 
 module ActiveJob
   module QueueAdapters
