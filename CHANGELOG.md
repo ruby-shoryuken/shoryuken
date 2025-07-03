@@ -1,7 +1,10 @@
 ## [7.0.0] - Unreleased
 
+- Enhancement: Configure server side logging (BenMorganMY)
+  - [#844](https://github.com/ruby-shoryuken/shoryuken/pull/844)
+
 - Enhancement: Use -1 as thread priority
-  - [#825]()https://github.com/ruby-shoryuken/shoryuken/pull/825
+  - [#825](https://github.com/ruby-shoryuken/shoryuken/pull/825)
 
 - Enhancement: Add Support for message_attributes to InlineExecutor
   - [#835](https://github.com/ruby-shoryuken/shoryuken/pull/835)
@@ -21,9 +24,11 @@
 
 - Breaking: Remove support of Ruby versions older than 3.1
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
+  - [#850](https://github.com/ruby-shoryuken/shoryuken/pull/850)
 
 - Breaking: Remove support of Rails versions older than 7.0
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
+  - [#850](https://github.com/ruby-shoryuken/shoryuken/pull/850)
 
 - Breaking: Require `aws-sdk-sqs` `>=` `1.66`:
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
