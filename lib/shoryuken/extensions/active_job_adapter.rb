@@ -5,6 +5,12 @@ require 'shoryuken'
 
 module ActiveJob
   module QueueAdapters
+    if ActiveJob.version >= Gem::Version.new("7.0.0")
+      class BaseAdapter < ActiveJob::QueueAdapters::AbstractAdapter; end
+    else
+      class BaseAdapter; end
+    end
+
     # == Shoryuken adapter for Active Job
     #
     # Shoryuken ("sho-ryu-ken") is a super-efficient AWS SQS thread based message processor.
@@ -14,7 +20,7 @@ module ActiveJob
     # To use Shoryuken set the queue_adapter config to +:shoryuken+.
     #
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
-    class ShoryukenAdapter
+    class ShoryukenAdapter < BaseAdapter
       class << self
         def instance
           # https://github.com/phstc/shoryuken/pull/174#issuecomment-174555657

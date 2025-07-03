@@ -11,9 +11,8 @@ end
 
 group :development do
   gem "appraisal", git: "https://github.com/thoughtbot/appraisal.git"
+  gem "pry-byebug"
   gem "rubocop"
-  gem "pry", ">= 0.14.2"
-  gem "pry-byebug", ">= 3.10.1"
 end
 
 gemspec path: "../"
