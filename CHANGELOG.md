@@ -19,10 +19,10 @@
   - [#782](https://github.com/ruby-shoryuken/shoryuken/pull/782)
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
 
-- Breaking: Remove support of Ruby versions older than 2.7
+- Breaking: Remove support of Ruby versions older than 3.1
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
 
-- Breaking: Remove support of Rails versions older than 6.1
+- Breaking: Remove support of Rails versions older than 7.0
   - [#783](https://github.com/ruby-shoryuken/shoryuken/pull/783)
 
 - Breaking: Require `aws-sdk-sqs` `>=` `1.66`:
