@@ -39,7 +39,7 @@ RSpec.describe Shoryuken::Fetcher do
     end
 
     it 'logs debug only' do
-      # See https://github.com/phstc/shoryuken/issues/435
+      # See https://github.com/ruby-shoryuken/shoryuken/issues/435
       logger = double 'logger'
 
       allow(subject).to receive(:logger).and_return(logger)
@@ -106,7 +106,7 @@ RSpec.describe Shoryuken::Fetcher do
       let(:queue) { instance_double('Shoryuken::Queue', fifo?: true, name: queue_name) }
 
       it 'polls one message at a time' do
-        # see https://github.com/phstc/shoryuken/pull/530
+        # see https://github.com/ruby-shoryuken/shoryuken/pull/530
 
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
         expect(queue).to receive(:receive_messages).with({
@@ -118,7 +118,7 @@ RSpec.describe Shoryuken::Fetcher do
 
       context 'with batch=true' do
         it 'polls the provided limit' do
-          # see https://github.com/phstc/shoryuken/pull/530
+          # see https://github.com/ruby-shoryuken/shoryuken/pull/530
 
           allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
           allow(Shoryuken.worker_registry).to receive(:batch_receive_messages?).with(queue.name).and_return(true)

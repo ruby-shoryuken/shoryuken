@@ -9,7 +9,7 @@ module ActiveJob
     #
     # Shoryuken ("sho-ryu-ken") is a super-efficient AWS SQS thread based message processor.
     #
-    # Read more about Shoryuken {here}[https://github.com/phstc/shoryuken].
+    # Read more about Shoryuken {here}[https://github.com/ruby-shoryuken/shoryuken].
     #
     # To use Shoryuken set the queue_adapter config to +:shoryuken+.
     #
@@ -17,7 +17,7 @@ module ActiveJob
     class ShoryukenAdapter < ActiveJob::QueueAdapters::AbstractAdapter
       class << self
         def instance
-          # https://github.com/phstc/shoryuken/pull/174#issuecomment-174555657
+          # https://github.com/ruby-shoryuken/shoryuken/pull/174#issuecomment-174555657
           @instance ||= new
         end
 
