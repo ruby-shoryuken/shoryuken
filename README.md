@@ -1,21 +1,20 @@
 # Shoryuken
 
-![Shoryuken](shoryuken.jpg)
-
 Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com/sqs/) thread-based message processor.
 
 [![Build Status](https://github.com/ruby-shoryuken/shoryuken/workflows/Specs/badge.svg)](https://github.com/ruby-shoryuken/shoryuken/actions)
+[![Join the chat at https://slack.shoryuken.io](https://raw.githubusercontent.com/karafka/misc/master/slack.svg)](https://slack.shoryuken.io)
 
 ## Key features
 
-- [Rails Active Job](https://github.com/phstc/shoryuken/wiki/Rails-Integration-Active-Job)
-- [Queue Load balancing](https://github.com/phstc/shoryuken/wiki/Shoryuken-options#load-balancing)
-- [Concurrency per queue](https://github.com/phstc/shoryuken/wiki/Processing-Groups)
-- [Long Polling](https://github.com/phstc/shoryuken/wiki/Long-Polling)
-- [Batch processing](https://github.com/phstc/shoryuken/wiki/Worker-options#batch)
-- [Auto extend visibility timeout](https://github.com/phstc/shoryuken/wiki/Worker-options#auto_visibility_timeout)
-- [Exponential backoff](https://github.com/phstc/shoryuken/wiki/Worker-options#retry_intervals)
-- [Middleware support](https://github.com/phstc/shoryuken/wiki/Middleware)
+- [Rails Active Job](https://github.com/ruby-shoryuken/shoryuken/wiki/Rails-Integration-Active-Job)
+- [Queue Load balancing](https://github.com/ruby-shoryuken/shoryuken/wiki/Shoryuken-options#load-balancing)
+- [Concurrency per queue](https://github.com/ruby-shoryuken/shoryuken/wiki/Processing-Groups)
+- [Long Polling](https://github.com/ruby-shoryuken/shoryuken/wiki/Long-Polling)
+- [Batch processing](https://github.com/ruby-shoryuken/shoryuken/wiki/Worker-options#batch)
+- [Auto extend visibility timeout](https://github.com/ruby-shoryuken/shoryuken/wiki/Worker-options#auto_visibility_timeout)
+- [Exponential backoff](https://github.com/ruby-shoryuken/shoryuken/wiki/Worker-options#retry_intervals)
+- [Middleware support](https://github.com/ruby-shoryuken/shoryuken/wiki/Middleware)
 - Amazon SQS CLI. See `shoryuken help sqs`
 
 ## Requirements
@@ -38,11 +37,11 @@ $ bundle
 
 ## Usage
 
-Check the [Getting Started](https://github.com/phstc/shoryuken/wiki/Getting-Started) page.
+Check the [Getting Started](https://github.com/ruby-shoryuken/shoryuken/wiki/Getting-Started) page.
 
 ## More Information
 
-For more information check the [wiki page](https://github.com/phstc/shoryuken/wiki).
+For more information check the [wiki page](https://github.com/ruby-shoryuken/shoryuken/wiki).
 
 ## Credits
 
@@ -50,7 +49,7 @@ For more information check the [wiki page](https://github.com/phstc/shoryuken/wi
 
 ## Contributing
 
-1. Fork it ( https://github.com/phstc/shoryuken/fork )
+1. Fork it ( https://github.com/ruby-shoryuken/shoryuken/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

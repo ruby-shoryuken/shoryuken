@@ -3,7 +3,7 @@ module Shoryuken
     include Util
 
     BATCH_LIMIT = 10
-    # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
+    # See https://github.com/ruby-shoryuken/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
     attr_reader :group
