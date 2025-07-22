@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   class Processor
     include Util
