@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   module Polling
     class StrictPriority < BaseStrategy

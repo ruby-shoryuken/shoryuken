@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   class Fetcher
     include Util
