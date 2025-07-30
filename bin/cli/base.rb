@@ -25,8 +25,7 @@ module Shoryuken
 
         def print_format_column(column, size)
           size_with_padding = size + 4
-          column = column.to_s.ljust(size_with_padding)
-          column
+          column.to_s.ljust(size_with_padding)
         end
 
         def fail_task(msg, quit = true)

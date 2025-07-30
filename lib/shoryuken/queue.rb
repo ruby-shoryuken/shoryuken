@@ -4,9 +4,9 @@ module Shoryuken
   class Queue
     include Util
 
-    FIFO_ATTR               = 'FifoQueue'.freeze
-    MESSAGE_GROUP_ID        = 'ShoryukenMessage'.freeze
-    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'.freeze
+    FIFO_ATTR               = 'FifoQueue'
+    MESSAGE_GROUP_ID        = 'ShoryukenMessage'
+    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
 
     attr_accessor :name, :client, :url
 

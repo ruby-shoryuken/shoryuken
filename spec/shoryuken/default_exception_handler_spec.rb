@@ -1,12 +1,11 @@
 require 'spec_helper'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::DefaultExceptionHandler do
   class CustomErrorHandler
     extend Shoryuken::Util
 
     def self.call(_ex, queue, _msg)
-      logger.error("#{queue.to_s} failed to process the message")
+      logger.error("#{queue} failed to process the message")
     end
   end
 
@@ -38,31 +37,31 @@ RSpec.describe Shoryuken::DefaultExceptionHandler do
 
   subject { Shoryuken::Processor.new(queue, sqs_msg) }
 
-  context "with default handler" do
+  context 'with default handler' do
     before do
       Shoryuken.exception_handlers = described_class
     end
 
-    it "logs an error message" do
+    it 'logs an error message' do
       expect(Shoryuken::Logging.logger).to receive(:error).twice
 
-      allow_any_instance_of(TestWorker).to receive(:perform).and_raise(StandardError, "error")
+      allow_any_instance_of(TestWorker).to receive(:perform).and_raise(StandardError, 'error')
       allow(sqs_msg).to receive(:body)
 
       expect { subject.process }.to raise_error(StandardError)
     end
   end
 
-  context "with custom handler" do
+  context 'with custom handler' do
     before do
       Shoryuken.exception_handlers = [described_class, CustomErrorHandler]
     end
 
-    it "logs default and custom error messages" do
+    it 'logs default and custom error messages' do
       expect(Shoryuken::Logging.logger).to receive(:error).twice
-      expect(Shoryuken::Logging.logger).to receive(:error).with("default failed to process the message").once
+      expect(Shoryuken::Logging.logger).to receive(:error).with('default failed to process the message').once
 
-      allow_any_instance_of(TestWorker).to receive(:perform).and_raise(StandardError, "error")
+      allow_any_instance_of(TestWorker).to receive(:perform).and_raise(StandardError, 'error')
       allow(sqs_msg).to receive(:body)
 
       expect { subject.process }.to raise_error(StandardError)

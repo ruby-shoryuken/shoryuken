@@ -1,7 +1,6 @@
 require 'spec_helper'
 require 'shoryuken/runner'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::Runner do
   let(:cli) { Shoryuken::Runner.instance }
 

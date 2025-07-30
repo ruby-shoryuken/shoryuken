@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::DefaultWorkerRegistry do
   class RegistryTestWorker
     include Shoryuken::Worker

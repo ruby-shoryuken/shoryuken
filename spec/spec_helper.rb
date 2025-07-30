@@ -1,3 +1,17 @@
+# frozen_string_literal: true
+
+Warning[:performance] = true if RUBY_VERSION >= '3.3'
+Warning[:deprecated] = true
+$VERBOSE = true
+
+require 'warning'
+
+Warning.process do |warning|
+  next unless warning.include?(Dir.pwd)
+
+  raise "Warning in your code: #{warning}"
+end
+
 require 'bundler/setup'
 Bundler.setup
 

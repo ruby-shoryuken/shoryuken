@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::Queue do
   let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }
   let(:sqs) { Aws::SQS::Client.new(stub_responses: true, credentials: credentials) }

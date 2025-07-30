@@ -14,7 +14,7 @@ module Shoryuken
     module SymbolizeKeys
       def symbolize_keys
         keys.each do |key|
-          self[(key.to_sym rescue key) || key] = delete(key)
+          self[key.to_sym rescue key || key] = delete(key)
         end
         self
       end
@@ -24,7 +24,7 @@ module Shoryuken
       def deep_symbolize_keys
         keys.each do |key|
           value = delete(key)
-          self[(key.to_sym rescue key) || key] = value
+          self[key.to_sym rescue key || key] = value
 
           value.deep_symbolize_keys if value.is_a? Hash
         end

@@ -37,7 +37,7 @@ module ActiveJob
         true
       end
 
-      def enqueue(job, options = {}) #:nodoc:
+      def enqueue(job, options = {}) # :nodoc:
         register_worker!(job)
 
         job.sqs_send_message_parameters.merge! options
@@ -48,7 +48,7 @@ module ActiveJob
         queue.send_message send_message_params
       end
 
-      def enqueue_at(job, timestamp) #:nodoc:
+      def enqueue_at(job, timestamp) # :nodoc:
         enqueue(job, delay_seconds: calculate_delay(timestamp))
       end
 
@@ -87,7 +87,7 @@ module ActiveJob
         Shoryuken.register_worker(job.queue_name, JobWrapper)
       end
 
-      class JobWrapper #:nodoc:
+      class JobWrapper # :nodoc:
         include Shoryuken::Worker
 
         shoryuken_options body_parser: :json, auto_delete: true

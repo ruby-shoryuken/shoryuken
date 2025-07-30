@@ -111,7 +111,7 @@ module Shoryuken
           attribute_size + body_size
         end
 
-        def find_all(url, limit)
+        def find_all(url, limit, &block)
           count = 0
           batch_size = limit > 10 ? 10 : limit
 
@@ -126,7 +126,7 @@ module Shoryuken
               message_attribute_names: ['All']
             ).messages || []
 
-            messages.each { |m| yield m }
+            messages.each(&block)
 
             count += messages.size
 
@@ -212,7 +212,8 @@ module Shoryuken
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
-      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'maximum number of messages per batch to send'
+      method_option :batch_size, aliases: '-n', type: :numeric, default: 10,
+                                 desc: 'maximum number of messages per batch to send'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 
