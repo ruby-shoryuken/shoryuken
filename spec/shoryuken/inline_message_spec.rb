@@ -15,15 +15,15 @@ RSpec.describe Shoryuken::InlineMessage do
     context 'with positional arguments' do
       subject do
         described_class.new(
-          body,
-          attributes,
-          md5_of_body,
-          md5_of_message_attributes,
-          message_attributes,
-          message_id,
-          receipt_handle,
-          delete,
-          queue_name
+          body: body,
+          attributes: attributes,
+          md5_of_body: md5_of_body,
+          md5_of_message_attributes: md5_of_message_attributes,
+          message_attributes: message_attributes,
+          message_id: message_id,
+          receipt_handle: receipt_handle,
+          delete: delete,
+          queue_name: queue_name
         )
       end
 
