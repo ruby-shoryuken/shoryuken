@@ -8,6 +8,7 @@ require 'warning'
 
 Warning.process do |warning|
   next unless warning.include?(Dir.pwd)
+  next if warning.include?('useless use of a variable in void context') && warning.include?('core_ext')
 
   raise "Warning in your code: #{warning}"
 end
