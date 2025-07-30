@@ -1,5 +1,8 @@
 ## [7.0.0] - Unreleased
 
+- Enhancement: Replace OpenStruct usage with Struct for inline execution
+  - [#860](https://github.com/ruby-shoryuken/shoryuken/pull/860)
+
 - Enhancement: Configure server side logging (BenMorganMY)
   - [#844](https://github.com/ruby-shoryuken/shoryuken/pull/844)
 
