@@ -13,7 +13,7 @@ module Shoryuken
             data_type: 'String'
           }
 
-          sqs_msg = InlineMessage.new({
+          sqs_msg = InlineMessage.new(
             body: body,
             attributes: nil,
             md5_of_body: nil,
@@ -23,7 +23,7 @@ module Shoryuken
             receipt_handle: nil,
             delete: nil,
             queue_name: queue_name
-          })
+          )
 
           call(worker_class, sqs_msg)
         end

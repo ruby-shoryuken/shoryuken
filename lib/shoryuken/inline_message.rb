@@ -16,6 +16,7 @@ module Shoryuken
     :message_id,
     :receipt_handle,
     :delete,
-    :queue_name
+    :queue_name,
+    keyword_init: true
   )
 end
