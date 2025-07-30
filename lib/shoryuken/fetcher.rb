@@ -32,13 +32,13 @@ module Shoryuken
 
       begin
         yield
-      rescue => ex
+      rescue => e
         # Tries to auto retry connectivity errors
         raise if attempts >= max_attempts
 
         attempts += 1
 
-        logger.debug { "Retrying fetch attempt #{attempts} for #{ex.message}" }
+        logger.debug { "Retrying fetch attempt #{attempts} for #{e.message}" }
 
         sleep((1..5).to_a.sample)
 

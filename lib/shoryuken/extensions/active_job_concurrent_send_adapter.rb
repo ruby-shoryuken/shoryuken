@@ -32,11 +32,9 @@ module ActiveJob
       end
 
       def error_handler
-        @error_handler ||= begin
-          lambda { |error, job, _options|
-            Shoryuken.logger.warn("Failed to enqueue job: #{job.inspect} due to error: #{error}")
-          }
-        end
+        @error_handler ||= lambda { |error, job, _options|
+          Shoryuken.logger.warn("Failed to enqueue job: #{job.inspect} due to error: #{error}")
+        }
       end
 
       private

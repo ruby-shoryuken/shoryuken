@@ -9,7 +9,6 @@ require 'erb'
 require 'shoryuken'
 
 module Shoryuken
-  # rubocop:disable Lint/InheritException
   # See: https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
   class Shutdown < Interrupt; end
 
@@ -21,13 +20,11 @@ module Shoryuken
       self_read, self_write = IO.pipe
 
       %w[INT TERM USR1 TSTP TTIN].each do |sig|
-        begin
-          trap sig do
-            self_write.puts(sig)
-          end
-        rescue ArgumentError
-          puts "Signal #{sig} not supported"
+        trap sig do
+          self_write.puts(sig)
         end
+      rescue ArgumentError
+        puts "Signal #{sig} not supported"
       end
 
       loader = EnvironmentLoader.setup_options(options)
@@ -79,11 +76,9 @@ module Shoryuken
       Process.daemon(true, true)
 
       files_to_reopen.each do |file|
-        begin
-          file.reopen file.path, 'a+'
-          file.sync = true
-        rescue ::Exception
-        end
+        file.reopen file.path, 'a+'
+        file.sync = true
+      rescue ::Exception
       end
 
       [$stdout, $stderr].each do |io|

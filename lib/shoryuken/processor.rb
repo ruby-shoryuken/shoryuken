@@ -18,6 +18,7 @@ module Shoryuken
     def process
       worker_perform = proc do
         return logger.error { "No worker found for #{queue}" } unless worker
+
         Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id}") do
           worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
             worker.perform(sqs_msg, body)
@@ -32,8 +33,8 @@ module Shoryuken
       else
         worker_perform.call
       end
-    rescue Exception => ex
-      Array(Shoryuken.exception_handlers).each { |handler| handler.call(ex, queue, sqs_msg) }
+    rescue Exception => e
+      Array(Shoryuken.exception_handlers).each { |handler| handler.call(e, queue, sqs_msg) }
 
       raise
     end

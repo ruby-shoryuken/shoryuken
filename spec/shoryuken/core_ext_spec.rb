@@ -23,7 +23,7 @@ RSpec.describe 'Core Extensions' do
                    'key32' => 'value32'
                  } }.deep_symbolize_keys).to eq(key1: 'value1',
                                                 key2: 'value2',
-                                                key3: { key31:                                                                                     { key311: 'value311' },
+                                                key3: { key31: { key311: 'value311' },
                                                         key32: 'value32' })
       end
     end

@@ -24,7 +24,7 @@ RSpec.shared_examples 'active_job_adapters' do
       expect(queue).to receive(:send_message) do |hash|
         expect(hash[:message_deduplication_id]).to_not be
         expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(described_class::JobWrapper.to_s)
-        expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq("String")
+        expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq('String')
         expect(hash[:message_attributes].keys).to eq(['shoryuken_class'])
       end
       expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
@@ -133,9 +133,9 @@ RSpec.shared_examples 'active_job_adapters' do
 
         expect(queue).to receive(:send_message) do |hash|
           expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(described_class::JobWrapper.to_s)
-          expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq("String")
+          expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq('String')
           expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(custom_message_attributes['tracer_id'][:string_value])
-          expect(hash[:message_attributes]['tracer_id'][:data_type]).to eq("String")
+          expect(hash[:message_attributes]['tracer_id'][:data_type]).to eq('String')
         end
         expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
 
@@ -157,7 +157,8 @@ RSpec.shared_examples 'active_job_adapters' do
         it 'should enqueue a message with the message_attributes specified on the job' do
           expect(queue).to receive(:send_message) do |hash|
             expect(hash[:message_attributes]['tracer_id']).to eq({ data_type: 'String', string_value: 'job-value' })
-            expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String', string_value: described_class::JobWrapper.to_s })
+            expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String',
+                                                                         string_value: described_class::JobWrapper.to_s })
           end
           subject.enqueue job
         end
@@ -185,8 +186,10 @@ RSpec.shared_examples 'active_job_adapters' do
 
           expect(queue).to receive(:send_message) do |hash|
             expect(hash[:message_attributes]['tracer_id']).to be_nil
-            expect(hash[:message_attributes]['options_tracer_id']).to eq({ data_type: 'String', string_value: 'options-value' })
-            expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String', string_value: described_class::JobWrapper.to_s })
+            expect(hash[:message_attributes]['options_tracer_id']).to eq({ data_type: 'String',
+                                                                           string_value: 'options-value' })
+            expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String',
+                                                                         string_value: described_class::JobWrapper.to_s })
           end
           subject.enqueue job, message_attributes: custom_message_attributes
         end
@@ -225,7 +228,8 @@ RSpec.shared_examples 'active_job_adapters' do
 
       it 'should enqueue a message with the message_system_attributes specified on the job' do
         expect(queue).to receive(:send_message) do |hash|
-          expect(hash[:message_system_attributes]['AWSTraceHeader']).to eq({ data_type: 'String', string_value: 'job-value' })
+          expect(hash[:message_system_attributes]['AWSTraceHeader']).to eq({ data_type: 'String',
+                                                                             string_value: 'job-value' })
         end
         subject.enqueue job
       end
@@ -253,7 +257,8 @@ RSpec.shared_examples 'active_job_adapters' do
 
         expect(queue).to receive(:send_message) do |hash|
           expect(hash[:message_system_attributes]['job_trace_header']).to be_nil
-          expect(hash[:message_system_attributes]['options_trace_header']).to eq({ data_type: 'String', string_value: 'options-value' })
+          expect(hash[:message_system_attributes]['options_trace_header']).to eq({ data_type: 'String',
+                                                                                   string_value: 'options-value' })
         end
         subject.enqueue job, message_system_attributes: custom_message_attributes
       end

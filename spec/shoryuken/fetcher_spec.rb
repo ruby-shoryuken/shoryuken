@@ -2,7 +2,6 @@ require 'spec_helper'
 require 'shoryuken/manager'
 require 'shoryuken/fetcher'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::Fetcher do
   let(:queue)        { instance_double('Shoryuken::Queue', fifo?: false) }
   let(:queue_name)   { 'default' }
@@ -29,11 +28,11 @@ RSpec.describe Shoryuken::Fetcher do
       Shoryuken.sqs_client_receive_message_opts[group] = { wait_time_seconds: 10 }
 
       expect(queue).to receive(:receive_messages).with({
-        wait_time_seconds: 10,
-        max_number_of_messages: limit,
-        message_attribute_names: ['All'],
-        attribute_names: ['All']
-      }).and_return([])
+                                                         wait_time_seconds: 10,
+                                                         max_number_of_messages: limit,
+                                                         message_attribute_names: ['All'],
+                                                         attribute_names: ['All']
+                                                       }).and_return([])
 
       subject.fetch(queue_config, limit)
     end
@@ -63,10 +62,10 @@ RSpec.describe Shoryuken::Fetcher do
         Shoryuken.sqs_client_receive_message_opts[queue_name] = { max_number_of_messages: 1 }
 
         expect(queue).to receive(:receive_messages).with({
-          max_number_of_messages: 1,
-          message_attribute_names: ['All'],
-          attribute_names: ['All']
-        }).and_return([])
+                                                           max_number_of_messages: 1,
+                                                           message_attribute_names: ['All'],
+                                                           attribute_names: ['All']
+                                                         }).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -79,10 +78,10 @@ RSpec.describe Shoryuken::Fetcher do
         Shoryuken.sqs_client_receive_message_opts[queue_name] = { max_number_of_messages: 20 }
 
         expect(queue).to receive(:receive_messages).with({
-          max_number_of_messages: limit,
-          message_attribute_names: ['All'],
-          attribute_names: ['All']
-        }).and_return([])
+                                                           max_number_of_messages: limit,
+                                                           message_attribute_names: ['All'],
+                                                           attribute_names: ['All']
+                                                         }).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -94,8 +93,8 @@ RSpec.describe Shoryuken::Fetcher do
       specify do
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
         expect(queue).to receive(:receive_messages).with({
-          max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']
-        }).and_return([])
+                                                           max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']
+                                                         }).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -110,8 +109,8 @@ RSpec.describe Shoryuken::Fetcher do
 
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
         expect(queue).to receive(:receive_messages).with({
-          max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']
-        }).and_return([])
+                                                           max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']
+                                                         }).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -124,8 +123,8 @@ RSpec.describe Shoryuken::Fetcher do
           allow(Shoryuken.worker_registry).to receive(:batch_receive_messages?).with(queue.name).and_return(true)
 
           expect(queue).to receive(:receive_messages).with({
-            max_number_of_messages: limit, attribute_names: ['All'], message_attribute_names: ['All']
-          }).and_return([])
+                                                             max_number_of_messages: limit, attribute_names: ['All'], message_attribute_names: ['All']
+                                                           }).and_return([])
 
           subject.fetch(queue_config, limit)
         end

@@ -48,7 +48,7 @@ module Shoryuken
     end
 
     def self.logger=(log)
-      @logger = (log || Logger.new('/dev/null'))
+      @logger = log || Logger.new('/dev/null')
     end
   end
 end

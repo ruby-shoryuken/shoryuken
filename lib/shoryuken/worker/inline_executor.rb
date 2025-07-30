@@ -13,7 +13,7 @@ module Shoryuken
             data_type: 'String'
           }
 
-          sqs_msg = OpenStruct.new(
+          sqs_msg = InlineMessage.new(
             body: body,
             attributes: nil,
             md5_of_body: nil,

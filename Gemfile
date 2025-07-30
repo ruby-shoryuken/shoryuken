@@ -8,6 +8,7 @@ group :test do
   gem 'httparty'
   gem 'multi_xml'
   gem 'simplecov'
+  gem 'warning'
 end
 
 group :development do
