@@ -5,7 +5,7 @@ module Shoryuken
   module CLI
     class SQS < Base
       # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
-      MAX_BATCH_SIZE = 256 * 1024
+      MAX_BATCH_SIZE = 1024 * 1024
 
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
