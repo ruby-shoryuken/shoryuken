@@ -1,4 +1,6 @@
 ## [7.0.0] - Unreleased
+- Enhancement: Increase `SendMessageBatch` to 1MB to align with AWS
+  - [#864](https://github.com/ruby-shoryuken/shoryuken/pull/864)
 
 - Enhancement: Replace OpenStruct usage with Struct for inline execution
   - [#860](https://github.com/ruby-shoryuken/shoryuken/pull/860)
