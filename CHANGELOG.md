@@ -1,7 +1,8 @@
 ## [7.0.0] - Unreleased
-- Enhancement: Replace Concurrent::AtomicFixnum with pure Ruby AtomicCounter
-  - Removes external dependency on concurrent-ruby for atomic fixnum operations
+- Enhancement: Replace Concurrent::AtomicFixnum and Concurrent::AtomicBoolean with pure Ruby implementations
+  - Removes external dependency on concurrent-ruby for atomic operations
   - Introduces Shoryuken::Helpers::AtomicCounter as a thread-safe alternative using Mutex
+  - Introduces Shoryuken::Helpers::AtomicBoolean as a thread-safe alternative using Mutex
   - Reduces gem footprint while maintaining full functionality
 
 - Enhancement: Increase `SendMessageBatch` to 1MB to align with AWS

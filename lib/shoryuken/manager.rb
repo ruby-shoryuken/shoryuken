@@ -17,8 +17,8 @@ module Shoryuken
       @max_processors             = concurrency
       @busy_processors            = Shoryuken::Helpers::AtomicCounter.new(0)
       @executor                   = executor
-      @running                    = Concurrent::AtomicBoolean.new(true)
-      @stop_new_dispatching       = Concurrent::AtomicBoolean.new(false)
+      @running                    = Shoryuken::Helpers::AtomicBoolean.new(true)
+      @stop_new_dispatching       = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatching_release_signal = ::Queue.new
     end
 
