@@ -2,24 +2,23 @@
 
 module Shoryuken
   module Helpers
-    # A thread-safe hash implementation using Ruby's Mutex for write operations.
+    # A thread-safe hash implementation using Ruby's Mutex for all operations.
     #
     # This class provides a hash-like interface with thread-safe operations, serving as a
     # drop-in replacement for Concurrent::Hash without requiring external dependencies.
-    # The implementation uses a selective synchronization approach: read operations can
-    # proceed concurrently for maximum performance, while write operations are protected
-    # by a mutex to ensure data integrity.
+    # The implementation uses a single mutex to protect both read and write operations,
+    # ensuring complete thread safety across all Ruby implementations including JRuby.
     #
-    # This design is particularly important for JRuby compatibility, where true parallelism
-    # means that unsynchronized hash operations can lead to data corruption or infinite loops.
-    # The read-heavy optimization makes it ideal for scenarios like worker registries where
-    # lookups are frequent but modifications are rare.
+    # Since hash operations (lookup, assignment) are very fast, the mutex overhead is
+    # minimal while providing guaranteed safety and simplicity. This approach avoids
+    # the complexity of copy-on-write while maintaining excellent performance for
+    # typical usage patterns.
     #
-    # @note This implementation prioritizes read performance over write performance,
-    #   making it optimal for read-heavy workloads with infrequent updates.
+    # @note This implementation uses mutex synchronization for all operations,
+    #   ensuring complete thread safety with minimal performance impact.
     #
-    # @note While reads are concurrent, they are not isolated from writes. A read
-    #   operation may see partial effects of a concurrent write operation.
+    # @note All operations are atomic and will never see partial effects from
+    #   concurrent operations.
     #
     # @example Basic hash operations
     #   hash = Shoryuken::Helpers::AtomicHash.new
@@ -68,9 +67,8 @@ module Shoryuken
 
       # Returns the value associated with the given key.
       #
-      # This is a concurrent read operation that does not acquire the mutex,
-      # allowing multiple threads to read simultaneously for optimal performance.
-      # Returns nil if the key is not found.
+      # This operation is thread-safe and will return a consistent value
+      # even when called concurrently with write operations.
       #
       # @param key [Object] The key to look up
       # @return [Object, nil] The value associated with the key, or nil if not found
@@ -88,14 +86,13 @@ module Shoryuken
       #   hash[:symbol]  # => 'symbol_value'
       #   hash[42]       # => 'number_value'
       def [](key)
-        @hash[key]
+        @mutex.synchronize { @hash[key] }
       end
 
       # Sets the value for the given key.
       #
-      # This is a thread-safe write operation that acquires the mutex to ensure
-      # data integrity. Multiple concurrent write operations will be serialized
-      # to prevent data corruption.
+      # This is a thread-safe write operation that ensures data integrity
+      # when called concurrently with other read or write operations.
       #
       # @param key [Object] The key to set
       # @param value [Object] The value to associate with the key
@@ -118,9 +115,8 @@ module Shoryuken
 
       # Removes all key-value pairs from the hash.
       #
-      # This is a thread-safe write operation that acquires the mutex to ensure
-      # the clear operation is atomic. After calling this method, the hash will
-      # be empty.
+      # This is a thread-safe write operation that ensures atomicity
+      # when called concurrently with other operations.
       #
       # @return [Hash] An empty hash (for compatibility with standard Hash#clear)
       #
@@ -138,9 +134,8 @@ module Shoryuken
 
       # Returns an array of all keys in the hash.
       #
-      # This is a concurrent read operation that does not acquire the mutex,
-      # allowing multiple threads to enumerate keys simultaneously. The returned
-      # array is a snapshot of keys at the time of the call.
+      # This operation is thread-safe and will return a consistent snapshot
+      # of keys even when called concurrently with write operations.
       #
       # @return [Array] An array containing all keys in the hash
       #
@@ -154,13 +149,13 @@ module Shoryuken
       #   hash = Shoryuken::Helpers::AtomicHash.new
       #   hash.keys  # => []
       def keys
-        @hash.keys
+        @mutex.synchronize { @hash.keys }
       end
 
       # Returns the value for the given key, or a default value if the key is not found.
       #
-      # This is a concurrent read operation that does not acquire the mutex,
-      # allowing optimal performance for lookups with fallback values.
+      # This operation is thread-safe and will return a consistent value
+      # even when called concurrently with write operations.
       #
       # @param key [Object] The key to look up
       # @param default [Object] The value to return if the key is not found
@@ -180,7 +175,7 @@ module Shoryuken
       #   hash = Shoryuken::Helpers::AtomicHash.new
       #   workers = hash.fetch('queue_name', [])  # => [] if not found
       def fetch(key, default = nil)
-        @hash.fetch(key, default)
+        @mutex.synchronize { @hash.fetch(key, default) }
       end
     end
   end
