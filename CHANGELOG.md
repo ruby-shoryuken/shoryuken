@@ -4,6 +4,11 @@
   - Introduces Shoryuken::Helpers::AtomicCounter as a thread-safe alternative using Mutex
   - Reduces gem footprint while maintaining full functionality
 
+- Enhancement: Replace Concurrent::Hash with pure Ruby AtomicHash
+  - Removes external dependency on concurrent-ruby for hash operations
+  - Introduces Shoryuken::Helpers::AtomicHash with mutex-protected writes and concurrent reads
+  - Ensures JRuby compatibility while maintaining high performance for read-heavy workloads
+
 - Enhancement: Increase `SendMessageBatch` to 1MB to align with AWS
   - [#864](https://github.com/ruby-shoryuken/shoryuken/pull/864)
 
