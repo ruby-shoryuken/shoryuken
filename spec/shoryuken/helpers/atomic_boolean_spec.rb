@@ -169,6 +169,11 @@ RSpec.describe Shoryuken::Helpers::AtomicBoolean do
       expect(subject).to respond_to(:false?)
     end
 
+    it 'does not expose counter-specific methods' do
+      expect(subject).not_to respond_to(:increment)
+      expect(subject).not_to respond_to(:decrement)
+    end
+
     it 'behaves identically to Concurrent::AtomicBoolean for basic operations' do
       # This test documents the expected behavior that matches Concurrent::AtomicBoolean
       boolean = described_class.new(false)

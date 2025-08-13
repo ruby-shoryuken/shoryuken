@@ -8,6 +8,9 @@ module Shoryuken
     # Drop-in replacement for Concurrent::AtomicBoolean without external dependencies.
     # Uses 1 for true and 0 for false internally.
     class AtomicBoolean < AtomicCounter
+      # Prevent misuse of counter operations on a boolean
+      undef_method :increment, :decrement
+
       def initialize(initial_value = false)
         super(initial_value ? 1 : 0)
       end
