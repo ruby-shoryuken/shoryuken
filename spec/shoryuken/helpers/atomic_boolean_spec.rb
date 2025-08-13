@@ -101,7 +101,6 @@ RSpec.describe Shoryuken::Helpers::AtomicBoolean do
     end
   end
 
-
   describe 'thread safety' do
     it 'handles concurrent make_true operations correctly' do
       boolean = described_class.new(false)
@@ -158,7 +157,6 @@ RSpec.describe Shoryuken::Helpers::AtomicBoolean do
       # All read values should be valid booleans
       expect(results).to all(satisfy { |v| v == true || v == false })
     end
-
   end
 
   describe 'drop-in replacement for Concurrent::AtomicBoolean' do
