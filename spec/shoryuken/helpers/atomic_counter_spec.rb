@@ -29,7 +29,7 @@ RSpec.describe Shoryuken::Helpers::AtomicCounter do
     it 'returns the updated value after operations' do
       subject.increment
       expect(subject.value).to eq(1)
-      
+
       subject.decrement
       expect(subject.value).to eq(0)
     end
@@ -84,13 +84,13 @@ RSpec.describe Shoryuken::Helpers::AtomicCounter do
     it 'handles concurrent increments correctly' do
       counter = described_class.new
       threads = []
-      
+
       10.times do
         threads << Thread.new do
           100.times { counter.increment }
         end
       end
-      
+
       threads.each(&:join)
       expect(counter.value).to eq(1000)
     end
@@ -98,13 +98,13 @@ RSpec.describe Shoryuken::Helpers::AtomicCounter do
     it 'handles concurrent decrements correctly' do
       counter = described_class.new(1000)
       threads = []
-      
+
       10.times do
         threads << Thread.new do
           100.times { counter.decrement }
         end
       end
-      
+
       threads.each(&:join)
       expect(counter.value).to eq(0)
     end
@@ -112,21 +112,21 @@ RSpec.describe Shoryuken::Helpers::AtomicCounter do
     it 'handles mixed concurrent operations correctly' do
       counter = described_class.new
       threads = []
-      
+
       # 5 threads incrementing
       5.times do
         threads << Thread.new do
           100.times { counter.increment }
         end
       end
-      
-      # 3 threads decrementing  
+
+      # 3 threads decrementing
       3.times do
         threads << Thread.new do
           100.times { counter.decrement }
         end
       end
-      
+
       threads.each(&:join)
       expect(counter.value).to eq(200) # 500 increments - 300 decrements
     end
@@ -134,21 +134,21 @@ RSpec.describe Shoryuken::Helpers::AtomicCounter do
     it 'provides atomic read operations' do
       counter = described_class.new
       values_read = []
-      
+
       # Writer thread
       writer = Thread.new do
         1000.times { counter.increment }
       end
-      
+
       # Reader threads
       readers = 5.times.map do
         Thread.new do
           100.times { values_read << counter.value }
         end
       end
-      
+
       [writer, *readers].each(&:join)
-      
+
       # All read values should be valid integers (not partial writes)
       expect(values_read).to all(be_an(Integer))
       expect(values_read).to all(be >= 0)
@@ -167,7 +167,7 @@ RSpec.describe Shoryuken::Helpers::AtomicCounter do
     it 'behaves identically to Concurrent::AtomicFixnum for basic operations' do
       # This test documents the expected behavior that matches Concurrent::AtomicFixnum
       counter = described_class.new(5)
-      
+
       expect(counter.value).to eq(5)
       expect(counter.increment).to eq(6)
       expect(counter.value).to eq(6)
