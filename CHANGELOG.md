@@ -1,9 +1,13 @@
 ## [7.0.0] - Unreleased
-- Enhancement: Replace Concurrent::AtomicFixnum and Concurrent::AtomicBoolean with pure Ruby implementations
-  - Removes external dependency on concurrent-ruby for atomic operations
+- Enhancement: Replace Concurrent::AtomicFixnum with pure Ruby AtomicCounter
+  - Removes external dependency on concurrent-ruby for atomic fixnum operations
   - Introduces Shoryuken::Helpers::AtomicCounter as a thread-safe alternative using Mutex
-  - Introduces Shoryuken::Helpers::AtomicBoolean as a thread-safe alternative using Mutex
   - Reduces gem footprint while maintaining full functionality
+
+- Enhancement: Replace Concurrent::AtomicBoolean with pure Ruby AtomicBoolean
+  - Removes external dependency on concurrent-ruby for atomic boolean operations
+  - Introduces Shoryuken::Helpers::AtomicBoolean extending AtomicCounter
+  - Further reduces gem footprint while maintaining full functionality
 
 - Enhancement: Replace Concurrent::Hash with pure Ruby AtomicHash
   - Removes external dependency on concurrent-ruby for hash operations
