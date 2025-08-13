@@ -8,6 +8,9 @@
   - Removes external dependency on concurrent-ruby for hash operations
   - Introduces Shoryuken::Helpers::AtomicHash with mutex-protected writes and concurrent reads
   - Ensures JRuby compatibility while maintaining high performance for read-heavy workloads
+  - [#866](https://github.com/ruby-shoryuken/shoryuken/pull/866)
+  - [#867](https://github.com/ruby-shoryuken/shoryuken/pull/867)
+  - [#868](https://github.com/ruby-shoryuken/shoryuken/pull/868)
 
 - Enhancement: Increase `SendMessageBatch` to 1MB to align with AWS
   - [#864](https://github.com/ruby-shoryuken/shoryuken/pull/864)
