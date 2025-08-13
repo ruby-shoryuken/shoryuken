@@ -15,7 +15,7 @@ module Shoryuken
       @fetcher                    = fetcher
       @polling_strategy           = polling_strategy
       @max_processors             = concurrency
-      @busy_processors            = Concurrent::AtomicFixnum.new(0)
+      @busy_processors            = Shoryuken::Helpers::AtomicCounter.new(0)
       @executor                   = executor
       @running                    = Concurrent::AtomicBoolean.new(true)
       @stop_new_dispatching       = Concurrent::AtomicBoolean.new(false)
