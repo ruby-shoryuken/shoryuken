@@ -23,7 +23,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'aws-sdk-sqs', '>= 1.66.0'
   spec.add_dependency 'concurrent-ruby'
-  spec.add_dependency 'mutex_m'
   spec.add_dependency 'thor'
   spec.add_dependency 'zeitwerk', '~> 2.6'
 
