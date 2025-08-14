@@ -25,6 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'concurrent-ruby'
   spec.add_dependency 'mutex_m'
   spec.add_dependency 'thor'
+  spec.add_dependency 'zeitwerk', '~> 2.6'
 
   spec.required_ruby_version = '>= 3.1.0'
 end
