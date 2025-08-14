@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative 'atomic_counter'
-
 module Shoryuken
   module Helpers
     # A thread-safe boolean implementation using AtomicCounter as base.
