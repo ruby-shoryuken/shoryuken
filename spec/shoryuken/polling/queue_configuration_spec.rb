@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 RSpec.describe Shoryuken::Polling::QueueConfiguration do
   describe '#initialize' do
     it 'creates configuration with name and options' do

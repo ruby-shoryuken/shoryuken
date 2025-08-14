@@ -1,5 +1,4 @@
-require 'spec_helper'
-require 'shoryuken/helpers/atomic_counter'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Helpers::AtomicCounter do
   subject { described_class.new }

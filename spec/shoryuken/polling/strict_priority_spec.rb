@@ -1,4 +1,4 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Polling::StrictPriority do
   let(:queue1) { 'shoryuken' }

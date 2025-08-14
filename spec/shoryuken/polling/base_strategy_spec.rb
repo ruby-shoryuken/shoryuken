@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-
 RSpec.describe Shoryuken::Polling::BaseStrategy do
   # Create a concrete implementation for testing
   let(:test_strategy_class) do
