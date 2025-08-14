@@ -1,5 +1,4 @@
-require 'spec_helper'
-require 'shoryuken/runner'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Runner do
   let(:cli) { Shoryuken::Runner.instance }

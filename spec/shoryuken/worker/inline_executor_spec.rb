@@ -1,4 +1,4 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Worker::InlineExecutor do
   before do

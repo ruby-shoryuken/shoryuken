@@ -6,39 +6,15 @@ require 'aws-sdk-sqs'
 require 'time'
 require 'concurrent'
 require 'forwardable'
+require 'zeitwerk'
 
-require 'shoryuken/version'
-require 'shoryuken/core_ext'
-require 'shoryuken/util'
-require 'shoryuken/logging'
-require 'shoryuken/environment_loader'
-require 'shoryuken/queue'
-require 'shoryuken/inline_message'
-require 'shoryuken/message'
-require 'shoryuken/client'
-require 'shoryuken/helpers/atomic_counter'
-require 'shoryuken/helpers/atomic_boolean'
-require 'shoryuken/helpers/atomic_hash'
-require 'shoryuken/worker'
-require 'shoryuken/worker/default_executor'
-require 'shoryuken/worker/inline_executor'
-require 'shoryuken/worker_registry'
-require 'shoryuken/default_worker_registry'
-require 'shoryuken/default_exception_handler'
-require 'shoryuken/middleware/chain'
-require 'shoryuken/middleware/server/auto_delete'
-Shoryuken::Middleware::Server.autoload :AutoExtendVisibility, 'shoryuken/middleware/server/auto_extend_visibility'
-require 'shoryuken/middleware/server/exponential_backoff_retry'
-require 'shoryuken/middleware/server/timing'
-require 'shoryuken/polling/base'
-require 'shoryuken/polling/weighted_round_robin'
-require 'shoryuken/polling/strict_priority'
-require 'shoryuken/manager'
-require 'shoryuken/launcher'
-require 'shoryuken/processor'
-require 'shoryuken/body_parser'
-require 'shoryuken/fetcher'
-require 'shoryuken/options'
+# Load core extensions first before autoloading
+require_relative 'shoryuken/core_ext'
+
+# Set up Zeitwerk loader
+loader = Zeitwerk::Loader.for_gem
+loader.ignore("#{__dir__}/shoryuken/extensions")
+loader.setup
 
 module Shoryuken
   extend SingleForwardable

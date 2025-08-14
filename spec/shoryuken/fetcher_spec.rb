@@ -1,6 +1,4 @@
-require 'spec_helper'
-require 'shoryuken/manager'
-require 'shoryuken/fetcher'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Fetcher do
   let(:queue)        { instance_double('Shoryuken::Queue', fifo?: false) }

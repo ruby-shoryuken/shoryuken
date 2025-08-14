@@ -1,5 +1,4 @@
-require 'spec_helper'
-require 'shoryuken/manager'
+# frozen_string_literal: true
 
 RSpec::Matchers.define :queue_config_of do |expected|
   match do |actual|

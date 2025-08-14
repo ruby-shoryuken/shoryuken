@@ -1,4 +1,5 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
 require 'active_job'
 require 'shoryuken/extensions/active_job_extensions'
 require 'shoryuken/extensions/active_job_adapter'

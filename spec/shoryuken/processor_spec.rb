@@ -1,4 +1,4 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Processor do
   let(:manager)   { double Shoryuken::Manager }
