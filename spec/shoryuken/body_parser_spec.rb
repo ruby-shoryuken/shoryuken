@@ -1,5 +1,4 @@
-require 'spec_helper'
-require 'shoryuken/body_parser'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::BodyParser do
   let(:sqs_msg) { double }

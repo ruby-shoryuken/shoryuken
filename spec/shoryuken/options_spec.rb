@@ -1,4 +1,4 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Options do
   subject { Shoryuken.shoryuken_options }

@@ -1,4 +1,4 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Client do
   let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }

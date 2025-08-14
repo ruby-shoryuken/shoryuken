@@ -1,6 +1,5 @@
-require 'spec_helper'
-require 'shoryuken/manager'
-require 'shoryuken/launcher'
+# frozen_string_literal: true
+
 require 'securerandom'
 
 RSpec.describe Shoryuken::Launcher do

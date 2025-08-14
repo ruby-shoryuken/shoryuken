@@ -1,5 +1,4 @@
-require 'spec_helper'
-require 'shoryuken/launcher'
+# frozen_string_literal: true
 
 RSpec.describe Shoryuken::Launcher do
   let(:executor) do
