@@ -1,4 +1,3 @@
-
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'shoryuken/version'
@@ -18,10 +17,14 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_development_dependency 'dotenv'
+  spec.add_development_dependency 'ostruct'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec'
 
-  spec.add_dependency 'aws-sdk-core', '>= 2'
+  spec.add_dependency 'aws-sdk-sqs', '>= 1.66.0'
   spec.add_dependency 'concurrent-ruby'
+  spec.add_dependency 'mutex_m'
   spec.add_dependency 'thor'
+
+  spec.required_ruby_version = '>= 3.1.0'
 end

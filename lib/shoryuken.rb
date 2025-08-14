@@ -1,11 +1,8 @@
+# frozen_string_literal: true
+
 require 'yaml'
 require 'json'
-require 'aws-sdk-core'
-begin
-  require 'aws-sdk-sqs' unless defined?(Aws::SQS)
-rescue LoadError
-  fail "AWS SDK 3 requires aws-sdk-sqs to be installed separately. Please add gem 'aws-sdk-sqs' to your Gemfile"
-end
+require 'aws-sdk-sqs'
 require 'time'
 require 'concurrent'
 require 'forwardable'
@@ -16,8 +13,12 @@ require 'shoryuken/util'
 require 'shoryuken/logging'
 require 'shoryuken/environment_loader'
 require 'shoryuken/queue'
+require 'shoryuken/inline_message'
 require 'shoryuken/message'
 require 'shoryuken/client'
+require 'shoryuken/helpers/atomic_counter'
+require 'shoryuken/helpers/atomic_boolean'
+require 'shoryuken/helpers/atomic_hash'
 require 'shoryuken/worker'
 require 'shoryuken/worker/default_executor'
 require 'shoryuken/worker/inline_executor'
@@ -57,6 +58,8 @@ module Shoryuken
     :groups,
     :add_queue,
     :ungrouped_queues,
+    :thread_priority,
+    :thread_priority=,
     :worker_registry,
     :worker_registry=,
     :worker_executor,
@@ -78,6 +81,7 @@ module Shoryuken
     :exception_handlers=,
     :options,
     :logger,
+    :logger=,
     :register_worker,
     :configure_server,
     :server?,

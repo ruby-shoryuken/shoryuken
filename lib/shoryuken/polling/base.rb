@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   module Polling
     QueueConfiguration = Struct.new(:name, :options) do

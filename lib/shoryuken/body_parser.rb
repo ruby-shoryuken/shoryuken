@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   class BodyParser
     class << self
@@ -16,7 +18,7 @@ module Shoryuken
             # JSON.parse
             body_parser.parse(sqs_msg.body)
           elsif body_parser.respond_to?(:load)
-            # see https://github.com/phstc/shoryuken/pull/91
+            # see https://github.com/ruby-shoryuken/shoryuken/pull/91
             # JSON.load
             body_parser.load(sqs_msg.body)
           end

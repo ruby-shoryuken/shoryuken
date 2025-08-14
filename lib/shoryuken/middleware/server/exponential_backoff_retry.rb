@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   module Middleware
     module Server
@@ -14,7 +16,7 @@ module Shoryuken
 
           started_at = Time.now
           yield
-        rescue => ex
+        rescue => e
           retry_intervals = worker.class.get_shoryuken_options['retry_intervals']
 
           if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
@@ -23,9 +25,9 @@ module Shoryuken
             raise
           end
 
-          logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{ex.message}" }
+          logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{e.message}" }
           # since we didn't raise, lets log the backtrace for debugging purposes.
-          logger.debug { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+          logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
         end
 
         private

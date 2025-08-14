@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   module ActiveJobExtensions
     # Adds an accessor for SQS SendMessage parameters on ActiveJob jobs

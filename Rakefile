@@ -1,4 +1,6 @@
+require 'bundler/setup'
 require 'bundler/gem_tasks'
+
 $stdout.sync = true
 
 begin

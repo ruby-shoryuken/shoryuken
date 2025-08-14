@@ -5,7 +5,7 @@ RSpec.describe Shoryuken::Options do
 
   describe '.on_stop' do
     specify do
-      on_stop = Proc.new {}
+      on_stop = proc {}
       Shoryuken.on_stop(&on_stop)
 
       expect(Shoryuken.stop_callback).to eq(on_stop)
@@ -14,7 +14,7 @@ RSpec.describe Shoryuken::Options do
 
   describe '.on_start' do
     specify do
-      on_start = Proc.new {}
+      on_start = proc {}
       Shoryuken.on_start(&on_start)
 
       expect(Shoryuken.start_callback).to eq(on_start)
@@ -81,7 +81,7 @@ RSpec.describe Shoryuken::Options do
 
       expect(Shoryuken.sqs_client_receive_message_opts).to eq(
         'default' => { test: 1 },
-        'group1'  => { test: 2 }
+        'group1' => { test: 2 }
       )
     end
   end

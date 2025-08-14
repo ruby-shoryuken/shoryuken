@@ -5,7 +5,7 @@ module Shoryuken
   module CLI
     class SQS < Base
       # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
-      MAX_BATCH_SIZE = 256 * 1024
+      MAX_BATCH_SIZE = 1024 * 1024
 
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
@@ -14,10 +14,17 @@ module Shoryuken
         def normalize_dump_message(message)
           # symbolize_keys is needed for keeping it compatible with `requeue`
           attributes = message[:attributes].symbolize_keys
+
+          # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+          # The `string_list_values` and `binary_list_values` are not implemented. Reserved for future use.
+          message_attributes = message[:message_attributes].each_with_object({}) do |(k, v), result|
+            result[k] = v.slice(:data_type, :string_value, :binary_value)
+          end
+
           {
             id: message[:message_id],
             message_body: message[:body],
-            message_attributes: message[:message_attributes],
+            message_attributes: message_attributes,
             message_deduplication_id: attributes[:MessageDeduplicationId],
             message_group_id: attributes[:MessageGroupId]
           }
@@ -104,7 +111,7 @@ module Shoryuken
           attribute_size + body_size
         end
 
-        def find_all(url, limit)
+        def find_all(url, limit, &block)
           count = 0
           batch_size = limit > 10 ? 10 : limit
 
@@ -119,7 +126,7 @@ module Shoryuken
               message_attribute_names: ['All']
             ).messages || []
 
-            messages.each { |m| yield m }
+            messages.each(&block)
 
             count += messages.size
 
@@ -205,7 +212,8 @@ module Shoryuken
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
-      method_option :batch_size, aliases: '-n', type: :numeric, default: 10, desc: 'maximum number of messages per batch to send'
+      method_option :batch_size, aliases: '-n', type: :numeric, default: 10,
+                                 desc: 'maximum number of messages per batch to send'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 

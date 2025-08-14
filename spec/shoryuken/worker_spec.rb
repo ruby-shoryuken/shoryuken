@@ -108,13 +108,15 @@ RSpec.describe Shoryuken::Worker do
   end
 
   describe '.server_middleware' do
-    before do
-      class FakeMiddleware
+    let(:fake_middleware_class) do
+      Class.new do
         def call(*_args)
           yield
         end
       end
     end
+
+    before { fake_middleware_class }
 
     context 'no middleware is defined in the worker' do
       it 'returns the list of global middlewares' do
@@ -147,27 +149,29 @@ RSpec.describe Shoryuken::Worker do
     end
 
     context 'the worker modifies the chain' do
-      before do
-        class NewTestWorker3
+      let(:new_test_worker3_class) do
+        ref = fake_middleware_class
+
+        Class.new do
           include Shoryuken::Worker
 
           server_middleware do |chain|
             chain.remove Shoryuken::Middleware::Server::Timing
-            chain.insert_before Shoryuken::Middleware::Server::AutoDelete, FakeMiddleware
+            chain.insert_before Shoryuken::Middleware::Server::AutoDelete, ref
           end
         end
       end
 
       it 'returns the combined global and worker middlewares' do
-        expect(NewTestWorker3.server_middleware).not_to satisfy do |chain|
+        expect(new_test_worker3_class.server_middleware).not_to satisfy do |chain|
           chain.exists?(Shoryuken::Middleware::Server::Timing)
         end
 
-        expect(NewTestWorker3.server_middleware).to satisfy do |chain|
-          chain.exists?(FakeMiddleware)
+        expect(new_test_worker3_class.server_middleware).to satisfy do |chain|
+          chain.exists?(fake_middleware_class)
         end
 
-        expect(NewTestWorker3.server_middleware).to satisfy do |chain|
+        expect(new_test_worker3_class.server_middleware).to satisfy do |chain|
           chain.exists?(Shoryuken::Middleware::Server::AutoDelete)
         end
       end
@@ -182,7 +186,7 @@ RSpec.describe Shoryuken::Worker do
         end
 
         expect(Shoryuken.server_middleware).not_to satisfy do |chain|
-          chain.exists?(FakeMiddleware)
+          chain.exists?(fake_middleware_class)
         end
       end
     end

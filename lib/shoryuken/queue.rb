@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 module Shoryuken
   class Queue
     include Util
 
-    FIFO_ATTR               = 'FifoQueue'.freeze
-    MESSAGE_GROUP_ID        = 'ShoryukenMessage'.freeze
-    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'.freeze
+    FIFO_ATTR               = 'FifoQueue'
+    MESSAGE_GROUP_ID        = 'ShoryukenMessage'
+    VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
 
     attr_accessor :name, :client, :url
 
@@ -50,7 +52,7 @@ module Shoryuken
 
     def fifo?
       # Make sure the memoization work with boolean to avoid multiple calls to SQS
-      # see https://github.com/phstc/shoryuken/pull/529
+      # see https://github.com/ruby-shoryuken/shoryuken/pull/529
       return @_fifo if defined?(@_fifo)
 
       @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   class EnvironmentLoader
     attr_reader :options
@@ -161,11 +163,9 @@ module Shoryuken
       non_existent_queues = []
 
       Shoryuken.ungrouped_queues.uniq.each do |queue|
-        begin
-          Shoryuken::Client.queues(queue)
-        rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
-          non_existent_queues << queue
-        end
+        Shoryuken::Client.queues(queue)
+      rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
+        non_existent_queues << queue
       end
 
       return if non_existent_queues.none?

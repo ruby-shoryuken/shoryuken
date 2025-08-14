@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'time'
 require 'logger'
 
@@ -7,14 +9,26 @@ end
 
 module Shoryuken
   module Logging
-    class Pretty < Logger::Formatter
-      # Provide a call() method that returns the formatted message.
-      def call(severity, time, _program_name, message)
-        "#{time.utc.iso8601} #{Process.pid} TID-#{Thread.current.object_id.to_s(36)}#{context} #{severity}: #{message}\n"
+    class Base < ::Logger::Formatter
+      def tid
+        Thread.current['shoryuken_tid'] ||= (Thread.current.object_id ^ ::Process.pid).to_s(36)
       end
 
       def context
         Fiber.current.shoryuken_context&.then{|context| " #{context}"}
+      end
+    end
+
+    class Pretty < Base
+      # Provide a call() method that returns the formatted message.
+      def call(severity, time, _program_name, message)
+        "#{time.utc.iso8601} #{Process.pid} TID-#{tid}#{context} #{severity}: #{message}\n"
+      end
+    end
+
+    class WithoutTimestamp < Base
+      def call(severity, _time, _program_name, message)
+        "pid=#{Process.pid} tid=#{tid}#{context} #{severity}: #{message}\n"
       end
     end
 
@@ -37,7 +51,7 @@ module Shoryuken
     end
 
     def self.logger=(log)
-      @logger = (log || Logger.new('/dev/null'))
+      @logger = log || Logger.new('/dev/null')
     end
   end
 end

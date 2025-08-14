@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-# rubocop:disable Metrics/BlockLength
 RSpec.describe Shoryuken::Queue do
   let(:credentials) { Aws::Credentials.new('access_key_id', 'secret_access_key') }
   let(:sqs) { Aws::SQS::Client.new(stub_responses: true, credentials: credentials) }
@@ -30,7 +29,7 @@ RSpec.describe Shoryuken::Queue do
       let(:queue_url) { "http://localhost:4576/queue/#{queue_name}" }
 
       it 'instantiates by URL and validate the URL' do
-        # See https://github.com/phstc/shoryuken/pull/551
+        # See https://github.com/ruby-shoryuken/shoryuken/pull/551
         expect_any_instance_of(described_class).to receive(:fifo?).and_return(false)
 
         subject = described_class.new(sqs, queue_url)

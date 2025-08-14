@@ -1,3 +1,19 @@
+# frozen_string_literal: true
+
+Warning[:performance] = true if RUBY_VERSION >= '3.3'
+Warning[:deprecated] = true
+$VERBOSE = true
+
+require 'warning'
+
+Warning.process do |warning|
+  next unless warning.include?(Dir.pwd)
+  next if warning.include?('useless use of a variable in void context') && warning.include?('core_ext')
+  next if warning.include?('vendor/')
+
+  raise "Warning in your code: #{warning}"
+end
+
 require 'bundler/setup'
 Bundler.setup
 
@@ -10,12 +26,11 @@ require 'shoryuken'
 require 'json'
 require 'dotenv'
 require 'securerandom'
+require 'ostruct'
 Dotenv.load
 
-if ENV['CODECLIMATE_REPO_TOKEN']
-  require 'simplecov'
-  SimpleCov.start
-end
+require 'simplecov'
+SimpleCov.start
 
 config_file = File.join(File.expand_path('..', __dir__), 'spec', 'shoryuken.yml')
 

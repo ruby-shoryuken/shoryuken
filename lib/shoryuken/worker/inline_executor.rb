@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Shoryuken
   module Worker
     class InlineExecutor
@@ -5,13 +7,18 @@ module Shoryuken
         def perform_async(worker_class, body, options = {})
           body = JSON.dump(body) if body.is_a?(Hash)
           queue_name = options.delete(:queue) || worker_class.get_shoryuken_options['queue']
+          message_attributes = options.delete(:message_attributes) || {}
+          message_attributes['shoryuken_class'] = {
+            string_value: worker_class.to_s,
+            data_type: 'String'
+          }
 
-          sqs_msg = OpenStruct.new(
+          sqs_msg = InlineMessage.new(
             body: body,
             attributes: nil,
             md5_of_body: nil,
             md5_of_message_attributes: nil,
-            message_attributes: nil,
+            message_attributes: message_attributes,
             message_id: nil,
             receipt_handle: nil,
             delete: nil,

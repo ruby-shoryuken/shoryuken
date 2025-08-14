@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 module Shoryuken
   class Manager
     include Util
 
     BATCH_LIMIT = 10
-    # See https://github.com/phstc/shoryuken/issues/348#issuecomment-292847028
+    # See https://github.com/ruby-shoryuken/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
     attr_reader :group
@@ -13,10 +15,10 @@ module Shoryuken
       @fetcher                    = fetcher
       @polling_strategy           = polling_strategy
       @max_processors             = concurrency
-      @busy_processors            = Concurrent::AtomicFixnum.new(0)
+      @busy_processors            = Shoryuken::Helpers::AtomicCounter.new(0)
       @executor                   = executor
-      @running                    = Concurrent::AtomicBoolean.new(true)
-      @stop_new_dispatching       = Concurrent::AtomicBoolean.new(false)
+      @running                    = Shoryuken::Helpers::AtomicBoolean.new(true)
+      @stop_new_dispatching       = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatching_release_signal = ::Queue.new
     end
 
@@ -97,7 +99,15 @@ module Shoryuken
       fire_utilization_update_event
 
       Concurrent::Promise
-        .execute(executor: @executor) { Processor.process(queue_name, sqs_msg) }
+        .execute(executor: @executor) do
+          original_priority = Thread.current.priority
+          begin
+            Thread.current.priority = Shoryuken.thread_priority
+            Processor.process(queue_name, sqs_msg)
+          ensure
+            Thread.current.priority = original_priority
+          end
+        end
         .then { processor_done(queue_name) }
         .rescue { processor_done(queue_name) }
     end
