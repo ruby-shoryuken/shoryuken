@@ -6,6 +6,8 @@ module Shoryuken
     # Drop-in replacement for Concurrent::TimerTask without external dependencies.
     class TimerTask
       def initialize(execution_interval:, &task)
+        raise ArgumentError, 'A block must be provided' unless block_given?
+
         @execution_interval = execution_interval
         @task = task
         @mutex = Mutex.new
@@ -33,9 +35,7 @@ module Shoryuken
           @killed = true
           @running = false
 
-          if @thread && @thread.alive?
-            @thread.kill
-          end
+          @thread.kill if @thread&.alive?
         end
         true
       end
@@ -43,7 +43,7 @@ module Shoryuken
       private
 
       def run_timer_loop
-        while !@killed
+        until @killed
           sleep(@execution_interval)
           break if @killed
 
@@ -56,6 +56,8 @@ module Shoryuken
             warn e.backtrace.join("\n") if e.backtrace
           end
         end
+      ensure
+        @mutex.synchronize { @running = false }
       end
     end
   end

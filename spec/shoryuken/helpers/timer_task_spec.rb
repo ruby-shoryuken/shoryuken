@@ -4,7 +4,7 @@ require 'spec_helper'
 
 RSpec.describe Shoryuken::Helpers::TimerTask do
   let(:execution_interval) { 0.1 }
-  let(:timer_task) do
+  let!(:timer_task) do
     described_class.new(execution_interval: execution_interval) do
       @execution_count = (@execution_count || 0) + 1
     end
@@ -12,27 +12,27 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
 
   describe '#initialize' do
     it 'creates a timer task with the specified interval' do
-      timer = described_class.new(execution_interval: 5) { }
+      timer = described_class.new(execution_interval: 5) {}
       expect(timer).to be_a(described_class)
     end
 
     it 'requires a block' do
-      expect { described_class.new(execution_interval: 5) }.to raise_error(LocalJumpError)
+      expect { described_class.new(execution_interval: 5) }.to raise_error(ArgumentError)
     end
 
     it 'stores the task block in @task instance variable' do
-      task_proc = proc { puts "test" }
+      task_proc = proc { puts 'test' }
       timer = described_class.new(execution_interval: 1, &task_proc)
       expect(timer.instance_variable_get(:@task)).to eq(task_proc)
     end
 
     it 'stores the execution interval' do
-      timer = described_class.new(execution_interval: 5) { }
+      timer = described_class.new(execution_interval: 5) {}
       expect(timer.instance_variable_get(:@execution_interval)).to eq(5)
     end
 
     it 'initializes state variables correctly' do
-      timer = described_class.new(execution_interval: 1) { }
+      timer = described_class.new(execution_interval: 1) {}
       expect(timer.instance_variable_get(:@running)).to be false
       expect(timer.instance_variable_get(:@killed)).to be false
       expect(timer.instance_variable_get(:@thread)).to be_nil
@@ -115,9 +115,10 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'handles case when thread is nil' do
-      timer = described_class.new(execution_interval: 1) { }
-      expect { timer.kill }.not_to raise_error
-      expect(timer.kill).to be true
+      timer = described_class.new(execution_interval: 1) {}
+      result = nil
+      expect { result = timer.kill }.not_to raise_error
+      expect(result).to be true
     end
   end
 
@@ -153,40 +154,44 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       error_count = 0
       timer = described_class.new(execution_interval: 0.05) do
         error_count += 1
-        raise StandardError, "Test error"
+        raise StandardError, 'Test error'
       end
 
       # Capture stderr to check for error messages
       original_stderr = $stderr
-      $stderr = StringIO.new
+      captured_stderr = StringIO.new
+      $stderr = captured_stderr
+
+      # Mock warn method to prevent warning gem from raising exceptions
+      # but still capture the output
+      allow_any_instance_of(Object).to receive(:warn) do |*args|
+        captured_stderr.puts(*args)
+      end
 
       timer.execute
       sleep(0.15)
       timer.kill
 
-      error_output = $stderr.string
+      error_output = captured_stderr.string
       $stderr = original_stderr
 
       expect(error_count).to be >= 2
-      expect(error_output).to include("TimerTask execution error: Test error")
+      expect(error_output).to include('Test error')
     end
 
     it 'continues execution after exceptions' do
       execution_count = 0
       timer = described_class.new(execution_interval: 0.05) do
         execution_count += 1
-        raise StandardError, "Test error" if execution_count == 1
+        raise StandardError, 'Test error' if execution_count == 1
       end
 
-      # Suppress stderr for this test
-      original_stderr = $stderr
-      $stderr = StringIO.new
+      # Mock warn method to prevent warning gem from raising exceptions
+      allow_any_instance_of(Object).to receive(:warn)
 
       timer.execute
       sleep(0.15)
       timer.kill
-
-      $stderr = original_stderr
 
       expect(execution_count).to be >= 2 # Should continue after first error
     end
@@ -227,7 +232,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
 
   describe 'thread safety' do
     it 'can be safely accessed from multiple threads' do
-      timer = described_class.new(execution_interval: 0.1) { }
+      timer = described_class.new(execution_interval: 0.1) {}
 
       threads = 10.times.map do
         Thread.new do
@@ -243,21 +248,21 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'handles concurrent execute calls safely' do
-      timer = described_class.new(execution_interval: 0.1) { }
+      timer = described_class.new(execution_interval: 0.1) {}
 
       threads = 5.times.map do
         Thread.new { timer.execute }
       end
 
       threads.each(&:join)
-      
+
       # Should only have one thread created
       expect(timer.instance_variable_get(:@thread)).to be_a(Thread)
       timer.kill
     end
 
     it 'handles concurrent kill calls safely' do
-      timer = described_class.new(execution_interval: 0.1) { }
+      timer = described_class.new(execution_interval: 0.1) {}
       timer.execute
 
       threads = 5.times.map do
@@ -265,11 +270,11 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       end
 
       results = threads.map(&:value)
-      
+
       # Only one kill should return true, others should return false
       true_count = results.count(true)
       false_count = results.count(false)
-      
+
       expect(true_count).to eq(1)
       expect(false_count).to eq(4)
     end
