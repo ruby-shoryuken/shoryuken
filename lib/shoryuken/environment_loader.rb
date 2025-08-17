@@ -46,7 +46,7 @@ module Shoryuken
       fail ArgumentError, "The supplied config file #{path} does not exist" unless File.exist?(path)
 
       if (result = YAML.load(ERB.new(IO.read(path)).result))
-        result.deep_symbolize_keys
+        Shoryuken::Helpers::HashUtils.deep_symbolize_keys(result)
       else
         {}
       end

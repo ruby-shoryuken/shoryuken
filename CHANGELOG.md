@@ -17,6 +17,22 @@
   - [#867](https://github.com/ruby-shoryuken/shoryuken/pull/867)
   - [#868](https://github.com/ruby-shoryuken/shoryuken/pull/868)
 
+- Enhancement: Replace core class extensions with helper utilities
+  - Removes all core Ruby class monkey-patching (Hash and String extensions)
+  - Introduces Shoryuken::Helpers::HashUtils.deep_symbolize_keys for configuration processing
+  - Introduces Shoryuken::Helpers::StringUtils.constantize for dynamic class loading
+  - Eliminates unnecessary ActiveSupport dependencies
+  - Completely removes lib/shoryuken/core_ext.rb file
+  - Maintains all existing functionality while following Ruby best practices
+  - Improves code maintainability and reduces global namespace pollution
+
+- Enhancement: Implement Zeitwerk autoloading
+  - Replaces manual require statements with Zeitwerk-based autoloading
+  - Adds zeitwerk dependency for modern Ruby module loading
+  - Splits polling classes into properly named files (BaseStrategy, QueueConfiguration)
+  - Reduces startup overhead and improves code organization
+  - Maintains backward compatibility while modernizing the codebase
+
 - Enhancement: Increase `SendMessageBatch` to 1MB to align with AWS
   - [#864](https://github.com/ruby-shoryuken/shoryuken/pull/864)
 
