@@ -5,9 +5,9 @@ module Shoryuken
     # A thread-safe timer task implementation.
     # Drop-in replacement for Concurrent::TimerTask without external dependencies.
     class TimerTask
-      def initialize(execution_interval:, &block)
+      def initialize(execution_interval:, &task)
         @execution_interval = execution_interval
-        @task_block = block
+        @task = task
         @mutex = Mutex.new
         @thread = nil
         @running = false
@@ -35,7 +35,6 @@ module Shoryuken
 
           if @thread && @thread.alive?
             @thread.kill
-            @thread.join(1) # Wait up to 1 second for clean shutdown
           end
         end
         true
@@ -49,7 +48,7 @@ module Shoryuken
           break if @killed
 
           begin
-            @task_block.call
+            @task.call
           rescue => e
             # Log the error but continue running
             # This matches the behavior of Concurrent::TimerTask
@@ -57,8 +56,6 @@ module Shoryuken
             warn e.backtrace.join("\n") if e.backtrace
           end
         end
-      ensure
-        @mutex.synchronize { @running = false }
       end
     end
   end
