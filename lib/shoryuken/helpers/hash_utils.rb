@@ -46,7 +46,7 @@ module Shoryuken
           return hash unless hash.is_a?(Hash)
 
           hash.each_with_object({}) do |(key, value), result|
-            symbol_key = (key.to_sym rescue key) || key
+            symbol_key = key.is_a?(String) ? key.to_sym : key
             result[symbol_key] = value.is_a?(Hash) ? deep_symbolize_keys(value) : value
           end
         end
