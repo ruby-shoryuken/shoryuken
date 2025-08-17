@@ -21,7 +21,7 @@ module Shoryuken
                      message.message_attributes['shoryuken_class'][:string_value]
 
       worker_class = begin
-        worker_class.constantize
+        Shoryuken::Helpers::StringUtils.constantize(worker_class)
       rescue
         @workers[queue]
       end
