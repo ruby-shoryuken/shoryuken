@@ -8,7 +8,9 @@ module Shoryuken
       def initialize(execution_interval:, &task)
         raise ArgumentError, 'A block must be provided' unless block_given?
 
-        @execution_interval = execution_interval
+        @execution_interval = Float(execution_interval)
+        raise ArgumentError, 'execution_interval must be positive' if @execution_interval <= 0
+
         @task = task
         @mutex = Mutex.new
         @thread = nil

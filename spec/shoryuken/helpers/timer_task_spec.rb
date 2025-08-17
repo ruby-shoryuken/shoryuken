@@ -17,7 +17,23 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'requires a block' do
-      expect { described_class.new(execution_interval: 5) }.to raise_error(ArgumentError)
+      expect { described_class.new(execution_interval: 5) }.to raise_error(ArgumentError, 'A block must be provided')
+    end
+
+    it 'requires a positive execution_interval' do
+      expect { described_class.new(execution_interval: 0) {} }.to raise_error(ArgumentError, 'execution_interval must be positive')
+      expect { described_class.new(execution_interval: -1) {} }.to raise_error(ArgumentError, 'execution_interval must be positive')
+    end
+
+    it 'accepts string numbers as execution_interval' do
+      timer = described_class.new(execution_interval: '5.5') {}
+      expect(timer.instance_variable_get(:@execution_interval)).to eq(5.5)
+    end
+
+    it 'raises ArgumentError for non-numeric execution_interval' do
+      expect { described_class.new(execution_interval: 'invalid') {} }.to raise_error(ArgumentError)
+      expect { described_class.new(execution_interval: nil) {} }.to raise_error(TypeError)
+      expect { described_class.new(execution_interval: {}) {} }.to raise_error(TypeError)
     end
 
     it 'stores the task block in @task instance variable' do
