@@ -8,9 +8,6 @@ require 'concurrent'
 require 'forwardable'
 require 'zeitwerk'
 
-# Load core extensions first before autoloading
-require_relative 'shoryuken/core_ext'
-
 # Set up Zeitwerk loader
 loader = Zeitwerk::Loader.for_gem
 loader.ignore("#{__dir__}/shoryuken/extensions")
