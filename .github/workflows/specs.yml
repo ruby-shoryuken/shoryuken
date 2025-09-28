@@ -26,7 +26,7 @@ jobs:
           done
           '
 
-      - uses: ruby/setup-ruby@866b91cc020931c510d42e43e498a7f07d335f60 # v1.259.0
+      - uses: ruby/setup-ruby@1dc795682739d28740ac76bf40227b89f2ab602a # v1.260.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -66,7 +66,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - uses: ruby/setup-ruby@866b91cc020931c510d42e43e498a7f07d335f60 # v1.259.0
+      - uses: ruby/setup-ruby@1dc795682739d28740ac76bf40227b89f2ab602a # v1.260.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
