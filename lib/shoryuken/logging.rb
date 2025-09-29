@@ -3,6 +3,10 @@
 require 'time'
 require 'logger'
 
+class Fiber
+  attr_accessor :shoryuken_context
+end
+
 module Shoryuken
   module Logging
     class Base < ::Logger::Formatter
@@ -11,8 +15,7 @@ module Shoryuken
       end
 
       def context
-        c = Thread.current[:shoryuken_context]
-        c ? " #{c}" : ''
+        Fiber.current.shoryuken_context&.then{|context| " #{context}"}
       end
     end
 
@@ -30,10 +33,10 @@ module Shoryuken
     end
 
     def self.with_context(msg)
-      Thread.current[:shoryuken_context] = msg
+      Fiber.current.shoryuken_context = msg
       yield
     ensure
-      Thread.current[:shoryuken_context] = nil
+      Fiber.current.shoryuken_context = nil
     end
 
     def self.initialize_logger(log_target = STDOUT)
