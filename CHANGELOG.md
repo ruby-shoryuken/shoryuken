@@ -1,4 +1,9 @@
 ## [7.0.0] - Unreleased
+- Breaking: Remove support for Rails versions older than 7.2
+  - Rails 7.0 and 7.1 have reached end-of-life and are no longer supported
+  - Supported versions: Rails 7.2, 8.0, and 8.1
+  - Users on older Rails versions should upgrade or remain on Shoryuken 6.x
+
 - Enhancement: Replace Concurrent::AtomicFixnum with pure Ruby AtomicCounter
   - Removes external dependency on concurrent-ruby for atomic fixnum operations
   - Introduces Shoryuken::Helpers::AtomicCounter as a thread-safe alternative using Mutex
