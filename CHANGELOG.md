@@ -1,4 +1,13 @@
 ## [7.0.0] - Unreleased
+- Enhancement: Add ActiveJob Continuations support (Rails 8.1+)
+  - Implements `stopping?` method in ActiveJob adapters to signal graceful shutdown
+  - Enables jobs to checkpoint progress and resume after interruption
+  - Handles past timestamps correctly (SQS treats negative delays as immediate delivery)
+  - Tracks shutdown state in Launcher via `stopping?` flag
+  - Leverages existing Shoryuken shutdown lifecycle (stop/stop! methods)
+  - Includes comprehensive integration tests with continuable jobs
+  - See Rails PR #55127 for more details on ActiveJob Continuations
+
 - Breaking: Remove support for Rails versions older than 7.2
   - Rails 7.0 and 7.1 have reached end-of-life and are no longer supported
   - Supported versions: Rails 7.2, 8.0, and 8.1
