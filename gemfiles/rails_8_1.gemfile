@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 
 group :test do
-  gem "activejob", "~> 8.0"
+  gem "activejob", "~> 8.1"
   gem "httparty"
   gem "multi_xml"
   gem "simplecov"
