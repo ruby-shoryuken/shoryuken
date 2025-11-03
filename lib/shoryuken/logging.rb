@@ -2,32 +2,12 @@
 
 require 'time'
 require 'logger'
+require_relative 'logging/base'
+require_relative 'logging/pretty'
+require_relative 'logging/without_timestamp'
 
 module Shoryuken
   module Logging
-    class Base < ::Logger::Formatter
-      def tid
-        Thread.current['shoryuken_tid'] ||= (Thread.current.object_id ^ ::Process.pid).to_s(36)
-      end
-
-      def context
-        c = Thread.current[:shoryuken_context]
-        c ? " #{c}" : ''
-      end
-    end
-
-    class Pretty < Base
-      # Provide a call() method that returns the formatted message.
-      def call(severity, time, _program_name, message)
-        "#{time.utc.iso8601} #{Process.pid} TID-#{tid}#{context} #{severity}: #{message}\n"
-      end
-    end
-
-    class WithoutTimestamp < Base
-      def call(severity, _time, _program_name, message)
-        "pid=#{Process.pid} tid=#{tid}#{context} #{severity}: #{message}\n"
-      end
-    end
 
     def self.with_context(msg)
       Thread.current[:shoryuken_context] = msg
