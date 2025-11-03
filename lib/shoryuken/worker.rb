@@ -13,7 +13,7 @@ module Shoryuken
   #   class EmailWorker
   #     include Shoryuken::Worker
   #     shoryuken_options queue: 'emails'
-  #     
+  #
   #     def perform(sqs_msg, body)
   #       send_email(body['recipient'], body['subject'], body['content'])
   #     end
@@ -22,17 +22,17 @@ module Shoryuken
   # @example Advanced worker with all options
   #   class AdvancedWorker
   #     include Shoryuken::Worker
-  #     
+  #
   #     shoryuken_options queue: 'advanced_queue',
   #                       batch: false,
   #                       auto_delete: true,
   #                       auto_visibility_timeout: true,
   #                       retry_intervals: [1, 5, 25, 125, 625]
-  #     
+  #
   #     server_middleware do |chain|
   #       chain.add MyCustomMiddleware
   #     end
-  #     
+  #
   #     def perform(sqs_msg, body)
   #       # Worker implementation
   #     end
@@ -93,7 +93,7 @@ module Shoryuken
       # @example Adding custom middleware
       #   class MyWorker
       #     include Shoryuken::Worker
-      #     
+      #
       #     server_middleware do |chain|
       #       chain.add MyCustomMiddleware
       #       chain.remove Shoryuken::Middleware::Server::ActiveRecord
@@ -120,7 +120,7 @@ module Shoryuken
       #   class MyWorker
       #     include Shoryuken::Worker
       #     shoryuken_options queue: 'my_queue'
-      #     
+      #
       #     def perform(sqs_msg, body)
       #       # Process the message
       #     end
@@ -138,7 +138,7 @@ module Shoryuken
       #   class BatchWorker
       #     include Shoryuken::Worker
       #     shoryuken_options queue: 'batch_queue', batch: true
-      #     
+      #
       #     def perform(sqs_msgs, bodies)
       #       # Process array of up to 10 messages
       #       bodies.each { |body| process_item(body) }
@@ -156,7 +156,7 @@ module Shoryuken
       #     include Shoryuken::Worker
       #     shoryuken_options queue: 'slow_queue',
       #                       auto_visibility_timeout: true
-      #     
+      #
       #     def perform(sqs_msg, body)
       #       # Long processing that might exceed visibility timeout
       #       complex_processing(body)
