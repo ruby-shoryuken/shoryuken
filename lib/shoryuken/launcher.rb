@@ -6,6 +6,18 @@ module Shoryuken
 
     def initialize
       @managers = create_managers
+      @stopping = false
+    end
+
+    # Indicates whether the launcher is in the process of stopping.
+    #
+    # This flag is set to true when either {#stop} or {#stop!} is called,
+    # and is used by ActiveJob adapters to signal jobs that they should
+    # checkpoint and prepare for graceful shutdown.
+    #
+    # @return [Boolean] true if stopping, false otherwise
+    def stopping?
+      @stopping
     end
 
     def start
@@ -16,6 +28,7 @@ module Shoryuken
     end
 
     def stop!
+      @stopping = true
       initiate_stop
 
       # Don't await here so the timeout below is not delayed
@@ -28,6 +41,7 @@ module Shoryuken
     end
 
     def stop
+      @stopping = true
       fire_event(:quiet, true)
 
       initiate_stop

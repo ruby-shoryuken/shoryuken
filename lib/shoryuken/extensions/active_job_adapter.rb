@@ -37,6 +37,19 @@ module ActiveJob
         true
       end
 
+      # Indicates whether Shoryuken is in the process of shutting down.
+      #
+      # This method is required for ActiveJob Continuations support (Rails 8.1+).
+      # When true, it signals to jobs that they should checkpoint their progress
+      # and gracefully interrupt execution to allow for resumption after restart.
+      #
+      # @return [Boolean] true if Shoryuken is shutting down, false otherwise
+      # @see https://github.com/rails/rails/pull/55127 Rails ActiveJob Continuations
+      def stopping?
+        launcher = Shoryuken::Runner.instance.launcher
+        launcher&.stopping? || false
+      end
+
       def enqueue(job, options = {}) # :nodoc:
         register_worker!(job)
 
