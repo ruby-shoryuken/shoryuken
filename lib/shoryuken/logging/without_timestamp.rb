@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative 'base'
-
 module Shoryuken
   module Logging
     # A log formatter that excludes timestamps from output.

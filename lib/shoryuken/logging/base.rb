@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'logger'
-
 module Shoryuken
   module Logging
     # Base formatter class that provides common functionality for Shoryuken log formatters.

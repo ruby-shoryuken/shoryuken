@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'base'
-
 module Shoryuken
   module Logging
-    # A pretty log formatter that includes timestamps, process ID, thread ID, 
+    # A pretty log formatter that includes timestamps, process ID, thread ID,
     # context information, and severity in a human-readable format.
     #
     # Output format: "TIMESTAMP PID TID-THREAD_ID CONTEXT SEVERITY: MESSAGE"
