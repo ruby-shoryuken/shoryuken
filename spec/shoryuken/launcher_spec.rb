@@ -101,4 +101,26 @@ RSpec.describe Shoryuken::Launcher do
       expect(second_group_manager).to have_received(:stop_new_dispatching)
     end
   end
+
+  describe '#stopping?' do
+    it 'returns false by default' do
+      expect(subject.stopping?).to be false
+    end
+
+    it 'returns true after stop is called' do
+      allow(first_group_manager).to receive(:stop_new_dispatching)
+      allow(first_group_manager).to receive(:await_dispatching_in_progress)
+      allow(second_group_manager).to receive(:stop_new_dispatching)
+      allow(second_group_manager).to receive(:await_dispatching_in_progress)
+
+      expect { subject.stop }.to change { subject.stopping? }.from(false).to(true)
+    end
+
+    it 'returns true after stop! is called' do
+      allow(first_group_manager).to receive(:stop_new_dispatching)
+      allow(second_group_manager).to receive(:stop_new_dispatching)
+
+      expect { subject.stop! }.to change { subject.stopping? }.from(false).to(true)
+    end
+  end
 end

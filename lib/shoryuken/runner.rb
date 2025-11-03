@@ -16,6 +16,9 @@ module Shoryuken
     include Util
     include Singleton
 
+    # @return [Shoryuken::Launcher, nil] the launcher instance, or nil if not yet initialized
+    attr_reader :launcher
+
     def run(options)
       self_read, self_write = IO.pipe
 
