@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'securerandom'
+require 'shoryuken'
 
 RSpec.describe Shoryuken::Launcher do
   let(:sqs_client) do
