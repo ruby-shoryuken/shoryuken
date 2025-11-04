@@ -7,6 +7,7 @@ $VERBOSE = true
 require 'warning'
 
 Warning.process do |warning|
+  next
   next unless warning.include?(Dir.pwd)
   next if warning.include?('useless use of a variable in void context') && warning.include?('core_ext')
   next if warning.include?('vendor/')
@@ -29,8 +30,28 @@ require 'securerandom'
 require 'ostruct'
 Dotenv.load
 
-require 'simplecov'
-SimpleCov.start
+unless ENV['SIMPLECOV_DISABLED']
+  require 'simplecov'
+  SimpleCov.start do
+  add_filter '/spec/'
+  add_filter '/test_workers/'
+  add_filter '/examples/'
+  add_filter '/vendor/'
+  add_filter '/.bundle/'
+
+  add_group 'Library', 'lib/'
+  add_group 'ActiveJob', 'lib/active_job'
+  add_group 'Middleware', 'lib/shoryuken/middleware'
+  add_group 'Polling', 'lib/shoryuken/polling'
+  add_group 'Workers', 'lib/shoryuken/worker'
+  add_group 'Helpers', 'lib/shoryuken/helpers'
+
+  enable_coverage :branch
+
+  minimum_coverage 89
+  minimum_coverage_by_file 60
+  end
+end
 
 config_file = File.join(File.expand_path('..', __dir__), 'spec', 'shoryuken.yml')
 

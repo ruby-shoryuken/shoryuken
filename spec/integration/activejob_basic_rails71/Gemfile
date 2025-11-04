@@ -1,0 +1,15 @@
+source 'https://rubygems.org'
+
+# Load the base shoryuken gem
+gemspec path: '../../../'
+
+group :test do
+  gem 'activejob', '~> 7.1.0'
+  gem 'httparty'
+  gem 'multi_xml'
+  gem 'simplecov'
+  gem 'warning'
+
+  # Rails 7.1 specific edge case dependencies
+  gem 'concurrent-ruby', '~> 1.2.0' # Different version than 7.0 test
+end

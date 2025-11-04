@@ -1,0 +1,19 @@
+# Rails 7.1 - ActiveJob only (without Rails framework)
+
+source 'https://rubygems.org'
+
+group :test do
+  gem 'activejob', '~> 7.1'
+  gem 'httparty'
+  gem 'multi_xml'
+  gem 'simplecov'
+  gem 'warning'
+end
+
+group :development do
+  gem 'appraisal', git: 'https://github.com/thoughtbot/appraisal.git'
+  gem 'pry-byebug'
+  gem 'rubocop'
+end
+
+gemspec path: '../../'

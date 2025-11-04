@@ -1,0 +1,144 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Individual scenario runner for Karafka-style integration testing
+# This script runs a single integration test file in complete isolation
+
+require 'bundler/setup'
+
+# Exit codes
+EXIT_SUCCESS = 0
+EXIT_FAILURE = 1
+EXIT_TIMEOUT = 2
+EXIT_SETUP_ERROR = 3
+
+class ScenarioRunner
+  attr_reader :test_file
+
+  def initialize(test_file)
+    @test_file = test_file
+    @exit_code = EXIT_SUCCESS
+  end
+
+  def run
+    puts "Running: #{File.basename(test_file)}" if ENV['VERBOSE']
+
+    # Set up the scenario-specific environment
+    setup_scenario
+
+    # Load and run the test file
+    load_and_run_test
+
+    exit EXIT_SUCCESS
+  rescue => e
+    puts "FAILED: #{File.basename(test_file)} - #{e.message}" if ENV['VERBOSE']
+    puts e.backtrace.first(5).join("\n") if ENV['VERBOSE']
+    exit EXIT_FAILURE
+  end
+
+  private
+
+  def setup_scenario
+    # Simple setup for Karafka-style isolated tests
+    # Each test handles its own specific requirements
+    require 'bundler/setup'
+
+    puts "Setting up isolated test environment" if ENV['VERBOSE']
+  end
+
+
+  def load_and_run_test
+    # For Karafka-style structure, test file might be relative to current directory
+    if File.exist?(test_file)
+      absolute_test_path = File.expand_path(test_file)
+    else
+      # Fallback to project root resolution
+      project_root = File.expand_path('../..', __dir__)
+      absolute_test_path = File.join(project_root, test_file)
+    end
+
+    puts "Current directory: #{Dir.pwd}" if ENV['VERBOSE']
+    puts "Loading test file: #{absolute_test_path}" if ENV['VERBOSE']
+
+    unless File.exist?(absolute_test_path)
+      raise "Test file not found: #{absolute_test_path}"
+    end
+
+    # Check if this is an RSpec file (contains RSpec.describe or describe)
+    file_content = File.read(absolute_test_path, encoding: 'UTF-8')
+    if file_content.match?(/\b(?:RSpec\.describe|describe)\b/)
+      puts "Running as RSpec test" if ENV['VERBOSE']
+      run_rspec_test(absolute_test_path)
+    else
+      puts "Running as plain Ruby test" if ENV['VERBOSE']
+      # Load as plain Ruby for Karafka-style tests
+      load absolute_test_path
+    end
+  end
+
+  def run_rspec_test(test_file_path)
+    # Change to project root for RSpec to find spec_helper
+    project_root = File.expand_path('..', __dir__)
+    Dir.chdir(project_root) do
+      # Disable SimpleCov for integration tests to avoid coverage failures
+      ENV['SIMPLECOV_DISABLED'] = 'true'
+
+      # Make the test file path relative to project root for RSpec
+      relative_test_path = File.join('spec', 'integration', File.basename(test_file_path))
+
+      puts "Running RSpec with file: #{relative_test_path}" if ENV['VERBOSE']
+      puts "Working directory: #{Dir.pwd}" if ENV['VERBOSE']
+
+      # Check if this test requires Rails but Rails is not available
+      if requires_rails?(test_file_path) && !rails_available?
+        puts "Skipping #{File.basename(test_file_path)} - Rails not available"
+        return
+      end
+
+      # Run RSpec with the specific test file
+      require 'rspec/core'
+
+      result = RSpec::Core::Runner.run([relative_test_path], $stderr, $stdout)
+
+      if result != 0
+        raise "RSpec failed with exit code #{result}"
+      end
+    ensure
+      # Clean up environment
+      ENV.delete('SIMPLECOV_DISABLED')
+    end
+  end
+
+  def requires_rails?(test_file_path)
+    # Check if the test file mentions Rails dependencies
+    content = File.read(test_file_path)
+    content.match?(/require.*rails|Rails::|ActiveJob::|ActionController::/)
+  end
+
+  def rails_available?
+    begin
+      require 'rails'
+      true
+    rescue LoadError
+      false
+    end
+  end
+end
+
+# Validate arguments
+if ARGV.empty?
+  puts "Usage: bin/scenario <test_file>"
+  puts "Example: bin/scenario spec/integration/rails_integration_spec.rb"
+  exit EXIT_SETUP_ERROR
+end
+
+test_file = ARGV[0]
+
+unless File.exist?(test_file)
+  puts "Test file not found: #{test_file}"
+  exit EXIT_SETUP_ERROR
+end
+
+
+# Run the scenario
+ScenarioRunner.new(test_file).run

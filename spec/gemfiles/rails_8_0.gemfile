@@ -1,0 +1,22 @@
+# Rails 8.0 - Full Rails framework
+
+source 'https://rubygems.org'
+
+group :test do
+  gem 'activejob', '~> 8.0'
+  gem 'rails', '~> 8.0'
+  gem 'actionpack', '~> 8.0'
+  gem 'activesupport', '~> 8.0'
+  gem 'httparty'
+  gem 'multi_xml'
+  gem 'simplecov'
+  gem 'warning'
+end
+
+group :development do
+  gem 'appraisal', git: 'https://github.com/thoughtbot/appraisal.git'
+  gem 'pry-byebug'
+  gem 'rubocop'
+end
+
+gemspec path: '../../'
