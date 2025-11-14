@@ -13,7 +13,7 @@ module Shoryuken
       no_commands do
         def normalize_dump_message(message)
           # symbolize_keys is needed for keeping it compatible with `requeue`
-          attributes = message[:attributes].transform_keys { |key| key.to_sym rescue key }
+          attributes = message[:attributes].transform_keys(&:to_sym)
 
           # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
           # The `string_list_values` and `binary_list_values` are not implemented. Reserved for future use.
