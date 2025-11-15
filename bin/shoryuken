@@ -29,7 +29,7 @@ module Shoryuken
       method_option :delay,       aliases: '-D', type: :numeric,
                                   desc: 'Number of seconds to pause fetching from an empty queue'
       def start
-        opts = options.to_h.symbolize_keys
+        opts = options.to_h.transform_keys(&:to_sym)
 
         say '[DEPRECATED] Please use --config instead of --config-file', :yellow if opts[:config_file]
 
