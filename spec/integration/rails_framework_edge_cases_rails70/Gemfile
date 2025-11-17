@@ -1,0 +1,25 @@
+source 'https://rubygems.org'
+
+# Load the base shoryuken gem
+gemspec path: '../../../'
+
+group :test do
+  # Full Rails 7.0 framework for edge case testing
+  gem 'rails', '~> 7.0.0'
+  gem 'rack-test'
+
+  # Specific gems for edge case regression testing
+  gem 'concurrent-ruby', '~> 1.2.0' # Specific version for edge case
+  gem 'zeitwerk', '~> 2.6.0'        # Specific autoloading version
+
+  # Test utilities
+  gem 'httparty'
+  gem 'multi_xml'
+  gem 'simplecov'
+  gem 'warning'
+
+  # Rails 7.0 + Ruby 3.4 compatibility
+  gem 'mutex_m'
+  gem 'logger'
+  gem 'ostruct'
+end
