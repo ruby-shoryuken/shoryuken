@@ -14,18 +14,18 @@ These gemfiles are automatically used by GitHub Actions in `.github/workflows/sp
 
 ### Manual Testing
 ```bash
-# Test with Rails 7.0 full framework
-BUNDLE_GEMFILE=spec/gemfiles/rails_7_0.gemfile bundle install
-BUNDLE_GEMFILE=spec/gemfiles/rails_7_0.gemfile bundle exec rspec
+# Test with Rails 8.0 full framework
+BUNDLE_GEMFILE=spec/gemfiles/rails_8_0.gemfile bundle install
+BUNDLE_GEMFILE=spec/gemfiles/rails_8_0.gemfile bundle exec rspec
 
-# Test with Rails 7.0 ActiveJob only  
-BUNDLE_GEMFILE=spec/gemfiles/rails_7_0_activejob.gemfile bundle install
-BUNDLE_GEMFILE=spec/gemfiles/rails_7_0_activejob.gemfile bundle exec rspec
+# Test with Rails 8.0 ActiveJob only
+BUNDLE_GEMFILE=spec/gemfiles/rails_8_0_activejob.gemfile bundle install
+BUNDLE_GEMFILE=spec/gemfiles/rails_8_0_activejob.gemfile bundle exec rspec
 ```
 
 ## Adding New Rails Versions
 
-1. Copy an existing gemfile pair (e.g., `rails_7_2.gemfile` and `rails_7_2_activejob.gemfile`)
+1. Copy an existing gemfile pair (e.g., `rails_8_0.gemfile` and `rails_8_0_activejob.gemfile`)
 2. Update the Rails version constraints
 3. Add the new gemfiles to the CI matrix in `.github/workflows/specs.yml`
 4. Test locally before committing
