@@ -97,6 +97,11 @@ class ScenarioRunner
       # Run RSpec with the specific test file
       require 'rspec/core'
 
+      # Load integration spec_helper for integration tests
+      if relative_test_path.include?('spec/integration/')
+        require_relative '../spec/integration/spec_helper'
+      end
+
       result = RSpec::Core::Runner.run([relative_test_path], $stderr, $stdout)
 
       if result != 0

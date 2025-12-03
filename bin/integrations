@@ -157,6 +157,7 @@ class IntegrationRunner
     @bundle_installed << spec[:gemfile] if $?.success?
 
     {
+      spec: spec,
       success: $?.success?,
       output: output.join,
       error: $?.success? ? nil : 'Bundle install failed'
