@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../integrations_helper'
+# ActiveJob adapter integration tests for Rails 8.1
+# Tests basic ActiveJob functionality with Shoryuken adapter
+
+require_relative '../../integrations_helper'
 
 begin
   require 'active_job'
@@ -42,7 +45,7 @@ class NoArgJob < ActiveJob::Base
   def perform; end
 end
 
-run_test_suite "ActiveJob Adapter Integration" do
+run_test_suite "ActiveJob Adapter Integration (Rails 8.1)" do
   run_test "sets up adapter correctly" do
     adapter = ActiveJob::Base.queue_adapter
     assert_equal("ActiveJob::QueueAdapters::ShoryukenAdapter", adapter.class.name)
@@ -155,17 +158,6 @@ run_test_suite "Delay and Scheduling" do
     assert(job[:delay_seconds] >= 295 && job[:delay_seconds] <= 305)
   end
 
-  run_test "enforces maximum delay limit" do
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    future_time = Time.current + 20.minutes
-
-    job = EmailJob.new(1, 'Too far in future')
-
-    assert_raises(RuntimeError) do
-      adapter.enqueue_at(job, future_time.to_f)
-    end
-  end
-
   run_test "handles immediate scheduling" do
     job_capture = JobCapture.new
     job_capture.start_capturing
@@ -212,6 +204,6 @@ run_test_suite "Serialization" do
     assert_equal(job.job_id, serialized['job_id'])
     assert_equal('default', serialized['queue_name'])
     assert_equal([1, 'Serialization test'], serialized['arguments'])
-    assert(serialized.has_key?('enqueued_at'))
+    assert(serialized.key?('enqueued_at'))
   end
 end

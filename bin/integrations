@@ -1,285 +1,194 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Shoryuken integration test runner
-# Inspired by Karafka's integration testing approach
+#
+# Usage:
+#   bin/integrations                    # Run all integration tests
+#   bin/integrations fifo               # Run tests with 'fifo' in path
+#   bin/integrations rails/rails_72     # Run Rails 7.2 tests
+#   bin/integrations batch retry        # Run tests matching 'batch' OR 'retry'
+#   bin/integrations -v fifo            # Run with verbose output
 
 require 'fileutils'
-require 'optparse'
 require 'timeout'
 
-# Configuration
 TIMEOUT = 300 # 5 minutes per scenario
 SPEC_DIR = File.expand_path('../spec/integration', __dir__)
-GEMFILES_DIR = File.expand_path('../spec/gemfiles', __dir__)
+ROOT_DIR = File.expand_path('..', __dir__)
 
 class IntegrationRunner
-  attr_reader :options
-
-  def initialize
-    @options = {
-      filter: nil,
-      verbose: false,
-      path_filters: []
-    }
-    parse_options
+  def initialize(args)
+    @verbose = args.delete('-v') || args.delete('--verbose')
+    @filters = args.reject { |a| a.start_with?('-') }
   end
 
   def run
-    puts "Shoryuken Integration Tests"
-    puts "=" * 50
+    puts 'Shoryuken Integration Tests'
+    puts '=' * 50
 
-    filters = []
-    filters << "Filter: #{@options[:filter]}" if @options[:filter]
-    filters << "Path filters: #{@options[:path_filters].join(', ')}" if @options[:path_filters].any?
-    puts filters.any? ? filters.join(', ') : "Filter: all"
-    puts ""
+    if @filters.any?
+      puts "Filter: #{@filters.join(', ')}"
+    else
+      puts 'Running all integration tests'
+    end
+    puts ''
 
-    scenarios = build_scenarios
+    specs = find_specs
+    specs = filter_specs(specs) if @filters.any?
 
-    if scenarios.empty?
-      filter_description = [@options[:filter], @options[:path_filters]].flatten.compact.join(', ')
-      puts "[ERROR] No scenarios found matching: #{filter_description.empty? ? 'criteria' : filter_description}"
+    if specs.empty?
+      puts '[ERROR] No specs found matching filters'
       exit 1
     end
 
-    puts "Found #{scenarios.size} scenario(s) to run"
-    puts ""
+    puts "Found #{specs.size} spec(s) to run"
+    puts ''
 
-    results = run_scenarios(scenarios)
+    results = run_specs(specs)
     report_results(results)
   end
 
   private
 
-  def parse_options
-    OptionParser.new do |opts|
-      opts.banner = "Usage: bin/integrations [path_filters...] [options]"
-      opts.separator ""
-      opts.separator "Examples:"
-      opts.separator "  bin/integrations                    # Run all integration tests"
-      opts.separator "  bin/integrations rails70            # Run tests with 'rails70' in name/path"
-      opts.separator "  bin/integrations activejob          # Run tests with 'activejob' in name/path"
-      opts.separator "  bin/integrations simple_karafka     # Run specific test"
-      opts.separator ""
+  def find_specs
+    Dir.glob(File.join(SPEC_DIR, '**/*_spec.rb')).map do |path|
+      relative_path = path.sub("#{SPEC_DIR}/", '')
+      dir = File.dirname(path)
+      gemfile = File.exist?(File.join(dir, 'Gemfile')) ? File.join(dir, 'Gemfile') : File.join(ROOT_DIR, 'Gemfile')
 
-      opts.on('-f', '--filter PATTERN', 'Run scenarios matching pattern') do |pattern|
-        @options[:filter] = pattern
-      end
-
-      opts.on('-v', '--verbose', 'Verbose output') do
-        @options[:verbose] = true
-      end
-
-
-      opts.on('-h', '--help', 'Show this help') do
-        puts opts
-        exit
-      end
-    end.parse!
-
-    # Remaining arguments are path filters
-    @options[:path_filters] = ARGV.dup
-  end
-
-  def build_scenarios
-    scenarios = []
-
-    # Find Karafka-style integration test directories (with Gemfile)
-    integration_dirs = Dir.glob(File.join(SPEC_DIR, '*')).select do |path|
-      File.directory?(path) && File.exist?(File.join(path, 'Gemfile'))
-    end
-
-    integration_dirs.each do |integration_dir|
-      dir_name = File.basename(integration_dir)
-      gemfile_path = File.join(integration_dir, 'Gemfile')
-
-      # Find the spec file in this directory
-      spec_files = Dir.glob(File.join(integration_dir, '*_spec.rb'))
-
-      spec_files.each do |spec_file|
-        scenario_name = File.basename(spec_file, '.rb')
-
-        # Apply legacy filter option
-        next if @options[:filter] && !scenario_name.match?(@options[:filter])
-
-        # Apply path filters (like Karafka)
-        if @options[:path_filters].any?
-          matches_any_filter = @options[:path_filters].any? do |filter|
-            scenario_name.include?(filter) || 
-            dir_name.include?(filter) || 
-            spec_file.include?(filter)
-          end
-          next unless matches_any_filter
-        end
-
-        scenarios << {
-          name: scenario_name,
-          directory: integration_dir,
-          gemfile: gemfile_path,
-          test_file: spec_file,
-          type: :karafka_style
-        }
-      end
-    end
-
-    # Also find standalone integration test files (legacy)
-    standalone_files = Dir.glob(File.join(SPEC_DIR, '*.rb'))
-
-    standalone_files.each do |spec_file|
-      scenario_name = File.basename(spec_file, '.rb')
-
-      # Apply legacy filter option
-      next if @options[:filter] && !scenario_name.match?(@options[:filter])
-
-      # Apply path filters
-      if @options[:path_filters].any?
-        matches_any_filter = @options[:path_filters].any? do |filter|
-          scenario_name.include?(filter) || spec_file.include?(filter)
-        end
-        next unless matches_any_filter
-      end
-
-      scenarios << {
-        name: scenario_name,
-        directory: SPEC_DIR,
-        gemfile: File.expand_path('../Gemfile', __dir__), # Use main project Gemfile
-        test_file: spec_file,
-        type: :legacy
+      {
+        name: relative_path.sub('_spec.rb', '').gsub('/', ' / '),
+        path: path,
+        relative_path: relative_path,
+        directory: dir,
+        gemfile: gemfile
       }
-    end
-
-    scenarios
+    end.sort_by { |s| s[:relative_path] }
   end
 
+  def filter_specs(specs)
+    specs.select do |spec|
+      @filters.any? { |filter| spec[:relative_path].include?(filter) }
+    end
+  end
 
-  def run_scenarios(scenarios)
+  def run_specs(specs)
     results = []
 
-    puts "Running #{scenarios.size} scenarios..."
-    scenarios.each do |scenario|
-      print "Running #{scenario[:name]}... "
-      pid_and_scenario = spawn_scenario(scenario)
-      result = wait_for_scenario(pid_and_scenario)
+    specs.each do |spec|
+      print "Running #{spec[:name]}... "
+      $stdout.flush
+
+      result = run_spec(spec)
       results << result
 
       if result[:success]
-        puts "PASSED"
+        puts 'PASSED'
       else
-        puts "[FAILED]"
-        puts "  Error: #{result[:error]}" if result[:error] && @options[:verbose]
+        puts '[FAILED]'
+        if @verbose && result[:output]
+          puts result[:output].lines.map { |l| "  #{l}" }.join
+        end
       end
     end
 
     results
   end
 
-  def ensure_bundle_installed(scenario, env)
-    return if scenario[:type] == :legacy # Legacy tests use main Gemfile
-
-    puts "Installing dependencies for #{scenario[:name]}..." if @options[:verbose]
-
-    # Run bundle install in the scenario directory with the scenario's Gemfile
-    bundle_install_cmd = ['bundle', 'install', '--quiet']
-
-    system(env, *bundle_install_cmd, 
-      chdir: scenario[:directory],
-      out: @options[:verbose] ? $stdout : '/dev/null',
-      err: @options[:verbose] ? $stderr : '/dev/null'
-    )
-
-    unless $?.success?
-      raise "Failed to install dependencies for #{scenario[:name]}"
-    end
-  end
-
-  def spawn_scenario(scenario)
+  def run_spec(spec)
     env = {
-      'BUNDLE_GEMFILE' => scenario[:gemfile],
+      'BUNDLE_GEMFILE' => spec[:gemfile],
       'RAILS_ENV' => 'test'
     }
 
-    # Ensure bundle install is run for the scenario's Gemfile
-    ensure_bundle_installed(scenario, env)
+    # Install dependencies if using a local Gemfile
+    unless spec[:gemfile] == File.join(ROOT_DIR, 'Gemfile')
+      install_result = install_bundle(spec, env)
+      return install_result unless install_result[:success]
+    end
 
-    cmd = [
-      'bundle', 'exec', 'ruby', 
-      File.expand_path('../bin/scenario', __dir__),
-      scenario[:test_file]
-    ]
+    # Run the spec
+    cmd = ['bundle', 'exec', 'ruby', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
 
-    puts "Spawning: #{scenario[:name]} (#{scenario[:directory]})" if @options[:verbose]
-
-    # Spawn with the working directory set to the integration test directory
-    pid = spawn(env, *cmd, 
-      chdir: scenario[:directory],
-      out: @options[:verbose] ? $stdout : '/dev/null',
-      err: @options[:verbose] ? $stderr : '/dev/null'
-    )
-
-    [pid, scenario]
-  end
-
-  def wait_for_scenario(pid_and_scenario)
-    pid, scenario = pid_and_scenario
+    output = []
+    start_time = Time.now
 
     begin
       Timeout.timeout(TIMEOUT) do
-        _, status = Process.wait2(pid)
-        {
-          scenario: scenario,
-          success: status.success?,
-          exit_code: status.exitstatus
-        }
+        IO.popen(env, cmd, chdir: spec[:directory], err: [:child, :out]) do |io|
+          io.each_line do |line|
+            output << line
+            puts "  #{line}" if @verbose
+          end
+        end
       end
-    rescue Timeout::Error
-      Process.kill('TERM', pid)
-      Process.wait(pid)
+
       {
-        scenario: scenario,
+        spec: spec,
+        success: $?.success?,
+        exit_code: $?.exitstatus,
+        duration: Time.now - start_time,
+        output: output.join
+      }
+    rescue Timeout::Error
+      {
+        spec: spec,
         success: false,
         exit_code: -1,
-        error: 'Timeout'
+        error: 'Timeout',
+        duration: Time.now - start_time,
+        output: output.join
       }
     end
   end
 
+  def install_bundle(spec, env)
+    return { success: true } if @bundle_installed&.include?(spec[:gemfile])
+
+    puts "  Installing dependencies..." if @verbose
+
+    output = []
+    IO.popen(env, ['bundle', 'install', '--quiet'], chdir: spec[:directory], err: [:child, :out]) do |io|
+      io.each_line { |line| output << line }
+    end
+
+    @bundle_installed ||= []
+    @bundle_installed << spec[:gemfile] if $?.success?
+
+    {
+      success: $?.success?,
+      output: output.join,
+      error: $?.success? ? nil : 'Bundle install failed'
+    }
+  end
+
   def report_results(results)
-    puts ""
-    puts "=" * 50
-    puts "Integration Test Results"
-    puts "=" * 50
+    puts ''
+    puts '=' * 50
+    puts 'Results'
+    puts '=' * 50
 
     successful = results.count { |r| r[:success] }
     total = results.size
-    failed_results = results.select { |r| !r[:success] }
+    failed = results.reject { |r| r[:success] }
 
-    # Report failures first with details
-    unless failed_results.empty?
-      puts ""
-      puts "FAILED SCENARIOS:"
-      failed_results.each do |result|
-        scenario_name = result[:scenario][:name]
-        error_info = result[:error] ? " - #{result[:error]}" : ""
-        exit_code_info = result[:exit_code] ? " (exit: #{result[:exit_code]})" : ""
-        puts "  #{scenario_name}#{error_info}#{exit_code_info}"
+    if failed.any?
+      puts ''
+      puts 'FAILED:'
+      failed.each do |result|
+        error = result[:error] ? " (#{result[:error]})" : ''
+        puts "  #{result[:spec][:name]}#{error}"
       end
     end
 
-    puts ""
-    puts "Summary: #{successful}/#{total} scenarios passed"
+    puts ''
+    puts "#{successful}/#{total} passed"
 
-    if successful == total
-      puts "All integration tests passed"
-      exit 0
-    else
-      puts "#{total - successful} scenario(s) failed"
-      exit 1
-    end
+    exit(failed.empty? ? 0 : 1)
   end
-
 end
 
-# Run if called directly
 if __FILE__ == $0
-  IntegrationRunner.new.run
+  IntegrationRunner.new(ARGV.dup).run
 end

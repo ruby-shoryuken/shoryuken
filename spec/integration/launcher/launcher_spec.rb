@@ -1,46 +1,18 @@
 # frozen_string_literal: true
 
-require 'securerandom'
-require 'shoryuken'
+# This spec tests the Launcher's ability to consume messages from SQS queues,
+# including single message consumption, batch consumption, and command workers.
 
 RSpec.describe Shoryuken::Launcher do
-  let(:sqs_client) do
-    Aws::SQS::Client.new(
-      region: 'us-east-1',
-      endpoint: 'http://localhost:4566',
-      access_key_id: 'fake',
-      secret_access_key: 'fake'
-    )
-  end
-
-  let(:executor) do
-    # We can't use Concurrent.global_io_executor in these tests since once you
-    # shut down a thread pool, you can't start it back up. Instead, we create
-    # one new thread pool executor for each spec. We use a new
-    # CachedThreadPool, since that most closely resembles
-    # Concurrent.global_io_executor
-    Concurrent::CachedThreadPool.new auto_terminate: true
-  end
+  include_context 'localstack'
 
   describe 'Consuming messages' do
     before do
-      Aws.config[:stub_responses] = false
-
-      allow(Shoryuken).to receive(:launcher_executor).and_return(executor)
-
-      Shoryuken.configure_client do |config|
-        config.sqs_client = sqs_client
-      end
-
-      Shoryuken.configure_server do |config|
-        config.sqs_client = sqs_client
-      end
-
       StandardWorker.received_messages = 0
 
       queue = "shoryuken-travis-#{StandardWorker}-#{SecureRandom.uuid}"
 
-      Shoryuken::Client.sqs.create_queue(queue_name: queue)
+      create_test_queue(queue)
 
       Shoryuken.add_group('default', 1)
       Shoryuken.add_queue(queue, 1, 'default')
@@ -51,19 +23,13 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     after do
-      Aws.config[:stub_responses] = true
-
-      queue_url = Shoryuken::Client.sqs.get_queue_url(
-        queue_name: StandardWorker.get_shoryuken_options['queue']
-      ).queue_url
-
-      Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
+      delete_test_queue(StandardWorker.get_shoryuken_options['queue'])
     end
 
     it 'consumes as a command worker' do
       StandardWorker.perform_async('Yo')
 
-      poll_queues_until { StandardWorker.received_messages > 0 }
+      poll_queues { StandardWorker.received_messages > 0 }
 
       expect(StandardWorker.received_messages).to eq 1
     end
@@ -73,7 +39,7 @@ RSpec.describe Shoryuken::Launcher do
 
       Shoryuken::Client.queues(StandardWorker.get_shoryuken_options['queue']).send_message(message_body: 'Yo')
 
-      poll_queues_until { StandardWorker.received_messages > 0 }
+      poll_queues { StandardWorker.received_messages > 0 }
 
       expect(StandardWorker.received_messages).to eq 1
     end
@@ -88,18 +54,17 @@ RSpec.describe Shoryuken::Launcher do
       # Give the messages a chance to hit the queue so they are all available at the same time
       sleep 2
 
-      poll_queues_until { StandardWorker.received_messages > 0 }
+      poll_queues { StandardWorker.received_messages > 0 }
 
       expect(StandardWorker.received_messages).to be > 1
     end
 
-    def poll_queues_until
+    # Local poll method using subject (the Launcher)
+    def poll_queues
       subject.start
 
-      Timeout::timeout(10) do
-        begin
-          sleep 0.5
-        end until yield
+      Timeout.timeout(10) do
+        sleep 0.5 until yield
       end
     ensure
       subject.stop

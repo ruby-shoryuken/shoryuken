@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Individual scenario runner for Karafka-style integration testing
+# Individual scenario runner for integration testing
 # This script runs a single integration test file in complete isolation
 
 require 'bundler/setup'
@@ -39,7 +39,6 @@ class ScenarioRunner
   private
 
   def setup_scenario
-    # Simple setup for Karafka-style isolated tests
     # Each test handles its own specific requirements
     require 'bundler/setup'
 
@@ -48,7 +47,7 @@ class ScenarioRunner
 
 
   def load_and_run_test
-    # For Karafka-style structure, test file might be relative to current directory
+    # Test file might be relative to current directory
     if File.exist?(test_file)
       absolute_test_path = File.expand_path(test_file)
     else
@@ -71,7 +70,7 @@ class ScenarioRunner
       run_rspec_test(absolute_test_path)
     else
       puts "Running as plain Ruby test" if ENV['VERBOSE']
-      # Load as plain Ruby for Karafka-style tests
+      # Load as plain Ruby test
       load absolute_test_path
     end
   end
@@ -84,7 +83,7 @@ class ScenarioRunner
       ENV['SIMPLECOV_DISABLED'] = 'true'
 
       # Make the test file path relative to project root for RSpec
-      relative_test_path = File.join('spec', 'integration', File.basename(test_file_path))
+      relative_test_path = test_file_path.sub("#{project_root}/", '')
 
       puts "Running RSpec with file: #{relative_test_path}" if ENV['VERBOSE']
       puts "Working directory: #{Dir.pwd}" if ENV['VERBOSE']

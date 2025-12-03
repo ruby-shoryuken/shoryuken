@@ -1,11 +1,92 @@
 # frozen_string_literal: true
 
-# Integration test helper for Karafka-style process-isolated testing
+# Integration test helper for process-isolated testing
 # This file provides common utilities for integration tests without RSpec overhead
 
 require 'timeout'
 require 'json'
+require 'securerandom'
 require 'aws-sdk-sqs'
+
+# RSpec shared context for LocalStack-based integration tests
+# Usage: include_context 'localstack' in your RSpec describe block
+RSpec.shared_context 'localstack' do
+  let(:sqs_client) do
+    Aws::SQS::Client.new(
+      region: 'us-east-1',
+      endpoint: 'http://localhost:4566',
+      access_key_id: 'fake',
+      secret_access_key: 'fake'
+    )
+  end
+
+  let(:executor) do
+    Concurrent::CachedThreadPool.new auto_terminate: true
+  end
+
+  before do
+    Aws.config[:stub_responses] = false
+
+    allow(Shoryuken).to receive(:launcher_executor).and_return(executor)
+
+    Shoryuken.configure_client do |config|
+      config.sqs_client = sqs_client
+    end
+
+    Shoryuken.configure_server do |config|
+      config.sqs_client = sqs_client
+    end
+  end
+
+  after do
+    Aws.config[:stub_responses] = true
+  end
+
+  # Helper to poll queues until a condition is met
+  def poll_queues_until(timeout: 15)
+    launcher = Shoryuken::Launcher.new
+    launcher.start
+
+    Timeout.timeout(timeout) do
+      sleep 0.5 until yield
+    end
+  ensure
+    launcher.stop
+  end
+
+  # Helper to create and register a standard queue
+  def create_test_queue(queue_name, attributes: {})
+    Shoryuken::Client.sqs.create_queue(
+      queue_name: queue_name,
+      attributes: attributes
+    )
+  end
+
+  # Helper to delete a queue safely
+  def delete_test_queue(queue_name)
+    queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
+    Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
+  rescue Aws::SQS::Errors::NonExistentQueue
+    # Queue already deleted
+  end
+
+  # Helper to create a FIFO queue
+  def create_fifo_queue(queue_name)
+    create_test_queue(queue_name, attributes: {
+      'FifoQueue' => 'true',
+      'ContentBasedDeduplication' => 'true'
+    })
+  end
+
+  # Helper to poll queues briefly without condition
+  def poll_queues_briefly(duration: 3)
+    launcher = Shoryuken::Launcher.new
+    launcher.start
+    sleep duration
+  ensure
+    launcher.stop
+  end
+end if defined?(RSpec)
 
 module IntegrationsHelper
   # Test utilities

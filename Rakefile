@@ -8,17 +8,9 @@ begin
   RSpec::Core::RakeTask.new(:spec)
 
   namespace :spec do
-    desc 'Run Rails specs only'
-    RSpec::Core::RakeTask.new(:rails) do |t|
-      t.pattern = 'spec/lib/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
-      # Disable SimpleCov minimum coverage check for Rails-only specs
-      # since running a subset naturally has lower coverage
-      ENV['SIMPLECOV_DISABLED'] = 'true'
-    end
-
-    desc 'Run integration specs only (Karafka-style)'
+    desc 'Run integration specs only'
     task :integration do
-      puts "Running Karafka-style integration tests..."
+      puts "Running integration tests..."
       system('./bin/integrations') || exit(1)
     end
   end

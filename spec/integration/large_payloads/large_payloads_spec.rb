@@ -1,0 +1,304 @@
+# frozen_string_literal: true
+
+# This spec tests large payload handling including moderately large payloads (10KB),
+# large payloads (100KB), payloads near the 256KB SQS limit, large JSON objects,
+# deeply nested JSON, batch processing with large messages, and unicode content.
+
+RSpec.describe 'Large Payloads Integration' do
+  include_context 'localstack'
+
+  let(:queue_name) { "large-payload-test-#{SecureRandom.uuid}" }
+
+  # SQS message size limit is 256KB
+  let(:max_message_size) { 256 * 1024 }
+
+  before do
+    create_test_queue(queue_name)
+    Shoryuken.add_group('default', 1)
+    Shoryuken.add_queue(queue_name, 1, 'default')
+  end
+
+  after do
+    delete_test_queue(queue_name)
+  end
+
+  describe 'Large string payloads' do
+    it 'handles moderately large payloads (10KB)' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      # Create 10KB payload
+      payload = 'x' * (10 * 1024)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: payload)
+
+      poll_queues_until { worker.received_bodies.size >= 1 }
+
+      expect(worker.received_bodies.first.size).to eq(10 * 1024)
+    end
+
+    it 'handles large payloads (100KB)' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      # Create 100KB payload
+      payload = 'y' * (100 * 1024)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: payload)
+
+      poll_queues_until { worker.received_bodies.size >= 1 }
+
+      expect(worker.received_bodies.first.size).to eq(100 * 1024)
+    end
+
+    it 'handles payloads near the SQS limit (250KB)' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      # Create 250KB payload (leaving room for overhead)
+      payload = 'z' * (250 * 1024)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: payload)
+
+      poll_queues_until { worker.received_bodies.size >= 1 }
+
+      expect(worker.received_bodies.first.size).to eq(250 * 1024)
+    end
+  end
+
+  describe 'Large JSON payloads' do
+    it 'handles large JSON objects' do
+      worker = create_json_worker(queue_name)
+      worker.received_data = []
+
+      # Create large JSON with many keys
+      large_data = {}
+      1000.times do |i|
+        large_data["key_#{i}"] = "value_#{i}" * 10
+      end
+
+      json_payload = JSON.generate(large_data)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: json_payload)
+
+      poll_queues_until { worker.received_data.size >= 1 }
+
+      received = worker.received_data.first
+      expect(received.keys.size).to eq 1000
+      expect(received['key_0']).to eq('value_0' * 10)
+    end
+
+    it 'handles deeply nested JSON' do
+      worker = create_json_worker(queue_name)
+      worker.received_data = []
+
+      # Create deeply nested structure
+      nested = { 'level' => 0, 'data' => 'base' }
+      50.times do |i|
+        nested = { 'level' => i + 1, 'child' => nested, 'padding' => 'x' * 100 }
+      end
+
+      json_payload = JSON.generate(nested)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: json_payload)
+
+      poll_queues_until { worker.received_data.size >= 1 }
+
+      received = worker.received_data.first
+      expect(received['level']).to eq 50
+
+      # Traverse to verify nesting
+      current = received
+      10.times { current = current['child'] }
+      expect(current['level']).to eq 40
+    end
+
+    it 'handles large JSON arrays' do
+      worker = create_json_worker(queue_name)
+      worker.received_data = []
+
+      # Create large array
+      large_array = (0...5000).map { |i| { 'index' => i, 'value' => "item-#{i}" } }
+      json_payload = JSON.generate(large_array)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: json_payload)
+
+      poll_queues_until { worker.received_data.size >= 1 }
+
+      received = worker.received_data.first
+      expect(received.size).to eq 5000
+      expect(received.first['index']).to eq 0
+      expect(received.last['index']).to eq 4999
+    end
+  end
+
+  describe 'Binary-like string payloads' do
+    it 'handles base64 encoded binary data' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      # Simulate binary data as base64
+      binary_data = SecureRandom.random_bytes(10_000)
+      encoded = Base64.strict_encode64(binary_data)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: encoded)
+
+      poll_queues_until { worker.received_bodies.size >= 1 }
+
+      decoded = Base64.strict_decode64(worker.received_bodies.first)
+      expect(decoded).to eq binary_data
+    end
+  end
+
+  describe 'Batch with large payloads' do
+    it 'handles batch of moderately large messages' do
+      worker = create_batch_payload_worker(queue_name)
+      worker.received_bodies = []
+      worker.batch_sizes = []
+
+      queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
+
+      # Send batch of 5KB messages
+      entries = 5.times.map do |i|
+        {
+          id: "msg-#{i}",
+          message_body: "#{i}:" + ('a' * 5000)
+        }
+      end
+
+      Shoryuken::Client.sqs.send_message_batch(
+        queue_url: queue_url,
+        entries: entries
+      )
+
+      poll_queues_until { worker.received_bodies.size >= 5 }
+
+      expect(worker.received_bodies.size).to eq 5
+      worker.received_bodies.each do |body|
+        expect(body.size).to be > 5000
+      end
+    end
+  end
+
+  describe 'Multiple large messages' do
+    it 'processes multiple large messages sequentially' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      # Send multiple large messages
+      5.times do |i|
+        payload = "msg-#{i}:" + ('x' * 50_000)
+        Shoryuken::Client.queues(queue_name).send_message(message_body: payload)
+      end
+
+      poll_queues_until(timeout: 30) { worker.received_bodies.size >= 5 }
+
+      expect(worker.received_bodies.size).to eq 5
+
+      # Verify each message was received correctly
+      received_indices = worker.received_bodies.map { |b| b.split(':').first.split('-').last.to_i }
+      expect(received_indices.sort).to eq [0, 1, 2, 3, 4]
+    end
+  end
+
+  describe 'Payload with special characters' do
+    it 'handles payloads with unicode characters' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      # Create payload with various unicode
+      unicode_payload = "Hello " + ("日本語テスト " * 1000) + " " + ("🎉🎊🎁" * 500)
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: unicode_payload)
+
+      poll_queues_until { worker.received_bodies.size >= 1 }
+
+      expect(worker.received_bodies.first).to eq unicode_payload
+    end
+
+    it 'handles payloads with newlines and tabs' do
+      worker = create_payload_worker(queue_name)
+      worker.received_bodies = []
+
+      payload_with_whitespace = "line1\nline2\n\tindented\n" * 1000
+
+      Shoryuken::Client.queues(queue_name).send_message(message_body: payload_with_whitespace)
+
+      poll_queues_until { worker.received_bodies.size >= 1 }
+
+      expect(worker.received_bodies.first).to eq payload_with_whitespace
+    end
+  end
+
+  private
+
+  def create_payload_worker(queue)
+    worker_class = Class.new do
+      include Shoryuken::Worker
+
+      class << self
+        attr_accessor :received_bodies
+      end
+
+      shoryuken_options auto_delete: true, batch: false
+
+      def perform(sqs_msg, body)
+        self.class.received_bodies ||= []
+        self.class.received_bodies << body
+      end
+    end
+
+    worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.received_bodies = []
+    Shoryuken.register_worker(queue, worker_class)
+    worker_class
+  end
+
+  def create_json_worker(queue)
+    worker_class = Class.new do
+      include Shoryuken::Worker
+
+      class << self
+        attr_accessor :received_data
+      end
+
+      shoryuken_options auto_delete: true, batch: false, body_parser: :json
+
+      def perform(sqs_msg, body)
+        self.class.received_data ||= []
+        self.class.received_data << body
+      end
+    end
+
+    worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.received_data = []
+    Shoryuken.register_worker(queue, worker_class)
+    worker_class
+  end
+
+  def create_batch_payload_worker(queue)
+    worker_class = Class.new do
+      include Shoryuken::Worker
+
+      class << self
+        attr_accessor :received_bodies, :batch_sizes
+      end
+
+      shoryuken_options auto_delete: true, batch: true
+
+      def perform(sqs_msgs, bodies)
+        self.class.batch_sizes ||= []
+        self.class.batch_sizes << Array(bodies).size
+
+        self.class.received_bodies ||= []
+        self.class.received_bodies.concat(Array(bodies))
+      end
+    end
+
+    worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.received_bodies = []
+    worker_class.batch_sizes = []
+    Shoryuken.register_worker(queue, worker_class)
+    worker_class
+  end
+end

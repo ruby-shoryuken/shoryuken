@@ -1,9 +1,0 @@
-source 'https://rubygems.org'
-
-# Load the base shoryuken gem
-gemspec path: '../../../'
-
-group :test do
-  # Minimal dependencies for demonstration
-  gem 'httparty'
-end
