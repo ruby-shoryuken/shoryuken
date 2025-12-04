@@ -161,7 +161,7 @@ class IntegrationRunner
       'BUNDLE_BIN' => nil
     )
 
-    IO.popen(clean_env, ['bundle', 'install', '--quiet'], chdir: spec[:directory], err: [:child, :out]) do |io|
+    IO.popen(clean_env, ['bundle', 'install'], chdir: spec[:directory], err: [:child, :out]) do |io|
       io.each_line { |line| output << line }
     end
 
@@ -194,6 +194,10 @@ class IntegrationRunner
       skipped.each do |result|
         puts "  - #{result[:spec][:name]}"
         puts "    Reason: #{result[:skip_reason]}" if result[:skip_reason]
+        if result[:output] && !result[:output].strip.empty?
+          lines = result[:output].lines.last(15)
+          lines.each { |line| puts "    #{line}" }
+        end
       end
     end
 
