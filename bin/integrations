@@ -180,7 +180,8 @@ class IntegrationRunner
       'BUNDLE_WITHOUT' => nil,
       'BUNDLE_CACHE_PATH' => nil,
       'BUNDLE_BIN' => nil,
-      'BUNDLE_APP_CONFIG' => bundle_config
+      'BUNDLE_APP_CONFIG' => bundle_config,
+      'RUBYOPT' => nil  # Clear any -rbundler/setup from CI
     )
 
     # Use --standalone to generate a setup.rb that doesn't need bundler at runtime
