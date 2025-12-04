@@ -117,10 +117,11 @@ class IntegrationRunner
     end
 
     # Run the spec
-    # For local gemfiles, run ruby directly with bundler/setup require
+    # For local gemfiles, use standalone bundle setup which doesn't need bundler at runtime
     # This avoids issues with bundle exec inheriting the wrong config
     cmd = if uses_local_gemfile
-            ['ruby', '-rbundler/setup', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
+            standalone_setup = File.join(bundle_path, 'bundler', 'setup.rb')
+            ['ruby', "-r#{standalone_setup}", File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
           else
             ['bundle', 'exec', 'ruby', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
           end
@@ -182,7 +183,8 @@ class IntegrationRunner
       'BUNDLE_APP_CONFIG' => bundle_config
     )
 
-    IO.popen(clean_env, ['bundle', 'install'], chdir: spec[:directory], err: [:child, :out]) do |io|
+    # Use --standalone to generate a setup.rb that doesn't need bundler at runtime
+    IO.popen(clean_env, ['bundle', 'install', '--standalone'], chdir: spec[:directory], err: [:child, :out]) do |io|
       io.each_line { |line| output << line }
     end
 
