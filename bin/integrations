@@ -42,7 +42,10 @@ class IntegrationRunner
   private
 
   def find_specs
-    Dir.glob(File.join(SPEC_DIR, '**/*_spec.rb')).map do |path|
+    Dir.glob(File.join(SPEC_DIR, '**/*_spec.rb')).reject do |path|
+      # Exclude vendor and .bundle directories
+      path.include?('/vendor/') || path.include?('/.bundle/')
+    end.map do |path|
       relative_path = path.sub("#{SPEC_DIR}/", '')
       dir = File.dirname(path)
       gemfile = File.exist?(File.join(dir, 'Gemfile')) ? File.join(dir, 'Gemfile') : File.join(ROOT_DIR, 'Gemfile')
@@ -105,10 +108,12 @@ class IntegrationRunner
         }
       end
 
-      # Use isolated bundle path to match install_bundle
+      # Use isolated bundle config to match install_bundle
       bundle_path = File.join(spec[:directory], 'vendor', 'bundle')
+      bundle_config = File.join(spec[:directory], '.bundle')
       env['BUNDLE_PATH'] = bundle_path
       env['BUNDLE_FROZEN'] = 'false'
+      env['BUNDLE_APP_CONFIG'] = bundle_config
     end
 
     # Run the spec
@@ -151,6 +156,15 @@ class IntegrationRunner
     # Create isolated bundle environment to avoid CI cache interference
     # Use a unique path per Gemfile to avoid conflicts
     bundle_path = File.join(spec[:directory], 'vendor', 'bundle')
+    bundle_config = File.join(spec[:directory], '.bundle')
+
+    # Create local .bundle/config to override project-level config
+    FileUtils.mkdir_p(bundle_config)
+    File.write(File.join(bundle_config, 'config'), <<~CONFIG)
+      ---
+      BUNDLE_PATH: "#{bundle_path}"
+      BUNDLE_FROZEN: "false"
+    CONFIG
 
     clean_env = env.merge(
       'BUNDLE_PATH' => bundle_path,
@@ -158,7 +172,8 @@ class IntegrationRunner
       'BUNDLE_DEPLOYMENT' => nil,
       'BUNDLE_WITHOUT' => nil,
       'BUNDLE_CACHE_PATH' => nil,
-      'BUNDLE_BIN' => nil
+      'BUNDLE_BIN' => nil,
+      'BUNDLE_APP_CONFIG' => bundle_config
     )
 
     IO.popen(clean_env, ['bundle', 'install'], chdir: spec[:directory], err: [:child, :out]) do |io|
@@ -172,7 +187,8 @@ class IntegrationRunner
       spec: spec,
       success: $?.success?,
       output: output.join,
-      error: $?.success? ? nil : 'Bundle install failed'
+      error: $?.success? ? nil : 'Bundle install failed',
+      bundle_config: bundle_config
     }
   end
 
