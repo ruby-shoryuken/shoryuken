@@ -117,7 +117,13 @@ class IntegrationRunner
     end
 
     # Run the spec
-    cmd = ['bundle', 'exec', 'ruby', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
+    # For local gemfiles, run ruby directly with bundler/setup require
+    # This avoids issues with bundle exec inheriting the wrong config
+    cmd = if uses_local_gemfile
+            ['ruby', '-rbundler/setup', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
+          else
+            ['bundle', 'exec', 'ruby', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
+          end
 
     output = []
     start_time = Time.now
