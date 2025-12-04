@@ -185,7 +185,16 @@ class IntegrationRunner
     )
 
     # Use --standalone to generate a setup.rb that doesn't need bundler at runtime
-    IO.popen(clean_env, ['bundle', 'install', '--standalone'], chdir: spec[:directory], err: [:child, :out]) do |io|
+    # Run in a completely unbundled environment using Bundler API
+    cmd_script = <<~RUBY
+      require 'bundler'
+      Bundler.with_unbundled_env do
+        system({'BUNDLE_GEMFILE' => '#{spec[:gemfile]}', 'BUNDLE_PATH' => '#{bundle_path}', 'BUNDLE_FROZEN' => 'false', 'BUNDLE_APP_CONFIG' => '#{bundle_config}'}, 'bundle', 'install', '--standalone')
+      end
+      exit($?.success? ? 0 : 1)
+    RUBY
+
+    IO.popen(['ruby', '-e', cmd_script], chdir: spec[:directory], err: [:child, :out]) do |io|
       io.each_line { |line| output << line }
     end
 
