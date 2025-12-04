@@ -28,3 +28,4 @@ rubocop.html
 .byebug_history
 .localstack
 spec/integration/**/Gemfile.lock
+spec/integration/**/vendor/

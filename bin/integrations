@@ -91,7 +91,8 @@ class IntegrationRunner
     }
 
     # Install dependencies if using a local Gemfile
-    unless spec[:gemfile] == File.join(ROOT_DIR, 'Gemfile')
+    uses_local_gemfile = spec[:gemfile] != File.join(ROOT_DIR, 'Gemfile')
+    if uses_local_gemfile
       install_result = install_bundle(spec, env)
       unless install_result[:success]
         # Skip test if bundle install fails (e.g., gems not available in CI)
@@ -103,6 +104,11 @@ class IntegrationRunner
           output: install_result[:output]
         }
       end
+
+      # Use isolated bundle path to match install_bundle
+      bundle_path = File.join(spec[:directory], 'vendor', 'bundle')
+      env['BUNDLE_PATH'] = bundle_path
+      env['BUNDLE_FROZEN'] = 'false'
     end
 
     # Run the spec
@@ -142,10 +148,13 @@ class IntegrationRunner
 
     output = []
 
-    # Clear bundler environment to avoid inheriting CI cache settings
+    # Create isolated bundle environment to avoid CI cache interference
+    # Use a unique path per Gemfile to avoid conflicts
+    bundle_path = File.join(spec[:directory], 'vendor', 'bundle')
+
     clean_env = env.merge(
-      'BUNDLE_PATH' => nil,
-      'BUNDLE_FROZEN' => nil,
+      'BUNDLE_PATH' => bundle_path,
+      'BUNDLE_FROZEN' => 'false',
       'BUNDLE_DEPLOYMENT' => nil,
       'BUNDLE_WITHOUT' => nil,
       'BUNDLE_CACHE_PATH' => nil,
