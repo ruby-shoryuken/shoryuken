@@ -8,9 +8,14 @@
   - Includes comprehensive integration tests with continuable jobs
   - See Rails PR #55127 for more details on ActiveJob Continuations
 
+- Breaking: Drop support for Ruby 3.1 (EOL March 2025)
+  - Minimum required Ruby version is now 3.2.0
+  - Supported Ruby versions: 3.2, 3.3, 3.4
+  - Users on Ruby 3.1 should upgrade or remain on Shoryuken 6.x
+
 - Breaking: Remove support for Rails versions older than 7.2
-  - Rails 7.0 and 7.1 have reached end-of-life and are no longer supported
-  - Supported versions: Rails 7.2, 8.0, and 8.1
+  - Rails 7.0 and 7.1 have reached end-of-life (April 2025) and are no longer supported
+  - Supported Rails versions: 7.2, 8.0, and 8.1
   - Users on older Rails versions should upgrade or remain on Shoryuken 6.x
 
 - Enhancement: Replace Concurrent::AtomicFixnum with pure Ruby AtomicCounter
