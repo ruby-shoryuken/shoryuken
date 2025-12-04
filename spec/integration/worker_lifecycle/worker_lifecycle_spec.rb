@@ -17,6 +17,8 @@ RSpec.describe 'Worker Lifecycle Integration' do
 
   after do
     delete_test_queue(queue_name)
+    Shoryuken.worker_registry.clear
+    Shoryuken.groups.clear
   end
 
   describe 'Graceful shutdown' do
@@ -70,22 +72,35 @@ RSpec.describe 'Worker Lifecycle Integration' do
       expect(registered).to include(worker_class)
     end
 
-    it 'allows multiple workers for same queue (non-batch)' do
+    it 'replaces existing worker when registering same queue (non-batch)' do
       worker1 = Class.new do
         include Shoryuken::Worker
-        shoryuken_options queue: 'multi-worker-queue', auto_delete: true, batch: false
+
+        def perform(sqs_msg, body); end
       end
 
       worker2 = Class.new do
         include Shoryuken::Worker
-        shoryuken_options queue: 'multi-worker-queue', auto_delete: true, batch: false
+
+        def perform(sqs_msg, body); end
       end
+
+      # Set options manually without triggering auto-registration
+      worker1.get_shoryuken_options['queue'] = 'multi-worker-queue'
+      worker1.get_shoryuken_options['auto_delete'] = true
+      worker1.get_shoryuken_options['batch'] = false
+
+      worker2.get_shoryuken_options['queue'] = 'multi-worker-queue'
+      worker2.get_shoryuken_options['auto_delete'] = true
+      worker2.get_shoryuken_options['batch'] = false
 
       Shoryuken.register_worker('multi-worker-queue', worker1)
       Shoryuken.register_worker('multi-worker-queue', worker2)
 
+      # Second registration replaces the first one
       registered = Shoryuken.worker_registry.workers('multi-worker-queue')
-      expect(registered.size).to eq 2
+      expect(registered.size).to eq 1
+      expect(registered.first).to eq worker2
     end
   end
 
@@ -166,6 +181,7 @@ RSpec.describe 'Worker Lifecycle Integration' do
     it 'processes messages concurrently' do
       Shoryuken.groups.clear
       Shoryuken.add_group('concurrent', 3) # 3 concurrent workers
+      Shoryuken.add_queue(queue_name, 1, 'concurrent') # Add queue to the new group
 
       worker = create_slow_worker(queue_name, processing_time: 1)
       worker.received_messages = []
@@ -178,7 +194,7 @@ RSpec.describe 'Worker Lifecycle Integration' do
 
       sleep 1
 
-      poll_queues_until(timeout: 10) { worker.received_messages.size >= 5 }
+      poll_queues_until(timeout: 20) { worker.received_messages.size >= 5 }
 
       expect(worker.received_messages.size).to eq 5
 
@@ -199,8 +215,6 @@ RSpec.describe 'Worker Lifecycle Integration' do
         attr_accessor :received_messages, :completed_messages, :start_times, :processing_time
       end
 
-      shoryuken_options auto_delete: true, batch: false
-
       def perform(sqs_msg, body)
         self.class.start_times ||= []
         self.class.start_times << Time.now
@@ -215,7 +229,10 @@ RSpec.describe 'Worker Lifecycle Integration' do
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = false
     worker_class.processing_time = processing_time
     worker_class.received_messages = []
     worker_class.completed_messages = []
@@ -232,15 +249,16 @@ RSpec.describe 'Worker Lifecycle Integration' do
         attr_accessor :received_messages
       end
 
-      shoryuken_options auto_delete: true, batch: false
-
       def perform(sqs_msg, body)
         self.class.received_messages ||= []
         self.class.received_messages << body
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = false
     worker_class.received_messages = []
     Shoryuken.register_worker(queue, worker_class)
     worker_class

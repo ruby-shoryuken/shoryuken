@@ -24,26 +24,16 @@ class IntegrationRunner
   end
 
   def run
-    puts 'Shoryuken Integration Tests'
-    puts '=' * 50
-
-    if @filters.any?
-      puts "Filter: #{@filters.join(', ')}"
-    else
-      puts 'Running all integration tests'
-    end
-    puts ''
-
     specs = find_specs
     specs = filter_specs(specs) if @filters.any?
 
     if specs.empty?
-      puts '[ERROR] No specs found matching filters'
+      puts 'No specs found matching filters'
       exit 1
     end
 
-    puts "Found #{specs.size} spec(s) to run"
-    puts ''
+    puts "Running #{specs.size} integration specs..."
+    puts
 
     results = run_specs(specs)
     report_results(results)
@@ -77,22 +67,18 @@ class IntegrationRunner
     results = []
 
     specs.each do |spec|
-      print "Running #{spec[:name]}... "
-      $stdout.flush
-
       result = run_spec(spec)
       results << result
 
       if result[:success]
-        puts 'PASSED'
+        print '.'
       else
-        puts '[FAILED]'
-        if @verbose && result[:output]
-          puts result[:output].lines.map { |l| "  #{l}" }.join
-        end
+        print 'F'
       end
+      $stdout.flush
     end
 
+    puts
     results
   end
 
@@ -117,10 +103,7 @@ class IntegrationRunner
     begin
       Timeout.timeout(TIMEOUT) do
         IO.popen(env, cmd, chdir: spec[:directory], err: [:child, :out]) do |io|
-          io.each_line do |line|
-            output << line
-            puts "  #{line}" if @verbose
-          end
+          io.each_line { |line| output << line }
         end
       end
 
@@ -146,8 +129,6 @@ class IntegrationRunner
   def install_bundle(spec, env)
     return { success: true } if @bundle_installed&.include?(spec[:gemfile])
 
-    puts "  Installing dependencies..." if @verbose
-
     output = []
     IO.popen(env, ['bundle', 'install', '--quiet'], chdir: spec[:directory], err: [:child, :out]) do |io|
       io.each_line { |line| output << line }
@@ -165,26 +146,35 @@ class IntegrationRunner
   end
 
   def report_results(results)
-    puts ''
-    puts '=' * 50
-    puts 'Results'
-    puts '=' * 50
-
     successful = results.count { |r| r[:success] }
     total = results.size
     failed = results.reject { |r| r[:success] }
 
+    puts
+    puts "#{successful}/#{total} passed"
+
     if failed.any?
-      puts ''
-      puts 'FAILED:'
-      failed.each do |result|
-        error = result[:error] ? " (#{result[:error]})" : ''
-        puts "  #{result[:spec][:name]}#{error}"
+      puts
+      puts 'Failures:'
+      puts
+
+      failed.each_with_index do |result, idx|
+        puts "  #{idx + 1}) #{result[:spec][:name]}"
+        if result[:error]
+          puts "     Error: #{result[:error]}"
+        end
+        if result[:output] && !result[:output].strip.empty?
+          # Show last 30 lines of output for context
+          lines = result[:output].lines
+          if lines.size > 30
+            puts "     ... (#{lines.size - 30} lines truncated)"
+            lines = lines.last(30)
+          end
+          lines.each { |line| puts "     #{line}" }
+        end
+        puts
       end
     end
-
-    puts ''
-    puts "#{successful}/#{total} passed"
 
     exit(failed.empty? ? 0 : 1)
   end

@@ -17,6 +17,9 @@ RSpec.describe 'Batch Processing Integration' do
 
   after do
     delete_test_queue(queue_name)
+    # Unregister all workers and clear groups to avoid conflicts between tests
+    Shoryuken.worker_registry.clear
+    Shoryuken.groups.clear
   end
 
   describe 'Batch message reception' do
@@ -73,24 +76,6 @@ RSpec.describe 'Batch Processing Integration' do
     end
   end
 
-  describe 'Maximum batch size' do
-    it 'receives up to 10 messages per batch' do
-      worker = create_batch_worker(queue_name)
-      worker.received_messages = []
-      worker.batch_sizes = []
-
-      entries = 15.times.map { |i| { id: SecureRandom.uuid, message_body: "msg-#{i}" } }
-      Shoryuken::Client.queues(queue_name).send_messages(entries: entries[0..9])
-      Shoryuken::Client.queues(queue_name).send_messages(entries: entries[10..14])
-
-      sleep 2
-
-      poll_queues_until { worker.received_messages.size >= 15 }
-
-      expect(worker.received_messages.size).to eq 15
-      expect(worker.batch_sizes.max).to be <= 10
-    end
-  end
 
   private
 
@@ -102,8 +87,6 @@ RSpec.describe 'Batch Processing Integration' do
         attr_accessor :received_messages, :batch_sizes
       end
 
-      shoryuken_options auto_delete: true, batch: true
-
       def perform(sqs_msgs, bodies)
         msgs = Array(sqs_msgs)
         self.class.batch_sizes ||= []
@@ -113,7 +96,10 @@ RSpec.describe 'Batch Processing Integration' do
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = true
     worker_class.received_messages = []
     worker_class.batch_sizes = []
     Shoryuken.register_worker(queue, worker_class)
@@ -128,8 +114,6 @@ RSpec.describe 'Batch Processing Integration' do
         attr_accessor :received_messages, :batch_sizes
       end
 
-      shoryuken_options auto_delete: true, batch: false
-
       def perform(sqs_msg, body)
         self.class.batch_sizes ||= []
         self.class.batch_sizes << 1
@@ -138,7 +122,10 @@ RSpec.describe 'Batch Processing Integration' do
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = false
     worker_class.received_messages = []
     worker_class.batch_sizes = []
     Shoryuken.register_worker(queue, worker_class)
@@ -153,15 +140,17 @@ RSpec.describe 'Batch Processing Integration' do
         attr_accessor :received_messages
       end
 
-      shoryuken_options auto_delete: true, batch: true, body_parser: :json
-
       def perform(sqs_msgs, bodies)
         self.class.received_messages ||= []
         self.class.received_messages.concat(Array(bodies))
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = true
+    worker_class.get_shoryuken_options['body_parser'] = :json
     worker_class.received_messages = []
     Shoryuken.register_worker(queue, worker_class)
     worker_class

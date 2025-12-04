@@ -17,6 +17,8 @@ RSpec.describe 'FIFO Queue Ordering Integration' do
 
   after do
     delete_test_queue(queue_name)
+    Shoryuken.worker_registry.clear
+    Shoryuken.groups.clear
   end
 
   describe 'Message ordering within same group' do
@@ -175,8 +177,6 @@ RSpec.describe 'FIFO Queue Ordering Integration' do
         attr_accessor :received_messages, :processing_order, :groups_seen, :messages_by_group
       end
 
-      shoryuken_options auto_delete: true, batch: false
-
       def perform(sqs_msg, body)
         self.class.received_messages ||= []
         self.class.received_messages << body
@@ -199,7 +199,10 @@ RSpec.describe 'FIFO Queue Ordering Integration' do
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = false
     worker_class.received_messages = []
     worker_class.processing_order = []
     worker_class.groups_seen = []
@@ -216,8 +219,6 @@ RSpec.describe 'FIFO Queue Ordering Integration' do
         attr_accessor :received_messages, :batch_sizes
       end
 
-      shoryuken_options auto_delete: true, batch: true
-
       def perform(sqs_msgs, bodies)
         self.class.batch_sizes ||= []
         self.class.batch_sizes << Array(bodies).size
@@ -227,7 +228,10 @@ RSpec.describe 'FIFO Queue Ordering Integration' do
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = true
     worker_class.received_messages = []
     worker_class.batch_sizes = []
     Shoryuken.register_worker(queue, worker_class)

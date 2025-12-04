@@ -4,8 +4,6 @@
 # Middleware chain integration tests
 # Tests middleware execution order, exception handling, and customization
 
-require_relative '../../integrations_helper'
-
 begin
   require 'shoryuken'
 rescue LoadError => e
@@ -65,6 +63,18 @@ class ConfigurableMiddleware
 
   def call(worker, queue, sqs_msg, body)
     $middleware_execution_order << "configurable_#{@config_value}".to_sym
+    yield
+  end
+end
+
+# Another configurable middleware for testing multiple instances
+class AnotherConfigurableMiddleware
+  def initialize(config_value)
+    @config_value = config_value
+  end
+
+  def call(worker, queue, sqs_msg, body)
+    $middleware_execution_order << "another_configurable_#{@config_value}".to_sym
     yield
   end
 end
@@ -227,14 +237,30 @@ run_test_suite "Middleware with Arguments" do
 
     chain = Shoryuken::Middleware::Chain.new
     chain.add ConfigurableMiddleware, 'first'
-    chain.add ConfigurableMiddleware, 'second'
+    chain.add AnotherConfigurableMiddleware, 'second'
 
     chain.invoke(nil, 'test', nil, nil) do
       $middleware_execution_order << :worker
     end
 
     assert_includes($middleware_execution_order, :configurable_first)
-    assert_includes($middleware_execution_order, :configurable_second)
+    assert_includes($middleware_execution_order, :another_configurable_second)
+  end
+
+  run_test "ignores duplicate middleware class (same class added twice)" do
+    $middleware_execution_order = []
+
+    chain = Shoryuken::Middleware::Chain.new
+    chain.add ConfigurableMiddleware, 'first'
+    chain.add ConfigurableMiddleware, 'second' # This is ignored
+
+    chain.invoke(nil, 'test', nil, nil) do
+      $middleware_execution_order << :worker
+    end
+
+    # Only the first instance should be added
+    assert_includes($middleware_execution_order, :configurable_first)
+    refute($middleware_execution_order.include?(:configurable_second), "Duplicate middleware should be ignored")
   end
 end
 

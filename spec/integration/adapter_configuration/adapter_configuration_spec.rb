@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../../integrations_helper'
-
 begin
   require 'active_job'
   require 'shoryuken'

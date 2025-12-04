@@ -4,8 +4,6 @@
 # ActiveJob adapter integration tests for Rails 8.0
 # Tests basic ActiveJob functionality with Shoryuken adapter
 
-require_relative '../../integrations_helper'
-
 begin
   require 'active_job'
   require 'shoryuken'

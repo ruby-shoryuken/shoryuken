@@ -70,6 +70,12 @@ class ScenarioRunner
       run_rspec_test(absolute_test_path)
     else
       puts "Running as plain Ruby test" if ENV['VERBOSE']
+      # Load integrations_helper for plain Ruby integration tests
+      if absolute_test_path.include?('spec/integration')
+        project_root = File.expand_path('..', __dir__)
+        integrations_helper = File.join(project_root, 'spec', 'integrations_helper.rb')
+        require integrations_helper
+      end
       # Load as plain Ruby test
       load absolute_test_path
     end

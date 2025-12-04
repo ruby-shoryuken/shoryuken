@@ -4,8 +4,6 @@
 # ActiveJob Continuations integration tests for Rails 8.1+
 # Tests the stopping? method and continuation timestamp handling
 
-require_relative '../../integrations_helper'
-
 begin
   require 'securerandom'
   require 'active_job'

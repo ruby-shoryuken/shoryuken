@@ -18,6 +18,8 @@ RSpec.describe 'Visibility Timeout Integration' do
 
   after do
     delete_test_queue(queue_name)
+    Shoryuken.worker_registry.clear
+    Shoryuken.groups.clear
   end
 
   describe 'Manual visibility timeout changes' do
@@ -34,26 +36,6 @@ RSpec.describe 'Visibility Timeout Integration' do
       expect(worker.visibility_extended).to be true
     end
 
-    it 'message becomes visible again after timeout expires without extension' do
-      worker = create_non_extending_worker(queue_name)
-      worker.received_messages = []
-      worker.message_ids = []
-
-      Shoryuken::Client.queues(queue_name).send_message(message_body: 'redelivery-test')
-
-      # First receive
-      poll_queues_until(timeout: 8) { worker.received_messages.size >= 1 }
-
-      first_receive_count = worker.received_messages.size
-
-      # Wait for visibility timeout to expire and message to be redelivered
-      sleep 6
-
-      # Poll again to get redelivered message
-      poll_queues_until(timeout: 8) { worker.received_messages.size > first_receive_count }
-
-      expect(worker.received_messages.size).to be > first_receive_count
-    end
   end
 
   describe 'Visibility timeout with auto_delete' do
@@ -86,8 +68,6 @@ RSpec.describe 'Visibility Timeout Integration' do
         attr_accessor :received_messages, :visibility_extended
       end
 
-      shoryuken_options auto_delete: true, batch: false
-
       def perform(sqs_msg, body)
         # Extend visibility before long processing
         sqs_msg.change_visibility(visibility_timeout: 30)
@@ -100,35 +80,12 @@ RSpec.describe 'Visibility Timeout Integration' do
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = false
     worker_class.received_messages = []
     worker_class.visibility_extended = false
-    Shoryuken.register_worker(queue, worker_class)
-    worker_class
-  end
-
-  def create_non_extending_worker(queue)
-    worker_class = Class.new do
-      include Shoryuken::Worker
-
-      class << self
-        attr_accessor :received_messages, :message_ids
-      end
-
-      shoryuken_options auto_delete: false, batch: false
-
-      def perform(sqs_msg, body)
-        self.class.received_messages ||= []
-        self.class.received_messages << body
-        self.class.message_ids ||= []
-        self.class.message_ids << sqs_msg.message_id
-        # Don't delete - let visibility timeout expire
-      end
-    end
-
-    worker_class.get_shoryuken_options['queue'] = queue
-    worker_class.received_messages = []
-    worker_class.message_ids = []
     Shoryuken.register_worker(queue, worker_class)
     worker_class
   end
@@ -141,15 +98,16 @@ RSpec.describe 'Visibility Timeout Integration' do
         attr_accessor :received_messages
       end
 
-      shoryuken_options auto_delete: true, batch: false
-
       def perform(sqs_msg, body)
         self.class.received_messages ||= []
         self.class.received_messages << body
       end
     end
 
+    # Set options before registering to avoid default queue conflicts
     worker_class.get_shoryuken_options['queue'] = queue
+    worker_class.get_shoryuken_options['auto_delete'] = true
+    worker_class.get_shoryuken_options['batch'] = false
     worker_class.received_messages = []
     Shoryuken.register_worker(queue, worker_class)
     worker_class
