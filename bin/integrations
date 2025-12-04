@@ -141,7 +141,18 @@ class IntegrationRunner
     return { success: true } if @bundle_installed&.include?(spec[:gemfile])
 
     output = []
-    IO.popen(env, ['bundle', 'install', '--quiet'], chdir: spec[:directory], err: [:child, :out]) do |io|
+
+    # Clear bundler environment to avoid inheriting CI cache settings
+    clean_env = env.merge(
+      'BUNDLE_PATH' => nil,
+      'BUNDLE_FROZEN' => nil,
+      'BUNDLE_DEPLOYMENT' => nil,
+      'BUNDLE_WITHOUT' => nil,
+      'BUNDLE_CACHE_PATH' => nil,
+      'BUNDLE_BIN' => nil
+    )
+
+    IO.popen(clean_env, ['bundle', 'install', '--quiet'], chdir: spec[:directory], err: [:child, :out]) do |io|
       io.each_line { |line| output << line }
     end
 
