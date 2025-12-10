@@ -1,21 +1,16 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-require 'active_support/current_attributes'
-require 'shoryuken/active_job/current_attributes'
-
 # CurrentAttributes integration tests
 # Tests that CurrentAttributes flow from enqueue to job execution
 
 setup_localstack
+setup_active_job
+
+require 'active_support/current_attributes'
+require 'shoryuken/active_job/current_attributes'
 
 queue_name = DT.queue
 create_test_queue(queue_name)
-
-# Configure ActiveJob adapter
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Define first CurrentAttributes class
 class TestCurrent < ActiveSupport::CurrentAttributes
@@ -202,5 +197,3 @@ end
 # Verify CurrentAttributes were reset after all job executions
 assert(TestCurrent.user_id.nil?, "CurrentAttributes should be reset after execution")
 assert(RequestContext.locale.nil?, "RequestContext should be reset after execution")
-
-delete_test_queue(queue_name)

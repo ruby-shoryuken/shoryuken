@@ -1,18 +1,13 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # ActiveJob custom SQS message attributes integration test
 # Tests that custom message attributes survive the full round-trip
 
 setup_localstack
+setup_active_job
 
 queue_name = DT.queue
 create_test_queue(queue_name)
-
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Job that captures its SQS message attributes
 class AttributeCaptureJob < ActiveJob::Base
@@ -93,5 +88,3 @@ labels = DT[:executions].map { |e| e[:label] }
 assert_includes(labels, 'with_attributes')
 assert_includes(labels, 'with_number')
 assert_includes(labels, 'no_attributes')
-
-delete_test_queue(queue_name)

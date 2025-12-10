@@ -36,5 +36,3 @@ poll_queues_until { DT[:messages].size >= 1 }
 
 assert_equal(1, DT[:messages].size)
 assert(DT[:visibility_extended].any?, "Expected visibility to be extended")
-
-delete_test_queue(queue_name)

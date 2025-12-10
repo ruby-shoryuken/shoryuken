@@ -108,6 +108,15 @@ module IntegrationsHelper
     assert(!condition, message)
   end
 
+  # Configure ActiveJob with Shoryuken adapter
+  def setup_active_job
+    require 'active_job'
+    require 'active_job/queue_adapters/shoryuken_adapter'
+    require 'active_job/extensions'
+
+    ActiveJob::Base.queue_adapter = :shoryuken
+  end
+
   # Configure Shoryuken to use LocalStack for real SQS integration tests
   def setup_localstack
     Aws.config[:stub_responses] = false

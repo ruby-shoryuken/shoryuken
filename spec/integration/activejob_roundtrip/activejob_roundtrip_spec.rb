@@ -1,19 +1,13 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # Full round-trip ActiveJob integration test
 # Enqueues a job via ActiveJob → sends to LocalStack SQS → processes via Shoryuken → verifies execution
 
 setup_localstack
+setup_active_job
 
 queue_name = DT.queue
 create_test_queue(queue_name)
-
-# Configure ActiveJob adapter
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Define test job
 class RoundtripTestJob < ActiveJob::Base
@@ -64,5 +58,3 @@ assert_equal([1, 2, 3], data_value)
 job_ids = DT[:executions].map { |e| e[:job_id] }
 assert(job_ids.all? { |id| id && !id.empty? }, "All jobs should have job IDs")
 assert_equal(3, job_ids.uniq.size, "All job IDs should be unique")
-
-delete_test_queue(queue_name)

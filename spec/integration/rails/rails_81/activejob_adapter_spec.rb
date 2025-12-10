@@ -1,12 +1,8 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # ActiveJob adapter integration tests for Rails 8.1
 
-ActiveJob::Base.queue_adapter = :shoryuken
+setup_active_job
 
 class EmailJob < ActiveJob::Base
   queue_as :default

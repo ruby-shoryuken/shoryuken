@@ -34,5 +34,3 @@ poll_queues_until { DT[:messages].size >= 1 }
 
 assert_equal(1, DT[:messages].size)
 assert_equal('lifecycle-test', DT[:messages].first)
-
-delete_test_queue(queue_name)

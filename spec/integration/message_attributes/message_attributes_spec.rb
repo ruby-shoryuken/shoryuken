@@ -54,5 +54,3 @@ assert_equal(3, attrs.keys.size)
 assert_equal('hello-world', attrs['StringAttr']&.string_value)
 assert_equal('42', attrs['NumberAttr']&.string_value)
 assert_equal('binary-data'.b, attrs['BinaryAttr']&.binary_value)
-
-delete_test_queue(queue_name)

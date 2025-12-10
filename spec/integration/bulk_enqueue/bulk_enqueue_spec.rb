@@ -1,19 +1,13 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # Bulk enqueue integration test
 # Tests perform_all_later with the new enqueue_all method using SQS batch API
 
 setup_localstack
+setup_active_job
 
 queue_name = DT.queue
 create_test_queue(queue_name)
-
-# Configure ActiveJob adapter
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Define test job
 class BulkTestJob < ActiveJob::Base
@@ -67,5 +61,3 @@ end
 # Verify unique job IDs
 job_ids = DT[:executions].map { |e| e[:job_id] }
 assert_equal(15, job_ids.uniq.size, "All job IDs should be unique")
-
-delete_test_queue(queue_name)

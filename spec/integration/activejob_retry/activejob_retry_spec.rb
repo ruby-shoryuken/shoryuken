@@ -1,19 +1,14 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # ActiveJob retry/discard integration test
 # Tests that ActiveJob retry_on and discard_on work correctly with real SQS
 
 setup_localstack
+setup_active_job
 
 queue_name = DT.queue
 # Short visibility timeout for faster retries
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '2' })
-
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Job that fails N times then succeeds
 class RetryTestJob < ActiveJob::Base
@@ -82,5 +77,3 @@ assert_equal(0, discard_job_successes.size, "Discarded job should not succeed")
 # Verify non-failing job succeeded
 success_job_successes = DT[:discard_successes].select { |s| s[:job_id] == success_job.job_id }
 assert_equal(1, success_job_successes.size, "Non-failing job should succeed")
-
-delete_test_queue(queue_name)

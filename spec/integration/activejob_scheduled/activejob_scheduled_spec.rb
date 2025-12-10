@@ -1,19 +1,13 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # Scheduled ActiveJob integration test
 # Tests jobs scheduled with set(wait:) are delivered after the delay
 
 setup_localstack
+setup_active_job
 
 queue_name = DT.queue
 create_test_queue(queue_name)
-
-# Configure ActiveJob adapter
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Define test job
 class ScheduledTestJob < ActiveJob::Base
@@ -88,5 +82,3 @@ assert(immediate_job[:executed_at] <= delayed_3s_job[:executed_at],
        "Immediate job should execute before 3s delayed job")
 assert(delayed_3s_job[:executed_at] <= delayed_5s_job[:executed_at],
        "3s delayed job should execute before 5s delayed job")
-
-delete_test_queue(queue_name)

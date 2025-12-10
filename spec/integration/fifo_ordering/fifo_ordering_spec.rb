@@ -45,5 +45,3 @@ assert_equal(5, DT[:messages].size)
 # Verify ordering is maintained
 expected = (0..4).map { |i| "msg-#{i}" }
 assert_equal(expected, DT[:messages])
-
-delete_test_queue(queue_name)

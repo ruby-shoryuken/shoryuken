@@ -45,5 +45,3 @@ poll_queues_until(timeout: 20) { DT[:processing_times].size >= 10 }
 assert_equal(10, DT[:processing_times].size)
 # With multiple processors, we should see concurrency > 1
 assert(max_concurrent.value > 1, "Expected concurrency > 1, got #{max_concurrent.value}")
-
-delete_test_queue(queue_name)

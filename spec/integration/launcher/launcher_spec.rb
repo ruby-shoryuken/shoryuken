@@ -39,5 +39,3 @@ sleep 2
 poll_queues_until { message_counter.value > 0 }
 
 assert(message_counter.value > 1, "Expected more than 1 message in batch, got #{message_counter.value}")
-
-delete_test_queue(queue_name)

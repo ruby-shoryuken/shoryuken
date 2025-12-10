@@ -37,5 +37,3 @@ poll_queues_until { DT[:messages].size >= 5 }
 
 assert_equal(5, DT[:messages].size)
 assert(DT[:batch_sizes].any? { |size| size > 1 }, "Expected at least one batch with size > 1")
-
-delete_test_queue(queue_name)

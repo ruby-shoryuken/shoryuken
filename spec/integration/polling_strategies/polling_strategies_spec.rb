@@ -46,5 +46,3 @@ poll_queues_until { DT[:by_queue].size >= 3 }
 queues_with_messages = DT[:by_queue].map { |m| m[:queue] }.uniq
 assert_equal(3, queues_with_messages.size)
 assert_equal(3, DT[:by_queue].size)
-
-[queue_high, queue_medium, queue_low].each { |q| delete_test_queue(q) }

@@ -1,13 +1,9 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # This spec tests error handling including retry configuration,
 # discard configuration, and job processing through JobWrapper.
 
-ActiveJob::Base.queue_adapter = :shoryuken
+setup_active_job
 
 class RetryableJob < ActiveJob::Base
   queue_as :default

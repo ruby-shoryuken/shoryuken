@@ -30,5 +30,3 @@ Shoryuken::Client.queues(queue_name).send_message(message_body: payload)
 poll_queues_until { DT[:bodies].size >= 1 }
 
 assert_equal(250 * 1024, DT[:bodies].first.size)
-
-delete_test_queue(queue_name)

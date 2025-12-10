@@ -46,5 +46,3 @@ poll_queues_until(timeout: 20) { DT[:receive_counts].size >= 3 }
 assert(DT[:receive_counts].size >= 3)
 assert_equal(DT[:receive_counts], DT[:receive_counts].sort, "Receive counts should be increasing")
 assert_equal(1, DT[:receive_counts].first)
-
-delete_test_queue(queue_name)

@@ -1,19 +1,15 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
-
 # ActiveJob Continuations integration tests for Rails 8.0+
 # Tests the stopping? method and continuation timestamp handling
+
+setup_active_job
 
 # Skip if ActiveJob::Continuable is not available (Rails < 8.0)
 unless defined?(ActiveJob::Continuable)
   puts "Skipping continuation tests - ActiveJob::Continuable not available (requires Rails 8.0+)"
   exit 0
 end
-
-ActiveJob::Base.queue_adapter = :shoryuken
 
 # Test stopping? returns false when launcher is not initialized
 adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new

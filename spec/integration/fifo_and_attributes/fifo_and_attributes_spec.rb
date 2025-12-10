@@ -1,16 +1,11 @@
 # frozen_string_literal: true
 
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
+require 'digest'
 
 # This spec tests FIFO queue support including message deduplication ID generation
 # and message attributes handling.
 
-require 'digest'
-require 'json'
-
-ActiveJob::Base.queue_adapter = :shoryuken
+setup_active_job
 
 class FifoTestJob < ActiveJob::Base
   queue_as :test_fifo
