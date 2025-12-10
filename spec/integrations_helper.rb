@@ -169,27 +169,6 @@ module IntegrationsHelper
     ActiveJob::Base.logger = Logger.new('/dev/null') if ActiveJob::Base.respond_to?(:logger=)
   end
 
-  # Simple test runner
-  def run_test(description, &block)
-    begin
-      # Setup
-      reset_shoryuken
-      setup_mock_sqs
-
-      # Run test
-      instance_eval(&block)
-    rescue TestFailure => e
-      raise
-    rescue => e
-      raise TestFailure, "#{e.class}: #{e.message}"
-    end
-  end
-
-  # Test suite runner
-  def run_test_suite(name, &block)
-    instance_eval(&block)
-  end
-
   # Capture enqueued jobs
   class JobCapture
     attr_reader :jobs
