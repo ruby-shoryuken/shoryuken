@@ -8,7 +8,6 @@ require 'active_job/extensions'
 # Tests jobs scheduled with set(wait:) are delivered after the delay
 
 setup_localstack
-reset_shoryuken
 
 queue_name = DT.queue
 create_test_queue(queue_name)

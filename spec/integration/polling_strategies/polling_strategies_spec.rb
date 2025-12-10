@@ -4,7 +4,6 @@
 # with multi-queue worker message distribution.
 
 setup_localstack
-reset_shoryuken
 
 queue_high = DT.queues[0]
 queue_medium = DT.queues[1]

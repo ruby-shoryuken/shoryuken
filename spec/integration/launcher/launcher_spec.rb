@@ -6,7 +6,6 @@
 require 'concurrent'
 
 setup_localstack
-reset_shoryuken
 
 # Use atomic counter for thread-safe message counting
 message_counter = Concurrent::AtomicFixnum.new(0)

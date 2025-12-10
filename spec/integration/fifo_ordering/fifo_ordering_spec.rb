@@ -4,7 +4,6 @@
 # within the same message group.
 
 setup_localstack
-reset_shoryuken
 
 queue_name = "#{DT.uuid}.fifo"
 create_fifo_queue(queue_name)

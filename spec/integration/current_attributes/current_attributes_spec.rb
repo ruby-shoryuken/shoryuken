@@ -10,7 +10,6 @@ require 'shoryuken/active_job/current_attributes'
 # Tests that CurrentAttributes flow from enqueue to job execution
 
 setup_localstack
-reset_shoryuken
 
 queue_name = DT.queue
 create_test_queue(queue_name)

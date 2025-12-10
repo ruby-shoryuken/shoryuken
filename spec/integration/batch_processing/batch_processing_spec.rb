@@ -5,7 +5,6 @@
 # batch mode, and maximum batch size handling.
 
 setup_localstack
-reset_shoryuken
 
 queue_name = DT.queue
 create_test_queue(queue_name)

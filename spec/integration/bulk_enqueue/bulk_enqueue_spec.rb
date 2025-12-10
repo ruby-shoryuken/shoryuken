@@ -8,7 +8,6 @@ require 'active_job/extensions'
 # Tests perform_all_later with the new enqueue_all method using SQS batch API
 
 setup_localstack
-reset_shoryuken
 
 queue_name = DT.queue
 create_test_queue(queue_name)

@@ -6,7 +6,6 @@
 require 'concurrent'
 
 setup_localstack
-reset_shoryuken
 
 queue_name = DT.queue
 # Create queue with short visibility timeout for faster retries

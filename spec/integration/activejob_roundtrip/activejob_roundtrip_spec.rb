@@ -8,7 +8,6 @@ require 'active_job/extensions'
 # Enqueues a job via ActiveJob → sends to LocalStack SQS → processes via Shoryuken → verifies execution
 
 setup_localstack
-reset_shoryuken
 
 queue_name = DT.queue
 create_test_queue(queue_name)

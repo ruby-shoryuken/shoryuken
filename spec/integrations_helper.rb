@@ -108,19 +108,7 @@ module IntegrationsHelper
     assert(!condition, message)
   end
 
-  # Reset Shoryuken state
-  def reset_shoryuken
-    Shoryuken.groups.clear if defined?(Shoryuken) && Shoryuken.respond_to?(:groups)
-    Shoryuken.worker_registry.clear if defined?(Shoryuken) && Shoryuken.respond_to?(:worker_registry)
-
-    if defined?(Shoryuken) && Shoryuken.respond_to?(:options)
-      Shoryuken.options[:concurrency] = 25
-      Shoryuken.options[:delay] = 0
-      Shoryuken.options[:timeout] = 8
-    end
-  end
-
-  # LocalStack setup
+  # Configure Shoryuken to use LocalStack for real SQS integration tests
   def setup_localstack
     Aws.config[:stub_responses] = false
 
@@ -130,6 +118,10 @@ module IntegrationsHelper
       access_key_id: 'fake',
       secret_access_key: 'fake'
     )
+
+    Shoryuken.options[:concurrency] = 25
+    Shoryuken.options[:delay] = 0
+    Shoryuken.options[:timeout] = 8
 
     executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
     Shoryuken.define_singleton_method(:launcher_executor) { executor }
