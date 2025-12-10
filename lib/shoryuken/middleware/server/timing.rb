@@ -3,9 +3,20 @@
 module Shoryuken
   module Middleware
     module Server
+      # Middleware that logs timing information for message processing.
+      # Records start time, completion time, and warns if processing
+      # exceeds the queue's visibility timeout.
       class Timing
         include Util
 
+        # Processes a message while logging timing information
+        #
+        # @param _worker [Object] the worker instance (unused)
+        # @param queue [String] the queue name
+        # @param _sqs_msg [Shoryuken::Message] the message being processed (unused)
+        # @param _body [Object] the parsed message body (unused)
+        # @yield continues to the next middleware in the chain
+        # @return [void]
         def call(_worker, queue, _sqs_msg, _body)
           started_at = Time.now
 

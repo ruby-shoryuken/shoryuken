@@ -1,4 +1,9 @@
 ## [7.0.0] - Unreleased
+- Enhancement: Add yard-lint with comprehensive YARD documentation
+  - Adds yard-lint gem for documentation linting
+  - Documents all public classes, modules, and methods with YARD tags
+  - Ensures 100% documentation coverage
+
 - Enhancement: Add `enqueue_all` for bulk ActiveJob enqueuing (Rails 7.1+)
   - Implements efficient bulk enqueuing using SQS `send_message_batch` API
   - Called by `ActiveJob.perform_all_later` for batching multiple jobs

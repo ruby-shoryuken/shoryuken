@@ -8,7 +8,7 @@ module Shoryuken
     # Output format: "pid=PID tid=THREAD_ID CONTEXT SEVERITY: MESSAGE"
     #
     # @example Output
-    #   pid=12345 tid=abc123 MyWorker/queue1/msg-456 INFO: Processing message
+    #   "pid=12345 tid=abc123 MyWorker/queue1/msg-456 INFO: Processing message"
     class WithoutTimestamp < Base
       # Formats a log message without timestamp information.
       #

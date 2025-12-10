@@ -1,16 +1,25 @@
+# frozen_string_literal: true
+
 require 'date'
 
 # rubocop:disable Metrics/BlockLength
 module Shoryuken
   module CLI
+    # SQS command line interface for queue management operations.
+    # Provides commands for listing, creating, deleting, moving, and dumping queue messages.
     class SQS < Base
-      # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
+      # Maximum batch size in bytes for SQS batch operations
+      # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
       MAX_BATCH_SIZE = 1024 * 1024
 
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
       no_commands do
+        # Normalizes a dump message for requeuing
+        #
+        # @param message [Hash] the dumped message hash
+        # @return [Hash] the normalized message
         def normalize_dump_message(message)
           # symbolize_keys is needed for keeping it compatible with `requeue`
           attributes = message[:attributes].transform_keys(&:to_sym)
@@ -30,6 +39,9 @@ module Shoryuken
           }
         end
 
+        # Returns the SQS client options based on CLI options
+        #
+        # @return [Hash] the client options hash
         def client_options
           endpoint = options[:endpoint]
           {}.tap do |hash|
@@ -37,16 +49,28 @@ module Shoryuken
           end
         end
 
+        # Returns the SQS client instance
+        #
+        # @return [Aws::SQS::Client] the SQS client
         def sqs
           @_sqs ||= Aws::SQS::Client.new(client_options)
         end
 
+        # Finds the URL for a queue by name
+        #
+        # @param queue_name [String] the queue name
+        # @return [String] the queue URL
         def find_queue_url(queue_name)
           sqs.get_queue_url(queue_name: queue_name).queue_url
         rescue Aws::SQS::Errors::NonExistentQueue
           fail_task "The specified queue #{queue_name} does not exist"
         end
 
+        # Batch deletes messages from a queue
+        #
+        # @param url [String] the queue URL
+        # @param messages [Array<Aws::SQS::Types::Message>] the messages to delete
+        # @return [void]
         def batch_delete(url, messages)
           messages.to_a.flatten.each_slice(10) do |batch|
             sqs.delete_message_batch(
@@ -61,11 +85,23 @@ module Shoryuken
           end
         end
 
+        # Batch sends messages to a queue
+        #
+        # @param url [String] the queue URL
+        # @param messages [Array<Hash>] the messages to send
+        # @param max_batch_size [Integer] maximum messages per batch
+        # @return [void]
         def batch_send(url, messages, max_batch_size = 10)
           messages = messages.to_a.flatten.map(&method(:normalize_dump_message))
           batch_send_normalized_messages url, messages, max_batch_size
         end
 
+        # Batch sends normalized messages to a queue
+        #
+        # @param url [String] the queue URL
+        # @param messages [Array<Hash>] the normalized messages
+        # @param max_batch_size [Integer] maximum messages per batch
+        # @return [void]
         def batch_send_normalized_messages(url, messages, max_batch_size)
           # Repeatedly take the longest prefix of messages such that
           # 1. The number of messages is less than or equal to max_batch_size
@@ -90,10 +126,18 @@ module Shoryuken
           end
         end
 
+        # Calculates the total payload size of a batch
+        #
+        # @param messages [Array<Hash>] the messages
+        # @return [Integer] total size in bytes
         def batch_payload_size(messages)
           messages.sum(&method(:message_size))
         end
 
+        # Calculates the size of a single message
+        #
+        # @param message [Hash] the message
+        # @return [Integer] size in bytes
         def message_size(message)
           attribute_size = (message[:message_attributes] || []).sum do |name, value|
             name_size = name.to_s.bytesize
@@ -111,6 +155,12 @@ module Shoryuken
           attribute_size + body_size
         end
 
+        # Receives all messages from a queue up to a limit
+        #
+        # @param url [String] the queue URL
+        # @param limit [Integer, Float] maximum messages to receive
+        # @yield [Aws::SQS::Types::Message] yields each received message
+        # @return [Integer] the number of messages received
         def find_all(url, limit, &block)
           count = 0
           batch_size = limit > 10 ? 10 : limit
@@ -137,6 +187,10 @@ module Shoryuken
           count
         end
 
+        # Lists queues and prints their attributes as a table
+        #
+        # @param urls [Array<String>] the queue URLs
+        # @return [void]
         def list_and_print_queues(urls)
           attrs = %w[QueueArn ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible LastModifiedTimestamp]
 
@@ -154,6 +208,11 @@ module Shoryuken
           print_table(entries)
         end
 
+        # Generates the dump file path for a queue
+        #
+        # @param path [String] the directory path
+        # @param queue_name [String] the queue name
+        # @return [String] the full file path
         def dump_file(path, queue_name)
           File.join(path, "#{queue_name}-#{Date.today}.jsonl")
         end
