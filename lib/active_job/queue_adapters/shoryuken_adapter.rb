@@ -71,6 +71,31 @@ module ActiveJob
         enqueue(job, delay_seconds: calculate_delay(timestamp))
       end
 
+      # Bulk enqueue multiple jobs efficiently using SQS batch API.
+      # Called by ActiveJob.perform_all_later (Rails 7.1+).
+      #
+      # @param jobs [Array<ActiveJob::Base>] jobs to enqueue
+      # @return [Integer] number of jobs successfully enqueued
+      def enqueue_all(jobs) # :nodoc:
+        jobs.group_by(&:queue_name).each do |queue_name, queue_jobs|
+          queue = Shoryuken::Client.queues(queue_name)
+
+          queue_jobs.each_slice(10) do |batch|
+            entries = batch.map.with_index do |job, idx|
+              register_worker!(job)
+              msg = message(queue, job)
+              job.sqs_send_message_parameters = msg
+              { id: idx.to_s }.merge(msg)
+            end
+
+            queue.send_messages(entries: entries)
+            batch.each { |job| job.successfully_enqueued = true }
+          end
+        end
+
+        jobs.count(&:successfully_enqueued?)
+      end
+
       private
 
       def calculate_delay(timestamp)

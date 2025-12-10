@@ -8,7 +8,7 @@ require 'securerandom'
 require 'active_job'
 require 'shoryuken'
 
-# Skip if ActiveJob::Continuable is not available (Rails < 8.0)
+# Skip if ActiveJob::Continuable is not available (Rails < 8.1)
 unless defined?(ActiveJob::Continuable)
   puts "Skipping continuation tests - ActiveJob::Continuable not available (requires Rails 8.1+)"
   exit 0
@@ -16,105 +16,69 @@ end
 
 ActiveJob::Base.queue_adapter = :shoryuken
 
-# Test job that uses ActiveJob Continuations
+# Test stopping? returns false when launcher is not initialized
+adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
+assert_equal(false, adapter.stopping?)
+
+# Test stopping? returns true when launcher is stopping
+launcher = Shoryuken::Launcher.new
+runner = Shoryuken::Runner.instance
+runner.instance_variable_set(:@launcher, launcher)
+
+adapter2 = ActiveJob::QueueAdapters::ShoryukenAdapter.new
+assert_equal(false, adapter2.stopping?)
+
+launcher.instance_variable_set(:@stopping, true)
+assert_equal(true, adapter2.stopping?)
+
+# Reset launcher state
+launcher.instance_variable_set(:@stopping, false)
+
+# Test past timestamps for continuation retries
+job_capture = JobCapture.new
+job_capture.start_capturing
+
 class ContinuableTestJob < ActiveJob::Base
   include ActiveJob::Continuable if defined?(ActiveJob::Continuable)
-
   queue_as :default
-
-  class_attribute :executions_log, default: []
-  class_attribute :checkpoints_reached, default: []
-
-  def perform(max_iterations: 10)
-    self.class.executions_log << { execution: executions, started_at: Time.current }
-
-    step :initialize_work do
-      self.class.checkpoints_reached << "initialize_work_#{executions}"
-    end
-
-    step :process_items, start: cursor || 0 do
-      (cursor..max_iterations).each do |i|
-        self.class.checkpoints_reached << "processing_item_#{i}"
-        checkpoint
-        sleep 0.01
-        cursor.advance!
-      end
-    end
-
-    step :finalize_work do
-      self.class.checkpoints_reached << 'finalize_work'
-    end
-
-    self.class.executions_log.last[:completed] = true
-  end
+  def perform; end
 end
 
-run_test_suite "ActiveJob Continuations - stopping? method (Rails 8.1)" do
-  run_test "returns false when launcher is not initialized" do
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    assert_equal(false, adapter.stopping?)
-  end
+adapter3 = ActiveJob::QueueAdapters::ShoryukenAdapter.new
+job = ContinuableTestJob.new
+job.sqs_send_message_parameters = {}
 
-  run_test "returns true when launcher is stopping" do
-    launcher = Shoryuken::Launcher.new
-    runner = Shoryuken::Runner.instance
-    runner.instance_variable_set(:@launcher, launcher)
+past_timestamp = Time.current.to_f - 60
+adapter3.enqueue_at(job, past_timestamp)
 
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    assert_equal(false, adapter.stopping?)
+captured_job = job_capture.last_job
+assert(captured_job[:delay_seconds] <= 0, "Past timestamp should result in immediate delivery")
 
-    launcher.instance_variable_set(:@stopping, true)
-    assert_equal(true, adapter.stopping?)
-  end
-end
+# Test current timestamp
+job_capture2 = JobCapture.new
+job_capture2.start_capturing
 
-run_test_suite "ActiveJob Continuations - timestamp handling (Rails 8.1)" do
-  run_test "handles past timestamps for continuation retries" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
+job2 = ContinuableTestJob.new
+job2.sqs_send_message_parameters = {}
 
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    job = ContinuableTestJob.new
-    job.sqs_send_message_parameters = {}
+current_timestamp = Time.current.to_f
+adapter3.enqueue_at(job2, current_timestamp)
 
-    # Enqueue with past timestamp (simulating continuation retry)
-    past_timestamp = Time.current.to_f - 60
-    adapter.enqueue_at(job, past_timestamp)
+captured_job2 = job_capture2.last_job
+delay = captured_job2[:delay_seconds]
+assert(delay >= -1 && delay <= 1, "Current timestamp should have minimal delay")
 
-    captured_job = job_capture.last_job
-    assert(captured_job[:delay_seconds] <= 0, "Past timestamp should result in immediate delivery")
-  end
+# Test future timestamp
+job_capture3 = JobCapture.new
+job_capture3.start_capturing
 
-  run_test "accepts current timestamp" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
+job3 = ContinuableTestJob.new
+job3.sqs_send_message_parameters = {}
 
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    job = ContinuableTestJob.new
-    job.sqs_send_message_parameters = {}
+future_timestamp = Time.current.to_f + 30
+adapter3.enqueue_at(job3, future_timestamp)
 
-    current_timestamp = Time.current.to_f
-    adapter.enqueue_at(job, current_timestamp)
-
-    captured_job = job_capture.last_job
-    delay = captured_job[:delay_seconds]
-    assert(delay >= -1 && delay <= 1, "Current timestamp should have minimal delay")
-  end
-
-  run_test "accepts future timestamp" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
-
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    job = ContinuableTestJob.new
-    job.sqs_send_message_parameters = {}
-
-    future_timestamp = Time.current.to_f + 30
-    adapter.enqueue_at(job, future_timestamp)
-
-    captured_job = job_capture.last_job
-    delay = captured_job[:delay_seconds]
-    assert(delay > 0, "Future timestamp should have positive delay")
-    assert(delay <= 30, "Delay should not exceed scheduled time")
-  end
-end
+captured_job3 = job_capture3.last_job
+delay3 = captured_job3[:delay_seconds]
+assert(delay3 > 0, "Future timestamp should have positive delay")
+assert(delay3 <= 30, "Delay should not exceed scheduled time")

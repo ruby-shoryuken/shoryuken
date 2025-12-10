@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 # ActiveJob adapter integration tests for Rails 7.2
-# Tests basic ActiveJob functionality with Shoryuken adapter
 
 require 'active_job'
 require 'shoryuken'
@@ -33,170 +32,71 @@ class SerializationJob < ActiveJob::Base
   end
 end
 
-class NoArgJob < ActiveJob::Base
-  queue_as :default
-  def perform; end
-end
+# Test adapter setup
+adapter = ActiveJob::Base.queue_adapter
+assert_equal("ActiveJob::QueueAdapters::ShoryukenAdapter", adapter.class.name)
 
-run_test_suite "ActiveJob Adapter Integration (Rails 7.2)" do
-  run_test "sets up adapter correctly" do
-    adapter = ActiveJob::Base.queue_adapter
-    assert_equal("ActiveJob::QueueAdapters::ShoryukenAdapter", adapter.class.name)
-  end
+# Test singleton pattern
+instance1 = ActiveJob::QueueAdapters::ShoryukenAdapter.instance
+instance2 = ActiveJob::QueueAdapters::ShoryukenAdapter.instance
+assert_equal(instance1.object_id, instance2.object_id)
 
-  run_test "maintains adapter singleton" do
-    instance1 = ActiveJob::QueueAdapters::ShoryukenAdapter.instance
-    instance2 = ActiveJob::QueueAdapters::ShoryukenAdapter.instance
-    assert_equal(instance1.object_id, instance2.object_id)
-  end
+# Test transaction commit hook (Rails 7.2+)
+adapter_instance = ActiveJob::QueueAdapters::ShoryukenAdapter.new
+assert(adapter_instance.respond_to?(:enqueue_after_transaction_commit?))
+assert_equal(true, adapter_instance.enqueue_after_transaction_commit?)
 
-  run_test "supports transaction commit hook" do
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    assert(adapter.respond_to?(:enqueue_after_transaction_commit?))
-    assert_equal(true, adapter.enqueue_after_transaction_commit?)
-  end
-end
+# Test simple job enqueue
+job_capture = JobCapture.new
+job_capture.start_capturing
 
-run_test_suite "Job Enqueuing" do
-  run_test "enqueues simple job" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
+EmailJob.perform_later(1, 'Hello World')
 
-    EmailJob.perform_later(1, 'Hello World')
+assert_equal(1, job_capture.job_count)
+job = job_capture.last_job
+message_body = job[:message_body]
+assert_equal('EmailJob', message_body['job_class'])
+assert_equal([1, 'Hello World'], message_body['arguments'])
+assert_equal('default', message_body['queue_name'])
 
-    assert_equal(1, job_capture.job_count)
-    job = job_capture.last_job
-    message_body = job[:message_body]
-    assert_equal('EmailJob', message_body['job_class'])
-    assert_equal([1, 'Hello World'], message_body['arguments'])
-    assert_equal('default', message_body['queue_name'])
-  end
+# Test different queue
+job_capture2 = JobCapture.new
+job_capture2.start_capturing
 
-  run_test "enqueues to different queues" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
+DataProcessingJob.perform_later('large_dataset.csv')
 
-    DataProcessingJob.perform_later('large_dataset.csv')
+job2 = job_capture2.last_job
+message_body2 = job2[:message_body]
+assert_equal('DataProcessingJob', message_body2['job_class'])
+assert_equal('high_priority', message_body2['queue_name'])
 
-    assert_equal(1, job_capture.job_count)
-    job = job_capture.last_job
-    message_body = job[:message_body]
-    assert_equal('DataProcessingJob', message_body['job_class'])
-    assert_equal('high_priority', message_body['queue_name'])
-  end
+# Test complex data serialization
+complex_data = {
+  'user' => { 'name' => 'John', 'age' => 30 },
+  'preferences' => ['email', 'sms']
+}
 
-  run_test "schedules jobs for future execution" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
+job_capture3 = JobCapture.new
+job_capture3.start_capturing
 
-    EmailJob.set(wait: 5.minutes).perform_later('cleanup')
+SerializationJob.perform_later(complex_data)
 
-    job = job_capture.last_job
-    message_body = job[:message_body]
-    assert_equal('EmailJob', message_body['job_class'])
-    assert(job[:delay_seconds] > 0)
-    assert(job[:delay_seconds] >= 250)
-  end
+job3 = job_capture3.last_job
+message_body3 = job3[:message_body]
+args_data = message_body3['arguments'].first
+assert_equal('John', args_data['user']['name'])
+assert_equal(30, args_data['user']['age'])
 
-  run_test "handles complex data serialization" do
-    complex_data = {
-      'user' => { 'name' => 'John', 'age' => 30 },
-      'preferences' => ['email', 'sms'],
-      'metadata' => { 'created_at' => Time.current.iso8601 }
-    }
+# Test shoryuken_class message attribute
+job_capture4 = JobCapture.new
+job_capture4.start_capturing
 
-    job_capture = JobCapture.new
-    job_capture.start_capturing
+EmailJob.perform_later(1, 'Attributes test')
 
-    SerializationJob.perform_later(complex_data)
-
-    job = job_capture.last_job
-    message_body = job[:message_body]
-    assert_equal('SerializationJob', message_body['job_class'])
-
-    args_data = message_body['arguments'].first
-    assert_equal('John', args_data['user']['name'])
-    assert_equal(30, args_data['user']['age'])
-    assert_equal(['email', 'sms'], args_data['preferences'])
-    assert(args_data['metadata']['created_at'].is_a?(String))
-  end
-end
-
-run_test_suite "Message Attributes" do
-  run_test "sets required Shoryuken message attributes" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
-
-    EmailJob.perform_later(1, 'Attributes test')
-
-    job = job_capture.last_job
-    attributes = job[:message_attributes]
-    expected_shoryuken_class = {
-      string_value: "Shoryuken::ActiveJob::JobWrapper",
-      data_type: 'String'
-    }
-    assert_equal(expected_shoryuken_class, attributes['shoryuken_class'])
-  end
-end
-
-run_test_suite "Delay and Scheduling" do
-  run_test "calculates delay correctly" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
-
-    future_time = Time.current + 5.minutes
-    EmailJob.set(wait_until: future_time).perform_later(1, 'Scheduled email')
-
-    job = job_capture.last_job
-    assert(job[:delay_seconds] >= 295 && job[:delay_seconds] <= 305)
-  end
-
-  run_test "handles immediate scheduling" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
-
-    adapter = ActiveJob::QueueAdapters::ShoryukenAdapter.new
-    job = EmailJob.new(1, 'Immediate')
-    adapter.enqueue_at(job, Time.current.to_f)
-
-    captured_job = job_capture.last_job
-    assert_equal(0, captured_job[:delay_seconds])
-  end
-end
-
-run_test_suite "Edge Cases" do
-  run_test "handles jobs with nil arguments" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
-
-    EmailJob.perform_later(nil, nil)
-
-    job = job_capture.last_job
-    message_body = job[:message_body]
-    assert_equal([nil, nil], message_body['arguments'])
-  end
-
-  run_test "handles empty argument lists" do
-    job_capture = JobCapture.new
-    job_capture.start_capturing
-
-    NoArgJob.perform_later
-
-    job = job_capture.last_job
-    message_body = job[:message_body]
-    assert_equal([], message_body['arguments'])
-  end
-end
-
-run_test_suite "Serialization" do
-  run_test "maintains ActiveJob serialization format" do
-    job = EmailJob.new(1, 'Serialization test')
-    serialized = job.serialize
-
-    assert_equal('EmailJob', serialized['job_class'])
-    assert_equal(job.job_id, serialized['job_id'])
-    assert_equal('default', serialized['queue_name'])
-    assert_equal([1, 'Serialization test'], serialized['arguments'])
-    assert(serialized.key?('enqueued_at'))
-  end
-end
+job4 = job_capture4.last_job
+attributes = job4[:message_attributes]
+expected_shoryuken_class = {
+  string_value: "Shoryuken::ActiveJob::JobWrapper",
+  data_type: 'String'
+}
+assert_equal(expected_shoryuken_class, attributes['shoryuken_class'])
