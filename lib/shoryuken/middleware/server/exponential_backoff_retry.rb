@@ -17,6 +17,8 @@ module Shoryuken
         # @param _body [Object] the parsed message body (unused)
         # @yield continues to the next middleware in the chain
         # @return [void]
+        # @raise [StandardError] re-raises the original exception if retry intervals are not configured
+        #   or if retry limit is exceeded
         def call(worker, _queue, sqs_msg, _body)
           return yield unless worker.class.exponential_backoff?
 

@@ -9,9 +9,9 @@ module Shoryuken
       class ActiveRecord
         # Processes a message and clears database connections afterwards
         #
-        # @param _args [Array] middleware call arguments (unused)
+        # @param _args [Array<Object>] middleware call arguments (unused)
         # @yield continues to the next middleware in the chain
-        # @return [void]
+        # @return [Object] return value from the next middleware or worker in the chain
         def call(*_args)
           yield
         ensure

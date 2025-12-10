@@ -46,7 +46,7 @@ module Shoryuken
       end
 
       class << self
-        # @return [Hash{String => String}] registered CurrentAttributes classes mapped to keys
+        # @return [Hash{String => String}] serialization keys mapped to CurrentAttributes class names
         attr_reader :cattrs
 
         # Register CurrentAttributes classes to persist across job execution.
