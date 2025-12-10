@@ -2,6 +2,7 @@
 
 require 'active_job'
 require 'active_job/queue_adapters/shoryuken_adapter'
+require 'active_job/extensions'
 
 # ActiveJob adapter integration tests for Rails 8.1
 

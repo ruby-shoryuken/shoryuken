@@ -2,6 +2,7 @@
 
 require 'active_job'
 require 'active_job/queue_adapters/shoryuken_adapter'
+require 'active_job/extensions'
 
 # This spec tests FIFO queue support including message deduplication ID generation
 # and message attributes handling.

@@ -2,6 +2,7 @@
 
 require 'active_job'
 require 'active_job/queue_adapters/shoryuken_adapter'
+require 'active_job/extensions'
 
 # This spec tests error handling including retry configuration,
 # discard configuration, and job processing through JobWrapper.

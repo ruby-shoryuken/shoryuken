@@ -2,6 +2,7 @@
 
 require 'active_job'
 require 'active_job/queue_adapters/shoryuken_adapter'
+require 'active_job/extensions'
 
 # ActiveJob Continuations integration tests for Rails 8.0+
 # Tests the stopping? method and continuation timestamp handling
