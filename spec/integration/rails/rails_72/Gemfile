@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+
+gemspec path: '../../../../'
+
+gem 'activejob', '~> 7.2'
+gem 'rails', '~> 7.2'

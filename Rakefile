@@ -5,19 +5,13 @@ $stdout.sync = true
 
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec) do |t|
-    t.exclude_pattern = 'spec/integration/**/*_spec.rb'
-  end
+  RSpec::Core::RakeTask.new(:spec)
 
   namespace :spec do
-    desc 'Run Rails specs only'
-    RSpec::Core::RakeTask.new(:rails) do |t|
-      t.pattern = 'spec/shoryuken/{environment_loader_spec,extensions/active_job_*}.rb'
-    end
-
     desc 'Run integration specs only'
-    RSpec::Core::RakeTask.new(:integration) do |t|
-      t.pattern = 'spec/integration/**/*_spec.rb'
+    task :integration do
+      puts "Running integration tests..."
+      system('./bin/integrations') || exit(1)
     end
   end
 rescue LoadError

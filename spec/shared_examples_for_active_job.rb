@@ -1,5 +1,5 @@
 require 'active_job'
-require 'shoryuken/extensions/active_job_extensions'
+require 'active_job/extensions'
 
 # Stand-in for a job class specified by the user
 class TestJob < ActiveJob::Base; end
@@ -23,11 +23,11 @@ RSpec.shared_examples 'active_job_adapters' do
     specify do
       expect(queue).to receive(:send_message) do |hash|
         expect(hash[:message_deduplication_id]).to_not be
-        expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(described_class::JobWrapper.to_s)
+        expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(Shoryuken::ActiveJob::JobWrapper.to_s)
         expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq('String')
         expect(hash[:message_attributes].keys).to eq(['shoryuken_class'])
       end
-      expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+      expect(Shoryuken).to receive(:register_worker).with(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
 
       subject.enqueue(job)
     end
@@ -50,7 +50,7 @@ RSpec.shared_examples 'active_job_adapters' do
 
           expect(hash[:message_deduplication_id]).to eq(message_deduplication_id)
         end
-        expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+        expect(Shoryuken).to receive(:register_worker).with(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
 
         subject.enqueue(job)
       end
@@ -132,12 +132,12 @@ RSpec.shared_examples 'active_job_adapters' do
         }
 
         expect(queue).to receive(:send_message) do |hash|
-          expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(described_class::JobWrapper.to_s)
+          expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(Shoryuken::ActiveJob::JobWrapper.to_s)
           expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq('String')
           expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(custom_message_attributes['tracer_id'][:string_value])
           expect(hash[:message_attributes]['tracer_id'][:data_type]).to eq('String')
         end
-        expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+        expect(Shoryuken).to receive(:register_worker).with(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
 
         subject.enqueue(job, message_attributes: custom_message_attributes)
       end
@@ -158,7 +158,7 @@ RSpec.shared_examples 'active_job_adapters' do
           expect(queue).to receive(:send_message) do |hash|
             expect(hash[:message_attributes]['tracer_id']).to eq({ data_type: 'String', string_value: 'job-value' })
             expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String',
-                                                                         string_value: described_class::JobWrapper.to_s })
+                                                                         string_value: Shoryuken::ActiveJob::JobWrapper.to_s })
           end
           subject.enqueue job
         end
@@ -189,7 +189,7 @@ RSpec.shared_examples 'active_job_adapters' do
             expect(hash[:message_attributes]['options_tracer_id']).to eq({ data_type: 'String',
                                                                            string_value: 'options-value' })
             expect(hash[:message_attributes]['shoryuken_class']).to eq({ data_type: 'String',
-                                                                         string_value: described_class::JobWrapper.to_s })
+                                                                         string_value: Shoryuken::ActiveJob::JobWrapper.to_s })
           end
           subject.enqueue job, message_attributes: custom_message_attributes
         end
@@ -274,7 +274,7 @@ RSpec.shared_examples 'active_job_adapters' do
         expect(hash[:delay_seconds]).to eq(delay)
       end
 
-      expect(Shoryuken).to receive(:register_worker).with(job.queue_name, described_class::JobWrapper)
+      expect(Shoryuken).to receive(:register_worker).with(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
 
       # need to figure out what to require Time.current and N.minutes to remove the stub
       allow(subject).to receive(:calculate_delay).and_return(delay)

@@ -1,0 +1,267 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Shoryuken integration test runner
+#
+# Usage:
+#   bin/integrations                    # Run all integration tests
+#   bin/integrations fifo               # Run tests with 'fifo' in path
+#   bin/integrations rails/rails_72     # Run Rails 7.2 tests
+#   bin/integrations batch retry        # Run tests matching 'batch' OR 'retry'
+#   bin/integrations -v fifo            # Run with verbose output
+
+require 'fileutils'
+require 'timeout'
+
+TIMEOUT = 300 # 5 minutes per scenario
+SPEC_DIR = File.expand_path('../spec/integration', __dir__)
+ROOT_DIR = File.expand_path('..', __dir__)
+
+class IntegrationRunner
+  def initialize(args)
+    @verbose = args.delete('-v') || args.delete('--verbose')
+    @filters = args.reject { |a| a.start_with?('-') }
+  end
+
+  def run
+    specs = find_specs
+    specs = filter_specs(specs) if @filters.any?
+
+    if specs.empty?
+      puts 'No specs found matching filters'
+      exit 1
+    end
+
+    puts "Running #{specs.size} integration specs..."
+    puts
+
+    results = run_specs(specs)
+    report_results(results)
+  end
+
+  private
+
+  def find_specs
+    Dir.glob(File.join(SPEC_DIR, '**/*_spec.rb')).reject do |path|
+      # Exclude vendor and .bundle directories
+      path.include?('/vendor/') || path.include?('/.bundle/')
+    end.map do |path|
+      relative_path = path.sub("#{SPEC_DIR}/", '')
+      dir = File.dirname(path)
+      gemfile = File.exist?(File.join(dir, 'Gemfile')) ? File.join(dir, 'Gemfile') : File.join(ROOT_DIR, 'Gemfile')
+
+      {
+        name: relative_path.sub('_spec.rb', '').gsub('/', ' / '),
+        path: path,
+        relative_path: relative_path,
+        directory: dir,
+        gemfile: gemfile
+      }
+    end.sort_by { |s| s[:relative_path] }
+  end
+
+  def filter_specs(specs)
+    specs.select do |spec|
+      @filters.any? { |filter| spec[:relative_path].include?(filter) }
+    end
+  end
+
+  def run_specs(specs)
+    results = []
+
+    specs.each do |spec|
+      result = run_spec(spec)
+      results << result
+
+      if result[:skipped]
+        print 'S'
+      elsif result[:success]
+        print '.'
+      else
+        print 'F'
+      end
+      $stdout.flush
+    end
+
+    puts
+    results
+  end
+
+  def run_spec(spec)
+    env = {
+      'BUNDLE_GEMFILE' => spec[:gemfile],
+      'RAILS_ENV' => 'test'
+    }
+
+    # Install dependencies if using a local Gemfile
+    uses_local_gemfile = spec[:gemfile] != File.join(ROOT_DIR, 'Gemfile')
+    if uses_local_gemfile
+      install_result = install_bundle(spec, env)
+      unless install_result[:success]
+        # Skip test if bundle install fails (e.g., gems not available in CI)
+        return {
+          spec: spec,
+          success: true,
+          skipped: true,
+          skip_reason: 'Bundle install failed (dependencies not available)',
+          output: install_result[:output]
+        }
+      end
+
+      # Use isolated bundle config to match install_bundle
+      bundle_path = File.join(spec[:directory], 'vendor', 'bundle')
+      bundle_config = File.join(spec[:directory], '.bundle')
+      env['BUNDLE_PATH'] = bundle_path
+      env['BUNDLE_FROZEN'] = 'false'
+      env['BUNDLE_APP_CONFIG'] = bundle_config
+    end
+
+    # Run the spec
+    # For local gemfiles, use standalone bundle setup which doesn't need bundler at runtime
+    # This avoids issues with bundle exec inheriting the wrong config
+    cmd = if uses_local_gemfile
+            standalone_setup = File.join(bundle_path, 'bundler', 'setup.rb')
+            ['ruby', "-r#{standalone_setup}", File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
+          else
+            ['bundle', 'exec', 'ruby', File.join(ROOT_DIR, 'bin/scenario'), spec[:path]]
+          end
+
+    output = []
+    start_time = Time.now
+
+    begin
+      Timeout.timeout(TIMEOUT) do
+        IO.popen(env, cmd, chdir: spec[:directory], err: [:child, :out]) do |io|
+          io.each_line { |line| output << line }
+        end
+      end
+
+      {
+        spec: spec,
+        success: $?.success?,
+        exit_code: $?.exitstatus,
+        duration: Time.now - start_time,
+        output: output.join
+      }
+    rescue Timeout::Error
+      {
+        spec: spec,
+        success: false,
+        exit_code: -1,
+        error: 'Timeout',
+        duration: Time.now - start_time,
+        output: output.join
+      }
+    end
+  end
+
+  def install_bundle(spec, env)
+    return { success: true } if @bundle_installed&.include?(spec[:gemfile])
+
+    output = []
+
+    # Create isolated bundle environment to avoid CI cache interference
+    # Use a unique path per Gemfile to avoid conflicts
+    bundle_path = File.join(spec[:directory], 'vendor', 'bundle')
+    bundle_config = File.join(spec[:directory], '.bundle')
+
+    # Create local .bundle/config to override project-level config
+    FileUtils.mkdir_p(bundle_config)
+    File.write(File.join(bundle_config, 'config'), <<~CONFIG)
+      ---
+      BUNDLE_PATH: "#{bundle_path}"
+      BUNDLE_FROZEN: "false"
+    CONFIG
+
+    clean_env = env.merge(
+      'BUNDLE_PATH' => bundle_path,
+      'BUNDLE_FROZEN' => 'false',
+      'BUNDLE_DEPLOYMENT' => nil,
+      'BUNDLE_WITHOUT' => nil,
+      'BUNDLE_CACHE_PATH' => nil,
+      'BUNDLE_BIN' => nil,
+      'BUNDLE_APP_CONFIG' => bundle_config,
+      'RUBYOPT' => nil  # Clear any -rbundler/setup from CI
+    )
+
+    # Use --standalone to generate a setup.rb that doesn't need bundler at runtime
+    # Run in a completely unbundled environment using Bundler API
+    cmd_script = <<~RUBY
+      require 'bundler'
+      Bundler.with_unbundled_env do
+        system({'BUNDLE_GEMFILE' => '#{spec[:gemfile]}', 'BUNDLE_PATH' => '#{bundle_path}', 'BUNDLE_FROZEN' => 'false', 'BUNDLE_APP_CONFIG' => '#{bundle_config}'}, 'bundle', 'install', '--standalone')
+      end
+      exit($?.success? ? 0 : 1)
+    RUBY
+
+    IO.popen(['ruby', '-e', cmd_script], chdir: spec[:directory], err: [:child, :out]) do |io|
+      io.each_line { |line| output << line }
+    end
+
+    @bundle_installed ||= []
+    @bundle_installed << spec[:gemfile] if $?.success?
+
+    {
+      spec: spec,
+      success: $?.success?,
+      output: output.join,
+      error: $?.success? ? nil : 'Bundle install failed',
+      bundle_config: bundle_config
+    }
+  end
+
+  def report_results(results)
+    skipped = results.select { |r| r[:skipped] }
+    failed = results.reject { |r| r[:success] || r[:skipped] }
+    passed = results.count { |r| r[:success] && !r[:skipped] }
+    total = results.size
+
+    puts
+    summary = "#{passed}/#{total} passed"
+    summary += ", #{skipped.size} skipped" if skipped.any?
+    puts summary
+
+    if skipped.any?
+      puts
+      puts 'Skipped:'
+      puts
+      skipped.each do |result|
+        puts "  - #{result[:spec][:name]}"
+        puts "    Reason: #{result[:skip_reason]}" if result[:skip_reason]
+        if result[:output] && !result[:output].strip.empty?
+          lines = result[:output].lines.last(15)
+          lines.each { |line| puts "    #{line}" }
+        end
+      end
+    end
+
+    if failed.any?
+      puts
+      puts 'Failures:'
+      puts
+
+      failed.each_with_index do |result, idx|
+        puts "  #{idx + 1}) #{result[:spec][:name]}"
+        if result[:error]
+          puts "     Error: #{result[:error]}"
+        end
+        if result[:output] && !result[:output].strip.empty?
+          # Show last 30 lines of output for context
+          lines = result[:output].lines
+          if lines.size > 30
+            puts "     ... (#{lines.size - 30} lines truncated)"
+            lines = lines.last(30)
+          end
+          lines.each { |line| puts "     #{line}" }
+        end
+        puts
+      end
+    end
+
+    exit(failed.empty? ? 0 : 1)
+  end
+end
+
+if __FILE__ == $0
+  IntegrationRunner.new(ARGV.dup).run
+end

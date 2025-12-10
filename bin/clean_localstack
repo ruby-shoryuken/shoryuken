@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Removes all integration test SQS queues from LocalStack
+#
+# Useful when having a long-running LocalStack instance that cannot be fully
+# restarted between test runs. All integration test queues use the 'it-' prefix,
+# making them easy to identify and remove.
+#
+# Usage:
+#   bin/clean_localstack
+
+require 'aws-sdk-sqs'
+
+THREADS_COUNT = 3
+
+sqs = Aws::SQS::Client.new(
+  region: 'us-east-1',
+  endpoint: 'http://localhost:4566',
+  access_key_id: 'fake',
+  secret_access_key: 'fake'
+)
+
+# Find all queues with 'it-' prefix
+response = sqs.list_queues(queue_name_prefix: 'it-')
+queues_for_removal = response.queue_urls || []
+
+if queues_for_removal.empty?
+  puts "No integration test queues found (prefix: it-)"
+  exit 0
+end
+
+puts "Found #{queues_for_removal.size} queues to remove"
+
+queue = SizedQueue.new(THREADS_COUNT)
+
+threads = Array.new(THREADS_COUNT) do
+  Thread.new do
+    while (queue_url = queue.pop)
+      queue_name = queue_url.split('/').last
+      puts "Removing queue: #{queue_name}"
+      sqs.delete_queue(queue_url: queue_url)
+    end
+  end
+end
+
+queues_for_removal.each { |url| queue << url }
+
+queue.close
+threads.each(&:join)
+
+puts "Cleanup complete"
