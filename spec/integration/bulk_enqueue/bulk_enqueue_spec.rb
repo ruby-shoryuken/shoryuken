@@ -9,20 +9,18 @@ require 'active_job/extensions'
 
 setup_localstack
 reset_shoryuken
+DT.clear
 
-queue_name = "test-bulk-enqueue-#{SecureRandom.uuid}"
+queue_name = DT.queue
 create_test_queue(queue_name)
 
 # Configure ActiveJob adapter
 ActiveJob::Base.queue_adapter = :shoryuken
 
-# Track job executions
-$bulk_job_executions = Concurrent::Array.new
-
 # Define test job
 class BulkTestJob < ActiveJob::Base
   def perform(index, data)
-    $bulk_job_executions << {
+    DT[:executions] << {
       index: index,
       data: data,
       job_id: job_id,
@@ -46,30 +44,30 @@ jobs = (1..15).map { |i| BulkTestJob.new(i, "payload_#{i}") }
 ActiveJob.perform_all_later(jobs)
 
 # Verify jobs were marked as successfully enqueued
-successfully_enqueued_count = jobs.count { |j| j.successfully_enqueued? }
+successfully_enqueued_count = jobs.count(&:successfully_enqueued?)
 assert_equal(15, successfully_enqueued_count, "Expected all 15 jobs to be marked as successfully enqueued")
 
 # Wait for all jobs to be processed
 poll_queues_until(timeout: 45) do
-  $bulk_job_executions.size >= 15
+  DT[:executions].size >= 15
 end
 
 # Verify all jobs executed
-assert_equal(15, $bulk_job_executions.size, "Expected 15 job executions, got #{$bulk_job_executions.size}")
+assert_equal(15, DT[:executions].size, "Expected 15 job executions, got #{DT[:executions].size}")
 
 # Verify all indices were received
-executed_indices = $bulk_job_executions.map { |e| e[:index] }.sort
+executed_indices = DT[:executions].map { |e| e[:index] }.sort
 expected_indices = (1..15).to_a
 assert_equal(expected_indices, executed_indices, "All job indices should be present")
 
 # Verify data payloads
-$bulk_job_executions.each do |execution|
+DT[:executions].each do |execution|
   expected_data = "payload_#{execution[:index]}"
   assert_equal(expected_data, execution[:data], "Job #{execution[:index]} should have correct data")
 end
 
 # Verify unique job IDs
-job_ids = $bulk_job_executions.map { |e| e[:job_id] }
+job_ids = DT[:executions].map { |e| e[:job_id] }
 assert_equal(15, job_ids.uniq.size, "All job IDs should be unique")
 
 delete_test_queue(queue_name)

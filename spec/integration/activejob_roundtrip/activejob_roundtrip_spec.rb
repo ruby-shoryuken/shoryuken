@@ -9,20 +9,18 @@ require 'active_job/extensions'
 
 setup_localstack
 reset_shoryuken
+DT.clear
 
-queue_name = "test-activejob-roundtrip-#{SecureRandom.uuid}"
+queue_name = DT.queue
 create_test_queue(queue_name)
 
 # Configure ActiveJob adapter
 ActiveJob::Base.queue_adapter = :shoryuken
 
-# Track job executions
-$job_executions = Concurrent::Array.new
-
 # Define test job
 class RoundtripTestJob < ActiveJob::Base
   def perform(payload)
-    $job_executions << {
+    DT[:executions] << {
       payload: payload,
       executed_at: Time.now,
       job_id: job_id
@@ -39,20 +37,20 @@ Shoryuken.add_queue(queue_name, 1, 'default')
 Shoryuken.register_worker(queue_name, Shoryuken::ActiveJob::JobWrapper)
 
 # Enqueue jobs via ActiveJob
-job1 = RoundtripTestJob.perform_later('first_payload')
-job2 = RoundtripTestJob.perform_later('second_payload')
-job3 = RoundtripTestJob.perform_later({ key: 'complex', data: [1, 2, 3] })
+RoundtripTestJob.perform_later('first_payload')
+RoundtripTestJob.perform_later('second_payload')
+RoundtripTestJob.perform_later({ key: 'complex', data: [1, 2, 3] })
 
 # Wait for jobs to be processed
 poll_queues_until(timeout: 30) do
-  $job_executions.size >= 3
+  DT[:executions].size >= 3
 end
 
 # Verify all jobs executed
-assert_equal(3, $job_executions.size, "Expected 3 job executions, got #{$job_executions.size}")
+assert_equal(3, DT[:executions].size, "Expected 3 job executions, got #{DT[:executions].size}")
 
 # Verify payloads were received correctly
-payloads = $job_executions.map { |e| e[:payload] }
+payloads = DT[:executions].map { |e| e[:payload] }
 assert_includes(payloads, 'first_payload')
 assert_includes(payloads, 'second_payload')
 
@@ -65,7 +63,7 @@ assert_equal('complex', key_value)
 assert_equal([1, 2, 3], data_value)
 
 # Verify job IDs are present
-job_ids = $job_executions.map { |e| e[:job_id] }
+job_ids = DT[:executions].map { |e| e[:job_id] }
 assert(job_ids.all? { |id| id && !id.empty? }, "All jobs should have job IDs")
 assert_equal(3, job_ids.uniq.size, "All job IDs should be unique")
 
