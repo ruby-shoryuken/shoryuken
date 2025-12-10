@@ -22,16 +22,8 @@ sqs = Aws::SQS::Client.new(
 )
 
 # Find all queues with 'it-' prefix
-queues_for_removal = []
-
-begin
-  response = sqs.list_queues(queue_name_prefix: 'it-')
-  queues_for_removal = response.queue_urls || []
-rescue Aws::SQS::Errors::ServiceError => e
-  puts "Error connecting to LocalStack: #{e.message}"
-  puts "Make sure LocalStack is running: docker-compose up -d localstack"
-  exit 1
-end
+response = sqs.list_queues(queue_name_prefix: 'it-')
+queues_for_removal = response.queue_urls || []
 
 if queues_for_removal.empty?
   puts "No integration test queues found (prefix: it-)"
@@ -46,13 +38,8 @@ threads = Array.new(THREADS_COUNT) do
   Thread.new do
     while (queue_url = queue.pop)
       queue_name = queue_url.split('/').last
-      print "Removing queue: #{queue_name}... "
-      begin
-        sqs.delete_queue(queue_url: queue_url)
-        puts "done"
-      rescue Aws::SQS::Errors::ServiceError => e
-        puts "failed (#{e.message})"
-      end
+      puts "Removing queue: #{queue_name}"
+      sqs.delete_queue(queue_url: queue_url)
     end
   end
 end
