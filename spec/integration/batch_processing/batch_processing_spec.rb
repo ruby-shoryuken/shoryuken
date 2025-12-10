@@ -11,7 +11,6 @@ create_test_queue(queue_name)
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 
-# Create batch worker
 worker_class = Class.new do
   include Shoryuken::Worker
 
@@ -27,7 +26,6 @@ worker_class.get_shoryuken_options['auto_delete'] = true
 worker_class.get_shoryuken_options['batch'] = true
 Shoryuken.register_worker(queue_name, worker_class)
 
-# Send batch of messages
 entries = 5.times.map { |i| { id: SecureRandom.uuid, message_body: "message-#{i}" } }
 Shoryuken::Client.queues(queue_name).send_messages(entries: entries)
 

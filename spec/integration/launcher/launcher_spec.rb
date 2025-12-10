@@ -29,7 +29,6 @@ worker_class.get_shoryuken_options['queue'] = queue_name
 worker_class.get_shoryuken_options['batch'] = true
 Shoryuken.register_worker(queue_name, worker_class)
 
-# Send batch of messages
 entries = 10.times.map { |i| { id: SecureRandom.uuid, message_body: i.to_s } }
 Shoryuken::Client.queues(queue_name).send_messages(entries: entries)
 

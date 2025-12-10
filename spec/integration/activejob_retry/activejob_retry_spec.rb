@@ -57,23 +57,19 @@ discard_job = DiscardTestJob.perform_later(true)
 # Test 3: Job that succeeds without discard
 success_job = DiscardTestJob.perform_later(false)
 
-# Wait for processing
 poll_queues_until(timeout: 30) do
   DT[:successes].size >= 1 &&
     DT[:discard_attempts].size >= 1 &&
     DT[:discard_successes].size >= 1
 end
 
-# Verify retry job attempted multiple times and eventually succeeded
 assert(DT[:attempts].size >= 2, "Expected at least 2 retry attempts, got #{DT[:attempts].size}")
 assert_equal(1, DT[:successes].size, "Expected 1 successful retry completion")
 
-# Verify discard job was attempted once and discarded (no success recorded)
 discard_job_attempts = DT[:discard_attempts].select { |a| a[:job_id] == discard_job.job_id }
 assert_equal(1, discard_job_attempts.size, "Discarded job should only attempt once")
 discard_job_successes = DT[:discard_successes].select { |s| s[:job_id] == discard_job.job_id }
 assert_equal(0, discard_job_successes.size, "Discarded job should not succeed")
 
-# Verify non-failing job succeeded
 success_job_successes = DT[:discard_successes].select { |s| s[:job_id] == success_job.job_id }
 assert_equal(1, success_job_successes.size, "Non-failing job should succeed")

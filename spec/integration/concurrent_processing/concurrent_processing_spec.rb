@@ -15,7 +15,6 @@ Shoryuken.add_queue(queue_name, 1, 'concurrent')
 concurrent_count = Concurrent::AtomicFixnum.new(0)
 max_concurrent = Concurrent::AtomicFixnum.new(0)
 
-# Create tracking worker
 worker_class = Class.new do
   include Shoryuken::Worker
 
@@ -37,7 +36,6 @@ end
 worker_class.get_shoryuken_options['queue'] = queue_name
 Shoryuken.register_worker(queue_name, worker_class)
 
-# Send multiple messages
 10.times { |i| Shoryuken::Client.queues(queue_name).send_message(message_body: "msg-#{i}") }
 
 poll_queues_until(timeout: 20) { DT[:processing_times].size >= 10 }

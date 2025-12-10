@@ -9,7 +9,6 @@ setup_active_job
 queue_name = DT.queue
 create_test_queue(queue_name)
 
-# Define test job
 class RoundtripTestJob < ActiveJob::Base
   def perform(payload)
     DT[:executions] << {
@@ -20,28 +19,22 @@ class RoundtripTestJob < ActiveJob::Base
   end
 end
 
-# Configure the job to use our test queue
 RoundtripTestJob.queue_as(queue_name)
 
-# Register with Shoryuken
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 Shoryuken.register_worker(queue_name, Shoryuken::ActiveJob::JobWrapper)
 
-# Enqueue jobs via ActiveJob
 RoundtripTestJob.perform_later('first_payload')
 RoundtripTestJob.perform_later('second_payload')
 RoundtripTestJob.perform_later({ key: 'complex', data: [1, 2, 3] })
 
-# Wait for jobs to be processed
 poll_queues_until(timeout: 30) do
   DT[:executions].size >= 3
 end
 
-# Verify all jobs executed
 assert_equal(3, DT[:executions].size, "Expected 3 job executions, got #{DT[:executions].size}")
 
-# Verify payloads were received correctly
 payloads = DT[:executions].map { |e| e[:payload] }
 assert_includes(payloads, 'first_payload')
 assert_includes(payloads, 'second_payload')
@@ -54,7 +47,6 @@ data_value = complex_payload['data'] || complex_payload[:data]
 assert_equal('complex', key_value)
 assert_equal([1, 2, 3], data_value)
 
-# Verify job IDs are present
 job_ids = DT[:executions].map { |e| e[:job_id] }
 assert(job_ids.all? { |id| id && !id.empty? }, "All jobs should have job IDs")
 assert_equal(3, job_ids.uniq.size, "All job IDs should be unique")

@@ -8,7 +8,6 @@ require 'concurrent'
 setup_localstack
 
 queue_name = DT.queue
-# Create queue with short visibility timeout for faster retries
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '2' })
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
@@ -16,7 +15,6 @@ Shoryuken.add_queue(queue_name, 1, 'default')
 # Atomic counter for fail tracking
 fail_counter = Concurrent::AtomicFixnum.new(2)
 
-# Create worker that fails twice then succeeds
 worker_class = Class.new do
   include Shoryuken::Worker
 
@@ -40,7 +38,6 @@ Shoryuken.register_worker(queue_name, worker_class)
 
 Shoryuken::Client.queues(queue_name).send_message(message_body: 'retry-count-test')
 
-# Wait for multiple redeliveries
 poll_queues_until(timeout: 20) { DT[:receive_counts].size >= 3 }
 
 assert(DT[:receive_counts].size >= 3)

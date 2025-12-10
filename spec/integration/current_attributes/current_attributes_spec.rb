@@ -12,20 +12,16 @@ require 'shoryuken/active_job/current_attributes'
 queue_name = DT.queue
 create_test_queue(queue_name)
 
-# Define first CurrentAttributes class
 class TestCurrent < ActiveSupport::CurrentAttributes
   attribute :user_id, :tenant_id, :request_id
 end
 
-# Define second CurrentAttributes class for multi-class testing
 class RequestContext < ActiveSupport::CurrentAttributes
   attribute :locale, :timezone, :trace_id
 end
 
-# Register both CurrentAttributes classes for persistence
 Shoryuken::ActiveJob::CurrentAttributes.persist(TestCurrent, RequestContext)
 
-# Define test job that captures current attributes
 class CurrentAttributesTestJob < ActiveJob::Base
   def perform(label)
     DT[:executions] << {
@@ -41,7 +37,6 @@ class CurrentAttributesTestJob < ActiveJob::Base
   end
 end
 
-# Define job that tests complex data types
 class ComplexDataJob < ActiveJob::Base
   def perform(label)
     DT[:complex_executions] << {
@@ -53,7 +48,6 @@ class ComplexDataJob < ActiveJob::Base
   end
 end
 
-# Define job that raises an error
 class ErrorJob < ActiveJob::Base
   def perform(label)
     DT[:error_executions] << {
@@ -65,12 +59,10 @@ class ErrorJob < ActiveJob::Base
   end
 end
 
-# Configure jobs to use our test queue
 CurrentAttributesTestJob.queue_as(queue_name)
 ComplexDataJob.queue_as(queue_name)
 ErrorJob.queue_as(queue_name)
 
-# Register with Shoryuken
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 Shoryuken.register_worker(queue_name, Shoryuken::ActiveJob::JobWrapper)
@@ -88,7 +80,6 @@ RequestContext.trace_id = 'trace-xyz-789'
 
 CurrentAttributesTestJob.perform_later('with_full_context')
 
-# Clear to prove they're restored from job payload
 TestCurrent.reset
 RequestContext.reset
 
@@ -136,7 +127,6 @@ ActiveJob.perform_all_later(jobs)
 TestCurrent.reset
 
 # ============================================================================
-# Wait for all jobs to be processed
 # ============================================================================
 
 poll_queues_until(timeout: 45) do
@@ -194,6 +184,5 @@ bulk_jobs.each do |job|
   assert_equal('bulk-tenant', job[:tenant_id], "Bulk job should have tenant_id")
 end
 
-# Verify CurrentAttributes were reset after all job executions
 assert(TestCurrent.user_id.nil?, "CurrentAttributes should be reset after execution")
 assert(RequestContext.locale.nil?, "RequestContext should be reset after execution")

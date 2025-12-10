@@ -59,15 +59,12 @@ ActiveJob::QueueAdapters::ShoryukenAdapter.enqueue(job3)
 
 DT[:sent_params] << job3.sqs_send_message_parameters
 
-# Wait for all jobs to execute
 poll_queues_until(timeout: 30) do
   DT[:executions].size >= 3
 end
 
-# Verify all jobs executed
 assert_equal(3, DT[:executions].size, "Expected 3 job executions")
 
-# Verify custom attributes were included in sent messages
 params_with_attrs = DT[:sent_params][0]
 assert(params_with_attrs[:message_attributes].key?('trace_id'), "Should have trace_id attribute")
 assert(params_with_attrs[:message_attributes].key?('correlation_id'), "Should have correlation_id attribute")
@@ -83,7 +80,6 @@ assert_equal('Number', params_with_number[:message_attributes]['priority'][:data
 params_no_attrs = DT[:sent_params][2]
 assert(params_no_attrs[:message_attributes].key?('shoryuken_class'), "Should have shoryuken_class attribute")
 
-# Verify jobs executed in order (or at least all present)
 labels = DT[:executions].map { |e| e[:label] }
 assert_includes(labels, 'with_attributes')
 assert_includes(labels, 'with_number')

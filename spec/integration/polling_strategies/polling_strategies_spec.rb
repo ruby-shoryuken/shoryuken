@@ -17,7 +17,6 @@ Shoryuken.add_queue(queue_high, 3, 'default')
 Shoryuken.add_queue(queue_medium, 2, 'default')
 Shoryuken.add_queue(queue_low, 1, 'default')
 
-# Create multi-queue worker
 worker_class = Class.new do
   include Shoryuken::Worker
 
@@ -34,7 +33,6 @@ end
   Shoryuken.register_worker(queue, worker_class)
 end
 
-# Send messages to all queues
 Shoryuken::Client.queues(queue_high).send_message(message_body: 'high-msg')
 Shoryuken::Client.queues(queue_medium).send_message(message_body: 'medium-msg')
 Shoryuken::Client.queues(queue_low).send_message(message_body: 'low-msg')

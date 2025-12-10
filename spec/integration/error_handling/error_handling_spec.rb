@@ -25,7 +25,6 @@ class DiscardableJob < ActiveJob::Base
   end
 end
 
-# Test enqueuing job with retry configuration
 job_capture = JobCapture.new
 job_capture.start_capturing
 
@@ -37,7 +36,6 @@ message_body = job[:message_body]
 assert_equal('RetryableJob', message_body['job_class'])
 assert_equal([false], message_body['arguments'])
 
-# Test enqueuing job with discard configuration
 job_capture2 = JobCapture.new
 job_capture2.start_capturing
 
@@ -48,7 +46,6 @@ job2 = job_capture2.last_job
 message_body2 = job2[:message_body]
 assert_equal('DiscardableJob', message_body2['job_class'])
 
-# Test JobWrapper configuration
 wrapper_class = Shoryuken::ActiveJob::JobWrapper
 options = wrapper_class.get_shoryuken_options
 

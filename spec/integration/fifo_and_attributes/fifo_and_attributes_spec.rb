@@ -23,7 +23,6 @@ class AttributesTestJob < ActiveJob::Base
   end
 end
 
-# Test FIFO queue message deduplication ID generation
 fifo_queue_mock = Object.new
 fifo_queue_mock.define_singleton_method(:fifo?) { true }
 fifo_queue_mock.define_singleton_method(:name) { 'test_fifo.fifo' }
@@ -48,13 +47,11 @@ FifoTestJob.perform_later('order-123', 'process')
 assert(captured_params.key?(:message_deduplication_id))
 assert_equal(64, captured_params[:message_deduplication_id].length)
 
-# Verify deduplication ID excludes job_id and enqueued_at
 body = captured_params[:message_body]
 body_without_variable_fields = body.except('job_id', 'enqueued_at')
 expected_dedupe_id = Digest::SHA256.hexdigest(JSON.dump(body_without_variable_fields))
 assert_equal(expected_dedupe_id, captured_params[:message_deduplication_id])
 
-# Test custom message attributes
 regular_queue_mock = Object.new
 regular_queue_mock.define_singleton_method(:fifo?) { false }
 regular_queue_mock.define_singleton_method(:name) { 'attributes_test' }

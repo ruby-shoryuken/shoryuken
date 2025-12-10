@@ -10,7 +10,6 @@ create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '5' })
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 
-# Create slow worker that extends visibility
 worker_class = Class.new do
   include Shoryuken::Worker
 

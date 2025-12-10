@@ -11,7 +11,6 @@ create_test_queue(queue_name)
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 
-# Create worker that captures message attributes
 worker_class = Class.new do
   include Shoryuken::Worker
 
@@ -27,7 +26,6 @@ Shoryuken.register_worker(queue_name, worker_class)
 
 queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
 
-# Send message with mixed attributes
 Shoryuken::Client.sqs.send_message(
   queue_url: queue_url,
   message_body: 'mixed-attr-test',

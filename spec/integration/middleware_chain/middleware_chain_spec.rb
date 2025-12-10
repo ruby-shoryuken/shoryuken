@@ -3,7 +3,6 @@
 # Middleware chain integration tests
 # Tests middleware execution order and chain management
 
-# Helper to create middleware that tracks execution to a specific DT key
 def create_middleware(name, key)
   Class.new do
     define_method(:call) do |worker, queue, sqs_msg, body, &block|
@@ -24,7 +23,6 @@ def create_short_circuit_middleware(key)
   end
 end
 
-# Test worker
 class MiddlewareTestWorker
   include Shoryuken::Worker
 
