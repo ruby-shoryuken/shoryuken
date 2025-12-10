@@ -131,7 +131,7 @@ module Shoryuken
     #
     # @return [void]
     def execute_soft_shutdown
-      logger.info { 'Received USR1, will soft shutdown down' }
+      logger.info { 'Received USR1, will soft shutdown' }
 
       @launcher.stop
       exit 0

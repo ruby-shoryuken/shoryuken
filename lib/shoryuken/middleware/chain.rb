@@ -200,9 +200,8 @@ module Shoryuken
       # with control passed through yielding.
       #
       # @param args [Array] arguments to pass to each middleware
-      # @param final_action [Proc] the final action to perform after all middleware (provided as a block)
+      # @param final_action [Proc] the final action to perform after all middleware
       # @return [void]
-      # @yield the final action to perform after all middleware
       def invoke(*args, &final_action)
         chain = retrieve.dup
         traverse_chain = lambda do

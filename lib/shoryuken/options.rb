@@ -23,43 +23,28 @@ module Shoryuken
       }
     }.freeze
 
-    # @!attribute [rw] active_job_queue_name_prefixing
-    #   @return [Boolean] whether to enable ActiveJob queue name prefixing
-    # @!attribute [rw] cache_visibility_timeout
-    #   @return [Boolean] whether to cache SQS visibility timeout
-    # @!attribute [rw] groups
-    #   @return [Hash{String => Hash}] the configured processing groups
-    # @!attribute [rw] launcher_executor
-    #   @return [Object] the executor used to launch workers
-    # @!attribute [rw] reloader
-    #   @return [Proc] the code reloader proc for development environments
-    # @!attribute [rw] enable_reloading
-    #   @return [Boolean] whether code reloading is enabled
-    # @!attribute [rw] start_callback
-    #   @return [Proc, nil] callback to execute when server starts
-    # @!attribute [rw] stop_callback
-    #   @return [Proc, nil] callback to execute when server stops
-    # @!attribute [rw] worker_executor
-    #   @return [Class] the executor class for running workers
-    # @!attribute [rw] worker_registry
-    #   @return [Shoryuken::WorkerRegistry] the registry for worker classes
-    # @!attribute [rw] exception_handlers
-    #   @return [Array<#call>] handlers for processing exceptions
+    # @return [Boolean] whether to enable ActiveJob queue name prefixing
+    # @return [Boolean] whether to cache SQS visibility timeout
+    # @return [Hash{String => Hash}] the configured processing groups
+    # @return [Object] the executor used to launch workers
+    # @return [Proc] the code reloader proc for development environments
+    # @return [Boolean] whether code reloading is enabled
+    # @return [Proc, nil] callback to execute when server starts
+    # @return [Proc, nil] callback to execute when server stops
+    # @return [Class] the executor class for running workers
+    # @return [Shoryuken::WorkerRegistry] the registry for worker classes
+    # @return [Array<#call>] handlers for processing exceptions
     attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout,
                   :groups, :launcher_executor, :reloader, :enable_reloading,
                   :start_callback, :stop_callback, :worker_executor, :worker_registry,
                   :exception_handlers
 
-    # @!attribute [w] default_worker_options
-    #   @return [Hash] the default options for workers
-    # @!attribute [w] sqs_client
-    #   @return [Aws::SQS::Client] the SQS client instance
-    # @!attribute [w] logger
-    #   @return [Logger] the logger instance
+    # @return [Hash] the default options for workers
+    # @return [Aws::SQS::Client] the SQS client instance
+    # @return [Logger] the logger instance
     attr_writer :default_worker_options, :sqs_client, :logger
 
-    # @!attribute [r] sqs_client_receive_message_opts
-    #   @return [Hash] options passed to SQS receive_message calls
+    # @return [Hash] options passed to SQS receive_message calls
     attr_reader :sqs_client_receive_message_opts
 
     # Initializes a new Options instance with default values
