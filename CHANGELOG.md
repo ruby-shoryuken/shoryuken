@@ -1,11 +1,16 @@
 ## [7.0.0] - Unreleased
+- Enhancement: Add `enqueue_all` for bulk ActiveJob enqueuing (Rails 7.1+)
+  - Implements efficient bulk enqueuing using SQS `send_message_batch` API
+  - Called by `ActiveJob.perform_all_later` for batching multiple jobs
+  - Batches jobs in groups of 10 (SQS limit) per queue
+  - Groups jobs by queue name for efficient multi-queue handling
+
 - Enhancement: Add ActiveJob Continuations support (Rails 8.1+)
   - Implements `stopping?` method in ActiveJob adapters to signal graceful shutdown
   - Enables jobs to checkpoint progress and resume after interruption
   - Handles past timestamps correctly (SQS treats negative delays as immediate delivery)
   - Tracks shutdown state in Launcher via `stopping?` flag
   - Leverages existing Shoryuken shutdown lifecycle (stop/stop! methods)
-  - Includes comprehensive integration tests with continuable jobs
   - See Rails PR #55127 for more details on ActiveJob Continuations
 
 - Breaking: Drop support for Ruby 3.1 (EOL March 2025)
