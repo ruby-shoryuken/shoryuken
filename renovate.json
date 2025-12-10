@@ -14,10 +14,6 @@
   },
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
-      "minimumReleaseAge": "7 days"
-    },
-    {
       "matchManagers": ["bundler"],
       "matchFiles": ["spec/gemfiles/**"],
       "groupName": "Rails test dependencies",
