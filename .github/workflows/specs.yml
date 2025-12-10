@@ -41,43 +41,12 @@ jobs:
         env:
           BUNDLE_GEMFILE: ${{ matrix.gemfile }}
 
-  rails_specs:
-    name: Rails Specs
-    strategy:
-      matrix:
-        rails: ['7.2', '8.0', '8.1']
-        include:
-          - rails: '7.2'
-            ruby: '3.2'
-            gemfile: gemfiles/rails_7_2.gemfile
-          - rails: '8.0'
-            ruby: '3.3'
-            gemfile: gemfiles/rails_8_0.gemfile
-          - rails: '8.1'
-            ruby: '3.4'
-            gemfile: gemfiles/rails_8_1.gemfile
-    runs-on: ubuntu-latest
-    env:
-      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true
-
-      - name: Run Rails specs
-        run: bundle exec rake spec:rails
-
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
     needs:
       - all_specs
-      - rails_specs
     steps:
       - name: Check all jobs passed
         if: |
