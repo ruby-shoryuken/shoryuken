@@ -8,7 +8,7 @@ module Shoryuken
     # Output format: "TIMESTAMP PID TID-THREAD_ID CONTEXT SEVERITY: MESSAGE"
     #
     # @example Output
-    #   2023-08-15T10:30:45Z 12345 TID-abc123 MyWorker/queue1/msg-456 INFO: Processing message
+    #   "2023-08-15T10:30:45Z 12345 TID-abc123 MyWorker/queue1/msg-456 INFO: Processing message"
     class Pretty < Base
       # Formats a log message with timestamp and full context information.
       #

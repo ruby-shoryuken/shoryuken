@@ -1,8 +1,16 @@
 # frozen_string_literal: true
 
 module Shoryuken
+  # Parses SQS message bodies according to worker configuration.
+  # Supports JSON parsing, text extraction, custom Procs, and
+  # any object that responds to parse or load methods.
   class BodyParser
     class << self
+      # Parses the body of an SQS message according to the worker's body_parser option
+      #
+      # @param worker_class [Class] the worker class with shoryuken options
+      # @param sqs_msg [Shoryuken::Message] the SQS message to parse
+      # @return [Object] the parsed message body
       def parse(worker_class, sqs_msg)
         body_parser = worker_class.get_shoryuken_options['body_parser']
 

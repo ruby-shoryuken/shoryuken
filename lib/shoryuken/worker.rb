@@ -42,11 +42,17 @@ module Shoryuken
   # @see ClassMethods#perform_async For enqueueing jobs
   # @see https://github.com/ruby-shoryuken/shoryuken/wiki/Workers Comprehensive worker documentation
   module Worker
+    # Sets up the including class with Shoryuken worker functionality
+    #
+    # @param base [Class] the class including this module
+    # @return [void]
     def self.included(base)
       base.extend(ClassMethods)
       base.shoryuken_class_attribute :shoryuken_options_hash
     end
 
+    # Class methods added to classes that include Shoryuken::Worker.
+    # Provides methods for configuring the worker, enqueueing jobs, and managing middleware.
     module ClassMethods
       # Enqueues a job to be processed asynchronously by a Shoryuken worker.
       #
@@ -70,7 +76,10 @@ module Shoryuken
       #
       # @param interval [Integer, ActiveSupport::Duration] Delay in seconds, or duration object
       # @param body [Object] The job payload that will be passed to the worker's perform method
-      # @param options [Hash] Additional options for job enqueueing (see {#perform_async})
+      # @param options [Hash] SQS message options for the delayed job
+      # @option options [String] :message_group_id FIFO queue group ID for message ordering
+      # @option options [String] :message_deduplication_id FIFO queue deduplication ID
+      # @option options [Hash] :message_attributes Custom SQS message attributes
       # @return [String] The message ID of the enqueued job
       #
       # @example Delay job by 5 minutes
@@ -212,16 +221,24 @@ module Shoryuken
         !!(get_shoryuken_options['delete'] || get_shoryuken_options['auto_delete'])
       end
 
+      # Returns the shoryuken options for this worker class
+      # @return [Hash] the options hash
       def get_shoryuken_options # :nodoc:
         shoryuken_options_hash || Shoryuken.default_worker_options
       end
 
+      # Converts hash keys to strings
+      # @param hash [Hash] the hash to convert
+      # @return [Hash] hash with string keys
       def stringify_keys(hash) # :nodoc:
         new_hash = {}
         hash.each { |key, value| new_hash[key.to_s] = value }
         new_hash
       end
 
+      # Defines inheritable class attributes for workers
+      # @param attrs [Array<Symbol>] attribute names to define
+      # @return [void]
       def shoryuken_class_attribute(*attrs) # :nodoc:
         attrs.each do |name|
           singleton_class.instance_eval do
@@ -279,6 +296,8 @@ module Shoryuken
 
       private
 
+      # Normalizes the queue option and registers the worker
+      # @return [void]
       def normalize_worker_queue!
         queue = shoryuken_options_hash['queue']
         if queue.respond_to?(:call)
@@ -296,6 +315,9 @@ module Shoryuken
         [shoryuken_options_hash['queue']].flatten.compact.each(&method(:register_worker))
       end
 
+      # Registers this worker class for a queue
+      # @param queue [String] the queue name
+      # @return [void]
       def register_worker(queue)
         Shoryuken.register_worker(queue, self)
       end

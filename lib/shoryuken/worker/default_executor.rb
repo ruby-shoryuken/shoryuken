@@ -2,8 +2,18 @@
 
 module Shoryuken
   module Worker
+    # Default executor that sends messages to SQS for asynchronous processing.
+    # This is the standard executor used in production environments.
     class DefaultExecutor
       class << self
+        # Enqueues a job for asynchronous processing via SQS
+        #
+        # @param worker_class [Class] the worker class that will process the message
+        # @param body [Object] the message body
+        # @param options [Hash] additional SQS message options
+        # @option options [Hash] :message_attributes custom message attributes
+        # @option options [String] :queue override the default queue
+        # @return [Aws::SQS::Types::SendMessageResult] the send result
         def perform_async(worker_class, body, options = {})
           options[:message_attributes] ||= {}
           options[:message_attributes]['shoryuken_class'] = {
@@ -18,6 +28,16 @@ module Shoryuken
           Shoryuken::Client.queues(queue).send_message(options)
         end
 
+        # Enqueues a job for delayed processing via SQS
+        #
+        # @param worker_class [Class] the worker class that will process the message
+        # @param interval [Integer, Float] delay in seconds or timestamp
+        # @param body [Object] the message body
+        # @param options [Hash] SQS message options for the delayed job
+        # @option options [Hash] :message_attributes custom message attributes
+        # @option options [String] :queue override the default queue
+        # @return [Aws::SQS::Types::SendMessageResult] the send result
+        # @raise [RuntimeError] if delay exceeds 15 minutes
         def perform_in(worker_class, interval, body, options = {})
           interval = interval.to_f
           now = Time.now.to_f

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Shoryuken
+  # Helper classes providing thread-safe utilities and data structures
   module Helpers
     # A thread-safe boolean implementation using AtomicCounter as base.
     # Drop-in replacement for Concurrent::AtomicBoolean without external dependencies.
@@ -9,33 +10,46 @@ module Shoryuken
       # Prevent misuse of counter operations on a boolean
       undef_method :increment, :decrement
 
+      # Initializes a new AtomicBoolean
+      #
+      # @param initial_value [Boolean] the initial value
       def initialize(initial_value = false)
         super(initial_value ? 1 : 0)
       end
 
-      # Get the current value as boolean
+      # Gets the current value as a boolean
+      #
+      # @return [Boolean] the current value
       def value
         super != 0
       end
 
-      # Set the value to true
+      # Sets the value to true
+      #
+      # @return [Boolean] true
       def make_true
         @mutex.synchronize { @value = 1 }
         true
       end
 
-      # Set the value to false
+      # Sets the value to false
+      #
+      # @return [Boolean] false
       def make_false
         @mutex.synchronize { @value = 0 }
         false
       end
 
-      # Check if the value is true
+      # Checks if the value is true
+      #
+      # @return [Boolean] true if the value is true
       def true?
         @mutex.synchronize { @value != 0 }
       end
 
-      # Check if the value is false
+      # Checks if the value is false
+      #
+      # @return [Boolean] true if the value is false
       def false?
         @mutex.synchronize { @value == 0 }
       end

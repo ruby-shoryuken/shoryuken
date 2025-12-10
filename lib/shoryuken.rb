@@ -14,6 +14,8 @@ loader = Zeitwerk::Loader.for_gem
 loader.ignore("#{__dir__}/active_job")
 loader.setup
 
+# Shoryuken is a super efficient AWS SQS thread based message processor.
+# It provides a simple interface to process SQS messages using Ruby workers.
 module Shoryuken
   extend SingleForwardable
 

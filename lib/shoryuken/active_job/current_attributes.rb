@@ -4,6 +4,7 @@ require 'active_support/current_attributes'
 require 'active_job'
 
 module Shoryuken
+  # ActiveJob integration module for Shoryuken
   module ActiveJob
     # Middleware to persist Rails CurrentAttributes across job execution.
     #
@@ -27,17 +28,25 @@ module Shoryuken
       module Serializer
         module_function
 
+        # Serializes attributes hash for SQS message storage
+        #
+        # @param attrs [Hash] the attributes to serialize
+        # @return [Object] the serialized attributes
         def serialize(attrs)
           ::ActiveJob::Arguments.serialize([attrs]).first
         end
 
+        # Deserializes attributes hash from SQS message
+        #
+        # @param attrs [Object] the serialized attributes
+        # @return [Hash] the deserialized attributes
         def deserialize(attrs)
           ::ActiveJob::Arguments.deserialize([attrs]).first
         end
       end
 
       class << self
-        # @return [Hash<String, String>] registered CurrentAttributes classes mapped to keys
+        # @return [Hash{String => String}] registered CurrentAttributes classes mapped to keys
         attr_reader :cattrs
 
         # Register CurrentAttributes classes to persist across job execution.
@@ -70,6 +79,11 @@ module Shoryuken
       module Persistence
         private
 
+        # Builds the SQS message with CurrentAttributes data
+        #
+        # @param queue [Shoryuken::Queue] the target queue
+        # @param job [ActiveJob::Base] the job being enqueued
+        # @return [Hash] the message parameters
         def message(queue, job)
           hash = super
 
@@ -89,6 +103,11 @@ module Shoryuken
 
       # Module prepended to JobWrapper to restore CurrentAttributes on execute.
       module Loading
+        # Performs the job after restoring CurrentAttributes
+        #
+        # @param sqs_msg [Shoryuken::Message] the SQS message
+        # @param hash [Hash] the deserialized job data
+        # @return [void]
         def perform(sqs_msg, hash)
           klasses_to_reset = []
 

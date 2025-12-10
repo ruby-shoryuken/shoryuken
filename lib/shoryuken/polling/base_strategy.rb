@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Shoryuken
+  # Polling strategies for determining which queue to fetch messages from next
   module Polling
     # Abstract base class for queue polling strategies.
     #
