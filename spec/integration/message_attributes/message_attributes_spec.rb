@@ -4,7 +4,6 @@
 # attribute types, system attributes (ApproximateReceiveCount, SentTimestamp),
 # and custom type suffixes.
 
-
 setup_localstack
 reset_shoryuken
 

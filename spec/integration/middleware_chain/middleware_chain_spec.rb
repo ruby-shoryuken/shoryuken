@@ -3,7 +3,6 @@
 # Middleware chain integration tests
 # Tests middleware execution order and chain management
 
-
 # Track middleware execution order
 $middleware_execution_order = []
 

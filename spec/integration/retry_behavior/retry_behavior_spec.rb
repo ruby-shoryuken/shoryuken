@@ -3,7 +3,6 @@
 # This spec tests retry behavior including ApproximateReceiveCount tracking
 # across message redeliveries.
 
-
 setup_localstack
 reset_shoryuken
 

@@ -2,7 +2,6 @@
 
 # This spec tests large payload handling including payloads near the 256KB SQS limit.
 
-
 setup_localstack
 reset_shoryuken
 

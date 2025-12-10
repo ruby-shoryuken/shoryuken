@@ -6,7 +6,6 @@ require 'active_job/queue_adapters/shoryuken_adapter'
 # This spec tests ActiveJob adapter configuration including adapter type,
 # Rails 7.2+ transaction commit hook, and singleton pattern.
 
-
 ActiveJob::Base.queue_adapter = :shoryuken
 
 class ConfigTestJob < ActiveJob::Base

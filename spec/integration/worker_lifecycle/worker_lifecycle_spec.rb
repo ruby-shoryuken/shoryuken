@@ -2,7 +2,6 @@
 
 # This spec tests worker lifecycle including worker registration and discovery.
 
-
 setup_localstack
 reset_shoryuken
 

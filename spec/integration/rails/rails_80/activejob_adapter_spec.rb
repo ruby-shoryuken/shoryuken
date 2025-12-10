@@ -5,7 +5,6 @@ require 'active_job/queue_adapters/shoryuken_adapter'
 
 # ActiveJob adapter integration tests for Rails 8.0
 
-
 ActiveJob::Base.queue_adapter = :shoryuken
 
 class EmailJob < ActiveJob::Base

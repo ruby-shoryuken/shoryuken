@@ -3,7 +3,6 @@
 # This spec tests FIFO queue ordering guarantees including message ordering
 # within the same message group.
 
-
 setup_localstack
 reset_shoryuken
 

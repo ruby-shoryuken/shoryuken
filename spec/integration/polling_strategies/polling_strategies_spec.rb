@@ -3,7 +3,6 @@
 # This spec tests polling strategies including WeightedRoundRobin (default)
 # with multi-queue worker message distribution.
 
-
 setup_localstack
 reset_shoryuken
 

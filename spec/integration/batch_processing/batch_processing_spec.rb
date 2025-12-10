@@ -4,7 +4,6 @@
 # messages), batch vs single worker behavior differences, JSON body parsing in
 # batch mode, and maximum batch size handling.
 
-
 setup_localstack
 reset_shoryuken
 

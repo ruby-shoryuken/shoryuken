@@ -6,7 +6,6 @@ require 'active_job/queue_adapters/shoryuken_adapter'
 # ActiveJob Continuations integration tests for Rails 8.1+
 # Tests the stopping? method and continuation timestamp handling
 
-
 # Skip if ActiveJob::Continuable is not available (Rails < 8.1)
 unless defined?(ActiveJob::Continuable)
   puts "Skipping continuation tests - ActiveJob::Continuable not available (requires Rails 8.1+)"

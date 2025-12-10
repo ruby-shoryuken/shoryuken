@@ -3,7 +3,6 @@
 # This spec tests visibility timeout management including manual visibility
 # extension during long processing.
 
-
 setup_localstack
 reset_shoryuken
 

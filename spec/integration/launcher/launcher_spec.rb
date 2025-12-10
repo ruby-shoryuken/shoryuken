@@ -3,7 +3,6 @@
 # This spec tests the Launcher's ability to consume messages from SQS queues,
 # including single message consumption, batch consumption, and command workers.
 
-
 setup_localstack
 reset_shoryuken
 
