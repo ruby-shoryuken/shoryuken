@@ -88,8 +88,11 @@ module ActiveJob
               { id: idx.to_s }.merge(msg)
             end
 
-            queue.send_messages(entries: entries)
-            batch.each { |job| job.successfully_enqueued = true }
+            response = queue.send_messages(entries: entries)
+            successful_ids = response.successful.map { |r| r.id.to_i }.to_set
+            batch.each_with_index do |job, idx|
+              job.successfully_enqueued = successful_ids.include?(idx)
+            end
           end
         end
 

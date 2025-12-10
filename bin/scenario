@@ -52,7 +52,7 @@ class ScenarioRunner
       absolute_test_path = File.expand_path(test_file)
     else
       # Fallback to project root resolution
-      project_root = File.expand_path('../..', __dir__)
+      project_root = File.expand_path('..', __dir__)
       absolute_test_path = File.join(project_root, test_file)
     end
 
