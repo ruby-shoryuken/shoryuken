@@ -9,8 +9,7 @@ module Shoryuken
       extend ActiveSupport::Concern
 
       included do
-        # @!attribute [rw] sqs_send_message_parameters
-        #   @return [Hash] the SQS send message parameters
+        # @return [Hash] the SQS send message parameters
         attr_accessor :sqs_send_message_parameters
       end
     end
@@ -26,7 +25,6 @@ module Shoryuken
         super(*arguments)
         self.sqs_send_message_parameters = {}
       end
-      ruby2_keywords(:initialize) if respond_to?(:ruby2_keywords, true)
 
       # Enqueues the job with optional SQS-specific parameters
       #

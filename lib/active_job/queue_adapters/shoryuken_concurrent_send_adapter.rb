@@ -24,6 +24,7 @@ module ActiveJob
       # @param success_handler [Proc, nil] callback for successful enqueues
       # @param error_handler [Proc, nil] callback for failed enqueues
       def initialize(success_handler = nil, error_handler = nil)
+        super() if defined?(super)
         @success_handler = success_handler
         @error_handler = error_handler
       end
