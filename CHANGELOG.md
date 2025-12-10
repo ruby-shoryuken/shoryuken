@@ -13,6 +13,15 @@
   - Leverages existing Shoryuken shutdown lifecycle (stop/stop! methods)
   - See Rails PR #55127 for more details on ActiveJob Continuations
 
+- Enhancement: Add CurrentAttributes persistence support
+  - Enables Rails `ActiveSupport::CurrentAttributes` to flow from enqueue to job execution
+  - Automatically serializes current attributes into job payload when enqueuing
+  - Restores attributes before job execution and resets them afterward
+  - Supports multiple CurrentAttributes classes
+  - Based on Sidekiq's approach using `ActiveJob::Arguments` for serialization
+  - Usage: `require 'shoryuken/active_job/current_attributes'` and
+    `Shoryuken::ActiveJob::CurrentAttributes.persist('MyApp::Current')`
+
 - Breaking: Drop support for Ruby 3.1 (EOL March 2025)
   - Minimum required Ruby version is now 3.2.0
   - Supported Ruby versions: 3.2, 3.3, 3.4

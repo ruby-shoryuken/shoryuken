@@ -3,38 +3,24 @@
 # Middleware chain integration tests
 # Tests middleware execution order and chain management
 
-DT.clear
-
-# Custom middleware for testing execution order
-class FirstMiddleware
-  def call(worker, queue, sqs_msg, body)
-    DT[:order] << :first_before
-    yield
-    DT[:order] << :first_after
-  end
-end
-
-class SecondMiddleware
-  def call(worker, queue, sqs_msg, body)
-    DT[:order] << :second_before
-    yield
-    DT[:order] << :second_after
-  end
-end
-
-class ThirdMiddleware
-  def call(worker, queue, sqs_msg, body)
-    DT[:order] << :third_before
-    yield
-    DT[:order] << :third_after
+# Helper to create middleware that tracks execution to a specific DT key
+def create_middleware(name, key)
+  Class.new do
+    define_method(:call) do |worker, queue, sqs_msg, body|
+      DT[key] << :"#{name}_before"
+      yield
+      DT[key] << :"#{name}_after"
+    end
   end
 end
 
 # Middleware that doesn't yield (short-circuits)
-class ShortCircuitMiddleware
-  def call(worker, queue, sqs_msg, body)
-    DT[:order] << :short_circuit
-    # Does not yield - stops chain execution
+def create_short_circuit_middleware(key)
+  Class.new do
+    define_method(:call) do |worker, queue, sqs_msg, body|
+      DT[key] << :short_circuit
+      # Does not yield - stops chain execution
+    end
   end
 end
 
@@ -49,11 +35,15 @@ class MiddlewareTestWorker
   end
 end
 
-# Test middleware execution order (onion model)
+# Test 1: middleware execution order (onion model)
+first = create_middleware(:first, :order)
+second = create_middleware(:second, :order)
+third = create_middleware(:third, :order)
+
 chain = Shoryuken::Middleware::Chain.new
-chain.add FirstMiddleware
-chain.add SecondMiddleware
-chain.add ThirdMiddleware
+chain.add first
+chain.add second
+chain.add third
 
 worker = MiddlewareTestWorker.new
 sqs_msg = double(:sqs_msg)
@@ -70,48 +60,50 @@ expected_order = [
 ]
 assert_equal(expected_order, DT[:order])
 
-# Test short-circuit behavior
-DT.clear
+# Test 2: short-circuit behavior
+first_sc = create_middleware(:first, :short_circuit)
+short_circuit = create_short_circuit_middleware(:short_circuit)
+third_sc = create_middleware(:third, :short_circuit)
 
 chain2 = Shoryuken::Middleware::Chain.new
-chain2.add FirstMiddleware
-chain2.add ShortCircuitMiddleware
-chain2.add ThirdMiddleware
+chain2.add first_sc
+chain2.add short_circuit
+chain2.add third_sc
 
 chain2.invoke(nil, 'test', nil, nil) do
-  DT[:order] << :worker
+  DT[:short_circuit] << :worker
 end
 
-assert_includes(DT[:order], :first_before)
-assert_includes(DT[:order], :short_circuit)
-refute(DT[:order].include?(:third_before), "Third should not execute")
-refute(DT[:order].include?(:worker), "Worker should not execute")
-assert_includes(DT[:order], :first_after)
+assert_includes(DT[:short_circuit], :first_before)
+assert_includes(DT[:short_circuit], :short_circuit)
+refute(DT[:short_circuit].include?(:third_before), "Third should not execute")
+refute(DT[:short_circuit].include?(:worker), "Worker should not execute")
+assert_includes(DT[:short_circuit], :first_after)
 
-# Test middleware removal
-DT.clear
+# Test 3: middleware removal
+first_rm = create_middleware(:first, :removal)
+second_rm = create_middleware(:second, :removal)
+third_rm = create_middleware(:third, :removal)
 
 chain3 = Shoryuken::Middleware::Chain.new
-chain3.add FirstMiddleware
-chain3.add SecondMiddleware
-chain3.add ThirdMiddleware
-chain3.remove SecondMiddleware
+chain3.add first_rm
+chain3.add second_rm
+chain3.add third_rm
+chain3.remove second_rm
 
 chain3.invoke(nil, 'test', nil, nil) do
-  DT[:order] << :worker
+  DT[:removal] << :worker
 end
 
-assert_includes(DT[:order], :first_before)
-refute(DT[:order].include?(:second_before), "Second should be removed")
-assert_includes(DT[:order], :third_before)
+assert_includes(DT[:removal], :first_before)
+refute(DT[:removal].include?(:second_before), "Second should be removed")
+assert_includes(DT[:removal], :third_before)
 
-# Test empty chain
-DT.clear
-
+# Test 4: empty chain
 chain4 = Shoryuken::Middleware::Chain.new
 
 chain4.invoke(nil, 'test', nil, nil) do
-  DT[:order] << :worker
+  DT[:empty_chain] << :worker
 end
 
-assert_equal([:worker], DT[:order])
+assert_equal([:worker], DT[:empty_chain])

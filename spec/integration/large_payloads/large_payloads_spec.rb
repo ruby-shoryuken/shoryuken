@@ -4,7 +4,6 @@
 
 setup_localstack
 reset_shoryuken
-DT.clear
 
 queue_name = DT.queue
 create_test_queue(queue_name)

@@ -5,7 +5,6 @@
 
 setup_localstack
 reset_shoryuken
-DT.clear
 
 queue_high = DT.queues[0]
 queue_medium = DT.queues[1]
