@@ -3,47 +3,43 @@
 # This spec tests the Launcher's ability to consume messages from SQS queues,
 # including single message consumption, batch consumption, and command workers.
 
+require 'concurrent'
+
 setup_localstack
 reset_shoryuken
+DT.clear
 
-class StandardWorker
+# Use atomic counter for thread-safe message counting
+message_counter = Concurrent::AtomicFixnum.new(0)
+
+worker_class = Class.new do
   include Shoryuken::Worker
-
-  @@received_messages = 0
 
   shoryuken_options auto_delete: true
 
-  def perform(sqs_msg, _body)
-    @@received_messages += Array(sqs_msg).size
-  end
-
-  def self.received_messages
-    @@received_messages
-  end
-
-  def self.received_messages=(val)
-    @@received_messages = val
+  define_method(:perform) do |sqs_msg, _body|
+    message_counter.increment(Array(sqs_msg).size)
   end
 end
 
-queue = "shoryuken-launcher-#{SecureRandom.uuid}"
+queue_name = DT.queue
 
-create_test_queue(queue)
+create_test_queue(queue_name)
 Shoryuken.add_group('default', 1)
-Shoryuken.add_queue(queue, 1, 'default')
-StandardWorker.get_shoryuken_options['queue'] = queue
-StandardWorker.get_shoryuken_options['batch'] = true
-Shoryuken.register_worker(queue, StandardWorker)
+Shoryuken.add_queue(queue_name, 1, 'default')
+worker_class.get_shoryuken_options['queue'] = queue_name
+worker_class.get_shoryuken_options['batch'] = true
+Shoryuken.register_worker(queue_name, worker_class)
 
 # Send batch of messages
 entries = 10.times.map { |i| { id: SecureRandom.uuid, message_body: i.to_s } }
-Shoryuken::Client.queues(queue).send_messages(entries: entries)
+Shoryuken::Client.queues(queue_name).send_messages(entries: entries)
 
 # Give the messages a chance to hit the queue
 sleep 2
 
-poll_queues_until { StandardWorker.received_messages > 0 }
+poll_queues_until { message_counter.value > 0 }
 
-assert(StandardWorker.received_messages > 1, "Expected more than 1 message in batch, got #{StandardWorker.received_messages}")
+assert(message_counter.value > 1, "Expected more than 1 message in batch, got #{message_counter.value}")
 
-delete_test_queue(queue)
+delete_test_queue(queue_name)

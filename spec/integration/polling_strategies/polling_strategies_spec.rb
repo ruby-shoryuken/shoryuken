@@ -5,11 +5,11 @@
 
 setup_localstack
 reset_shoryuken
+DT.clear
 
-queue_prefix = "polling-#{SecureRandom.uuid[0..7]}"
-queue_high = "#{queue_prefix}-high"
-queue_medium = "#{queue_prefix}-medium"
-queue_low = "#{queue_prefix}-low"
+queue_high = DT.queues[0]
+queue_medium = DT.queues[1]
+queue_low = DT.queues[2]
 
 [queue_high, queue_medium, queue_low].each { |q| create_test_queue(q) }
 
@@ -23,21 +23,11 @@ Shoryuken.add_queue(queue_low, 1, 'default')
 worker_class = Class.new do
   include Shoryuken::Worker
 
-  class << self
-    attr_accessor :messages_by_queue
-  end
-
   shoryuken_options auto_delete: true, batch: false
 
   def perform(sqs_msg, body)
     queue = sqs_msg.queue_url.split('/').last
-    self.class.messages_by_queue ||= {}
-    self.class.messages_by_queue[queue] ||= []
-    self.class.messages_by_queue[queue] << body
-  end
-
-  def self.total_messages
-    (messages_by_queue || {}).values.flatten.size
+    DT[:by_queue] << { queue: queue, body: body }
   end
 end
 
@@ -46,8 +36,6 @@ end
   Shoryuken.register_worker(queue, worker_class)
 end
 
-worker_class.messages_by_queue = {}
-
 # Send messages to all queues
 Shoryuken::Client.queues(queue_high).send_message(message_body: 'high-msg')
 Shoryuken::Client.queues(queue_medium).send_message(message_body: 'medium-msg')
@@ -55,9 +43,10 @@ Shoryuken::Client.queues(queue_low).send_message(message_body: 'low-msg')
 
 sleep 1
 
-poll_queues_until { worker_class.total_messages >= 3 }
+poll_queues_until { DT[:by_queue].size >= 3 }
 
-assert_equal(3, worker_class.messages_by_queue.keys.size)
-assert_equal(3, worker_class.total_messages)
+queues_with_messages = DT[:by_queue].map { |m| m[:queue] }.uniq
+assert_equal(3, queues_with_messages.size)
+assert_equal(3, DT[:by_queue].size)
 
 [queue_high, queue_medium, queue_low].each { |q| delete_test_queue(q) }
