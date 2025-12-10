@@ -1,29 +1,74 @@
+#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests visibility timeout management including manual visibility
 # extension during long processing, message redelivery after timeout expiration,
 # and auto_delete behavior with visibility timeout.
 
-RSpec.describe 'Visibility Timeout Integration' do
-  include_context 'localstack'
+require 'shoryuken'
 
-  let(:queue_name) { "visibility-test-#{SecureRandom.uuid}" }
+def create_slow_worker(queue, processing_time:)
+  worker_class = Class.new do
+    include Shoryuken::Worker
 
-  before do
-    # Create queue with short visibility timeout for testing
+    class << self
+      attr_accessor :received_messages, :visibility_extended
+    end
+
+    def perform(sqs_msg, body)
+      # Extend visibility before long processing
+      sqs_msg.change_visibility(visibility_timeout: 30)
+      self.class.visibility_extended = true
+
+      sleep 2 # Simulate slow processing
+
+      self.class.received_messages ||= []
+      self.class.received_messages << body
+    end
+  end
+
+  worker_class.get_shoryuken_options['queue'] = queue
+  worker_class.get_shoryuken_options['auto_delete'] = true
+  worker_class.get_shoryuken_options['batch'] = false
+  worker_class.received_messages = []
+  worker_class.visibility_extended = false
+  Shoryuken.register_worker(queue, worker_class)
+  worker_class
+end
+
+def create_auto_delete_worker(queue)
+  worker_class = Class.new do
+    include Shoryuken::Worker
+
+    class << self
+      attr_accessor :received_messages
+    end
+
+    def perform(sqs_msg, body)
+      self.class.received_messages ||= []
+      self.class.received_messages << body
+    end
+  end
+
+  worker_class.get_shoryuken_options['queue'] = queue
+  worker_class.get_shoryuken_options['auto_delete'] = true
+  worker_class.get_shoryuken_options['batch'] = false
+  worker_class.received_messages = []
+  Shoryuken.register_worker(queue, worker_class)
+  worker_class
+end
+
+run_test_suite "Visibility Timeout Integration" do
+  run_test "extends visibility timeout during processing" do
+    setup_localstack
+    reset_shoryuken
+
+    queue_name = "visibility-test-#{SecureRandom.uuid}"
     create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '5' })
     Shoryuken.add_group('default', 1)
     Shoryuken.add_queue(queue_name, 1, 'default')
-  end
 
-  after do
-    delete_test_queue(queue_name)
-    Shoryuken.worker_registry.clear
-    Shoryuken.groups.clear
-  end
-
-  describe 'Manual visibility timeout changes' do
-    it 'extends visibility timeout during processing' do
+    begin
       worker = create_slow_worker(queue_name, processing_time: 2)
       worker.received_messages = []
       worker.visibility_extended = false
@@ -32,14 +77,24 @@ RSpec.describe 'Visibility Timeout Integration' do
 
       poll_queues_until { worker.received_messages.size >= 1 }
 
-      expect(worker.received_messages.size).to eq 1
-      expect(worker.visibility_extended).to be true
+      assert_equal(1, worker.received_messages.size)
+      assert(worker.visibility_extended, "Expected visibility to be extended")
+    ensure
+      delete_test_queue(queue_name)
+      teardown_localstack
     end
-
   end
 
-  describe 'Visibility timeout with auto_delete' do
-    it 'deletes message after successful processing' do
+  run_test "deletes message after successful processing" do
+    setup_localstack
+    reset_shoryuken
+
+    queue_name = "visibility-test-#{SecureRandom.uuid}"
+    create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '5' })
+    Shoryuken.add_group('default', 1)
+    Shoryuken.add_queue(queue_name, 1, 'default')
+
+    begin
       worker = create_auto_delete_worker(queue_name)
       worker.received_messages = []
 
@@ -47,69 +102,17 @@ RSpec.describe 'Visibility Timeout Integration' do
 
       poll_queues_until { worker.received_messages.size >= 1 }
 
-      expect(worker.received_messages.size).to eq 1
+      assert_equal(1, worker.received_messages.size)
 
       # Wait and verify message is not redelivered
       sleep 6
 
       poll_queues_briefly
 
-      expect(worker.received_messages.size).to eq 1
+      assert_equal(1, worker.received_messages.size)
+    ensure
+      delete_test_queue(queue_name)
+      teardown_localstack
     end
-  end
-
-  private
-
-  def create_slow_worker(queue, processing_time:)
-    worker_class = Class.new do
-      include Shoryuken::Worker
-
-      class << self
-        attr_accessor :received_messages, :visibility_extended
-      end
-
-      def perform(sqs_msg, body)
-        # Extend visibility before long processing
-        sqs_msg.change_visibility(visibility_timeout: 30)
-        self.class.visibility_extended = true
-
-        sleep 2 # Simulate slow processing
-
-        self.class.received_messages ||= []
-        self.class.received_messages << body
-      end
-    end
-
-    # Set options before registering to avoid default queue conflicts
-    worker_class.get_shoryuken_options['queue'] = queue
-    worker_class.get_shoryuken_options['auto_delete'] = true
-    worker_class.get_shoryuken_options['batch'] = false
-    worker_class.received_messages = []
-    worker_class.visibility_extended = false
-    Shoryuken.register_worker(queue, worker_class)
-    worker_class
-  end
-
-  def create_auto_delete_worker(queue)
-    worker_class = Class.new do
-      include Shoryuken::Worker
-
-      class << self
-        attr_accessor :received_messages
-      end
-
-      def perform(sqs_msg, body)
-        self.class.received_messages ||= []
-        self.class.received_messages << body
-      end
-    end
-
-    # Set options before registering to avoid default queue conflicts
-    worker_class.get_shoryuken_options['queue'] = queue
-    worker_class.get_shoryuken_options['auto_delete'] = true
-    worker_class.get_shoryuken_options['batch'] = false
-    worker_class.received_messages = []
-    Shoryuken.register_worker(queue, worker_class)
-    worker_class
   end
 end

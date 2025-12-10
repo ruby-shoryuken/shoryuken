@@ -4,13 +4,8 @@
 # ActiveJob adapter integration tests for Rails 7.2
 # Tests basic ActiveJob functionality with Shoryuken adapter
 
-begin
-  require 'active_job'
-  require 'shoryuken'
-rescue LoadError => e
-  puts "Failed to load dependencies: #{e.message}"
-  exit 1
-end
+require 'active_job'
+require 'shoryuken'
 
 ActiveJob::Base.queue_adapter = :shoryuken
 

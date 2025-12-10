@@ -1,93 +1,105 @@
+#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests the Launcher's ability to consume messages from SQS queues,
 # including single message consumption, batch consumption, and command workers.
 
-RSpec.describe Shoryuken::Launcher do
-  include_context 'localstack'
+require 'shoryuken'
 
-  describe 'Consuming messages' do
-    before do
-      StandardWorker.received_messages = 0
+class StandardWorker
+  include Shoryuken::Worker
 
-      queue = "shoryuken-travis-#{StandardWorker}-#{SecureRandom.uuid}"
+  @@received_messages = 0
 
-      create_test_queue(queue)
+  shoryuken_options auto_delete: true
 
-      Shoryuken.add_group('default', 1)
-      Shoryuken.add_queue(queue, 1, 'default')
+  def perform(sqs_msg, _body)
+    @@received_messages += Array(sqs_msg).size
+  end
 
-      StandardWorker.get_shoryuken_options['queue'] = queue
+  def self.received_messages
+    @@received_messages
+  end
 
-      Shoryuken.register_worker(queue, StandardWorker)
-    end
+  def self.received_messages=(received_messages)
+    @@received_messages = received_messages
+  end
+end
 
-    after do
-      delete_test_queue(StandardWorker.get_shoryuken_options['queue'])
-    end
+run_test_suite "Launcher Message Consumption" do
+  run_test "consumes as a command worker" do
+    setup_localstack
+    reset_shoryuken
 
-    it 'consumes as a command worker' do
+    StandardWorker.received_messages = 0
+    queue = "shoryuken-travis-#{StandardWorker}-#{SecureRandom.uuid}"
+
+    create_test_queue(queue)
+    Shoryuken.add_group('default', 1)
+    Shoryuken.add_queue(queue, 1, 'default')
+    StandardWorker.get_shoryuken_options['queue'] = queue
+    Shoryuken.register_worker(queue, StandardWorker)
+
+    begin
       StandardWorker.perform_async('Yo')
-
-      poll_queues { StandardWorker.received_messages > 0 }
-
-      expect(StandardWorker.received_messages).to eq 1
+      poll_queues_until { StandardWorker.received_messages > 0 }
+      assert_equal(1, StandardWorker.received_messages)
+    ensure
+      delete_test_queue(queue)
+      teardown_localstack
     end
+  end
 
-    it 'consumes a message' do
-      StandardWorker.get_shoryuken_options['batch'] = false
+  run_test "consumes a single message" do
+    setup_localstack
+    reset_shoryuken
 
-      Shoryuken::Client.queues(StandardWorker.get_shoryuken_options['queue']).send_message(message_body: 'Yo')
+    StandardWorker.received_messages = 0
+    queue = "shoryuken-travis-#{StandardWorker}-#{SecureRandom.uuid}"
 
-      poll_queues { StandardWorker.received_messages > 0 }
+    create_test_queue(queue)
+    Shoryuken.add_group('default', 1)
+    Shoryuken.add_queue(queue, 1, 'default')
+    StandardWorker.get_shoryuken_options['queue'] = queue
+    StandardWorker.get_shoryuken_options['batch'] = false
+    Shoryuken.register_worker(queue, StandardWorker)
 
-      expect(StandardWorker.received_messages).to eq 1
+    begin
+      Shoryuken::Client.queues(queue).send_message(message_body: 'Yo')
+      poll_queues_until { StandardWorker.received_messages > 0 }
+      assert_equal(1, StandardWorker.received_messages)
+    ensure
+      delete_test_queue(queue)
+      teardown_localstack
     end
+  end
 
-    it 'consumes a batch' do
-      StandardWorker.get_shoryuken_options['batch'] = true
+  run_test "consumes a batch" do
+    setup_localstack
+    reset_shoryuken
 
+    StandardWorker.received_messages = 0
+    queue = "shoryuken-travis-#{StandardWorker}-#{SecureRandom.uuid}"
+
+    create_test_queue(queue)
+    Shoryuken.add_group('default', 1)
+    Shoryuken.add_queue(queue, 1, 'default')
+    StandardWorker.get_shoryuken_options['queue'] = queue
+    StandardWorker.get_shoryuken_options['batch'] = true
+    Shoryuken.register_worker(queue, StandardWorker)
+
+    begin
       entries = 10.times.map { |i| { id: SecureRandom.uuid, message_body: i.to_s } }
-
-      Shoryuken::Client.queues(StandardWorker.get_shoryuken_options['queue']).send_messages(entries: entries)
+      Shoryuken::Client.queues(queue).send_messages(entries: entries)
 
       # Give the messages a chance to hit the queue so they are all available at the same time
       sleep 2
 
-      poll_queues { StandardWorker.received_messages > 0 }
-
-      expect(StandardWorker.received_messages).to be > 1
-    end
-
-    # Local poll method using subject (the Launcher)
-    def poll_queues
-      subject.start
-
-      Timeout.timeout(10) do
-        sleep 0.5 until yield
-      end
+      poll_queues_until { StandardWorker.received_messages > 0 }
+      assert(StandardWorker.received_messages > 1, "Expected more than 1 message in batch, got #{StandardWorker.received_messages}")
     ensure
-      subject.stop
-    end
-
-    class StandardWorker
-      include Shoryuken::Worker
-
-      @@received_messages = 0
-
-      shoryuken_options auto_delete: true
-
-      def perform(sqs_msg, _body)
-        @@received_messages += Array(sqs_msg).size
-      end
-
-      def self.received_messages
-        @@received_messages
-      end
-
-      def self.received_messages=(received_messages)
-        @@received_messages = received_messages
-      end
+      delete_test_queue(queue)
+      teardown_localstack
     end
   end
 end

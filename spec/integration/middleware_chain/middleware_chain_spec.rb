@@ -4,12 +4,7 @@
 # Middleware chain integration tests
 # Tests middleware execution order, exception handling, and customization
 
-begin
-  require 'shoryuken'
-rescue LoadError => e
-  puts "Failed to load dependencies: #{e.message}"
-  exit 1
-end
+require 'shoryuken'
 
 # Track middleware execution order
 $middleware_execution_order = []

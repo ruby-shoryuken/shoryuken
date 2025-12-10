@@ -4,14 +4,9 @@
 # ActiveJob Continuations integration tests for Rails 8.1+
 # Tests the stopping? method and continuation timestamp handling
 
-begin
-  require 'securerandom'
-  require 'active_job'
-  require 'shoryuken'
-rescue LoadError => e
-  puts "Failed to load dependencies: #{e.message}"
-  exit 1
-end
+require 'securerandom'
+require 'active_job'
+require 'shoryuken'
 
 # Skip if ActiveJob::Continuable is not available (Rails < 8.0)
 unless defined?(ActiveJob::Continuable)

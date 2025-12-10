@@ -1,15 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-begin
-  require 'active_job'
-  require 'shoryuken'
-  require 'digest'
-  require 'json'
-rescue LoadError => e
-  puts "Failed to load dependencies: #{e.message}"
-  exit 1
-end
+require 'active_job'
+require 'shoryuken'
+require 'digest'
+require 'json'
 
 ActiveJob::Base.queue_adapter = :shoryuken
 
