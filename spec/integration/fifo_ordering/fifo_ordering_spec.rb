@@ -1,10 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests FIFO queue ordering guarantees including message ordering
 # within the same message group.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

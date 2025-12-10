@@ -1,9 +1,7 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests concurrent message processing with multiple processors.
 
-require 'shoryuken'
 require 'concurrent'
 
 setup_localstack

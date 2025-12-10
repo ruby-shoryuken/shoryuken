@@ -1,9 +1,7 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests large payload handling including payloads near the 256KB SQS limit.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

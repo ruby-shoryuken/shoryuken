@@ -1,11 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests error handling including retry configuration,
 # discard configuration, and job processing through JobWrapper.
 
-require 'active_job'
-require 'shoryuken'
 
 ActiveJob::Base.queue_adapter = :shoryuken
 

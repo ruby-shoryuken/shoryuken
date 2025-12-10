@@ -1,13 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # Scheduled ActiveJob integration test
 # Tests jobs scheduled with set(wait:) are delivered after the delay
 
-require 'shoryuken'
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
 
 setup_localstack
 reset_shoryuken

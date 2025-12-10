@@ -1,10 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests visibility timeout management including manual visibility
 # extension during long processing.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

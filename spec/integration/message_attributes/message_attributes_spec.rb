@@ -1,11 +1,9 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests SQS message attributes including String, Number, and Binary
 # attribute types, system attributes (ApproximateReceiveCount, SentTimestamp),
 # and custom type suffixes.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

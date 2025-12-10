@@ -1,11 +1,9 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests batch processing including batch message reception (up to 10
 # messages), batch vs single worker behavior differences, JSON body parsing in
 # batch mode, and maximum batch size handling.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

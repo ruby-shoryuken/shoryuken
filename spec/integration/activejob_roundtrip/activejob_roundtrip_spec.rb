@@ -1,13 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # Full round-trip ActiveJob integration test
 # Enqueues a job via ActiveJob → sends to LocalStack SQS → processes via Shoryuken → verifies execution
 
-require 'shoryuken'
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
 
 setup_localstack
 reset_shoryuken

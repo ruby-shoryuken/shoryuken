@@ -1,9 +1,7 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests worker lifecycle including worker registration and discovery.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

@@ -1,12 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # ActiveJob Continuations integration tests for Rails 8.0+
 # Tests the stopping? method and continuation timestamp handling
 
-require 'securerandom'
-require 'active_job'
-require 'shoryuken'
 
 # Skip if ActiveJob::Continuable is not available (Rails < 8.0)
 unless defined?(ActiveJob::Continuable)

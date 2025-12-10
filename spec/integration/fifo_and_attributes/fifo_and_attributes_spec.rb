@@ -1,11 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests FIFO queue support including message deduplication ID generation
 # and message attributes handling.
 
-require 'active_job'
-require 'shoryuken'
 require 'digest'
 require 'json'
 

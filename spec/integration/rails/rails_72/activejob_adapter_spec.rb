@@ -1,10 +1,7 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # ActiveJob adapter integration tests for Rails 7.2
 
-require 'active_job'
-require 'shoryuken'
 
 ActiveJob::Base.queue_adapter = :shoryuken
 

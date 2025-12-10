@@ -1,10 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests the Launcher's ability to consume messages from SQS queues,
 # including single message consumption, batch consumption, and command workers.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

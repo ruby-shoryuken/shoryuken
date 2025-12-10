@@ -1,10 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests polling strategies including WeightedRoundRobin (default)
 # with multi-queue worker message distribution.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

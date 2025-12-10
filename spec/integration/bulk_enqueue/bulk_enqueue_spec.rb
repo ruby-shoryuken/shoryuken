@@ -1,13 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # Bulk enqueue integration test
 # Tests perform_all_later with the new enqueue_all method using SQS batch API
 
-require 'shoryuken'
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
 
 setup_localstack
 reset_shoryuken

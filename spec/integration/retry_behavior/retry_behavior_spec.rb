@@ -1,10 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests retry behavior including ApproximateReceiveCount tracking
 # across message redeliveries.
 
-require 'shoryuken'
 
 setup_localstack
 reset_shoryuken

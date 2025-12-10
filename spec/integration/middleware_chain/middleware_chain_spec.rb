@@ -1,10 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # Middleware chain integration tests
 # Tests middleware execution order and chain management
 
-require 'shoryuken'
 
 # Track middleware execution order
 $middleware_execution_order = []

@@ -1,11 +1,8 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # This spec tests ActiveJob adapter configuration including adapter type,
 # Rails 7.2+ transaction commit hook, and singleton pattern.
 
-require 'active_job'
-require 'shoryuken'
 
 ActiveJob::Base.queue_adapter = :shoryuken
 
