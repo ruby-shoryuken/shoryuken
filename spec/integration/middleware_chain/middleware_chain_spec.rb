@@ -6,9 +6,9 @@
 # Helper to create middleware that tracks execution to a specific DT key
 def create_middleware(name, key)
   Class.new do
-    define_method(:call) do |worker, queue, sqs_msg, body|
+    define_method(:call) do |worker, queue, sqs_msg, body, &block|
       DT[key] << :"#{name}_before"
-      yield
+      block.call
       DT[key] << :"#{name}_after"
     end
   end
@@ -17,9 +17,9 @@ end
 # Middleware that doesn't yield (short-circuits)
 def create_short_circuit_middleware(key)
   Class.new do
-    define_method(:call) do |worker, queue, sqs_msg, body|
+    define_method(:call) do |worker, queue, sqs_msg, body, &block|
       DT[key] << :short_circuit
-      # Does not yield - stops chain execution
+      # Does not call block - stops chain execution
     end
   end
 end
