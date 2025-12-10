@@ -64,4 +64,3 @@ assert_equal(3, worker_class.messages_by_queue.keys.size)
 assert_equal(3, worker_class.total_messages)
 
 [queue_high, queue_medium, queue_low].each { |q| delete_test_queue(q) }
-teardown_localstack

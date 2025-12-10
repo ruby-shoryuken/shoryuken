@@ -57,4 +57,3 @@ expected = (0..4).map { |i| "msg-#{i}" }
 assert_equal(expected, worker_class.received_messages)
 
 delete_test_queue(queue_name)
-teardown_localstack

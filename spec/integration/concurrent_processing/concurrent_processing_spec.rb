@@ -54,4 +54,3 @@ assert_equal(10, worker_class.processing_times.size)
 assert(worker_class.max_concurrent.value > 1, "Expected concurrency > 1, got #{worker_class.max_concurrent.value}")
 
 delete_test_queue(queue_name)
-teardown_localstack

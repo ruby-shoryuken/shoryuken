@@ -42,4 +42,3 @@ poll_queues_until { worker_class.received_bodies.size >= 1 }
 assert_equal(250 * 1024, worker_class.received_bodies.first.size)
 
 delete_test_queue(queue_name)
-teardown_localstack

@@ -54,4 +54,3 @@ assert_equal(worker_class.receive_counts, worker_class.receive_counts.sort, "Rec
 assert_equal(1, worker_class.receive_counts.first)
 
 delete_test_queue(queue_name)
-teardown_localstack

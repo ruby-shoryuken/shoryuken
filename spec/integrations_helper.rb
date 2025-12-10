@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 # Integration test helper for process-isolated testing
-# This file provides common utilities for integration tests without RSpec overhead
 
 require 'timeout'
 require 'json'
@@ -9,10 +8,9 @@ require 'securerandom'
 require 'aws-sdk-sqs'
 
 module IntegrationsHelper
-  # Test utilities
   class TestFailure < StandardError; end
 
-  # Simple assertion methods
+  # Assertions
   def assert(condition, message = "Assertion failed")
     raise TestFailure, message unless condition
   end
@@ -27,55 +25,15 @@ module IntegrationsHelper
     assert(collection.include?(item), message)
   end
 
-  def assert_raises(exception_class, message = nil)
-    begin
-      yield
-      raise TestFailure, message || "Expected #{exception_class} to be raised, but nothing was raised"
-    rescue exception_class
-      # Expected exception was raised
-    end
-  end
-
   def refute(condition, message = "Refutation failed")
     assert(!condition, message)
   end
 
-  # Mock SQS for testing
-  def setup_mock_sqs
-    # Configure AWS SDK to use stubbed responses
-    Aws.config.update(
-      stub_responses: true,
-      region: 'us-east-1',
-      access_key_id: 'test',
-      secret_access_key: 'test'
-    )
-
-    # Create mock SQS client
-    sqs = Aws::SQS::Client.new
-    allow_sqs_operations(sqs)
-    sqs
-  end
-
-  def allow_sqs_operations(sqs)
-    # Mock common SQS operations
-    sqs.stub_responses(:send_message, message_id: 'test-message-id')
-    sqs.stub_responses(:send_message_batch, { successful: [], failed: [] })
-    sqs.stub_responses(:get_queue_url, queue_url: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue')
-    sqs.stub_responses(:get_queue_attributes, attributes: { 'FifoQueue' => 'false' })
-  end
-
-  # Reset Shoryuken state between tests
+  # Reset Shoryuken state
   def reset_shoryuken
-    # Only reset if Shoryuken is fully loaded
-    if defined?(Shoryuken) && Shoryuken.respond_to?(:groups)
-      Shoryuken.groups.clear
-    end
+    Shoryuken.groups.clear if defined?(Shoryuken) && Shoryuken.respond_to?(:groups)
+    Shoryuken.worker_registry.clear if defined?(Shoryuken) && Shoryuken.respond_to?(:worker_registry)
 
-    if defined?(Shoryuken) && Shoryuken.respond_to?(:worker_registry)
-      Shoryuken.worker_registry.clear
-    end
-
-    # Reset configuration if available
     if defined?(Shoryuken) && Shoryuken.respond_to?(:options)
       Shoryuken.options[:concurrency] = 25
       Shoryuken.options[:delay] = 0
@@ -83,52 +41,35 @@ module IntegrationsHelper
     end
   end
 
-  # LocalStack support for standalone integration tests
+  # LocalStack setup
   def setup_localstack
     Aws.config[:stub_responses] = false
 
-    @sqs_client = Aws::SQS::Client.new(
+    sqs_client = Aws::SQS::Client.new(
       region: 'us-east-1',
       endpoint: 'http://localhost:4566',
       access_key_id: 'fake',
       secret_access_key: 'fake'
     )
 
-    @executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+    executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+    Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
-    # Mock launcher_executor to use our executor
-    Shoryuken.define_singleton_method(:launcher_executor) { @executor }
-
-    Shoryuken.configure_client do |config|
-      config.sqs_client = @sqs_client
-    end
-
-    Shoryuken.configure_server do |config|
-      config.sqs_client = @sqs_client
-    end
+    Shoryuken.configure_client { |config| config.sqs_client = sqs_client }
+    Shoryuken.configure_server { |config| config.sqs_client = sqs_client }
   end
 
-  def teardown_localstack
-    Aws.config[:stub_responses] = true
-  end
-
-  # Create a test queue in LocalStack
+  # Queue helpers
   def create_test_queue(queue_name, attributes: {})
-    Shoryuken::Client.sqs.create_queue(
-      queue_name: queue_name,
-      attributes: attributes
-    )
+    Shoryuken::Client.sqs.create_queue(queue_name: queue_name, attributes: attributes)
   end
 
-  # Delete a test queue safely
   def delete_test_queue(queue_name)
     queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
     Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
   rescue Aws::SQS::Errors::NonExistentQueue
-    # Queue already deleted
   end
 
-  # Create a FIFO queue in LocalStack
   def create_fifo_queue(queue_name)
     create_test_queue(queue_name, attributes: {
       'FifoQueue' => 'true',
@@ -136,82 +77,49 @@ module IntegrationsHelper
     })
   end
 
-  # Poll queues until a condition is met
+  # Poll until condition met
   def poll_queues_until(timeout: 15)
     launcher = Shoryuken::Launcher.new
     launcher.start
-
-    Timeout.timeout(timeout) do
-      sleep 0.5 until yield
-    end
+    Timeout.timeout(timeout) { sleep 0.5 until yield }
   ensure
     launcher.stop
   end
 
-  # Poll queues briefly without condition
-  def poll_queues_briefly(duration: 3)
-    launcher = Shoryuken::Launcher.new
-    launcher.start
-    sleep duration
-  ensure
-    launcher.stop
+  # Simple mock object
+  def double(_name = nil)
+    Object.new
   end
 
-  # Setup ActiveJob with Shoryuken
-  def setup_activejob
-    require 'active_job'
-    require 'active_job/queue_adapters/shoryuken_adapter'
-    require 'active_job/extensions'
-
-    ActiveJob::Base.queue_adapter = :shoryuken
-
-    # Reset ActiveJob state
-    ActiveJob::Base.logger = Logger.new('/dev/null') if ActiveJob::Base.respond_to?(:logger=)
-  end
-
-  # Capture enqueued jobs
+  # Job capture for ActiveJob tests
   class JobCapture
     attr_reader :jobs
 
     def initialize
       @jobs = []
-      @original_send_message = nil
     end
 
     def start_capturing
       @jobs.clear
-      capture_instance = self
+      capture = self
 
-      # Create a simple queue mock
       queue_mock = Object.new
       queue_mock.define_singleton_method(:fifo?) { false }
       queue_mock.define_singleton_method(:send_message) do |params|
-        capture_instance.instance_variable_get(:@jobs) << {
+        capture.jobs << {
           queue: params[:queue_name] || :default,
           message_body: params[:message_body],
           delay_seconds: params[:delay_seconds],
-          message_attributes: params[:message_attributes],
-          message_group_id: params[:message_group_id],
-          message_deduplication_id: params[:message_deduplication_id]
+          message_attributes: params[:message_attributes]
         }
       end
 
-      # Mock Shoryuken::Client.queues
       Shoryuken::Client.define_singleton_method(:queues) do |queue_name = nil|
-        if queue_name
-          queue_mock.define_singleton_method(:name) { queue_name }
-          queue_mock
-        else
-          { default: queue_mock }
-        end
+        queue_mock.define_singleton_method(:name) { queue_name } if queue_name
+        queue_name ? queue_mock : { default: queue_mock }
       end
 
-      # Mock register_worker
-      Shoryuken.define_singleton_method(:register_worker) { |*args| nil }
-    end
-
-    def stop_capturing
-      @jobs = []
+      Shoryuken.define_singleton_method(:register_worker) { |*| nil }
     end
 
     def last_job
@@ -221,69 +129,7 @@ module IntegrationsHelper
     def job_count
       @jobs.size
     end
-
-    def jobs_for_queue(queue_name)
-      @jobs.select { |job| job[:queue] == queue_name }
-    end
-  end
-
-  # Mock helpers
-  def allow(target)
-    MockExpectation.new(target)
-  end
-
-  def double(name)
-    MockDouble.new(name)
-  end
-
-  class MockExpectation
-    def initialize(target)
-      @target = target
-    end
-
-    def to(matcher)
-      if matcher.is_a?(MockMatcher)
-        matcher.apply_to(@target)
-      end
-    end
-  end
-
-  class MockMatcher
-    def initialize(method_name)
-      @method_name = method_name
-    end
-
-    def apply_to(target)
-      # Simple mock implementation
-      target.define_singleton_method(@method_name) do |*args, &block|
-        block&.call(*args)
-      end
-    end
-  end
-
-  class MockDouble
-    def initialize(name)
-      @name = name
-    end
-
-    def method_missing(method_name, *args, &block)
-      # Return self to allow method chaining
-      if block_given?
-        instance_eval(&block)
-      else
-        self
-      end
-    end
-
-    def respond_to_missing?(method_name, include_private = false)
-      true
-    end
-  end
-
-  def receive(method_name)
-    MockMatcher.new(method_name)
   end
 end
 
-# Global test context
 include IntegrationsHelper

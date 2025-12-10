@@ -50,4 +50,3 @@ poll_queues_until { StandardWorker.received_messages > 0 }
 assert(StandardWorker.received_messages > 1, "Expected more than 1 message in batch, got #{StandardWorker.received_messages}")
 
 delete_test_queue(queue)
-teardown_localstack

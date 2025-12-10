@@ -51,4 +51,3 @@ assert_equal(5, worker_class.received_messages.size)
 assert(worker_class.batch_sizes.any? { |size| size > 1 }, "Expected at least one batch with size > 1")
 
 delete_test_queue(queue_name)
-teardown_localstack

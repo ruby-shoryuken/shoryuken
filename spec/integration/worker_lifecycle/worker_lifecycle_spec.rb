@@ -46,4 +46,3 @@ assert_equal(1, worker_class.received_messages.size)
 assert_equal('lifecycle-test', worker_class.received_messages.first)
 
 delete_test_queue(queue_name)
-teardown_localstack

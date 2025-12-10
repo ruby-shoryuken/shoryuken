@@ -49,4 +49,3 @@ assert_equal(1, worker_class.received_messages.size)
 assert(worker_class.visibility_extended, "Expected visibility to be extended")
 
 delete_test_queue(queue_name)
-teardown_localstack
