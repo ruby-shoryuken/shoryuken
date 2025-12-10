@@ -7,9 +7,6 @@ require 'json'
 require 'securerandom'
 require 'aws-sdk-sqs'
 require 'shoryuken'
-require 'active_job'
-require 'active_job/queue_adapters/shoryuken_adapter'
-require 'active_job/extensions'
 
 module IntegrationsHelper
   class TestFailure < StandardError; end

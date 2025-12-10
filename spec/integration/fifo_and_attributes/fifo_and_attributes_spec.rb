@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'active_job'
+require 'active_job/queue_adapters/shoryuken_adapter'
+
 # This spec tests FIFO queue support including message deduplication ID generation
 # and message attributes handling.
 

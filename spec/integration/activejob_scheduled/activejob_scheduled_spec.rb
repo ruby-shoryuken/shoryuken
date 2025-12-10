@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'active_job'
+require 'active_job/queue_adapters/shoryuken_adapter'
+
 # Scheduled ActiveJob integration test
 # Tests jobs scheduled with set(wait:) are delivered after the delay
 

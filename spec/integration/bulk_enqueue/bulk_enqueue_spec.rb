@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'active_job'
+require 'active_job/queue_adapters/shoryuken_adapter'
+
 # Bulk enqueue integration test
 # Tests perform_all_later with the new enqueue_all method using SQS batch API
 

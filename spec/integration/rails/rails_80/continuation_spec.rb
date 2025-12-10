@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'active_job'
+require 'active_job/queue_adapters/shoryuken_adapter'
+
 # ActiveJob Continuations integration tests for Rails 8.0+
 # Tests the stopping? method and continuation timestamp handling
 

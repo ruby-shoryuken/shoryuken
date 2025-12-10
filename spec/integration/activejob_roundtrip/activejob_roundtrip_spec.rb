@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'active_job'
+require 'active_job/queue_adapters/shoryuken_adapter'
+
 # Full round-trip ActiveJob integration test
 # Enqueues a job via ActiveJob → sends to LocalStack SQS → processes via Shoryuken → verifies execution
 
