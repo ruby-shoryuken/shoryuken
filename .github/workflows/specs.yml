@@ -3,12 +3,29 @@ on:
   - push
   - pull_request
 jobs:
-  all_specs:
-    name: All Specs
+  specs:
+    name: Specs
     strategy:
       matrix:
         ruby: ['3.2', '3.3', '3.4']
-        gemfile: ['Gemfile']
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Run specs
+        run: bundle exec rake spec
+
+  integrations:
+    name: Integrations
+    strategy:
+      matrix:
+        ruby: ['3.2', '3.3', '3.4']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -31,22 +48,16 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
 
-      - name: Run specs
-        run: bundle exec rake spec
-        env:
-          BUNDLE_GEMFILE: ${{ matrix.gemfile }}
-
       - name: Run integration specs
         run: bundle exec rake spec:integration
-        env:
-          BUNDLE_GEMFILE: ${{ matrix.gemfile }}
 
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
     needs:
-      - all_specs
+      - specs
+      - integrations
     steps:
       - name: Check all jobs passed
         if: |
