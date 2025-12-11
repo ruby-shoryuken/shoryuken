@@ -18,7 +18,7 @@ module Shoryuken
       #
       # @return [String] Formatted context string or empty string if no context
       def context
-        c = Thread.current[:shoryuken_context]
+        c = Shoryuken::Logging.current_context
         c ? " #{c}" : ''
       end
     end

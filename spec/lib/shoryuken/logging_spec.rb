@@ -24,13 +24,17 @@ RSpec.describe Shoryuken::Logging do
     end
 
     describe '#context' do
+      after do
+        Shoryuken::Logging.context_storage[:shoryuken_context] = nil
+      end
+
       it 'returns empty string when no context is set' do
-        Thread.current[:shoryuken_context] = nil
+        Shoryuken::Logging.context_storage[:shoryuken_context] = nil
         expect(formatter.context).to eq('')
       end
 
       it 'returns formatted context when context is set' do
-        Thread.current[:shoryuken_context] = 'test_context'
+        Shoryuken::Logging.context_storage[:shoryuken_context] = 'test_context'
         expect(formatter.context).to eq(' test_context')
       end
     end
@@ -41,9 +45,13 @@ RSpec.describe Shoryuken::Logging do
     let(:time) { Time.new(2023, 8, 15, 10, 30, 45, '+00:00') }
 
     describe '#call' do
+      after do
+        Shoryuken::Logging.context_storage[:shoryuken_context] = nil
+      end
+
       it 'formats log messages with timestamp' do
         allow(formatter).to receive(:tid).and_return('abc123')
-        Thread.current[:shoryuken_context] = nil
+        Shoryuken::Logging.context_storage[:shoryuken_context] = nil
 
         result = formatter.call('INFO', time, 'program', 'test message')
         expect(result).to eq("2023-08-15T10:30:45Z #{Process.pid} TID-abc123 INFO: test message\n")
@@ -51,7 +59,7 @@ RSpec.describe Shoryuken::Logging do
 
       it 'includes context when present' do
         allow(formatter).to receive(:tid).and_return('abc123')
-        Thread.current[:shoryuken_context] = 'worker-1'
+        Shoryuken::Logging.context_storage[:shoryuken_context] = 'worker-1'
 
         result = formatter.call('ERROR', time, 'program', 'error message')
         expect(result).to eq("2023-08-15T10:30:45Z #{Process.pid} TID-abc123 worker-1 ERROR: error message\n")
@@ -63,9 +71,13 @@ RSpec.describe Shoryuken::Logging do
     let(:formatter) { described_class.new }
 
     describe '#call' do
+      after do
+        Shoryuken::Logging.context_storage[:shoryuken_context] = nil
+      end
+
       it 'formats log messages without timestamp' do
         allow(formatter).to receive(:tid).and_return('xyz789')
-        Thread.current[:shoryuken_context] = nil
+        Shoryuken::Logging.context_storage[:shoryuken_context] = nil
 
         result = formatter.call('DEBUG', Time.now, 'program', 'debug message')
         expect(result).to eq("pid=#{Process.pid} tid=xyz789 DEBUG: debug message\n")
@@ -73,7 +85,7 @@ RSpec.describe Shoryuken::Logging do
 
       it 'includes context when present' do
         allow(formatter).to receive(:tid).and_return('xyz789')
-        Thread.current[:shoryuken_context] = 'queue-processor'
+        Shoryuken::Logging.context_storage[:shoryuken_context] = 'queue-processor'
 
         result = formatter.call('WARN', Time.now, 'program', 'warning message')
         expect(result).to eq("pid=#{Process.pid} tid=xyz789 queue-processor WARN: warning message\n")
@@ -82,9 +94,13 @@ RSpec.describe Shoryuken::Logging do
   end
 
   describe '.with_context' do
+    after do
+      described_class.context_storage[:shoryuken_context] = nil
+    end
+
     it 'sets context for the duration of the block' do
       described_class.with_context('test_context') do
-        expect(Thread.current[:shoryuken_context]).to eq('test_context')
+        expect(described_class.current_context).to eq('test_context')
       end
     end
 
@@ -92,7 +108,7 @@ RSpec.describe Shoryuken::Logging do
       described_class.with_context('test_context') do
         # context is set
       end
-      expect(Thread.current[:shoryuken_context]).to be_nil
+      expect(described_class.current_context).to be_nil
     end
 
     it 'clears context even when an exception is raised' do
@@ -102,7 +118,7 @@ RSpec.describe Shoryuken::Logging do
         end
       end.to raise_error(StandardError, 'test error')
 
-      expect(Thread.current[:shoryuken_context]).to be_nil
+      expect(described_class.current_context).to be_nil
     end
 
     it 'returns the value of the block' do
@@ -110,6 +126,56 @@ RSpec.describe Shoryuken::Logging do
         'block_result'
       end
       expect(result).to eq('block_result')
+    end
+
+    it 'preserves outer context in nested calls' do
+      described_class.with_context('outer') do
+        expect(described_class.current_context).to eq('outer')
+
+        described_class.with_context('inner') do
+          expect(described_class.current_context).to eq('inner')
+        end
+
+        expect(described_class.current_context).to eq('outer')
+      end
+      expect(described_class.current_context).to be_nil
+    end
+
+    it 'restores outer context even when inner block raises' do
+      described_class.with_context('outer') do
+        expect do
+          described_class.with_context('inner') do
+            raise StandardError, 'inner error'
+          end
+        end.to raise_error(StandardError, 'inner error')
+
+        expect(described_class.current_context).to eq('outer')
+      end
+    end
+  end
+
+  describe '.current_context' do
+    after do
+      described_class.context_storage[:shoryuken_context] = nil
+    end
+
+    it 'returns nil when no context is set' do
+      expect(described_class.current_context).to be_nil
+    end
+
+    it 'returns the current context value' do
+      described_class.context_storage[:shoryuken_context] = 'test_value'
+      expect(described_class.current_context).to eq('test_value')
+    end
+  end
+
+  describe '.context_storage' do
+    it 'returns Fiber on Ruby 3.2+' do
+      if Fiber.respond_to?(:[])
+        expect(described_class.context_storage).to eq(Fiber)
+      else
+        expect(described_class.context_storage).to eq(Thread.current)
+      end
     end
   end
 

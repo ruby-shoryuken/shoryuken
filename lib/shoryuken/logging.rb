@@ -8,18 +8,42 @@ require_relative 'logging/without_timestamp'
 
 module Shoryuken
   # Provides logging functionality for Shoryuken.
-  # Manages the global logger instance and thread-local context.
+  # Manages the global logger instance and fiber-local context.
   module Logging
-    # Executes a block with a thread-local logging context
+    # Executes a block with a fiber-local logging context.
+    # Uses Fiber storage (Ruby 3.2+) for proper isolation in async environments,
+    # falling back to Thread-local storage for older Ruby versions.
     #
     # @param msg [String] the context message to set
     # @yield the block to execute within the context
     # @return [Object] the result of the block
     def self.with_context(msg)
-      Thread.current[:shoryuken_context] = msg
+      previous = context_storage[:shoryuken_context]
+      context_storage[:shoryuken_context] = msg
       yield
     ensure
-      Thread.current[:shoryuken_context] = nil
+      context_storage[:shoryuken_context] = previous
+    end
+
+    # Returns the current logging context value
+    #
+    # @return [String, nil] the current context or nil if not set
+    def self.current_context
+      context_storage[:shoryuken_context]
+    end
+
+    # Returns the appropriate storage for fiber/thread-local context.
+    # Uses Fiber storage on Ruby 3.2+ for proper async isolation,
+    # falls back to Thread.current for older versions.
+    #
+    # @return [Fiber, Thread] the storage object
+    def self.context_storage
+      # Ruby 3.2+ has Fiber[] and Fiber[]= for fiber-local storage
+      if Fiber.respond_to?(:[])
+        Fiber
+      else
+        Thread.current
+      end
     end
 
     # Initializes a new logger instance
