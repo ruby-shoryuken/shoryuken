@@ -58,9 +58,9 @@ RSpec.describe Shoryuken::Processor do
         expect(events.first.duration).to be_a(Float)
       end
 
-      it 'publishes message.failed event on error' do
+      it 'includes exception info in message.processed event on error (ActiveSupport-compatible)' do
         events = []
-        Shoryuken.monitor.subscribe('message.failed') { |e| events << e }
+        Shoryuken.monitor.subscribe('message.processed') { |e| events << e }
 
         allow_any_instance_of(TestWorker).to receive(:perform).and_raise(StandardError, 'test error')
 
@@ -69,8 +69,25 @@ RSpec.describe Shoryuken::Processor do
         expect(events.size).to eq(1)
         expect(events.first[:queue]).to eq(queue)
         expect(events.first[:message_id]).to eq(sqs_msg.message_id)
-        expect(events.first[:error]).to be_a(StandardError)
-        expect(events.first[:error].message).to eq('test error')
+        expect(events.first[:exception]).to eq(['StandardError', 'test error'])
+        expect(events.first[:exception_object]).to be_a(StandardError)
+        expect(events.first[:exception_object].message).to eq('test error')
+      end
+
+      it 'publishes error.occurred event on error (Karafka-style)' do
+        error_events = []
+        Shoryuken.monitor.subscribe('error.occurred') { |e| error_events << e }
+
+        allow_any_instance_of(TestWorker).to receive(:perform).and_raise(StandardError, 'test error')
+
+        expect { subject.process }.to raise_error(StandardError, 'test error')
+
+        expect(error_events.size).to eq(1)
+        expect(error_events.first[:type]).to eq('message.processed')
+        expect(error_events.first[:queue]).to eq(queue)
+        expect(error_events.first[:error]).to be_a(StandardError)
+        expect(error_events.first[:error_class]).to eq('StandardError')
+        expect(error_events.first[:error_message]).to eq('test error')
       end
     end
 

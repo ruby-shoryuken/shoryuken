@@ -97,6 +97,150 @@ RSpec.describe Shoryuken::Instrumentation::Notifications do
       expect(events.size).to eq(1)
       expect(events.first.duration).to be_a(Float)
     end
+
+    it 'yields payload to allow modification' do
+      events = []
+      notifications.subscribe('message.processed') { |e| events << e }
+
+      notifications.instrument('message.processed', queue: 'default') do |payload|
+        payload[:custom_key] = 'custom_value'
+      end
+
+      expect(events.first[:custom_key]).to eq('custom_value')
+    end
+
+    context 'when exception occurs (ActiveSupport-compatible)' do
+      it 'adds :exception to payload with class name and message' do
+        events = []
+        notifications.subscribe('message.processed') { |e| events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            raise ArgumentError, 'invalid argument'
+          end
+        end.to raise_error(ArgumentError, 'invalid argument')
+
+        expect(events.size).to eq(1)
+        expect(events.first[:exception]).to eq(['ArgumentError', 'invalid argument'])
+      end
+
+      it 'adds :exception_object to payload' do
+        events = []
+        notifications.subscribe('message.processed') { |e| events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            raise StandardError, 'test error'
+          end
+        end.to raise_error(StandardError)
+
+        expect(events.first[:exception_object]).to be_a(StandardError)
+        expect(events.first[:exception_object].message).to eq('test error')
+      end
+
+      it 'still publishes event with duration' do
+        events = []
+        notifications.subscribe('message.processed') { |e| events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            sleep 0.01
+            raise 'error'
+          end
+        end.to raise_error(RuntimeError)
+
+        expect(events.first.duration).to be >= 0.01
+      end
+
+      it 're-raises the exception' do
+        expect do
+          notifications.instrument('message.processed') do
+            raise ArgumentError, 'test'
+          end
+        end.to raise_error(ArgumentError, 'test')
+      end
+    end
+
+    context 'when exception occurs (Karafka-style error.occurred)' do
+      it 'publishes error.occurred event with type key' do
+        error_events = []
+        notifications.subscribe('error.occurred') { |e| error_events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            raise StandardError, 'test error'
+          end
+        end.to raise_error(StandardError)
+
+        expect(error_events.size).to eq(1)
+        expect(error_events.first[:type]).to eq('message.processed')
+      end
+
+      it 'includes error object in error.occurred event' do
+        error_events = []
+        notifications.subscribe('error.occurred') { |e| error_events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            raise ArgumentError, 'invalid argument'
+          end
+        end.to raise_error(ArgumentError)
+
+        expect(error_events.first[:error]).to be_a(ArgumentError)
+        expect(error_events.first[:error].message).to eq('invalid argument')
+      end
+
+      it 'includes error_class and error_message in error.occurred event' do
+        error_events = []
+        notifications.subscribe('error.occurred') { |e| error_events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            raise RuntimeError, 'something went wrong'
+          end
+        end.to raise_error(RuntimeError)
+
+        expect(error_events.first[:error_class]).to eq('RuntimeError')
+        expect(error_events.first[:error_message]).to eq('something went wrong')
+      end
+
+      it 'includes original payload in error.occurred event' do
+        error_events = []
+        notifications.subscribe('error.occurred') { |e| error_events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default', worker: 'TestWorker') do
+            raise StandardError, 'test error'
+          end
+        end.to raise_error(StandardError)
+
+        expect(error_events.first[:queue]).to eq('default')
+        expect(error_events.first[:worker]).to eq('TestWorker')
+      end
+
+      it 'includes duration in error.occurred event' do
+        error_events = []
+        notifications.subscribe('error.occurred') { |e| error_events << e }
+
+        expect do
+          notifications.instrument('message.processed', queue: 'default') do
+            sleep 0.01
+            raise StandardError, 'test error'
+          end
+        end.to raise_error(StandardError)
+
+        expect(error_events.first[:duration]).to be >= 0.01
+      end
+
+      it 'does not publish error.occurred on success' do
+        error_events = []
+        notifications.subscribe('error.occurred') { |e| error_events << e }
+
+        notifications.instrument('message.processed', queue: 'default') { 'success' }
+
+        expect(error_events).to be_empty
+      end
+    end
   end
 
   describe '#publish' do

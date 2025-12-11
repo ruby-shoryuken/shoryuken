@@ -83,24 +83,65 @@ module Shoryuken
         end
       end
 
-      # Instruments a block of code, measuring its duration and publishing an event
+      # Instruments a block of code, measuring its duration and publishing an event.
+      # Compatible with ActiveSupport::Notifications - if an exception occurs,
+      # it adds :exception and :exception_object to the payload and re-raises.
+      #
+      # Additionally, on exception, publishes a separate 'error.occurred' event
+      # (Karafka-style) with a :type key indicating the original event name.
       #
       # @param event_name [String] the event name to publish
       # @param payload [Hash] additional data to include in the event
-      # @yield the code block to instrument
+      # @yield [payload] the code block to instrument (payload is yielded for modification)
       # @return [Object] the result of the block
       #
-      # @example
+      # @example Basic usage
       #   monitor.instrument('message.processed', queue: 'default') do
       #     worker.perform(message)
       #   end
+      #
+      # @example Checking for exceptions in subscriber
+      #   monitor.subscribe('message.processed') do |event|
+      #     if event[:exception]
+      #       # Handle error case
+      #       Sentry.capture_exception(event[:exception_object])
+      #     else
+      #       # Handle success case
+      #       StatsD.timing('process_time', event.duration)
+      #     end
+      #   end
+      #
+      # @example Subscribing to all errors (Karafka-style)
+      #   monitor.subscribe('error.occurred') do |event|
+      #     Sentry.capture_exception(event[:error], extra: { type: event[:type] })
+      #   end
       def instrument(event_name, payload = {})
         started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        result = yield if block_given?
-        duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+        exception_raised = nil
+        begin
+          result = yield payload if block_given?
+        rescue Exception => e
+          exception_raised = e
+          payload[:exception] = [e.class.name, e.message]
+          payload[:exception_object] = e
+          raise e
+        ensure
+          duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+          event = Event.new(event_name, payload.merge(duration: duration))
+          publish(event)
 
-        event = Event.new(event_name, payload.merge(duration: duration))
-        publish(event)
+          # Publish a separate error.occurred event (Karafka-style) for centralized error handling
+          if exception_raised
+            error_payload = payload.merge(
+              type: event_name,
+              error: exception_raised,
+              error_class: exception_raised.class.name,
+              error_message: exception_raised.message,
+              duration: duration
+            )
+            publish('error.occurred', error_payload)
+          end
+        end
         result
       end
 

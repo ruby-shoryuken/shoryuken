@@ -54,7 +54,8 @@ module Shoryuken
         worker_perform.call
       end
     rescue Exception => e
-      Shoryuken.monitor.publish('message.failed', message_payload.merge(error: e))
+      # Note: message.processed event is already published by instrument() with
+      # :exception and :exception_object in the payload (ActiveSupport-compatible)
       Array(Shoryuken.exception_handlers).each { |handler| handler.call(e, queue, sqs_msg) }
 
       raise
