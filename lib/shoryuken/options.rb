@@ -134,11 +134,12 @@ module Shoryuken
       groups[group].to_h.fetch(:delay, options[:delay]).to_f
     end
 
-    # Returns the SQS client, initializing a default one if needed
+    # Returns the SQS client, initializing a default one if needed.
+    # Uses AWS configuration from options[:aws] if available.
     #
     # @return [Aws::SQS::Client] the SQS client
     def sqs_client
-      @sqs_client ||= Aws::SQS::Client.new
+      @sqs_client ||= Aws::SQS::Client.new(options[:aws])
     end
 
     # Sets the SQS client receive message options for the default group
