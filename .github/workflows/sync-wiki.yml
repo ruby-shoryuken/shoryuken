@@ -1,0 +1,42 @@
+name: Sync Wiki
+
+on:
+  gollum:  # Triggers when the hidden wiki is edited via GitHub UI
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-to-public:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hidden wiki
+        uses: actions/checkout@v4
+        with:
+          repository: ruby-shoryuken/shoryuken.wiki
+          path: hidden-wiki
+
+      - name: Checkout public wiki
+        uses: actions/checkout@v4
+        with:
+          repository: ruby-shoryuken/wiki
+          path: public-wiki
+          token: ${{ secrets.WIKI_SYNC_TOKEN }}
+
+      - name: Sync wikis
+        run: |
+          # Copy all files from hidden wiki to public wiki (excluding .git)
+          rsync -av --delete hidden-wiki/ public-wiki/ --exclude .git
+
+          cd public-wiki
+
+          # Check if there are changes
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to sync"
+            exit 0
+          fi
+
+          # Configure git and commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync from shoryuken.wiki"
+          git push
