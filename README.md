@@ -63,15 +63,10 @@ To run all unit specs against the latest dependency versions, execute
 bundle exec rake spec
 ```
 
-To run all Rails-related specs against all supported versions of Rails, execute
+To run integration specs (including Rails tests), start LocalStack and run:
 
 ```sh
-bundle exec appraisal rake spec:rails
-```
-
-To run integration specs, start a mock SQS server on `localhost:5000`. One such option is [cjlarose/moto-sqs-server](https://github.com/cjlarose/moto-sqs-server). Then execute
-
-```sh
+docker compose up -d
 bundle exec rake spec:integration
 ```
 
