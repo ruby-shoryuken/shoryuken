@@ -7,10 +7,20 @@ $VERBOSE = true
 require 'warning'
 
 Warning.process do |warning|
-  next
+  # Only check warnings from our code (not dependencies)
   next unless warning.include?(Dir.pwd)
-  next if warning.include?('useless use of a variable in void context') && warning.include?('core_ext')
+
+  # Filter out warnings we don't care about in specs
+  next if warning.include?('_spec')
+
+  # We redefine methods to simulate various scenarios in tests
+  next if warning.include?('previous definition of')
+  next if warning.include?('method redefined')
+
+  # Ignore vendor and bundle directories
   next if warning.include?('vendor/')
+  next if warning.include?('bundle/')
+  next if warning.include?('.bundle/')
 
   raise "Warning in your code: #{warning}"
 end

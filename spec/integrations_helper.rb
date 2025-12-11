@@ -2,6 +2,34 @@
 
 # Integration test helper for process-isolated testing
 
+# Enable Ruby warnings to catch deprecations and potential issues
+Warning[:performance] = true if RUBY_VERSION >= '3.3'
+Warning[:deprecated] = true
+$VERBOSE = true
+
+require 'warning'
+
+# Process warnings and raise on unexpected ones from our code
+Warning.process do |warning|
+  # Only check warnings from our code (not dependencies)
+  next unless warning.include?(Dir.pwd)
+
+  # Filter out warnings we don't care about in specs
+  next if warning.include?('_spec')
+
+  # We redefine methods to simulate various scenarios in tests
+  next if warning.include?('previous definition of')
+  next if warning.include?('method redefined')
+
+  # Ignore vendor directory
+  next if warning.include?('vendor/')
+
+  # Ignore bundle path
+  next if warning.include?('bundle/')
+
+  raise "Warning in your code: #{warning}"
+end
+
 require 'timeout'
 require 'json'
 require 'securerandom'
