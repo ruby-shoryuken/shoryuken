@@ -38,8 +38,10 @@ module Shoryuken
         return logger.error { "No worker found for #{queue}" } unless worker
 
         Shoryuken::Logging.with_context("#{worker_name(worker.class, sqs_msg, body)}/#{queue}/#{sqs_msg.message_id}") do
-          worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
-            worker.perform(sqs_msg, body)
+          Shoryuken.monitor.instrument('message.processed', message_payload) do
+            worker.class.server_middleware.invoke(worker, queue, sqs_msg, body) do
+              worker.perform(sqs_msg, body)
+            end
           end
         end
       end
@@ -52,12 +54,24 @@ module Shoryuken
         worker_perform.call
       end
     rescue Exception => e
+      Shoryuken.monitor.publish('message.failed', message_payload.merge(error: e))
       Array(Shoryuken.exception_handlers).each { |handler| handler.call(e, queue, sqs_msg) }
 
       raise
     end
 
     private
+
+    # Returns payload hash for instrumentation events
+    #
+    # @return [Hash] the payload for instrumentation
+    def message_payload
+      {
+        queue: queue,
+        message_id: sqs_msg.is_a?(Array) ? sqs_msg.map(&:message_id) : sqs_msg.message_id,
+        worker: worker&.class&.name
+      }
+    end
 
     # Fetches the worker instance for processing
     #

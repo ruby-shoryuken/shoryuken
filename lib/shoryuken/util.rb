@@ -11,7 +11,16 @@ module Shoryuken
       Shoryuken.logger
     end
 
-    # Fires a lifecycle event to all registered handlers
+    # Maps legacy lifecycle events to new instrumentation event names
+    LEGACY_EVENT_MAP = {
+      startup: 'app.started',
+      quiet: 'app.quiet',
+      shutdown: 'app.stopping',
+      stopped: 'app.stopped'
+    }.freeze
+
+    # Fires a lifecycle event to all registered handlers.
+    # Also publishes to the instrumentation monitor for subscribers.
     #
     # @param event [Symbol] the event name to fire
     # @param reverse [Boolean] whether to call handlers in reverse order
@@ -19,6 +28,12 @@ module Shoryuken
     # @return [void]
     def fire_event(event, reverse = false, event_options = {})
       logger.debug { "Firing '#{event}' lifecycle event" }
+
+      # Publish to the new instrumentation system
+      new_event_name = LEGACY_EVENT_MAP[event] || "legacy.#{event}"
+      Shoryuken.monitor.publish(new_event_name, event_options.merge(legacy_event: event))
+
+      # Maintain backward compatibility with existing callback system
       arr = Shoryuken.options[:lifecycle_events][event]
       arr.reverse! if reverse
       arr.each do |block|
