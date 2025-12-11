@@ -144,10 +144,11 @@ module Shoryuken
     def assign(queue_name, sqs_msg)
       return unless running?
 
+      message_id = sqs_msg.respond_to?(:message_id) ? sqs_msg.message_id : sqs_msg.to_s
       Shoryuken.monitor.publish('manager.processor_assigned',
                                 group: @group,
                                 queue: queue_name,
-                                message_id: sqs_msg.message_id)
+                                message_id: message_id)
 
       @busy_processors.increment
       fire_utilization_update_event
