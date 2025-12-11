@@ -29,6 +29,16 @@ module Shoryuken
         app.stopped
         app.quiet
 
+        fetcher.started
+        fetcher.completed
+        fetcher.retry
+
+        manager.dispatch
+        manager.processor_assigned
+        manager.processor_done
+        manager.utilization_changed
+        manager.failed
+
         message.received
         message.processed
         message.failed

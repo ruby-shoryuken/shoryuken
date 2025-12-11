@@ -28,40 +28,73 @@ module Shoryuken
       # @param event [Event] the event to handle
       # @return [void]
       def call(event)
-        case event.name
-        when 'app.started'
-          log_app_started(event)
-        when 'app.stopping'
-          log_app_stopping(event)
-        when 'app.stopped'
-          log_app_stopped(event)
-        when 'message.processed'
-          log_message_processed(event)
-        when 'message.failed'
-          log_message_failed(event)
-        when 'error.occurred'
-          log_error_occurred(event)
-        when 'queue.polling'
-          log_queue_polling(event)
-        end
+        method_name = "on_#{event.name.tr('.', '_')}"
+        send(method_name, event) if respond_to?(method_name, true)
       end
 
       private
 
-      def log_app_started(event)
+      # App lifecycle events
+
+      def on_app_started(event)
         groups = event[:groups] || []
         logger.info { "Shoryuken started with #{groups.size} group(s)" }
       end
 
-      def log_app_stopping(_event)
+      def on_app_stopping(_event)
         logger.info { 'Shoryuken shutting down...' }
       end
 
-      def log_app_stopped(_event)
+      def on_app_stopped(_event)
         logger.info { 'Shoryuken stopped' }
       end
 
-      def log_message_processed(event)
+      def on_app_quiet(_event)
+        logger.info { 'Shoryuken is quiet' }
+      end
+
+      # Fetcher events
+
+      def on_fetcher_started(event)
+        logger.debug { "Looking for new messages in #{event[:queue]}" }
+      end
+
+      def on_fetcher_completed(event)
+        queue = event[:queue]
+        message_count = event[:message_count] || 0
+        duration_ms = event[:duration_ms]
+
+        logger.debug { "Found #{message_count} messages for #{queue}" } if message_count.positive?
+        logger.debug { "Fetcher for #{queue} completed in #{duration_ms} ms" }
+      end
+
+      def on_fetcher_retry(event)
+        logger.debug { "Retrying fetch attempt #{event[:attempt]} for #{event[:error_message]}" }
+      end
+
+      # Manager events
+
+      def on_manager_dispatch(event)
+        logger.debug do
+          "Ready: #{event[:ready]}, Busy: #{event[:busy]}, Active Queues: #{event[:active_queues]}"
+        end
+      end
+
+      def on_manager_processor_assigned(event)
+        logger.debug { "Assigning #{event[:message_id]}" }
+      end
+
+      def on_manager_failed(event)
+        logger.error { "Manager failed: #{event[:error_message]}" }
+        logger.error { event[:backtrace].join("\n") } if event[:backtrace]
+      end
+
+      # Message processing events
+
+      def on_message_processed(event)
+        # Skip logging if there was an exception - error.occurred handles that
+        return if event[:exception]
+
         duration_ms = event.duration ? (event.duration * 1000).round(2) : 0
         worker = event[:worker] || 'Unknown'
         queue = event[:queue] || 'Unknown'
@@ -69,7 +102,7 @@ module Shoryuken
         logger.info { "Processed #{worker}/#{queue} in #{duration_ms}ms" }
       end
 
-      def log_message_failed(event)
+      def on_message_failed(event)
         worker = event[:worker] || 'Unknown'
         queue = event[:queue] || 'Unknown'
         error = event[:error]
@@ -78,17 +111,32 @@ module Shoryuken
         logger.error { "Failed #{worker}/#{queue}: #{error_message}" }
       end
 
-      def log_error_occurred(event)
+      # Error events
+
+      def on_error_occurred(event)
         error = event[:error]
         error_class = error.respond_to?(:class) ? error.class.name : 'Unknown'
         error_message = error.respond_to?(:message) ? error.message : error.to_s
+        type = event[:type]
 
-        logger.error { "Error occurred: #{error_class} - #{error_message}" }
+        if type
+          logger.error { "Error in #{type}: #{error_class} - #{error_message}" }
+        else
+          logger.error { "Error occurred: #{error_class} - #{error_message}" }
+        end
+
+        logger.error { error.backtrace.join("\n") } if error.respond_to?(:backtrace) && error.backtrace
       end
 
-      def log_queue_polling(event)
+      # Queue events
+
+      def on_queue_polling(event)
         queue = event[:queue] || 'Unknown'
         logger.debug { "Polling queue: #{queue}" }
+      end
+
+      def on_queue_empty(event)
+        logger.debug { "Queue #{event[:queue]} is empty" }
       end
     end
   end
