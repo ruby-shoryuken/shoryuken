@@ -188,8 +188,8 @@ RSpec.describe Shoryuken::Options do
       end
 
       specify do
-        expect { Shoryuken.polling_strategy('default') }.to raise_error(ArgumentError)
-        expect { Shoryuken.polling_strategy('group1') }.to raise_error(ArgumentError)
+        expect { Shoryuken.polling_strategy('default') }.to raise_error(Shoryuken::Errors::InvalidPollingStrategyError)
+        expect { Shoryuken.polling_strategy('group1') }.to raise_error(Shoryuken::Errors::InvalidPollingStrategyError)
       end
     end
 
