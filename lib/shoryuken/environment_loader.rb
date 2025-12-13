@@ -80,7 +80,7 @@ module Shoryuken
     def config_file_options
       return {} unless (path = options[:config_file])
 
-      fail ArgumentError, "The supplied config file #{path} does not exist" unless File.exist?(path)
+      raise Errors::InvalidConfigurationError, "The supplied config file #{path} does not exist" unless File.exist?(path)
 
       if (result = YAML.load(ERB.new(IO.read(path)).result))
         Shoryuken::Helpers::HashUtils.deep_symbolize_keys(result)
@@ -248,10 +248,7 @@ module Shoryuken
         It's also possible that you don't have permission to access the specified queues.
       MSG
 
-      fail(
-        ArgumentError,
-        error_msg
-      )
+      raise Errors::QueueNotFoundError, error_msg
     end
 
     # Validates that all queues have registered workers

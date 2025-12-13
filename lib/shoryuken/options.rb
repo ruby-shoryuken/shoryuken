@@ -119,7 +119,7 @@ module Shoryuken
         begin
           Object.const_get(strategy)
         rescue NameError
-          raise ArgumentError, "#{strategy} is not a valid polling_strategy"
+          raise Errors::InvalidPollingStrategyError, "#{strategy} is not a valid polling_strategy"
         end
       when Class
         strategy
@@ -267,8 +267,8 @@ module Shoryuken
     #     end
     #   end
     def on(event, &block)
-      fail ArgumentError, "Symbols only please: #{event}" unless event.is_a?(Symbol)
-      fail ArgumentError, "Invalid event name: #{event}" unless options[:lifecycle_events].key?(event)
+      raise Errors::InvalidEventError, "Symbols only please: #{event}" unless event.is_a?(Symbol)
+      raise Errors::InvalidEventError, "Invalid event name: #{event}" unless options[:lifecycle_events].key?(event)
 
       options[:lifecycle_events][event] << block
     end

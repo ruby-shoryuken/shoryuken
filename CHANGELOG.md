@@ -1,4 +1,17 @@
 ## [7.0.0] - Unreleased
+- Breaking: Add `Shoryuken::Errors` module with domain-specific error classes
+  - Introduces `Shoryuken::Errors::BaseError` as base class for all Shoryuken errors
+  - `Shoryuken::Errors::QueueNotFoundError` for non-existent or inaccessible SQS queues
+  - `Shoryuken::Errors::InvalidConfigurationError` for configuration validation failures
+  - `Shoryuken::Errors::InvalidWorkerRegistrationError` for worker registration conflicts
+  - `Shoryuken::Errors::InvalidPollingStrategyError` for invalid polling strategy configuration
+  - `Shoryuken::Errors::InvalidEventError` for invalid lifecycle event names
+  - `Shoryuken::Errors::InvalidDelayError` for delays exceeding SQS 15-minute maximum
+  - `Shoryuken::Errors::InvalidArnError` for invalid ARN format
+  - `Shoryuken::Errors::Shutdown` for graceful shutdown (replaces `Shoryuken::Shutdown`)
+  - Replaces generic Ruby exceptions (ArgumentError, RuntimeError) with specific error types
+  - Code rescuing `Shoryuken::Shutdown` must change to `Shoryuken::Errors::Shutdown`
+
 - Enhancement: Add yard-lint with comprehensive YARD documentation
   - Adds yard-lint gem for documentation linting
   - Documents all public classes, modules, and methods with YARD tags
