@@ -98,8 +98,25 @@ module ActiveJob
       # @param job [ActiveJob::Base] the job to enqueue
       # @param timestamp [Float] Unix timestamp when the job should be processed
       # @return [Aws::SQS::Types::SendMessageResult] the send result
+      # @raise [ArgumentError] if delay is used with a FIFO queue
       def enqueue_at(job, timestamp) # :nodoc:
-        enqueue(job, delay_seconds: calculate_delay(timestamp))
+        delay = calculate_delay(timestamp)
+
+        # FIFO queues do not support per-message delays
+        # Check early to fail synchronously (before any async wrapping in subclasses)
+        # Note: negative delays (past timestamps) don't need handling here -
+        # SQS treats them as immediate delivery (delay_seconds=0)
+        # See https://github.com/ruby-shoryuken/shoryuken/issues/924
+        if delay.positive?
+          queue = Shoryuken::Client.queues(job.queue_name)
+          if queue.fifo?
+            raise ArgumentError,
+                  "FIFO queue '#{queue.name}' does not support per-message delays. " \
+                  'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
+          end
+        end
+
+        enqueue(job, delay_seconds: delay)
       end
 
       # Bulk enqueue multiple jobs efficiently using SQS batch API.

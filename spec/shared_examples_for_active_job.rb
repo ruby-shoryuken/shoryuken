@@ -281,6 +281,26 @@ RSpec.shared_examples 'active_job_adapters' do
 
       subject.enqueue_at(job, nil)
     end
+
+    context 'when fifo' do
+      let(:fifo) { true }
+
+      it 'raises ArgumentError when delay is positive' do
+        allow(subject).to receive(:calculate_delay).and_return(3)
+        allow(queue).to receive(:name).and_return('test.fifo')
+        expect(queue).not_to receive(:send_message)
+
+        expect { subject.enqueue_at(job, nil) }.to raise_error(
+          ArgumentError, /FIFO queue.*does not support per-message delays/
+        )
+      end
+
+      it 'does not raise when delay is zero' do
+        allow(subject).to receive(:calculate_delay).and_return(0)
+        expect(queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+        expect { subject.enqueue_at(job, nil) }.not_to raise_error
+      end
+    end
   end
 end
 # rubocop:enable Metrics/BlockLength

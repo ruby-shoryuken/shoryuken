@@ -1,4 +1,10 @@
 ## [7.0.0] - Unreleased
+- Fix: Raise ArgumentError when using delay with FIFO queues
+  - FIFO queues do not support per-message DelaySeconds
+  - Previously caused confusing AWS errors with ActiveJob's `retry_on` (Rails 6.1+ defaults to `wait: 3.seconds`)
+  - Now raises clear ArgumentError with guidance to use `wait: 0`
+  - Fixes #924
+
 - Enhancement: Use fiber-local storage for logging context
   - Replaces thread-local storage with Fiber[] for proper isolation in async environments
   - Ensures logging context doesn't leak between fibers in the same thread
