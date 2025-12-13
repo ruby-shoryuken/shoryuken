@@ -1,4 +1,9 @@
 ## [7.0.0] - Unreleased
+- Enhancement: Use fiber-local storage for logging context
+  - Replaces thread-local storage with Fiber[] for proper isolation in async environments
+  - Ensures logging context doesn't leak between fibers in the same thread
+  - Leverages Ruby 3.2+ fiber-local storage API
+
 - Enhancement: Add yard-lint with comprehensive YARD documentation
   - Adds yard-lint gem for documentation linting
   - Documents all public classes, modules, and methods with YARD tags
