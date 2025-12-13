@@ -37,7 +37,7 @@ module Shoryuken
         # @option options [Hash] :message_attributes custom message attributes
         # @option options [String] :queue override the default queue
         # @return [Aws::SQS::Types::SendMessageResult] the send result
-        # @raise [RuntimeError] if delay exceeds 15 minutes
+        # @raise [Errors::InvalidDelayError] if delay exceeds 15 minutes
         def perform_in(worker_class, interval, body, options = {})
           interval = interval.to_f
           now = Time.now.to_f
@@ -45,7 +45,7 @@ module Shoryuken
 
           delay = (ts - now).ceil
 
-          raise 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
+          raise Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
 
           worker_class.perform_async(body, options.merge(delay_seconds: delay))
         end

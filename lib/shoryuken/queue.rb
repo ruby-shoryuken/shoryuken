@@ -149,7 +149,7 @@ module Shoryuken
       required = [region, account_id, resource].map(&:to_s)
       valid = required.none?(&:empty?)
 
-      abort "Invalid ARN: #{arn_str}. A valid ARN must include: region, account_id and resource." unless valid
+      raise Errors::InvalidArnError, "Invalid ARN: #{arn_str}. A valid ARN must include: region, account_id and resource." unless valid
 
       "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
     end
@@ -177,8 +177,8 @@ module Shoryuken
       end
 
       set_by_name(name_or_url_or_arn)
-    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue => e
-      raise e, "The specified queue #{name_or_url_or_arn} does not exist."
+    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
+      raise Errors::QueueNotFoundError, "The specified queue #{name_or_url_or_arn} does not exist."
     end
 
     # Returns the queue attributes from SQS

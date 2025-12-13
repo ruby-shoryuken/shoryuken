@@ -56,10 +56,10 @@ module Shoryuken
     # @param queue [String] the queue name
     # @param clazz [Class] the worker class to register
     # @return [Class] the registered worker class
-    # @raise [ArgumentError] if a batchable worker is already registered for the queue
+    # @raise [Errors::InvalidWorkerRegistrationError] if a batchable worker is already registered for the queue
     def register_worker(queue, clazz)
       if (worker_class = @workers[queue]) && (worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true)
-        fail ArgumentError, "Could not register #{clazz} for #{queue}, "\
+        raise Errors::InvalidWorkerRegistrationError, "Could not register #{clazz} for #{queue}, "\
           "because #{worker_class} is already registered for this queue, "\
           "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
       end
