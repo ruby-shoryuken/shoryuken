@@ -170,12 +170,8 @@ RSpec.describe Shoryuken::Logging do
   end
 
   describe '.context_storage' do
-    it 'returns Fiber on Ruby 3.2+' do
-      if Fiber.respond_to?(:[])
-        expect(described_class.context_storage).to eq(Fiber)
-      else
-        expect(described_class.context_storage).to eq(Thread.current)
-      end
+    it 'returns Fiber for fiber-local storage' do
+      expect(described_class.context_storage).to eq(Fiber)
     end
   end
 

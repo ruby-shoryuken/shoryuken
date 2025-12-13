@@ -11,8 +11,7 @@ module Shoryuken
   # Manages the global logger instance and fiber-local context.
   module Logging
     # Executes a block with a fiber-local logging context.
-    # Uses Fiber storage (Ruby 3.2+) for proper isolation in async environments,
-    # falling back to Thread-local storage for older Ruby versions.
+    # Uses Fiber storage (Ruby 3.2+) for proper isolation in async environments.
     #
     # @param msg [String] the context message to set
     # @yield the block to execute within the context
@@ -32,18 +31,12 @@ module Shoryuken
       context_storage[:shoryuken_context]
     end
 
-    # Returns the appropriate storage for fiber/thread-local context.
-    # Uses Fiber storage on Ruby 3.2+ for proper async isolation,
-    # falls back to Thread.current for older versions.
+    # Returns the Fiber class for fiber-local context storage.
+    # Uses Fiber[] and Fiber[]= (Ruby 3.2+) for proper isolation in async environments.
     #
-    # @return [Fiber, Thread] the storage object
+    # @return [Class] the Fiber class
     def self.context_storage
-      # Ruby 3.2+ has Fiber[] and Fiber[]= for fiber-local storage
-      if Fiber.respond_to?(:[])
-        Fiber
-      else
-        Thread.current
-      end
+      Fiber
     end
 
     # Initializes a new logger instance
