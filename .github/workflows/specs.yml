@@ -9,7 +9,7 @@ jobs:
     name: Specs
     strategy:
       matrix:
-        ruby: ['3.2', '3.3', '3.4']
+        ruby: ['3.2', '3.3', '3.4', '4.0']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -27,7 +27,7 @@ jobs:
     name: Integrations
     strategy:
       matrix:
-        ruby: ['3.2', '3.3', '3.4']
+        ruby: ['3.2', '3.3', '3.4', '4.0']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
