@@ -10,6 +10,7 @@
 #   bin/integrations batch retry        # Run tests matching 'batch' OR 'retry'
 #   bin/integrations -v fifo            # Run with verbose output
 
+require 'bundler'
 require 'fileutils'
 require 'timeout'
 
@@ -88,9 +89,11 @@ class IntegrationRunner
   end
 
   def run_spec(spec)
+    # Start with a clean bundler environment to prevent pollution between tests
     env = {
       'BUNDLE_GEMFILE' => spec[:gemfile],
-      'RAILS_ENV' => 'test'
+      'RAILS_ENV' => 'test',
+      'RUBYOPT' => nil  # Clear any -rbundler/setup from CI or previous tests
     }
 
     # Install dependencies if using a local Gemfile
@@ -131,8 +134,13 @@ class IntegrationRunner
 
     begin
       Timeout.timeout(TIMEOUT) do
-        IO.popen(env, cmd, chdir: spec[:directory], err: [:child, :out]) do |io|
-          io.each_line { |line| output << line }
+        # Use unbundled env to prevent pollution from previous test runs
+        # This is especially important after Rails integration tests that use
+        # bundle install --standalone with different gem versions
+        Bundler.with_unbundled_env do
+          IO.popen(env, cmd, chdir: spec[:directory], err: [:child, :out]) do |io|
+            io.each_line { |line| output << line }
+          end
         end
       end
 
