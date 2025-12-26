@@ -10,18 +10,32 @@
   },
   "bundler": {
     "enabled": true,
-    "fileMatch": ["(^|/)Gemfile$", "\\.gemfile$", "(^|/)gems\\.rb$", "spec/gemfiles/.+\\.gemfile$", "spec/integration/.*/Gemfile$"]
+    "managerFilePatterns": [
+      "/(^|/)Gemfile$/",
+      "/\\.gemfile$/",
+      "/(^|/)gems\\.rb$/",
+      "/spec/gemfiles/.+\\.gemfile$/",
+      "/spec/integration/.*/Gemfile$/"
+    ]
   },
   "packageRules": [
     {
-      "matchManagers": ["bundler"],
-      "matchFiles": ["spec/gemfiles/**"],
+      "matchManagers": [
+        "bundler"
+      ],
+      "matchFileNames": [
+        "spec/gemfiles/**"
+      ],
       "groupName": "Rails test dependencies",
       "description": "Group Rails version-specific test Gemfiles together"
     },
     {
-      "matchManagers": ["bundler"],
-      "matchFiles": ["spec/integration/**/Gemfile"],
+      "matchManagers": [
+        "bundler"
+      ],
+      "matchFileNames": [
+        "spec/integration/**/Gemfile"
+      ],
       "groupName": "Integration test dependencies",
       "description": "Group integration test Gemfiles together"
     }
