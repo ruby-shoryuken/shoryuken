@@ -8,9 +8,12 @@
   - `Shoryuken::Errors::InvalidEventError` for invalid lifecycle event names
   - `Shoryuken::Errors::InvalidDelayError` for delays exceeding SQS 15-minute maximum
   - `Shoryuken::Errors::InvalidArnError` for invalid ARN format
-  - `Shoryuken::Errors::Shutdown` for graceful shutdown (replaces `Shoryuken::Shutdown`)
   - Replaces generic Ruby exceptions (ArgumentError, RuntimeError) with specific error types
-  - Code rescuing `Shoryuken::Shutdown` must change to `Shoryuken::Errors::Shutdown`
+
+- Removed: `Shoryuken::Shutdown` class
+  - This class was unused since the Celluloid removal in 2016
+  - Originally used to raise on worker threads during hard shutdown
+  - Current shutdown flow uses `Interrupt` and executor-level shutdown instead
 
 - Fix: Raise ArgumentError when using delay with FIFO queues
   - FIFO queues do not support per-message DelaySeconds

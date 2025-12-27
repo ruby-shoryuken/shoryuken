@@ -29,9 +29,5 @@ module Shoryuken
 
     # Raised when an ARN format is invalid
     InvalidArnError = Class.new(BaseError)
-
-    # Exception raised to trigger graceful shutdown of the server
-    # @see https://github.com/mperham/sidekiq/blob/33f5d6b2b6c0dfaab11e5d39688cab7ebadc83ae/lib/sidekiq/cli.rb#L20
-    Shutdown = Class.new(Interrupt)
   end
 end
