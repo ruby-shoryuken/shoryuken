@@ -14,6 +14,11 @@ RSpec.describe Shoryuken::Manager do
   let(:concurrency) { 1 }
   let(:executor) { Concurrent::ImmediateExecutor.new }
 
+  # Helper to create proper SQS message doubles
+  def sqs_message(id: SecureRandom.uuid, body: 'test')
+    double(Shoryuken::Message, message_id: id, body: body, receipt_handle: SecureRandom.uuid)
+  end
+
   subject { Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor) }
 
   before do
@@ -64,7 +69,7 @@ RSpec.describe Shoryuken::Manager do
     end
 
     specify do
-      message  = ['test1']
+      message = sqs_message(id: 'msg-123')
       messages = [message]
       q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
 
@@ -101,7 +106,7 @@ RSpec.describe Shoryuken::Manager do
 
     context 'when batch' do
       specify do
-        messages = %w[test1 test2 test3]
+        messages = [sqs_message(id: 'msg-1'), sqs_message(id: 'msg-2'), sqs_message(id: 'msg-3')]
         q = Shoryuken::Polling::QueueConfiguration.new(queue, {})
 
         expect(fetcher).to receive(:fetch).with(q, described_class::BATCH_LIMIT).and_return(messages)
@@ -142,13 +147,16 @@ RSpec.describe Shoryuken::Manager do
   describe '#dispatch_single_messages' do
     let(:concurrency) { 3 }
 
-    it 'assings messages from batch one by one' do
+    it 'assigns messages from batch one by one' do
       q = polling_strategy.next_queue
-      messages = [1, 2, 3]
+      msg1 = sqs_message(id: 'msg-1')
+      msg2 = sqs_message(id: 'msg-2')
+      msg3 = sqs_message(id: 'msg-3')
+      messages = [msg1, msg2, msg3]
       expect(fetcher).to receive(:fetch).with(q, concurrency).and_return(messages)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, 1)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, 2)
-      expect_any_instance_of(described_class).to receive(:assign).with(q.name, 3)
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, msg1)
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, msg2)
+      expect_any_instance_of(described_class).to receive(:assign).with(q.name, msg3)
       subject.send(:dispatch_single_messages, q)
     end
   end

@@ -52,8 +52,13 @@ describe 'Shoryuken::Util' do
     let(:callback_without_options) { proc { value_holder.value = :without_options } }
     let(:callback_with_options) { proc { |options| value_holder.value = [:with_options, options] } }
 
+    before do
+      Shoryuken.reset_monitor!
+    end
+
     after :all do
       Shoryuken.options[:lifecycle_events].delete(:some_event)
+      Shoryuken.reset_monitor!
     end
 
     it 'triggers callbacks that do not accept arguments' do
@@ -68,6 +73,41 @@ describe 'Shoryuken::Util' do
 
       expect(value_holder).to receive(:value=).with([:with_options, { my_option: :some_option }])
       subject.fire_event(:some_event, false, my_option: :some_option)
+    end
+
+    context 'instrumentation' do
+      it 'publishes mapped event for known lifecycle events' do
+        events = []
+        Shoryuken.monitor.subscribe('app.started') { |e| events << e }
+
+        Shoryuken.options[:lifecycle_events][:startup] = []
+        subject.fire_event(:startup)
+
+        expect(events.size).to eq(1)
+        expect(events.first.name).to eq('app.started')
+        expect(events.first[:legacy_event]).to eq(:startup)
+      end
+
+      it 'publishes legacy.* event for unknown lifecycle events' do
+        events = []
+        Shoryuken.monitor.subscribe('legacy.dispatch') { |e| events << e }
+
+        Shoryuken.options[:lifecycle_events][:dispatch] = []
+        subject.fire_event(:dispatch)
+
+        expect(events.size).to eq(1)
+        expect(events.first.name).to eq('legacy.dispatch')
+      end
+
+      it 'includes event_options in the payload' do
+        events = []
+        Shoryuken.monitor.subscribe('app.stopped') { |e| events << e }
+
+        Shoryuken.options[:lifecycle_events][:stopped] = []
+        subject.fire_event(:stopped, false, custom_key: 'custom_value')
+
+        expect(events.first[:custom_key]).to eq('custom_value')
+      end
     end
   end
 end
