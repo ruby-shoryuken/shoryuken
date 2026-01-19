@@ -2,5 +2,5 @@
 
 module Shoryuken
   # Current version of the Shoryuken gem
-  VERSION = '7.0.0.rc1'
+  VERSION = '7.0.0'
 end
