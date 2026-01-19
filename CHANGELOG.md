@@ -1,4 +1,7 @@
 ## [7.0.0] - 2026-01-19
+
+**See the [Upgrading to 7.0](https://github.com/ruby-shoryuken/shoryuken/wiki/Upgrading-to-7.0) guide for detailed migration instructions.**
+
 - Breaking: Add `Shoryuken::Errors` module with domain-specific error classes
   - Introduces `Shoryuken::Errors::BaseError` as base class for all Shoryuken errors
   - `Shoryuken::Errors::QueueNotFoundError` for non-existent or inaccessible SQS queues
