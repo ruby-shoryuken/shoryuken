@@ -1,4 +1,4 @@
-## [7.0.0] - Unreleased
+## [7.0.0] - 2026-01-19
 - Breaking: Add `Shoryuken::Errors` module with domain-specific error classes
   - Introduces `Shoryuken::Errors::BaseError` as base class for all Shoryuken errors
   - `Shoryuken::Errors::QueueNotFoundError` for non-existent or inaccessible SQS queues
