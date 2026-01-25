@@ -9,7 +9,6 @@ group :test do
   gem 'multi_xml'
   gem 'simplecov'
   gem 'warning'
-  gem 'yard-lint'
 end
 
 group :development do
