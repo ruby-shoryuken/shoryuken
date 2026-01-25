@@ -12,6 +12,7 @@
     "enabled": true,
     "managerFilePatterns": [
       "/(^|/)Gemfile$/",
+      "/(^|/)Gemfile\\.lint$/",
       "/\\.gemfile$/",
       "/(^|/)gems\\.rb$/",
       "/spec/gemfiles/.+\\.gemfile$/",
