@@ -2,5 +2,8 @@
 
 source 'https://rubygems.org'
 
+# Code linting
+gem 'rubocop'
+
 # Documentation linting
 gem 'yard-lint'
