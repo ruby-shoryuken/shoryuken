@@ -302,6 +302,7 @@ module Shoryuken
     def default_server_middleware
       Middleware::Chain.new do |m|
         m.add Middleware::Server::Timing
+        m.add Middleware::Server::NonRetryableException
         m.add Middleware::Server::ExponentialBackoffRetry
         m.add Middleware::Server::AutoDelete
         m.add Middleware::Server::AutoExtendVisibility
