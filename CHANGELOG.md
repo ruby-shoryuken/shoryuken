@@ -1,3 +1,9 @@
+## [7.0.1] - 2026-02-02
+
+- Fix: Replace `ArgumentError` with custom `FifoDelayNotSupportedError` for FIFO delay errors
+  - Provides more specific error type for programmatic error handling
+  - [#957](https://github.com/ruby-shoryuken/shoryuken/pull/957)
+
 ## [7.0.0] - 2026-01-19
 
 **See the [Upgrading to 7.0](https://github.com/ruby-shoryuken/shoryuken/wiki/Upgrading-to-7.0) guide for detailed migration instructions.**
