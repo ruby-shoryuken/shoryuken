@@ -8,6 +8,9 @@ require 'timeout'
 
 setup_localstack
 
+# Reset DT state to prevent data leakage from previous tests
+DT.clear
+
 queue_name = DT.queue
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '2' })
 Shoryuken.add_group('default', 1)
