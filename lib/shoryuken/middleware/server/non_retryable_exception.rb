@@ -17,7 +17,9 @@ module Shoryuken
       #
       #     # Or using a lambda for dynamic classification
       #     shoryuken_options queue: 'my_queue',
-      #                       non_retryable_exceptions: ->(error) { error.is_a?(StandardError) && error.message.include?('permanent') }
+      #                       non_retryable_exceptions: ->(error) {
+      #                         error.is_a?(StandardError) && error.message.include?('permanent')
+      #                       }
       #
       #     def perform(sqs_msg, body)
       #       # ...
