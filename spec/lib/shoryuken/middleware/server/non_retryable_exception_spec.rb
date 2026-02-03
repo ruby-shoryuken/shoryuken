@@ -47,8 +47,8 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
       TestWorker.get_shoryuken_options['non_retryable_exceptions'] = [StandardError]
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [
-                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
-                                                         ])
+        { id: '0', receipt_handle: sqs_msg.receipt_handle }
+      ])
 
       expect(Shoryuken.logger).to receive(:warn) do |&block|
         expect(block.call).to match(/Non-retryable exception StandardError/)
@@ -79,8 +79,8 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
       TestWorker.get_shoryuken_options['non_retryable_exceptions'] = [ArgumentError, StandardError]
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [
-                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
-                                                         ])
+        { id: '0', receipt_handle: sqs_msg.receipt_handle }
+      ])
 
       expect {
         subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise ArgumentError, 'test error' }
@@ -92,8 +92,8 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
       TestWorker.get_shoryuken_options['non_retryable_exceptions'] = [custom_error]
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [
-                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
-                                                         ])
+        { id: '0', receipt_handle: sqs_msg.receipt_handle }
+      ])
 
       expect {
         subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise custom_error, 'test error' }
@@ -110,10 +110,10 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
       sqs_msgs = [sqs_msg, sqs_msg2, sqs_msg3]
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [
-                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle },
-                                                           { id: '1', receipt_handle: sqs_msg2.receipt_handle },
-                                                           { id: '2', receipt_handle: sqs_msg3.receipt_handle }
-                                                         ])
+        { id: '0', receipt_handle: sqs_msg.receipt_handle },
+        { id: '1', receipt_handle: sqs_msg2.receipt_handle },
+        { id: '2', receipt_handle: sqs_msg3.receipt_handle }
+      ])
 
       expect(Shoryuken.logger).to receive(:warn) do |&block|
         expect(block.call).to match(/Non-retryable exception StandardError/)
@@ -153,8 +153,8 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
       end
 
       expect(sqs_queue).to receive(:delete_messages).with(entries: [
-                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
-                                                         ])
+        { id: '0', receipt_handle: sqs_msg.receipt_handle }
+      ])
 
       expect {
         subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise StandardError, 'test error' }
@@ -180,8 +180,8 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
 
       # ArgumentError should be deleted
       expect(sqs_queue).to receive(:delete_messages).with(entries: [
-                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
-                                                         ])
+        { id: '0', receipt_handle: sqs_msg.receipt_handle }
+      ])
 
       expect {
         subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise ArgumentError, 'invalid argument' }
