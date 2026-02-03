@@ -11,8 +11,13 @@ module Shoryuken
       #   class MyWorker
       #     include Shoryuken::Worker
       #
+      #     # Using exception classes
       #     shoryuken_options queue: 'my_queue',
       #                       non_retryable_exceptions: [InvalidInputError, RecordNotFoundError]
+      #
+      #     # Or using a lambda for dynamic classification
+      #     shoryuken_options queue: 'my_queue',
+      #                       non_retryable_exceptions: ->(error) { error.is_a?(StandardError) && error.message.include?('permanent') }
       #
       #     def perform(sqs_msg, body)
       #       # ...
@@ -36,8 +41,12 @@ module Shoryuken
 
           return raise unless non_retryable_exceptions
 
-          exception_classes = Array(non_retryable_exceptions)
-          return raise unless exception_classes.any? { |klass| e.is_a?(klass) }
+          if non_retryable_exceptions.respond_to?(:call)
+            return raise unless non_retryable_exceptions.call(e)
+          else
+            exception_classes = Array(non_retryable_exceptions)
+            return raise unless exception_classes.any? { |klass| e.is_a?(klass) }
+          end
 
           # Handle batch messages
           messages = sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]

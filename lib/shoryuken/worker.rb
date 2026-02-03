@@ -123,7 +123,7 @@ module Shoryuken
       # @option opts [Boolean] :auto_delete (false) Automatically delete messages after processing
       # @option opts [Boolean] :auto_visibility_timeout (false) Automatically extend message visibility
       # @option opts [Array<Integer>] :retry_intervals Exponential backoff retry intervals in seconds
-      # @option opts [Array<Class>] :non_retryable_exceptions Exception classes that should skip retries and delete message immediately
+      # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should skip retries and delete message immediately
       # @option opts [Hash] :sqs Additional SQS client options
       #
       # @example Basic worker configuration
@@ -183,6 +183,21 @@ module Shoryuken
       #       # If InvalidInputError or RecordNotFoundError is raised,
       #       # the message will be deleted immediately instead of retrying
       #       validate_and_process(body)
+      #     end
+      #   end
+      #
+      # @example Worker with lambda for dynamic exception classification
+      #   class SmartWorker
+      #     include Shoryuken::Worker
+      #     shoryuken_options queue: 'smart_queue',
+      #                       non_retryable_exceptions: ->(error) {
+      #                         error.is_a?(ValidationError) || 
+      #                         (error.is_a?(NetworkError) && error.message.include?('permanent'))
+      #                       }
+      #
+      #     def perform(sqs_msg, body)
+      #       # Lambda receives the exception and returns true if non-retryable
+      #       process_with_validation(body)
       #     end
       #   end
       def shoryuken_options(opts = {})

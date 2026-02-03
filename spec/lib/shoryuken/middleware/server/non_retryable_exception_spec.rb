@@ -139,5 +139,76 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
       subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) {}
     end
   end
+
+  context 'when using lambda for dynamic classification' do
+    it 'calls the lambda with the exception and deletes if lambda returns true' do
+      lambda_called = false
+      lambda_result = true
+
+      TestWorker.get_shoryuken_options['non_retryable_exceptions'] = lambda do |error|
+        lambda_called = true
+        expect(error).to be_a(StandardError)
+        expect(error.message).to eq('test error')
+        lambda_result
+      end
+
+      expect(sqs_queue).to receive(:delete_messages).with(entries: [
+                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
+                                                         ])
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise StandardError, 'test error' }
+      }.not_to raise_error
+
+      expect(lambda_called).to be true
+    end
+
+    it 're-raises if lambda returns false' do
+      TestWorker.get_shoryuken_options['non_retryable_exceptions'] = ->(_error) { false }
+
+      expect(sqs_queue).not_to receive(:delete_messages)
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise StandardError, 'test error' }
+      }.to raise_error(StandardError, 'test error')
+    end
+
+    it 'supports complex lambda logic based on exception properties' do
+      TestWorker.get_shoryuken_options['non_retryable_exceptions'] = lambda do |error|
+        error.is_a?(ArgumentError) || (error.is_a?(StandardError) && error.message.include?('permanent'))
+      end
+
+      # ArgumentError should be deleted
+      expect(sqs_queue).to receive(:delete_messages).with(entries: [
+                                                           { id: '0', receipt_handle: sqs_msg.receipt_handle }
+                                                         ])
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise ArgumentError, 'invalid argument' }
+      }.not_to raise_error
+
+      # StandardError with 'permanent' should be deleted
+      sqs_msg2 = build_message
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+
+      expect(sqs_queue).to receive(:delete_messages).with(entries: [
+                                                           { id: '0', receipt_handle: sqs_msg2.receipt_handle }
+                                                         ])
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg2, sqs_msg2.body) { raise StandardError, 'permanent failure' }
+      }.not_to raise_error
+
+      # StandardError without 'permanent' should be retried
+      sqs_msg3 = build_message
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+
+      expect(sqs_queue).not_to receive(:delete_messages)
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg3, sqs_msg3.body) { raise StandardError, 'temporary failure' }
+      }.to raise_error(StandardError, 'temporary failure')
+    end
+  end
 end
 
