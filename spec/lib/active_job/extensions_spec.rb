@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'active_job'
 
 # Skip this spec if ActiveSupport is not available, as the extensions require it
 if defined?(ActiveSupport)
@@ -67,6 +68,81 @@ if defined?(ActiveSupport)
           # Test that ruby2_keywords is called if available
           if respond_to?(:ruby2_keywords, true)
             expect(job_class.method(:new)).to respond_to(:ruby2_keywords) if RUBY_VERSION >= '2.7'
+          end
+        end
+
+        # Regression test for https://github.com/ruby-shoryuken/shoryuken/issues/961
+        # ActiveJob with keyword arguments was broken in Shoryuken 7.0 because
+        # the SQSSendMessageParametersSupport module's initialize method did not
+        # properly forward keyword arguments using ruby2_keywords.
+        context 'with keyword arguments' do
+          let(:base_class_with_kwargs) do
+            Class.new do
+              attr_accessor :sqs_send_message_parameters
+              attr_reader :received_name, :received_count, :received_enabled
+
+              def initialize(name:, count:, enabled: false)
+                @received_name = name
+                @received_count = count
+                @received_enabled = enabled
+              end
+            end
+          end
+
+          let(:job_class_with_kwargs) do
+            Class.new(base_class_with_kwargs) do
+              prepend Shoryuken::ActiveJob::SQSSendMessageParametersSupport
+            end
+          end
+
+          it 'properly forwards keyword arguments to the base class' do
+            job = job_class_with_kwargs.new(name: 'test_name', count: 42, enabled: true)
+
+            expect(job.received_name).to eq('test_name')
+            expect(job.received_count).to eq(42)
+            expect(job.received_enabled).to eq(true)
+            expect(job.sqs_send_message_parameters).to eq({})
+          end
+
+          it 'properly forwards keyword arguments with default values' do
+            job = job_class_with_kwargs.new(name: 'another_test', count: 10)
+
+            expect(job.received_name).to eq('another_test')
+            expect(job.received_count).to eq(10)
+            expect(job.received_enabled).to eq(false)
+            expect(job.sqs_send_message_parameters).to eq({})
+          end
+        end
+
+        # Regression test for https://github.com/ruby-shoryuken/shoryuken/issues/961
+        # Test with a mix of positional and keyword arguments
+        context 'with mixed positional and keyword arguments' do
+          let(:base_class_mixed) do
+            Class.new do
+              attr_accessor :sqs_send_message_parameters
+              attr_reader :received_id, :received_data, :received_options
+
+              def initialize(id, data, options: {})
+                @received_id = id
+                @received_data = data
+                @received_options = options
+              end
+            end
+          end
+
+          let(:job_class_mixed) do
+            Class.new(base_class_mixed) do
+              prepend Shoryuken::ActiveJob::SQSSendMessageParametersSupport
+            end
+          end
+
+          it 'properly forwards mixed arguments to the base class' do
+            job = job_class_mixed.new('job_id', { key: 'value' }, options: { retry: true })
+
+            expect(job.received_id).to eq('job_id')
+            expect(job.received_data).to eq({ key: 'value' })
+            expect(job.received_options).to eq({ retry: true })
+            expect(job.sqs_send_message_parameters).to eq({})
           end
         end
       end
