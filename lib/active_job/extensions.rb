@@ -20,9 +20,10 @@ module Shoryuken
     module SQSSendMessageParametersSupport
       # Initializes a new ActiveJob instance with empty SQS parameters
       #
-      # @param arguments [Array] the job arguments
-      def initialize(*arguments)
-        super(*arguments)
+      # Uses argument forwarding (...) to properly pass all arguments including
+      # keyword arguments to the base class.
+      def initialize(...)
+        super(...)
         self.sqs_send_message_parameters = {}
       end
 

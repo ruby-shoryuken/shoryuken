@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: ActiveJob keyword arguments support
+  - Jobs with keyword arguments were broken due to improper argument forwarding in `SQSSendMessageParametersSupport#initialize`
+  - Use Ruby's argument forwarding (`...`) to properly pass all arguments including keyword arguments
+  - [#962](https://github.com/ruby-shoryuken/shoryuken/pull/962)
+
 - Fix: Replace `ArgumentError` with custom `FifoDelayNotSupportedError` for FIFO delay errors
   - Provides more specific error type for programmatic error handling
   - [#957](https://github.com/ruby-shoryuken/shoryuken/pull/957)
