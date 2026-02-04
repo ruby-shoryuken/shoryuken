@@ -27,6 +27,9 @@ module Shoryuken
     # Raised when a delay exceeds the maximum allowed by SQS (15 minutes)
     InvalidDelayError = Class.new(BaseError)
 
+    # Raised when a delay is used with a FIFO queue
+    FifoDelayNotSupportedError = Class.new(BaseError)
+
     # Raised when an ARN format is invalid
     InvalidArnError = Class.new(BaseError)
   end
