@@ -62,7 +62,27 @@ module Shoryuken
 
           # Delete the message(s) immediately
           entries = messages.map.with_index { |message, i| { id: i.to_s, receipt_handle: message.receipt_handle } }
-          Shoryuken::Client.queues(queue).delete_messages(entries: entries)
+
+          begin
+            queue_client = Shoryuken::Client.queues(queue)
+            delete_failed = queue_client.delete_messages(entries: entries)
+
+            # Check if deletion reported failures (returns true if any failed)
+            if delete_failed
+              logger.warn do
+                "Failed to delete some messages for non-retryable exception on queue '#{queue}'. " \
+                "Entries: #{entries.map { |e| { id: e[:id] } }.inspect}. " \
+                "Some messages may remain in the queue and could be reprocessed."
+              end
+            end
+          rescue => delete_error
+            logger.error do
+              "Error deleting messages for non-retryable exception on queue '#{queue}': #{delete_error.class} - #{delete_error.message}. " \
+              "Entries: #{entries.map { |e| { id: e[:id] } }.inspect}. " \
+              "Messages may remain in the queue and could be reprocessed."
+            end
+            logger.debug { delete_error.backtrace.join("\n") } if delete_error.backtrace
+          end
 
           # Don't re-raise - the exception has been handled by deleting the message
         end
