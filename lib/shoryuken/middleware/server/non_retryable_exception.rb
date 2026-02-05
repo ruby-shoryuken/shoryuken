@@ -32,7 +32,7 @@ module Shoryuken
         #
         # @param worker [Object] the worker instance
         # @param queue [String] the queue name
-        # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message] the message or batch
+        # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch
         # @param _body [Object] the parsed message body (unused)
         # @yield continues to the next middleware in the chain
         # @return [void]
@@ -70,16 +70,18 @@ module Shoryuken
             # Check if deletion reported failures (returns true if any failed)
             if delete_failed
               logger.warn do
-                "Failed to delete some messages for non-retryable exception on queue '#{queue}'. " \
-                "Entries: #{entries.map { |e| { id: e[:id] } }.inspect}. " \
-                "Some messages may remain in the queue and could be reprocessed."
+                'Failed to delete some messages for non-retryable exception on queue ' \
+                  "'#{queue}'. " \
+                  "Entries: #{entries.map { |e| { id: e[:id] } }.inspect}. " \
+                  'Some messages may remain in the queue and could be reprocessed.'
               end
             end
           rescue => delete_error
             logger.error do
-              "Error deleting messages for non-retryable exception on queue '#{queue}': #{delete_error.class} - #{delete_error.message}. " \
-              "Entries: #{entries.map { |e| { id: e[:id] } }.inspect}. " \
-              "Messages may remain in the queue and could be reprocessed."
+              'Error deleting messages for non-retryable exception on queue ' \
+                "'#{queue}': #{delete_error.class} - #{delete_error.message}. " \
+                "Entries: #{entries.map { |e| { id: e[:id] } }.inspect}. " \
+                'Messages may remain in the queue and could be reprocessed.'
             end
             logger.debug { delete_error.backtrace.join("\n") } if delete_error.backtrace
           end
