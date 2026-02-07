@@ -36,6 +36,32 @@ module Shoryuken
     Shoryuken::Runner.instance.healthy?
   end
 
+  # Returns the global instrumentation monitor.
+  # Use this to subscribe to Shoryuken lifecycle events.
+  #
+  # @return [Shoryuken::Instrumentation::Notifications] the monitor instance
+  #
+  # @example Subscribe to message processing events
+  #   Shoryuken.monitor.subscribe('message.processed') do |event|
+  #     StatsD.timing('shoryuken.process_time', event.duration * 1000)
+  #   end
+  #
+  # @example Subscribe to all events
+  #   Shoryuken.monitor.subscribe do |event|
+  #     logger.info("Event: #{event.name}")
+  #   end
+  def self.monitor
+    @_monitor ||= Instrumentation::Notifications.new
+  end
+
+  # Resets the monitor instance (useful for testing)
+  #
+  # @return [void]
+  # @api private
+  def self.reset_monitor!
+    @_monitor = nil
+  end
+
   def_delegators(
     :shoryuken_options,
     :active_job?,
