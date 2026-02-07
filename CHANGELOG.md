@@ -1,6 +1,9 @@
-## [Unreleased]
+## [7.0.1] - 2026-02-07
 
-- Fix: ActiveJob keyword arguments support
+- Enhancement: Add non-retryable exception middleware (Saidbek)
+  - [#958](https://github.com/ruby-shoryuken/shoryuken/pull/958)
+
+- Fix: ActiveJob keyword arguments support (mensfeld)
   - Jobs with keyword arguments were broken due to improper argument forwarding in `SQSSendMessageParametersSupport#initialize`
   - Use Ruby's argument forwarding (`...`) to properly pass all arguments including keyword arguments
   - [#962](https://github.com/ruby-shoryuken/shoryuken/pull/962)
