@@ -8,6 +8,7 @@
     ".ruby-version",
     "Gemfile",
     "Gemfile.lint",
+    "shoryuken.gemspec",
     "spec/gemfiles/**",
     "spec/integration/**/Gemfile",
     ".github/workflows/**"
