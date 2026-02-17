@@ -4,6 +4,14 @@
     "config:recommended"
   ],
   "minimumReleaseAge": "7 days",
+  "includePaths": [
+    ".ruby-version",
+    "Gemfile",
+    "Gemfile.lint",
+    "spec/gemfiles/**",
+    "spec/integration/**/Gemfile",
+    ".github/workflows/**"
+  ],
   "github-actions": {
     "enabled": true,
     "pinDigests": true
