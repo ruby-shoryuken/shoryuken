@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-- Fix: Allow custom polling strategy to be configured per-group via `add_group` (mencio)
+- Fix: Allow custom polling strategy to be configured per-group via `add_group` (mensfeld)
   - `add_group` now accepts `polling_strategy:` keyword argument
   - `polling_strategy()` reads from the groups hash populated by `add_group`, with fallback to raw options
   - `EnvironmentLoader` passes `polling_strategy` through when parsing YAML group config

@@ -62,7 +62,7 @@ worker_class = Class.new do
 
   shoryuken_options auto_delete: true, batch: false
 
-  def perform(sqs_msg, body)
+  def perform(_sqs_msg, body)
     DT[:processed] << body
   end
 end
