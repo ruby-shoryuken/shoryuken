@@ -41,6 +41,24 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '.add_group with polling_strategy' do
+    before do
+      Shoryuken.groups.clear
+    end
+
+    it 'stores the polling_strategy in the group configuration' do
+      Shoryuken.add_group('group1', 25, polling_strategy: Shoryuken::Polling::StrictPriority)
+
+      expect(Shoryuken.groups['group1'][:polling_strategy]).to eq(Shoryuken::Polling::StrictPriority)
+    end
+
+    it 'defaults polling_strategy to nil when not provided' do
+      Shoryuken.add_group('group1', 25)
+
+      expect(Shoryuken.groups['group1'][:polling_strategy]).to be_nil
+    end
+  end
+
   describe '.delay works for each group' do
     specify do
       Shoryuken.add_group('group1', 25)
@@ -210,6 +228,19 @@ RSpec.describe Shoryuken::Options do
       specify do
         expect(Shoryuken.polling_strategy('default')).to eq Foo
         expect(Shoryuken.polling_strategy('group1')).to eq Bar
+      end
+    end
+
+    context 'when set via add_group' do
+      before do
+        class Baz < Shoryuken::Polling::BaseStrategy; end
+
+        Shoryuken.groups.clear
+        Shoryuken.add_group('custom_group', 25, polling_strategy: Baz)
+      end
+
+      specify do
+        expect(Shoryuken.polling_strategy('custom_group')).to eq Baz
       end
     end
   end
