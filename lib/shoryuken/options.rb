@@ -73,14 +73,21 @@ module Shoryuken
     # @param group [String] the name of the group
     # @param concurrency [Integer, nil] the number of concurrent workers for the group
     # @param delay [Float, nil] the delay between polling cycles
+    # @param polling_strategy [Class, String, nil] the polling strategy class for the group
     # @return [Hash] the group configuration
-    def add_group(group, concurrency = nil, delay: nil)
+    # @raise [Errors::InvalidPollingStrategyError] if polling_strategy is not a Class, String, or nil
+    def add_group(group, concurrency = nil, delay: nil, polling_strategy: nil)
+      unless polling_strategy.nil? || polling_strategy.is_a?(Class) || polling_strategy.is_a?(String)
+        raise Errors::InvalidPollingStrategyError, "#{polling_strategy} is not a valid polling_strategy"
+      end
+
       concurrency ||= options[:concurrency]
       delay ||= options[:delay]
 
       groups[group] ||= {
         concurrency: concurrency,
         delay: delay,
+        polling_strategy: polling_strategy,
         queues: []
       }
     end
@@ -109,7 +116,8 @@ module Shoryuken
     # @param group [String] the name of the group
     # @return [Class] the polling strategy class to use
     def polling_strategy(group)
-      strategy = (group == 'default' ? options : options[:groups].to_h[group]).to_h[:polling_strategy]
+      strategy = groups[group].to_h[:polling_strategy] ||
+                 (group == 'default' ? options : options[:groups].to_h[group]).to_h[:polling_strategy]
       case strategy
       when 'WeightedRoundRobin', nil # Default case
         Polling::WeightedRoundRobin

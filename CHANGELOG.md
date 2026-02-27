@@ -1,3 +1,11 @@
+## [Unreleased]
+
+- Fix: Allow custom polling strategy to be configured per-group via `add_group` (mensfeld)
+  - `add_group` now accepts `polling_strategy:` keyword argument
+  - `polling_strategy()` reads from the groups hash populated by `add_group`, with fallback to raw options
+  - `EnvironmentLoader` passes `polling_strategy` through when parsing YAML group config
+  - [#925](https://github.com/ruby-shoryuken/shoryuken/issues/925)
+
 ## [7.0.1] - 2026-02-07
 
 - Enhancement: Add non-retryable exception middleware (Saidbek)
