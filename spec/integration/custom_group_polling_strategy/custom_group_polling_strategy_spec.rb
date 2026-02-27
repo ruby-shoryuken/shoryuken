@@ -34,18 +34,25 @@ class CustomRoundRobin < Shoryuken::Polling::BaseStrategy
   end
 end
 
-# ---- Part 1: API assertion (no SQS needed) ----
-# Bug: add_group does not accept polling_strategy: keyword argument
-# This should work but currently raises ArgumentError
+# ---- Part 1: API assertions (no SQS needed) ----
+# add_group accepts polling_strategy: keyword argument
 Shoryuken.add_group('custom_group', 1, polling_strategy: CustomRoundRobin)
 
-# Bug: polling_strategy() should return our custom strategy for the group
+# polling_strategy() returns our custom strategy for the group
 strategy = Shoryuken.polling_strategy('custom_group')
 assert_equal(
   CustomRoundRobin,
   strategy,
   "Expected polling_strategy('custom_group') to return CustomRoundRobin, got #{strategy.inspect}"
 )
+
+# add_group raises InvalidPollingStrategyError for invalid types
+begin
+  Shoryuken.add_group('bad_group', 1, polling_strategy: 123)
+  raise 'Expected InvalidPollingStrategyError to be raised'
+rescue Shoryuken::Errors::InvalidPollingStrategyError
+  # expected
+end
 
 # ---- Part 2: End-to-end with SQS ----
 setup_localstack

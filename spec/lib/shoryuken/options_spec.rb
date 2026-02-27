@@ -57,6 +57,18 @@ RSpec.describe Shoryuken::Options do
 
       expect(Shoryuken.groups['group1'][:polling_strategy]).to be_nil
     end
+
+    it 'accepts a string polling_strategy' do
+      Shoryuken.add_group('group1', 25, polling_strategy: 'StrictPriority')
+
+      expect(Shoryuken.groups['group1'][:polling_strategy]).to eq('StrictPriority')
+    end
+
+    it 'raises InvalidPollingStrategyError for invalid polling_strategy type' do
+      expect {
+        Shoryuken.add_group('group1', 25, polling_strategy: 123)
+      }.to raise_error(Shoryuken::Errors::InvalidPollingStrategyError)
+    end
   end
 
   describe '.delay works for each group' do
