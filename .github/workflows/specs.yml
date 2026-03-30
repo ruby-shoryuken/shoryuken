@@ -38,7 +38,7 @@ jobs:
 
       - name: Wait for LocalStack
         run: |
-          timeout 30s bash -c '
+          timeout 60s bash -c '
           until curl -s http://localhost:4566/_localstack/health | grep -q "\"sqs\": \"available\""; do
             echo "Waiting for LocalStack..."
             sleep 2
