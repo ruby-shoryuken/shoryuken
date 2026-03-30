@@ -1,6 +1,6 @@
 services:
   elasticmq:
-    image: softwaremill/elasticmq-native:1.6.9
+    image: softwaremill/elasticmq-native:1.6.16
     container_name: elasticmq
     ports:
       - "9324:9324"
