@@ -3,7 +3,7 @@
 # This spec tests the body_parser option with :text setting (default)
 # Verifies that messages are returned as plain strings
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.uuid
 create_test_queue(queue_name)

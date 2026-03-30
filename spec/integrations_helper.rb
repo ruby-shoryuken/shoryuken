@@ -145,13 +145,13 @@ module IntegrationsHelper
     ActiveJob::Base.queue_adapter = :shoryuken
   end
 
-  # Configure Shoryuken to use LocalStack for real SQS integration tests
-  def setup_localstack
+  # Configure Shoryuken to use ElasticMQ for real SQS integration tests
+  def setup_sqs
     Aws.config[:stub_responses] = false
 
     sqs_client = Aws::SQS::Client.new(
       region: 'us-east-1',
-      endpoint: 'http://localhost:4566',
+      endpoint: 'http://localhost:9324',
       access_key_id: 'fake',
       secret_access_key: 'fake'
     )

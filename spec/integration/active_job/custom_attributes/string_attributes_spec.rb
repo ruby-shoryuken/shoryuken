@@ -2,7 +2,7 @@
 
 # ActiveJob custom string message attributes are sent to SQS and preserved
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

@@ -2,7 +2,7 @@
 
 # ActiveJob retry_on re-enqueues failed jobs until they succeed or exhaust attempts
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

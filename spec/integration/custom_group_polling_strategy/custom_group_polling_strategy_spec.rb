@@ -55,7 +55,7 @@ rescue Shoryuken::Errors::InvalidPollingStrategyError
 end
 
 # ---- Part 2: End-to-end with SQS ----
-setup_localstack
+setup_sqs
 
 queue_name = DT.queues[0]
 create_test_queue(queue_name)

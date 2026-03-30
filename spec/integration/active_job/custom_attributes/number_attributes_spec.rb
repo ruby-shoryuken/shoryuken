@@ -2,7 +2,7 @@
 
 # ActiveJob custom numeric message attributes are sent to SQS with correct data type
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

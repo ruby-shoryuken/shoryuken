@@ -6,7 +6,7 @@
 # In Shoryuken 7.0, the SQSSendMessageParametersSupport module's initialize method
 # breaks keyword argument passing to ActiveJob jobs because it lacks ruby2_keywords.
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

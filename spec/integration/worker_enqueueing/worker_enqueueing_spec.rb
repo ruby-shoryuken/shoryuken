@@ -4,7 +4,7 @@
 # - perform_async - enqueue a job for immediate processing
 # - perform_in - enqueue a job with a delay
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)

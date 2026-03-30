@@ -4,7 +4,7 @@
 # - sqs_msg.delete - manually delete a message
 # - sqs_msg.change_visibility - change visibility with options
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '5' })

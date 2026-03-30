@@ -7,7 +7,7 @@
 # - Batch message sending
 # - Batch message deletion
 
-setup_localstack
+setup_sqs
 
 # Test 1: Queue initialization by name
 queue_name = DT.uuid

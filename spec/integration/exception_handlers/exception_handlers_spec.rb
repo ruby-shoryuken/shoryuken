@@ -3,7 +3,7 @@
 # This spec tests custom exception handlers.
 # Exception handlers are called when a worker raises an error.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '2' })

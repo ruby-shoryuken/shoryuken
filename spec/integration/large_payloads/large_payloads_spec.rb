@@ -2,7 +2,7 @@
 
 # This spec tests large payload handling including payloads near the 256KB SQS limit.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)

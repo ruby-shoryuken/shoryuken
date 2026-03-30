@@ -11,7 +11,8 @@
     "shoryuken.gemspec",
     "spec/gemfiles/**",
     "spec/integration/**/Gemfile",
-    ".github/workflows/**"
+    ".github/workflows/**",
+    "docker-compose.yml"
   ],
   "github-actions": {
     "enabled": true,

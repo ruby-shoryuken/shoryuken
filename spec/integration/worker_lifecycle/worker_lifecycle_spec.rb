@@ -2,7 +2,7 @@
 
 # This spec tests worker lifecycle including worker registration and discovery.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)
