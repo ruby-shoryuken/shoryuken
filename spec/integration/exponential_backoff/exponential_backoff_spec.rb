@@ -4,7 +4,7 @@
 # When retry_intervals is configured, failed jobs should have their visibility
 # timeout adjusted based on the retry attempt number.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 

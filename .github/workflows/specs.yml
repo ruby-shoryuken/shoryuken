@@ -33,15 +33,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Start LocalStack
+      - name: Start ElasticMQ
         run: docker compose up -d
 
-      - name: Wait for LocalStack
+      - name: Wait for ElasticMQ
         run: |
-          timeout 60s bash -c '
-          until curl -s http://localhost:4566/_localstack/health | grep -q "\"sqs\": \"available\""; do
-            echo "Waiting for LocalStack..."
-            sleep 2
+          timeout 30s bash -c '
+          until curl -s http://localhost:9324/health; do
+            echo "Waiting for ElasticMQ..."
+            sleep 1
           done
           '
 

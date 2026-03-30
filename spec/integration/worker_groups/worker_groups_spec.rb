@@ -5,7 +5,7 @@
 
 require 'concurrent'
 
-setup_localstack
+setup_sqs
 
 queue_group1 = DT.queues[0]
 queue_group2 = DT.queues[1]

@@ -6,7 +6,7 @@
 
 require 'timeout'
 
-setup_localstack
+setup_sqs
 
 # Reset DT state to prevent data leakage from previous tests
 DT.clear

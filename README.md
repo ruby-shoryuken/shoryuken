@@ -63,7 +63,7 @@ To run all unit specs against the latest dependency versions, execute
 bundle exec rake spec
 ```
 
-To run integration specs (including Rails tests), start LocalStack and run:
+To run integration specs (including Rails tests), start ElasticMQ and run:
 
 ```sh
 docker compose up -d

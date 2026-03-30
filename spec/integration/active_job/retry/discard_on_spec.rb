@@ -2,7 +2,7 @@
 
 # ActiveJob discard_on discards jobs that raise specific errors without retry
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

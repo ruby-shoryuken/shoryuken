@@ -3,7 +3,7 @@
 # This spec tests the body_parser option with :json setting
 # Verifies that JSON messages are automatically parsed into Ruby hashes
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.uuid
 create_test_queue(queue_name)

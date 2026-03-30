@@ -3,7 +3,7 @@
 # This spec tests the ActiveRecord middleware functionality.
 # The middleware clears database connections after each message is processed.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)

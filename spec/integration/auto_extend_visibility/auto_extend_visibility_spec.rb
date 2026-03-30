@@ -4,7 +4,7 @@
 # When auto_visibility_timeout: true, the message visibility timeout should be
 # automatically extended during long-running job processing to prevent re-delivery.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.uuid
 

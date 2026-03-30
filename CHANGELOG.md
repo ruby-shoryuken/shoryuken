@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Enhancement: Replace LocalStack with ElasticMQ for SQS integration tests (mensfeld)
+  - ElasticMQ is free, open-source, and requires no auth token (LocalStack 2026.x requires paid account)
+  - Uses `softwaremill/elasticmq-native` image (~30MB vs ~1GB+, starts in milliseconds)
+  - Rename `setup_localstack` to `setup_sqs` and `bin/clean_localstack` to `bin/clean_sqs`
+
 - Fix: Allow custom polling strategy to be configured per-group via `add_group` (mensfeld)
   - `add_group` now accepts `polling_strategy:` keyword argument
   - `polling_strategy()` reads from the groups hash populated by `add_group`, with fallback to raw options

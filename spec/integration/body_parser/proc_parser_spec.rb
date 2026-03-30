@@ -3,7 +3,7 @@
 # This spec tests the body_parser option with a custom Proc
 # Verifies that custom parsing logic can be applied to messages
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.uuid
 create_test_queue(queue_name)

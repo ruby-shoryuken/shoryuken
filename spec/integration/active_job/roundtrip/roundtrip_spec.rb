@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Full round-trip ActiveJob integration test
-# Enqueues a job via ActiveJob → sends to LocalStack SQS → processes via Shoryuken → verifies execution
+# Enqueues a job via ActiveJob → sends to ElasticMQ SQS → processes via Shoryuken → verifies execution
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

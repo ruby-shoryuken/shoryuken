@@ -2,7 +2,7 @@
 
 # CurrentAttributes with full context are persisted and restored during job execution
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 require 'active_support/current_attributes'

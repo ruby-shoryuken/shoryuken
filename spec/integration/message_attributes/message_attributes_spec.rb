@@ -4,7 +4,7 @@
 # attribute types, system attributes (ApproximateReceiveCount, SentTimestamp),
 # and custom type suffixes.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)

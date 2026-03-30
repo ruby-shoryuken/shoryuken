@@ -1,14 +1,14 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Removes all integration test SQS queues from LocalStack
+# Removes all integration test SQS queues from ElasticMQ
 #
-# Useful when having a long-running LocalStack instance that cannot be fully
+# Useful when having a long-running ElasticMQ instance that cannot be fully
 # restarted between test runs. All integration test queues use the 'it-' prefix,
 # making them easy to identify and remove.
 #
 # Usage:
-#   bin/clean_localstack
+#   bin/clean_sqs
 
 require 'aws-sdk-sqs'
 
@@ -16,7 +16,7 @@ THREADS_COUNT = 3
 
 sqs = Aws::SQS::Client.new(
   region: 'us-east-1',
-  endpoint: 'http://localhost:4566',
+  endpoint: 'http://localhost:9324',
   access_key_id: 'fake',
   secret_access_key: 'fake'
 )

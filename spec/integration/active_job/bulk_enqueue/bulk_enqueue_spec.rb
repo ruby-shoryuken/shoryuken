@@ -3,7 +3,7 @@
 # Bulk enqueue integration test
 # Tests perform_all_later with the new enqueue_all method using SQS batch API
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 queue_name = DT.queue

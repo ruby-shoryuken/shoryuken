@@ -3,7 +3,7 @@
 # This spec tests the StrictPriority polling strategy.
 # Higher priority queues are always processed before lower priority queues.
 
-setup_localstack
+setup_sqs
 
 queue_high = DT.queues[0]
 queue_low = DT.queues[1]
