@@ -1,4 +1,4 @@
-## [Unreleased]
+## [7.0.2] - 2026-04-16
 
 - Enhancement: Replace LocalStack with ElasticMQ for SQS integration tests (mensfeld)
   - ElasticMQ is free, open-source, and requires no auth token (LocalStack 2026.x requires paid account)
