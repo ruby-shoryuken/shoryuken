@@ -58,5 +58,8 @@
       ],
       "groupName": "ruby setup"
     }
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  }
 }
