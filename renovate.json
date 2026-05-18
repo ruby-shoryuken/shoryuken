@@ -56,7 +56,8 @@
         "ruby/setup-ruby",
         "ruby"
       ],
-      "groupName": "ruby setup"
+      "groupName": "ruby setup",
+      "internalChecksFilter": "strict"
     }
   ],
   "lockFileMaintenance": {
