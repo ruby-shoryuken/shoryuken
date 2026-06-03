@@ -20,10 +20,6 @@ Warning.process do |warning|
   # Filter out warnings we don't care about in specs
   next if warning.include?('_spec')
 
-  # We redefine methods to simulate various scenarios in tests
-  next if warning.include?('previous definition of')
-  next if warning.include?('method redefined')
-
   # Ignore vendor and bundle directories
   next if warning.include?('vendor/')
   next if warning.include?('bundle/')
