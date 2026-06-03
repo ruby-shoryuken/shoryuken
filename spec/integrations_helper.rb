@@ -7,6 +7,10 @@ Warning[:performance] = true if RUBY_VERSION >= '3.3'
 Warning[:deprecated] = true
 $VERBOSE = true
 
+if Warning.respond_to?(:categories)
+  (Warning.categories - %i[deprecated experimental]).each { |cat| Warning[cat] = true }
+end
+
 require 'warning'
 
 # Process warnings and raise on unexpected ones from our code
