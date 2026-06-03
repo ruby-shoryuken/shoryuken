@@ -2,18 +2,18 @@
 
 # Integration test helper for process-isolated testing
 
-# Enable Ruby warnings to catch deprecations and potential issues
-Warning[:performance] = true if RUBY_VERSION >= '3.3'
-Warning[:deprecated] = true
+require 'warning'
+
 $VERBOSE = true
 
 if Warning.respond_to?(:categories)
   (Warning.categories - %i[experimental]).each do |cat|
     Warning[cat] = true
   end
+else
+  Warning[:deprecated] = true
+  Warning[:performance] = true if RUBY_VERSION >= '3.3'
 end
-
-require 'warning'
 
 # Process warnings and raise on unexpected ones from our code
 Warning.process do |warning|
