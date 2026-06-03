@@ -5,7 +5,9 @@ Warning[:deprecated] = true
 $VERBOSE = true
 
 if Warning.respond_to?(:categories)
-  (Warning.categories - %i[experimental]).each { |cat| Warning[cat] = true }
+  (Warning.categories - %i[experimental]).each do |cat|
+    Warning[cat] = true
+  end
 end
 
 require 'warning'
