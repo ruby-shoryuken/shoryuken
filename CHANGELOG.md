@@ -1,3 +1,10 @@
+## [Unreleased]
+
+- Enhancement: Use dynamic Ruby warning category opt-in in test helpers (mensfeld)
+  - Replace version-gated `Warning[:performance]` with `Warning.categories`-based auto-enablement
+  - Automatically enables all non-deprecated, non-experimental warning categories for forward compatibility
+  - Applied to both `spec/spec_helper.rb` and `spec/integrations_helper.rb`
+
 ## [7.0.2] - 2026-04-16
 
 - Enhancement: Replace LocalStack with ElasticMQ for SQS integration tests (mensfeld)
