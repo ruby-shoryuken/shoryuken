@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-Warning[:performance] = true if RUBY_VERSION >= '3.3'
-Warning[:deprecated] = true
+require 'warning'
+
 $VERBOSE = true
 
 if Warning.respond_to?(:categories)
-  (Warning.categories - %i[deprecated experimental]).each { |cat| Warning[cat] = true }
+  (Warning.categories - %i[experimental]).each do |cat|
+    Warning[cat] = true
+  end
 end
-
-require 'warning'
 
 Warning.process do |warning|
   # Only check warnings from our code (not dependencies)
@@ -16,10 +16,6 @@ Warning.process do |warning|
 
   # Filter out warnings we don't care about in specs
   next if warning.include?('_spec')
-
-  # We redefine methods to simulate various scenarios in tests
-  next if warning.include?('previous definition of')
-  next if warning.include?('method redefined')
 
   # Ignore vendor and bundle directories
   next if warning.include?('vendor/')

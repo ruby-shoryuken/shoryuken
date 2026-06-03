@@ -2,16 +2,15 @@
 
 # Integration test helper for process-isolated testing
 
-# Enable Ruby warnings to catch deprecations and potential issues
-Warning[:performance] = true if RUBY_VERSION >= '3.3'
-Warning[:deprecated] = true
+require 'warning'
+
 $VERBOSE = true
 
 if Warning.respond_to?(:categories)
-  (Warning.categories - %i[deprecated experimental]).each { |cat| Warning[cat] = true }
+  (Warning.categories - %i[experimental]).each do |cat|
+    Warning[cat] = true
+  end
 end
-
-require 'warning'
 
 # Process warnings and raise on unexpected ones from our code
 Warning.process do |warning|
@@ -20,10 +19,6 @@ Warning.process do |warning|
 
   # Filter out warnings we don't care about in specs
   next if warning.include?('_spec')
-
-  # We redefine methods to simulate various scenarios in tests
-  next if warning.include?('previous definition of')
-  next if warning.include?('method redefined')
 
   # Ignore vendor directory
   next if warning.include?('vendor/')
