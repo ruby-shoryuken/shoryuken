@@ -47,6 +47,24 @@ RSpec.describe Shoryuken::Manager do
 
       expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked on a repeated stop'
     end
+
+    context 'when the executor rejects the dispatch post' do
+      let(:executor) do
+        double('executor', running?: true).tap do |rejecting_executor|
+          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+        end
+      end
+
+      it 'releases waiters instead of leaving the signal queue unsignaled' do
+        # A hard stop can shut the executor down between the running? check and
+        # the post; the dispatch chain must still release stop waiters
+        subject.start
+
+        waiter = Thread.new { subject.await_dispatching_in_progress }
+
+        expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked after a rejected post'
+      end
+    end
   end
 
   describe '#start' do
