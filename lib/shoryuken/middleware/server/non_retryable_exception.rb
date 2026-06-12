@@ -28,6 +28,22 @@ module Shoryuken
       class NonRetryableException
         include Util
 
+        # Checks whether an exception is classified as non-retryable for a worker
+        #
+        # @param exception [Exception] the exception to classify
+        # @param non_retryable_exceptions [Array<Class>, #call, nil] the worker's
+        #   non_retryable_exceptions option: exception classes or a callable
+        # @return [Boolean] true if the exception must not be retried
+        def self.non_retryable?(exception, non_retryable_exceptions)
+          return false unless non_retryable_exceptions
+
+          if non_retryable_exceptions.respond_to?(:call)
+            !!non_retryable_exceptions.call(exception)
+          else
+            Array(non_retryable_exceptions).any? { |klass| exception.is_a?(klass) }
+          end
+        end
+
         # Processes a message and handles non-retryable exceptions
         #
         # @param worker [Object] the worker instance
@@ -41,14 +57,7 @@ module Shoryuken
         rescue => e
           non_retryable_exceptions = worker.class.get_shoryuken_options['non_retryable_exceptions']
 
-          return raise unless non_retryable_exceptions
-
-          if non_retryable_exceptions.respond_to?(:call)
-            return raise unless non_retryable_exceptions.call(e)
-          else
-            exception_classes = Array(non_retryable_exceptions)
-            return raise unless exception_classes.any? { |klass| e.is_a?(klass) }
-          end
+          return raise unless self.class.non_retryable?(e, non_retryable_exceptions)
 
           # Handle batch messages
           messages = sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]

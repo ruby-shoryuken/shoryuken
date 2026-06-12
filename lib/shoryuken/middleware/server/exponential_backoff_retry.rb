@@ -17,8 +17,8 @@ module Shoryuken
         # @param _body [Object] the parsed message body (unused)
         # @yield continues to the next middleware in the chain
         # @return [void]
-        # @raise [StandardError] re-raises the original exception if retry intervals are not configured
-        #   or if retry limit is exceeded
+        # @raise [StandardError] re-raises the original exception if retry intervals are not configured,
+        #   if retry limit is exceeded, or if the exception is classified as non-retryable
         def call(worker, _queue, sqs_msg, _body)
           return yield unless worker.class.exponential_backoff?
 
@@ -30,7 +30,12 @@ module Shoryuken
           started_at = Time.now
           yield
         rescue => e
-          retry_intervals = worker.class.get_shoryuken_options['retry_intervals']
+          worker_options = worker.class.get_shoryuken_options
+          retry_intervals = worker_options['retry_intervals']
+
+          # Non-retryable exceptions must not be backoff retried; re-raise so the
+          # NonRetryableException middleware can delete the message immediately.
+          raise if NonRetryableException.non_retryable?(e, worker_options['non_retryable_exceptions'])
 
           if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
             # Re-raise the exception if the job is not going to be exponential backoff retried.

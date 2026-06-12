@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `non_retryable_exceptions` is no longer ignored when `retry_intervals` is also configured (mensfeld)
+  - `ExponentialBackoffRetry` swallowed every exception after scheduling a retry, so `NonRetryableException`
+    (which sits outside it in the default middleware chain) never saw non-retryable errors - poison messages
+    were retried indefinitely (with the last interval repeated) instead of being deleted immediately
+  - `ExponentialBackoffRetry` now re-raises exceptions classified as non-retryable so the message gets deleted
+  - Exception classification is extracted to `NonRetryableException.non_retryable?` and shared by both middlewares
+
 - Enhancement: Use dynamic Ruby warning category opt-in in test helpers (mensfeld)
   - Replace version-gated `Warning[:performance]` with `Warning.categories`-based auto-enablement
   - Automatically enables all non-deprecated, non-experimental warning categories for forward compatibility
