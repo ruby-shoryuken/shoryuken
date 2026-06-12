@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
+  - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
+    so a second `Launcher#stop` blocked forever on an empty queue
+  - Operationally this was the TSTP -> USR1 sequence: both signals trigger a graceful stop, leaving
+    the process stuck in the signal loop where even TERM/INT were no longer handled (only SIGKILL worked)
+  - The dispatch loop now closes the signal queue instead of pushing a token, releasing every pending
+    and future waiter; the dispatch chain also releases waiters if the executor rejects a post during
+    a racing hard shutdown
+
 - Fix: `non_retryable_exceptions` is no longer ignored when `retry_intervals` is also configured (mensfeld)
   - `ExponentialBackoffRetry` swallowed every exception after scheduling a retry, so `NonRetryableException`
     (which sits outside it in the default middleware chain) never saw non-retryable errors - poison messages

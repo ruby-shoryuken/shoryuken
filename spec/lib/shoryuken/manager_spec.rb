@@ -34,6 +34,21 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#await_dispatching_in_progress' do
+    it 'returns for repeated graceful stops (e.g. TSTP followed by USR1)' do
+      subject.stop_new_dispatching
+      # The dispatch loop observes the stop flag and releases all waiters
+      subject.start
+
+      waiter = Thread.new do
+        subject.await_dispatching_in_progress
+        subject.await_dispatching_in_progress
+      end
+
+      expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked on a repeated stop'
+    end
+  end
+
   describe '#start' do
     before do
       # prevent dispatch loop

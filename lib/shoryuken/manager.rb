@@ -57,6 +57,9 @@ module Shoryuken
       # There might still be a dispatching on-going, as the response from SQS could take some time
       # We don't want to stop the process before processing incoming messages, as they would stay "in-flight" for some time on SQS
       # We use a queue, as the dispatch_loop is running on another thread, and this is a efficient way of communicating between threads.
+      # The dispatch loop closes the queue when it observes the stop flag; pop on a closed queue
+      # returns immediately, so this stays safe when stop is requested more than once
+      # (e.g. TSTP followed by USR1, which both trigger a graceful stop).
       @dispatching_release_signal.pop
     end
 
@@ -74,11 +77,18 @@ module Shoryuken
     # @return [void]
     def dispatch_loop
       if @stop_new_dispatching.true? || !running?
-        @dispatching_release_signal << 1
+        # Close (instead of push) so every pending and future
+        # await_dispatching_in_progress call returns, not just the first one
+        @dispatching_release_signal.close
         return
       end
 
       @executor.post { dispatch }
+    rescue Concurrent::RejectedExecutionError
+      # The executor was shut down between the running? check and the post
+      # (e.g. a hard stop racing the dispatch loop); release any waiters as
+      # the dispatch chain ends here
+      @dispatching_release_signal.close
     end
 
     # Dispatches messages from a queue
