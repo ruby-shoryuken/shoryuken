@@ -139,6 +139,12 @@ module Shoryuken
       return unless @polling_strategy.respond_to?(:message_processed)
 
       @polling_strategy.message_processed(queue)
+    rescue => e
+      # Swallow (but log) failures from the SQS lookups or the strategy callback:
+      # the busy counter was already decremented above and the caller's ensure
+      # must not run completion twice
+      logger.error { "Processor completion failed for #{queue}: #{e.message}" }
+      logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
     end
 
     # Assigns a message to a processor
@@ -154,6 +160,11 @@ module Shoryuken
       @busy_processors.increment
       fire_utilization_update_event
 
+      # Completion runs in an ensure so it executes exactly once whether
+      # processing succeeds or raises. The previous `.then { processor_done }
+      # .rescue { processor_done }` chain ran completion twice when
+      # processor_done itself raised, double decrementing the busy counter
+      # and silently breaking the concurrency limit
       Concurrent::Promise
         .execute(executor: @executor) do
           original_priority = Thread.current.priority
@@ -162,10 +173,9 @@ module Shoryuken
             Processor.process(queue_name, sqs_msg)
           ensure
             Thread.current.priority = original_priority
+            processor_done(queue_name)
           end
         end
-        .then { processor_done(queue_name) }
-        .rescue { processor_done(queue_name) }
     end
 
     # Dispatches a batch of messages from a queue
