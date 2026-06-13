@@ -210,6 +210,34 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#handle_dispatch_error' do
+    let(:error) { StandardError.new('boom') }
+
+    context 'when running under the CLI (server mode)' do
+      before { allow(Shoryuken).to receive(:server?).and_return(true) }
+
+      it 'stops the manager and signals the process to shut down' do
+        expect(Process).to receive(:kill).with('USR1', Process.pid)
+
+        subject.send(:handle_dispatch_error, error)
+
+        expect(subject.running?).to be false
+      end
+    end
+
+    context 'when embedded (no Runner)' do
+      before { allow(Shoryuken).to receive(:server?).and_return(false) }
+
+      it 'stops the manager without signalling the process' do
+        expect(Process).not_to receive(:kill)
+
+        subject.send(:handle_dispatch_error, error)
+
+        expect(subject.running?).to be false
+      end
+    end
+  end
+
   describe '#running?' do
     context 'when the executor is running' do
       before do
