@@ -17,5 +17,23 @@ RSpec.describe Shoryuken::Client do
       expect(Shoryuken::Client.queues(queue_name).url).to eq queue_url
       expect(Shoryuken::Client.queues(queue_name).url).to eq queue_url
     end
+
+    it 'constructs each queue only once under concurrent first access' do
+      allow(described_class).to receive(:sqs).and_return(sqs)
+
+      construction_count = Shoryuken::Helpers::AtomicCounter.new(0)
+      allow(Shoryuken::Queue).to receive(:new) do
+        construction_count.increment
+        # Mimic the SQS API latency during construction. sleep releases the GVL,
+        # so without synchronization every concurrent caller builds its own queue.
+        sleep 0.05
+        instance_double(Shoryuken::Queue)
+      end
+
+      threads = Array.new(10) { Thread.new { described_class.queues('concurrent') } }
+      threads.each(&:join)
+
+      expect(construction_count.value).to eq(1)
+    end
   end
 end

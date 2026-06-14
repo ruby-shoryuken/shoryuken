@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `Shoryuken::Client.queues` no longer builds the same queue more than once under concurrency (mensfeld)
+  - The cache used an unsynchronized `@@queues[name] ||= Shoryuken::Queue.new(...)`. Building a queue makes
+    SQS API calls, and that I/O releases the GVL, so concurrent first-access (dispatch, processor-completion
+    and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
+    on JRuby/TruffleRuby
+  - Access to the cache is now guarded by a mutex
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
