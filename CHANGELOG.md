@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: `CurrentAttributes.persist` no longer drops a class when called once per class (mensfeld)
+  - The storage key was derived from the per-call index, so registering classes across separate `persist`
+    calls made the third call reuse `cattr_0` and silently overwrite the second class - its attributes were
+    then never serialized or restored
+  - The key now uses the running registry size, so incremental and single-call registration both yield
+    distinct, stable keys (single-call `persist(A, B, C)` keys are unchanged)
 - Fix: Busy-processor accounting no longer breaks when processor completion raises (mensfeld)
   - `Manager#assign` chained `.then { processor_done }.rescue { processor_done }`, so an exception inside
     `processor_done` (SQS lookups or a polling strategy's `message_processed` callback) ran completion twice
