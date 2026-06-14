@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `CurrentAttributes.persist` no longer drops a class when called once per class (mensfeld)
+  - The storage key was derived from the per-call index, so registering classes across separate `persist`
+    calls made the third call reuse `cattr_0` and silently overwrite the second class - its attributes were
+    then never serialized or restored
+  - The key now uses the running registry size, so incremental and single-call registration both yield
+    distinct, stable keys (single-call `persist(A, B, C)` keys are unchanged)
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue

@@ -58,8 +58,12 @@ module Shoryuken
         def persist(*klasses)
           @cattrs ||= {}
 
-          klasses.flatten.each_with_index do |klass, idx|
-            key = @cattrs.empty? ? 'cattr' : "cattr_#{idx}"
+          klasses.flatten.each do |klass|
+            # Key off the running registry size, not the per-call index, so that
+            # registering classes across separate persist calls still produces
+            # distinct keys (a per-call index restarts at 0 each call and would
+            # overwrite earlier registrations).
+            key = @cattrs.empty? ? 'cattr' : "cattr_#{@cattrs.size}"
             @cattrs[key] = klass.to_s
           end
 
