@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `auto_visibility_timeout` no longer breaks processing on queues with a short visibility timeout (mensfeld)
+  - `AutoExtendVisibility` scheduled its `TimerTask` at `visibility_timeout - EXTEND_UPFRONT_SECONDS` (5s);
+    when the queue's visibility timeout was `<= 5s` that interval was `<= 0`, so `TimerTask` raised
+    `ArgumentError` before the worker ran and every message failed (and was reprocessed) until it hit a DLQ
+  - The interval is now clamped to half the visibility timeout when it would be non-positive, and the
+    extension is skipped with a clear warning only when the timeout is `<= 0`; the worker always runs
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
