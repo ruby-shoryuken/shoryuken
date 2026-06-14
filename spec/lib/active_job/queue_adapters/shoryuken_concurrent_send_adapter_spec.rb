@@ -37,4 +37,73 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       subject.enqueue(job, options)
     end
   end
+
+  describe '#wait_for_pending_sends' do
+    # Use a real async executor (instead of the ImmediateExecutor stubbed above)
+    # so sends are genuinely in-flight and the drain has something to wait for.
+    let(:pool) { Concurrent::FixedThreadPool.new(2) }
+    let(:success_handler) { ->(_response, _job, _options) {} }
+    let(:error_handler) { ->(_error, _job, _options) {} }
+
+    before do
+      allow(Concurrent).to receive(:global_io_executor).and_return(pool)
+      allow(Shoryuken).to receive(:register_worker)
+    end
+
+    after do
+      pool.shutdown
+      pool.wait_for_termination(5)
+    end
+
+    it 'returns true when there are no pending sends' do
+      expect(subject.wait_for_pending_sends(1)).to be true
+    end
+
+    it 'blocks until an in-flight send completes' do
+      completed = Concurrent::AtomicBoolean.new(false)
+      allow(queue).to receive(:send_message) do
+        sleep 0.3
+        completed.make_true
+        true
+      end
+
+      subject.enqueue(job, options)
+
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(subject.wait_for_pending_sends(5)).to be true
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+      expect(completed.value).to be true
+      expect(elapsed).to be >= 0.2
+    end
+
+    it 'returns false when sends do not finish within the timeout' do
+      allow(queue).to receive(:send_message) do
+        sleep 2
+        true
+      end
+
+      subject.enqueue(job, options)
+
+      expect(subject.wait_for_pending_sends(0.2)).to be false
+    end
+
+    it 'stops tracking sends once they resolve (no unbounded growth)' do
+      allow(queue).to receive(:send_message).and_return(true)
+
+      3.times { subject.enqueue(job, options) }
+      expect(subject.wait_for_pending_sends(5)).to be true
+
+      # Removal happens on the resolving thread, so poll the mutex-guarded set.
+      mutex = subject.instance_variable_get(:@pending_sends_mutex)
+      set = subject.instance_variable_get(:@pending_sends)
+      50.times do
+        break if mutex.synchronize { set.empty? }
+
+        sleep 0.02
+      end
+
+      expect(mutex.synchronize { set.size }).to eq(0)
+    end
+  end
 end
