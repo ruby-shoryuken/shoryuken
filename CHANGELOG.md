@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: Graceful stop is now bounded by the configured timeout (mensfeld)
+  - `Launcher#stop` (the soft shutdown behind USR1/TSTP) called `executor.wait_for_termination` with no
+    argument - an unbounded wait - so a single hung worker blocked shutdown forever
+  - Both `Launcher#stop` and `Launcher#stop!` now share a `shutdown_executor` helper that waits up to
+    `Shoryuken.options[:timeout]` seconds for in-flight workers, then force-kills the executor so the
+    process can exit; the graceful stop still waits for workers, just no longer indefinitely
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
