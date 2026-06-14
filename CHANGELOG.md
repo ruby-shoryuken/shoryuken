@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Docs: Correct the `retry_intervals` exponential backoff documentation (mensfeld)
+  - The `exponential_backoff?` docstring claimed retries stop ("before giving up") after the last configured
+    interval. They do not: once the intervals are exhausted, the last interval is reused for every later
+    attempt, and SQS's redrive policy (maxReceiveCount) is what ultimately moves a message to a dead-letter queue
+  - Added a spec pinning that far-later attempts keep reusing the last interval
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
