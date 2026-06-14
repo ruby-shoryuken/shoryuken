@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
+  - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
+    and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
+  - Shutting down that process-wide pool broke anything else relying on concurrent-ruby's `:io` pool
+    (including Shoryuken's own `ShoryukenConcurrentSendAdapter`) and prevented starting a fresh launcher
+    in the same process
+  - The launcher now owns a dedicated `Concurrent::CachedThreadPool`, so stopping it leaves the global
+    IO executor untouched
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue

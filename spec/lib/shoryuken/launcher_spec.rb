@@ -102,6 +102,26 @@ RSpec.describe Shoryuken::Launcher do
     end
   end
 
+  describe 'executor ownership' do
+    context 'when no launcher_executor is configured' do
+      before { allow(Shoryuken).to receive(:launcher_executor).and_return(nil) }
+
+      it 'uses a dedicated executor rather than the process-global IO executor' do
+        expect(subject.send(:executor)).not_to be(Concurrent.global_io_executor)
+      end
+
+      it 'does not shut down or kill the global IO executor on stop!' do
+        allow(first_group_manager).to receive(:stop_new_dispatching)
+        allow(second_group_manager).to receive(:stop_new_dispatching)
+
+        expect(Concurrent.global_io_executor).not_to receive(:shutdown)
+        expect(Concurrent.global_io_executor).not_to receive(:kill)
+
+        subject.stop!
+      end
+    end
+  end
+
   describe '#stopping?' do
     it 'returns false by default' do
       expect(subject.stopping?).to be false
