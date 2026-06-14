@@ -20,7 +20,10 @@ module Shoryuken
     def fire_event(event, reverse = false, event_options = {})
       logger.debug { "Firing '#{event}' lifecycle event" }
       arr = Shoryuken.options[:lifecycle_events][event]
-      arr.reverse! if reverse
+      # reverse (not reverse!) so the stored handler array keeps its original
+      # order: events fired more than once with reverse: true (e.g. :shutdown
+      # via stop then stop!) must not alternate their handler order.
+      arr = arr.reverse if reverse
       arr.each do |block|
         block.call(event_options)
       rescue => e

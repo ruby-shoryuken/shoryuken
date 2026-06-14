@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: Lifecycle events fired in reverse no longer alternate handler order (mensfeld)
+  - `Util#fire_event` reversed the stored handler array in place with `reverse!`, so an event fired more
+    than once with `reverse: true` (e.g. `:shutdown` via `stop` then `stop!`) flipped order each time
+  - It now reverses a copy, leaving the stored handler order untouched
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
