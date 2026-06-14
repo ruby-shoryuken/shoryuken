@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+- Fix: Busy-processor accounting no longer breaks when processor completion raises (mensfeld)
+  - `Manager#assign` chained `.then { processor_done }.rescue { processor_done }`, so an exception inside
+    `processor_done` (SQS lookups or a polling strategy's `message_processed` callback) ran completion twice
+  - The busy counter was decremented twice for one message and drifted negative, inflating `ready` and
+    silently breaking the configured concurrency limit for the life of the process
+  - Completion now runs in an `ensure` around processing (exactly once), and `processor_done` logs
+    instead of leaking exceptions from the FIFO bookkeeping
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
