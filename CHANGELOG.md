@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
+  - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
+    run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)
+    but corrupts state on JRuby/TruffleRuby. Both `WeightedRoundRobin` and `StrictPriority` now serialize access
+    with a mutex
+  - `WeightedRoundRobin#unpause_queues` only checked the head of the paused list, so a queue marked ready by
+    `message_processed` could stay stuck behind an earlier-paused queue; it now unpauses the first expired entry
+    anywhere in the list
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue

@@ -22,6 +22,10 @@ module Shoryuken
                         .each_with_object({}) { |queue, h| h[queue] = Time.at(0) }
 
         @delay = delay
+        # next_queue/messages_found run on the dispatch thread while
+        # message_processed runs on processor-completion threads (for FIFO
+        # queues), so all access to the shared state is serialized.
+        @mutex = Mutex.new
         # Start queues at 0
         reset_next_queue
       end
@@ -30,8 +34,10 @@ module Shoryuken
       #
       # @return [QueueConfiguration, nil] the next queue configuration or nil if all paused
       def next_queue
-        next_queue = next_active_queue
-        next_queue.nil? ? nil : QueueConfiguration.new(next_queue, {})
+        @mutex.synchronize do
+          next_queue = next_active_queue
+          next_queue.nil? ? nil : QueueConfiguration.new(next_queue, {})
+        end
       end
 
       # Handles the result of polling a queue
@@ -40,10 +46,12 @@ module Shoryuken
       # @param messages_found [Integer] number of messages found
       # @return [void]
       def messages_found(queue, messages_found)
-        if messages_found == 0
-          pause(queue)
-        else
-          reset_next_queue
+        @mutex.synchronize do
+          if messages_found == 0
+            pause(queue)
+          else
+            reset_next_queue
+          end
         end
       end
 
@@ -51,11 +59,13 @@ module Shoryuken
       #
       # @return [Array<Array>] array of [queue_name, priority] pairs
       def active_queues
-        @queues
-          .reverse
-          .map.with_index(1)
-          .reject { |q, _| queue_paused?(q) }
-          .reverse
+        @mutex.synchronize do
+          @queues
+            .reverse
+            .map.with_index(1)
+            .reject { |q, _| queue_paused?(q) }
+            .reverse
+        end
       end
 
       # Called when a message from a queue has been processed
@@ -63,9 +73,11 @@ module Shoryuken
       # @param queue [String] the queue name
       # @return [void]
       def message_processed(queue)
-        if queue_paused?(queue)
-          logger.debug "Unpausing #{queue}"
-          @paused_until[queue] = Time.at 0
+        @mutex.synchronize do
+          if queue_paused?(queue)
+            logger.debug "Unpausing #{queue}"
+            @paused_until[queue] = Time.at(0)
+          end
         end
       end
 
