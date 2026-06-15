@@ -228,9 +228,17 @@ module Shoryuken
       logger.error { "Manager failed: #{ex.message}" }
       logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
 
-      Process.kill('USR1', Process.pid)
-
+      # Stop this manager first so Launcher#healthy? surfaces the failure to
+      # whoever is supervising us (the CLI Runner, or an embedding application).
       @running.make_false
+
+      # In server (CLI) mode the Runner traps USR1 and turns it into a graceful
+      # shutdown of the whole process, so a process supervisor can restart us.
+      # When embedded (no Runner), USR1 keeps its default disposition and would
+      # terminate the host process - and any in-flight workers - so we must not
+      # send it. The stopped manager above is enough for Launcher#healthy? to
+      # report the failure to the embedding application.
+      Process.kill('USR1', Process.pid) if Shoryuken.server?
     end
 
     # Fires a utilization update event

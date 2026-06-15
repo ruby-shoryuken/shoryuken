@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+- Fix: A fatal dispatch error no longer hard-kills an embedded host process (mensfeld)
+  - `Manager#handle_dispatch_error` sent `Process.kill('USR1', Process.pid)` unconditionally after a
+    dispatch error (e.g. SQS still failing once the fetcher exhausted its retries)
+  - The CLI Runner traps USR1 and turns it into a graceful shutdown, but a host embedding
+    `Shoryuken::Launcher` directly has USR1's default disposition, so the whole process - and its
+    in-flight workers - was terminated
+  - When embedded (no CLI Runner), the failing manager now just stops itself and `Launcher#healthy?`
+    reports the failure; the USR1 signal is only sent in server (CLI) mode, preserving the
+    supervisor-restart behavior there
+
 - Fix: Graceful stop is now bounded by the configured timeout (mensfeld)
   - `Launcher#stop` (the soft shutdown behind USR1/TSTP) called `executor.wait_for_termination` with no
     argument - an unbounded wait - so a single hung worker blocked shutdown forever
