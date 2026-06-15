@@ -78,6 +78,22 @@ RSpec.describe Shoryuken::Launcher do
       expect(first_group_manager).to have_received(:stop_new_dispatching)
       expect(second_group_manager).to have_received(:stop_new_dispatching)
     end
+
+    it 'bounds the wait for termination by the configured timeout' do
+      allow(executor).to receive(:shutdown)
+      expect(executor).to receive(:wait_for_termination).with(Shoryuken.options[:timeout]).and_return(true)
+      expect(executor).not_to receive(:kill)
+
+      subject.stop
+    end
+
+    it 'kills the executor when workers do not finish within the timeout' do
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      expect(executor).to receive(:kill)
+
+      subject.stop
+    end
   end
 
   describe '#stop!' do
