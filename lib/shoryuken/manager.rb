@@ -89,7 +89,7 @@ module Shoryuken
       # (e.g. a hard stop racing the dispatch loop); release any waiters as
       # the dispatch chain ends here
       @dispatching_release_signal.close
-    rescue => e
+    rescue StandardError
       # Unexpected error from post (e.g. ThreadError if the OS thread limit is
       # hit); the dispatch chain ends here so release waiters before re-raising
       @dispatching_release_signal.close
