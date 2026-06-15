@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `Queue#delete_messages` now logs every batch-delete failure and returns a robust boolean (mensfeld)
+  - It used `failed.any? { |f| logger.error ... }`, which short-circuited after the first failure - so when
+    a batch had multiple failures only the first was logged - and only returned truthy because `Logger#error`
+    happens to return true (a custom logger returning falsey would have hidden the failure from callers)
+  - It now logs each failure and returns `failed.any?`, so `NonRetryableException`/`AutoDelete` reliably see
+    that some messages may remain and need reprocessing
+
 - Fix: Lifecycle events fired in reverse no longer alternate handler order (mensfeld)
   - `Util#fire_event` reversed the stored handler array in place with `reverse!`, so an event fired more
     than once with `reverse: true` (e.g. `:shutdown` via `stop` then `stop!`) flipped order each time
