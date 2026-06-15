@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: Graceful stop is now bounded by the configured timeout (mensfeld)
+  - `Launcher#stop` (the soft shutdown behind USR1/TSTP) called `executor.wait_for_termination` with no
+    argument - an unbounded wait - so a single hung worker blocked shutdown forever
+  - Both `Launcher#stop` and `Launcher#stop!` now share a `shutdown_executor` helper that waits up to
+    `Shoryuken.options[:timeout]` seconds for in-flight workers, then force-kills the executor so the
+    process can exit; the graceful stop still waits for workers, just no longer indefinitely
+
 - Docs: Correct the `retry_intervals` exponential backoff documentation (mensfeld)
   - The `exponential_backoff?` docstring claimed retries stop ("before giving up") after the last configured
     interval. They do not: once the intervals are exhausted, the last interval is reused for every later
