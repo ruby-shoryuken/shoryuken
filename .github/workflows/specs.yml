@@ -11,11 +11,14 @@ jobs:
       matrix:
         ruby: ['3.2', '3.3', '3.4', '4.0']
     runs-on: ubuntu-latest
+    # Unit specs finish in under a minute; fail fast instead of letting a
+    # wedged runner occupy the job slot for the 6-hour default
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+      - uses: ruby/setup-ruby@12fd324f1d0b43274fdc8130f6980590a667c455 # v1.312.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -29,6 +32,8 @@ jobs:
       matrix:
         ruby: ['3.2', '3.3', '3.4', '4.0']
     runs-on: ubuntu-latest
+    # Integration specs normally take ~4 minutes
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -45,7 +50,7 @@ jobs:
           done
           '
 
-      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+      - uses: ruby/setup-ruby@12fd324f1d0b43274fdc8130f6980590a667c455 # v1.312.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -56,6 +61,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: always()
     needs:
       - specs

@@ -92,6 +92,16 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
         expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
       end
+
+      it 'keeps reusing the last interval for far-later attempts (does not give up)' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
+
+        allow(sqs_msg).to receive(:attributes) { { 'ApproximateReceiveCount' => 10 } }
+        allow(sqs_msg).to receive(:queue) { sqs_queue }
+        expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 1800)
+
+        expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
+      end
     end
 
     context 'and the exception is non-retryable' do
