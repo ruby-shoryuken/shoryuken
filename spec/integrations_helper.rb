@@ -190,7 +190,9 @@ module IntegrationsHelper
     launcher.start
     Timeout.timeout(timeout) { sleep 0.5 until yield }
   ensure
-    launcher.stop
+    # Guard stop with a hard deadline so a stuck dispatch thread (e.g. an SQS
+    # HTTP call that never returns) can't block the spec process forever.
+    Timeout.timeout(30) { launcher.stop }
   end
 
   # Simple mock object
