@@ -24,6 +24,10 @@ jobs:
           bundler-cache: true
 
       - name: Run specs
+        env:
+          # Use the documentation formatter in CI so the log shows which example
+          # is executing — critical for diagnosing hangs that produce no output.
+          SPEC_OPTS: '--format documentation'
         run: |
           bundle exec rake spec &
           SPEC_PID=$!
