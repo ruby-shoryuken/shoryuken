@@ -7,6 +7,65 @@
     on JRuby/TruffleRuby
   - Access to the cache is now guarded by a mutex
 
+- Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
+  - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
+    and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
+  - Shutting down that process-wide pool broke anything else relying on concurrent-ruby's `:io` pool
+    (including Shoryuken's own `ShoryukenConcurrentSendAdapter`) and prevented starting a fresh launcher
+    in the same process
+  - The launcher now owns a dedicated `Concurrent::CachedThreadPool`, so stopping it leaves the global
+    IO executor untouched
+
+- Fix: `Queue#delete_messages` now logs every batch-delete failure and returns a robust boolean (mensfeld)
+  - It used `failed.any? { |f| logger.error ... }`, which short-circuited after the first failure - so when
+    a batch had multiple failures only the first was logged - and only returned truthy because `Logger#error`
+    happens to return true (a custom logger returning falsey would have hidden the failure from callers)
+  - It now logs each failure and returns `failed.any?`, so `NonRetryableException`/`AutoDelete` reliably see
+    that some messages may remain and need reprocessing
+
+- Fix: Lifecycle events fired in reverse no longer alternate handler order (mensfeld)
+  - `Util#fire_event` reversed the stored handler array in place with `reverse!`, so an event fired more
+    than once with `reverse: true` (e.g. `:shutdown` via `stop` then `stop!`) flipped order each time
+  - It now reverses a copy, leaving the stored handler order untouched
+
+- Fix: A fatal dispatch error no longer hard-kills an embedded host process (mensfeld)
+  - `Manager#handle_dispatch_error` sent `Process.kill('USR1', Process.pid)` unconditionally after a
+    dispatch error (e.g. SQS still failing once the fetcher exhausted its retries)
+  - The CLI Runner traps USR1 and turns it into a graceful shutdown, but a host embedding
+    `Shoryuken::Launcher` directly has USR1's default disposition, so the whole process - and its
+    in-flight workers - was terminated
+  - When embedded (no CLI Runner), the failing manager now just stops itself and `Launcher#healthy?`
+    reports the failure; the USR1 signal is only sent in server (CLI) mode, preserving the
+    supervisor-restart behavior there
+
+- Fix: Graceful stop is now bounded by the configured timeout (mensfeld)
+  - `Launcher#stop` (the soft shutdown behind USR1/TSTP) called `executor.wait_for_termination` with no
+    argument - an unbounded wait - so a single hung worker blocked shutdown forever
+  - Both `Launcher#stop` and `Launcher#stop!` now share a `shutdown_executor` helper that waits up to
+    `Shoryuken.options[:timeout]` seconds for in-flight workers, then force-kills the executor so the
+    process can exit; the graceful stop still waits for workers, just no longer indefinitely
+
+- Docs: Correct the `retry_intervals` exponential backoff documentation (mensfeld)
+  - The `exponential_backoff?` docstring claimed retries stop ("before giving up") after the last configured
+    interval. They do not: once the intervals are exhausted, the last interval is reused for every later
+    attempt, and SQS's redrive policy (maxReceiveCount) is what ultimately moves a message to a dead-letter queue
+  - Added a spec pinning that far-later attempts keep reusing the last interval
+
+- Fix: `CurrentAttributes.persist` no longer drops a class when called once per class (mensfeld)
+  - The storage key was derived from the per-call index, so registering classes across separate `persist`
+    calls made the third call reuse `cattr_0` and silently overwrite the second class - its attributes were
+    then never serialized or restored
+  - The key now uses the running registry size, so incremental and single-call registration both yield
+    distinct, stable keys (single-call `persist(A, B, C)` keys are unchanged)
+
+- Fix: Busy-processor accounting no longer breaks when processor completion raises (mensfeld)
+  - `Manager#assign` chained `.then { processor_done }.rescue { processor_done }`, so an exception inside
+    `processor_done` (SQS lookups or a polling strategy's `message_processed` callback) ran completion twice
+  - The busy counter was decremented twice for one message and drifted negative, inflating `ready` and
+    silently breaking the configured concurrency limit for the life of the process
+  - Completion now runs in an `ensure` around processing (exactly once), and `processor_done` logs
+    instead of leaking exceptions from the FIFO bookkeeping
+
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
   - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
     so a second `Launcher#stop` blocked forever on an empty queue
