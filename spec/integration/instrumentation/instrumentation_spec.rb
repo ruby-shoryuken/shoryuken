@@ -3,7 +3,7 @@
 # This spec tests the instrumentation system integration.
 # It verifies that events are published during message processing.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)
