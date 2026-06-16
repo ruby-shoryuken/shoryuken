@@ -52,11 +52,18 @@ module Shoryuken
       failed_messages = client.delete_message_batch(
         options.merge(queue_url: url)
       ).failed || []
-      failed_messages.any? do |failure|
+
+      # Log every failure (not just the first) and return a plain boolean.
+      # The previous `any? { logger.error ... }` short-circuited after the first
+      # failure - so the rest went unlogged - and only returned truthy because
+      # Logger#error happens to return true.
+      failed_messages.each do |failure|
         logger.error do
           "Could not delete #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', sender_fault: #{failure.sender_fault}"
         end
       end
+
+      failed_messages.any?
     end
 
     # Sends a single message to the queue

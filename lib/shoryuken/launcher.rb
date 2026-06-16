@@ -43,8 +43,7 @@ module Shoryuken
       # Don't await here so the timeout below is not delayed
       stop_new_dispatching
 
-      executor.shutdown
-      executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+      shutdown_executor
 
       fire_event(:stopped)
     end
@@ -61,8 +60,7 @@ module Shoryuken
       stop_new_dispatching
       await_dispatching_in_progress
 
-      executor.shutdown
-      executor.wait_for_termination
+      shutdown_executor
 
       fire_event(:stopped)
     end
@@ -91,6 +89,18 @@ module Shoryuken
     # @return [void]
     def await_dispatching_in_progress
       @managers.each(&:await_dispatching_in_progress)
+    end
+
+    # Shuts the executor down, giving in-flight workers up to the configured
+    # timeout to finish before force-killing them so the process can exit.
+    # Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns:
+    # a graceful stop still waits for workers, but must not block forever on a
+    # hung one.
+    #
+    # @return [void]
+    def shutdown_executor
+      executor.shutdown
+      executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
     end
 
     # Returns the executor for running async operations
