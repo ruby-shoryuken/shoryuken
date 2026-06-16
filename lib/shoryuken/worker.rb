@@ -224,7 +224,11 @@ module Shoryuken
       #
       # @example Configuring exponential backoff
       #   shoryuken_options retry_intervals: [1, 5, 25, 125, 625]
-      #   # Will retry after 1s, 5s, 25s, 125s, then 625s before giving up
+      #   # Retries after 1s, 5s, 25s, 125s, then 625s for every later attempt.
+      #   # Shoryuken does not stop retrying on its own once the intervals are
+      #   # exhausted - it keeps reusing the last interval. Configure an SQS
+      #   # redrive policy (maxReceiveCount) to send exhausted messages to a
+      #   # dead-letter queue.
       #
       # @see #shoryuken_options Documentation for configuring retry_intervals
       def exponential_backoff?

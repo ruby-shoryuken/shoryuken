@@ -186,6 +186,44 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#assign' do
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
+
+    before do
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+      allow(Shoryuken::Processor).to receive(:process)
+    end
+
+    it 'runs completion exactly once on success' do
+      expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(subject.send(:busy)).to eq(0)
+    end
+
+    it 'runs completion exactly once when processing raises' do
+      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
+
+      expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(subject.send(:busy)).to eq(0)
+    end
+
+    it 'does not double decrement the busy counter when completion raises' do
+      allow(sqs_queue).to receive(:fifo?).and_return(true)
+      allow(polling_strategy).to receive(:message_processed).and_raise('callback failed')
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(polling_strategy).to have_received(:message_processed).once
+      expect(subject.send(:busy)).to eq(0)
+    end
+  end
+
   describe '#processor_done' do
     let(:sqs_queue)         { double Shoryuken::Queue }
 
@@ -206,6 +244,34 @@ RSpec.describe Shoryuken::Manager do
         expect(sqs_queue).to receive(:fifo?).and_return(false)
         expect(polling_strategy).to_not receive(:message_processed)
         subject.send(:processor_done, queue)
+      end
+    end
+  end
+
+  describe '#handle_dispatch_error' do
+    let(:error) { StandardError.new('boom') }
+
+    context 'when running under the CLI (server mode)' do
+      before { allow(Shoryuken).to receive(:server?).and_return(true) }
+
+      it 'stops the manager and signals the process to shut down' do
+        expect(Process).to receive(:kill).with('USR1', Process.pid)
+
+        subject.send(:handle_dispatch_error, error)
+
+        expect(subject.running?).to be false
+      end
+    end
+
+    context 'when embedded (no Runner)' do
+      before { allow(Shoryuken).to receive(:server?).and_return(false) }
+
+      it 'stops the manager without signalling the process' do
+        expect(Process).not_to receive(:kill)
+
+        subject.send(:handle_dispatch_error, error)
+
+        expect(subject.running?).to be false
       end
     end
   end

@@ -144,6 +144,6 @@ begin
   assert_equal(1, success_attempts.size, 'Successful message should only be attempted once')
   assert_equal(2, DT[:successful_processing].size, 'Both successful messages should be processed')
 ensure
-  launcher.stop
+  Timeout.timeout(30) { launcher.stop }
 end
 

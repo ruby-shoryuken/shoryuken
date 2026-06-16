@@ -18,13 +18,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+      - uses: ruby/setup-ruby@12fd324f1d0b43274fdc8130f6980590a667c455 # v1.312.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
 
       - name: Run specs
-        run: bundle exec rake spec
+        run: |
+          # Run rspec directly (not via rake) so $SPEC_PID is the ruby process
+          # itself — the USR1 watchdog below sends the signal to that pid, and
+          # spec_helper registers a USR1 handler that prints a thread dump.
+          # Running via 'bundle exec rake spec' would send the signal to rake,
+          # which has no USR1 handler and would crash before the dump appears.
+          bundle exec rspec --format documentation &
+          SPEC_PID=$!
+          # Send USR1 after 8 minutes so the thread-dump handler in spec_helper
+          # prints a backtrace before the 10-minute job timeout kills everything.
+          ( sleep 480
+            if kill -0 $SPEC_PID 2>/dev/null; then
+              echo "=== specs still running after 8 minutes — requesting thread dump ==="
+              kill -USR1 $SPEC_PID 2>/dev/null || true
+              sleep 5
+            fi
+          ) &
+          WATCHDOG_PID=$!
+          wait $SPEC_PID
+          EXIT_CODE=$?
+          kill $WATCHDOG_PID 2>/dev/null || true
+          exit $EXIT_CODE
 
   integrations:
     name: Integrations
@@ -50,7 +71,7 @@ jobs:
           done
           '
 
-      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+      - uses: ruby/setup-ruby@12fd324f1d0b43274fdc8130f6980590a667c455 # v1.312.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
