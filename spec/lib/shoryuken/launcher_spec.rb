@@ -78,6 +78,22 @@ RSpec.describe Shoryuken::Launcher do
       expect(first_group_manager).to have_received(:stop_new_dispatching)
       expect(second_group_manager).to have_received(:stop_new_dispatching)
     end
+
+    it 'bounds the wait for termination by the configured timeout' do
+      allow(executor).to receive(:shutdown)
+      expect(executor).to receive(:wait_for_termination).with(Shoryuken.options[:timeout]).and_return(true)
+      expect(executor).not_to receive(:kill)
+
+      subject.stop
+    end
+
+    it 'kills the executor when workers do not finish within the timeout' do
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      expect(executor).to receive(:kill)
+
+      subject.stop
+    end
   end
 
   describe '#stop!' do
@@ -99,6 +115,28 @@ RSpec.describe Shoryuken::Launcher do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)
       expect(second_group_manager).to have_received(:stop_new_dispatching)
+    end
+  end
+
+  describe 'executor ownership' do
+    context 'when no launcher_executor is configured' do
+      before { allow(Shoryuken).to receive(:launcher_executor).and_return(nil) }
+
+      it 'uses a dedicated executor rather than the process-global IO executor' do
+        expect(subject.send(:executor)).not_to be(Concurrent.global_io_executor)
+      end
+
+      it 'does not shut down or kill the global IO executor on stop!' do
+        allow(first_group_manager).to receive(:stop_new_dispatching)
+        allow(second_group_manager).to receive(:stop_new_dispatching)
+
+        subject.stop!
+
+        # Verify by inspecting state after the call rather than mocking methods
+        # on the process-global singleton: RSpec proxies on a singleton used by
+        # background concurrent-ruby threads can deadlock on Ruby 3.2.
+        expect(Concurrent.global_io_executor).to be_running
+      end
     end
   end
 

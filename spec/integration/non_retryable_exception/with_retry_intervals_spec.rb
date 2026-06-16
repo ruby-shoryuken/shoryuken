@@ -111,5 +111,5 @@ begin
   assert_equal('retryable', DT[:successful_processing].first[:body])
   assert_equal(3, DT[:successful_processing].first[:final_receive_count])
 ensure
-  launcher.stop
+  Timeout.timeout(30) { launcher.stop }
 end

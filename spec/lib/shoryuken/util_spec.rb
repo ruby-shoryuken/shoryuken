@@ -69,5 +69,31 @@ describe 'Shoryuken::Util' do
       expect(value_holder).to receive(:value=).with([:with_options, { my_option: :some_option }])
       subject.fire_event(:some_event, false, my_option: :some_option)
     end
+
+    it 'fires handlers in reverse order consistently across repeated reverse firings' do
+      order = []
+      Shoryuken.options[:lifecycle_events][:some_event] = [
+        ->(_) { order << :a },
+        ->(_) { order << :b },
+        ->(_) { order << :c }
+      ]
+
+      # e.g. :shutdown is fired with reverse: true and can fire more than once
+      # (stop then stop!); every firing must use the same reversed order.
+      subject.fire_event(:some_event, true)
+      subject.fire_event(:some_event, true)
+
+      expect(order).to eq(%i[c b a c b a])
+    end
+
+    it 'does not mutate the stored handler array when firing in reverse' do
+      handlers = [->(_) {}, ->(_) {}]
+      original = handlers.dup
+      Shoryuken.options[:lifecycle_events][:some_event] = handlers
+
+      subject.fire_event(:some_event, true)
+
+      expect(Shoryuken.options[:lifecycle_events][:some_event]).to eq(original)
+    end
   end
 end
