@@ -89,6 +89,11 @@ module Shoryuken
       # (e.g. a hard stop racing the dispatch loop); release any waiters as
       # the dispatch chain ends here
       @dispatching_release_signal.close
+    rescue StandardError
+      # Unexpected error from post (e.g. ThreadError if the OS thread limit is
+      # hit); the dispatch chain ends here so release waiters before re-raising
+      @dispatching_release_signal.close
+      raise
     end
 
     # Dispatches messages from a queue
@@ -139,6 +144,12 @@ module Shoryuken
       return unless @polling_strategy.respond_to?(:message_processed)
 
       @polling_strategy.message_processed(queue)
+    rescue => e
+      # Swallow (but log) failures from the SQS lookups or the strategy callback:
+      # the busy counter was already decremented above and the caller's ensure
+      # must not run completion twice
+      logger.error { "Processor completion failed for #{queue}: #{e.message}" }
+      logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
     end
 
     # Assigns a message to a processor
@@ -154,6 +165,11 @@ module Shoryuken
       @busy_processors.increment
       fire_utilization_update_event
 
+      # Completion runs in an ensure so it executes exactly once whether
+      # processing succeeds or raises. The previous `.then { processor_done }
+      # .rescue { processor_done }` chain ran completion twice when
+      # processor_done itself raised, double decrementing the busy counter
+      # and silently breaking the concurrency limit
       Concurrent::Promise
         .execute(executor: @executor) do
           original_priority = Thread.current.priority
@@ -162,10 +178,9 @@ module Shoryuken
             Processor.process(queue_name, sqs_msg)
           ensure
             Thread.current.priority = original_priority
+            processor_done(queue_name)
           end
         end
-        .then { processor_done(queue_name) }
-        .rescue { processor_done(queue_name) }
     end
 
     # Dispatches a batch of messages from a queue
@@ -218,9 +233,17 @@ module Shoryuken
       logger.error { "Manager failed: #{ex.message}" }
       logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
 
-      Process.kill('USR1', Process.pid)
-
+      # Stop this manager first so Launcher#healthy? surfaces the failure to
+      # whoever is supervising us (the CLI Runner, or an embedding application).
       @running.make_false
+
+      # In server (CLI) mode the Runner traps USR1 and turns it into a graceful
+      # shutdown of the whole process, so a process supervisor can restart us.
+      # When embedded (no Runner), USR1 keeps its default disposition and would
+      # terminate the host process - and any in-flight workers - so we must not
+      # send it. The stopped manager above is enough for Launcher#healthy? to
+      # report the failure to the embedding application.
+      Process.kill('USR1', Process.pid) if Shoryuken.server?
     end
 
     # Fires a utilization update event
