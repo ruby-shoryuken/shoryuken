@@ -3,7 +3,7 @@
 # This spec tests FIFO queue ordering guarantees including message ordering
 # within the same message group.
 
-setup_localstack
+setup_sqs
 
 queue_name = "#{DT.uuid}.fifo"
 create_fifo_queue(queue_name)

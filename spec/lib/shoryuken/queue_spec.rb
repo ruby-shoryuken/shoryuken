@@ -99,6 +99,43 @@ RSpec.describe Shoryuken::Queue do
 
         subject.delete_messages(entries: entries)
       end
+
+      it 'returns true' do
+        failure = double(id: 'id', code: 'code', message: '...', sender_fault: false)
+        allow(sqs).to receive(:delete_message_batch).and_return(double(failed: [failure]))
+        allow(subject).to receive(:logger).and_return(double('Logger', error: nil))
+
+        expect(subject.delete_messages(entries: entries)).to be true
+      end
+    end
+
+    context 'when several deletes fail' do
+      let(:failures) do
+        [
+          double(id: '1', code: 'c1', message: 'm1', sender_fault: false),
+          double(id: '2', code: 'c2', message: 'm2', sender_fault: true)
+        ]
+      end
+
+      it 'logs every failure, not just the first' do
+        logger = double('Logger')
+        allow(sqs).to receive(:delete_message_batch).and_return(double(failed: failures))
+        allow(subject).to receive(:logger).and_return(logger)
+
+        # Real Logger#error returns true; that truthy return made the old `any?`
+        # short-circuit after the first failure, so the rest went unlogged.
+        expect(logger).to receive(:error).twice.and_return(true)
+
+        subject.delete_messages(entries: entries)
+      end
+    end
+
+    context 'when all deletes succeed' do
+      it 'returns false' do
+        allow(sqs).to receive(:delete_message_batch).and_return(double(failed: []))
+
+        expect(subject.delete_messages(entries: entries)).to be false
+      end
     end
   end
 

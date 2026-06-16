@@ -5,7 +5,7 @@
 # Note: This test doesn't use poll_queues_until because messages should fail
 # and be moved to DLQ rather than being successfully processed.
 
-setup_localstack
+setup_sqs
 
 main_queue_name = DT.queues[0]
 dlq_name = DT.queues[1]

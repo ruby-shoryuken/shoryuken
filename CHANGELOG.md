@@ -1,4 +1,116 @@
-## [7.0.0] - Unreleased
+## [Unreleased]
+
+- Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
+  - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
+    and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
+  - Shutting down that process-wide pool broke anything else relying on concurrent-ruby's `:io` pool
+    (including Shoryuken's own `ShoryukenConcurrentSendAdapter`) and prevented starting a fresh launcher
+    in the same process
+  - The launcher now owns a dedicated `Concurrent::CachedThreadPool`, so stopping it leaves the global
+    IO executor untouched
+
+- Fix: `Queue#delete_messages` now logs every batch-delete failure and returns a robust boolean (mensfeld)
+  - It used `failed.any? { |f| logger.error ... }`, which short-circuited after the first failure - so when
+    a batch had multiple failures only the first was logged - and only returned truthy because `Logger#error`
+    happens to return true (a custom logger returning falsey would have hidden the failure from callers)
+  - It now logs each failure and returns `failed.any?`, so `NonRetryableException`/`AutoDelete` reliably see
+    that some messages may remain and need reprocessing
+
+- Fix: Lifecycle events fired in reverse no longer alternate handler order (mensfeld)
+  - `Util#fire_event` reversed the stored handler array in place with `reverse!`, so an event fired more
+    than once with `reverse: true` (e.g. `:shutdown` via `stop` then `stop!`) flipped order each time
+  - It now reverses a copy, leaving the stored handler order untouched
+
+- Fix: A fatal dispatch error no longer hard-kills an embedded host process (mensfeld)
+  - `Manager#handle_dispatch_error` sent `Process.kill('USR1', Process.pid)` unconditionally after a
+    dispatch error (e.g. SQS still failing once the fetcher exhausted its retries)
+  - The CLI Runner traps USR1 and turns it into a graceful shutdown, but a host embedding
+    `Shoryuken::Launcher` directly has USR1's default disposition, so the whole process - and its
+    in-flight workers - was terminated
+  - When embedded (no CLI Runner), the failing manager now just stops itself and `Launcher#healthy?`
+    reports the failure; the USR1 signal is only sent in server (CLI) mode, preserving the
+    supervisor-restart behavior there
+
+- Fix: Graceful stop is now bounded by the configured timeout (mensfeld)
+  - `Launcher#stop` (the soft shutdown behind USR1/TSTP) called `executor.wait_for_termination` with no
+    argument - an unbounded wait - so a single hung worker blocked shutdown forever
+  - Both `Launcher#stop` and `Launcher#stop!` now share a `shutdown_executor` helper that waits up to
+    `Shoryuken.options[:timeout]` seconds for in-flight workers, then force-kills the executor so the
+    process can exit; the graceful stop still waits for workers, just no longer indefinitely
+
+- Docs: Correct the `retry_intervals` exponential backoff documentation (mensfeld)
+  - The `exponential_backoff?` docstring claimed retries stop ("before giving up") after the last configured
+    interval. They do not: once the intervals are exhausted, the last interval is reused for every later
+    attempt, and SQS's redrive policy (maxReceiveCount) is what ultimately moves a message to a dead-letter queue
+  - Added a spec pinning that far-later attempts keep reusing the last interval
+
+- Fix: `CurrentAttributes.persist` no longer drops a class when called once per class (mensfeld)
+  - The storage key was derived from the per-call index, so registering classes across separate `persist`
+    calls made the third call reuse `cattr_0` and silently overwrite the second class - its attributes were
+    then never serialized or restored
+  - The key now uses the running registry size, so incremental and single-call registration both yield
+    distinct, stable keys (single-call `persist(A, B, C)` keys are unchanged)
+
+- Fix: Busy-processor accounting no longer breaks when processor completion raises (mensfeld)
+  - `Manager#assign` chained `.then { processor_done }.rescue { processor_done }`, so an exception inside
+    `processor_done` (SQS lookups or a polling strategy's `message_processed` callback) ran completion twice
+  - The busy counter was decremented twice for one message and drifted negative, inflating `ready` and
+    silently breaking the configured concurrency limit for the life of the process
+  - Completion now runs in an `ensure` around processing (exactly once), and `processor_done` logs
+    instead of leaking exceptions from the FIFO bookkeeping
+
+- Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
+  - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
+    so a second `Launcher#stop` blocked forever on an empty queue
+  - Operationally this was the TSTP -> USR1 sequence: both signals trigger a graceful stop, leaving
+    the process stuck in the signal loop where even TERM/INT were no longer handled (only SIGKILL worked)
+  - The dispatch loop now closes the signal queue instead of pushing a token, releasing every pending
+    and future waiter; the dispatch chain also releases waiters if the executor rejects a post during
+    a racing hard shutdown
+
+- Fix: `non_retryable_exceptions` is no longer ignored when `retry_intervals` is also configured (mensfeld)
+  - `ExponentialBackoffRetry` swallowed every exception after scheduling a retry, so `NonRetryableException`
+    (which sits outside it in the default middleware chain) never saw non-retryable errors - poison messages
+    were retried indefinitely (with the last interval repeated) instead of being deleted immediately
+  - `ExponentialBackoffRetry` now re-raises exceptions classified as non-retryable so the message gets deleted
+  - Exception classification is extracted to `NonRetryableException.non_retryable?` and shared by both middlewares
+
+- Enhancement: Use dynamic Ruby warning category opt-in in test helpers (mensfeld)
+  - Replace version-gated `Warning[:performance]` with `Warning.categories`-based auto-enablement
+  - Automatically enables all non-deprecated, non-experimental warning categories for forward compatibility
+  - Applied to both `spec/spec_helper.rb` and `spec/integrations_helper.rb`
+
+## [7.0.2] - 2026-04-16
+
+- Enhancement: Replace LocalStack with ElasticMQ for SQS integration tests (mensfeld)
+  - ElasticMQ is free, open-source, and requires no auth token (LocalStack 2026.x requires paid account)
+  - Uses `softwaremill/elasticmq-native` image (~30MB vs ~1GB+, starts in milliseconds)
+  - Rename `setup_localstack` to `setup_sqs` and `bin/clean_localstack` to `bin/clean_sqs`
+
+- Fix: Allow custom polling strategy to be configured per-group via `add_group` (mensfeld)
+  - `add_group` now accepts `polling_strategy:` keyword argument
+  - `polling_strategy()` reads from the groups hash populated by `add_group`, with fallback to raw options
+  - `EnvironmentLoader` passes `polling_strategy` through when parsing YAML group config
+  - [#925](https://github.com/ruby-shoryuken/shoryuken/issues/925)
+
+## [7.0.1] - 2026-02-07
+
+- Enhancement: Add non-retryable exception middleware (Saidbek)
+  - [#958](https://github.com/ruby-shoryuken/shoryuken/pull/958)
+
+- Fix: ActiveJob keyword arguments support (mensfeld)
+  - Jobs with keyword arguments were broken due to improper argument forwarding in `SQSSendMessageParametersSupport#initialize`
+  - Use Ruby's argument forwarding (`...`) to properly pass all arguments including keyword arguments
+  - [#962](https://github.com/ruby-shoryuken/shoryuken/pull/962)
+
+- Fix: Replace `ArgumentError` with custom `FifoDelayNotSupportedError` for FIFO delay errors
+  - Provides more specific error type for programmatic error handling
+  - [#957](https://github.com/ruby-shoryuken/shoryuken/pull/957)
+
+## [7.0.0] - 2026-01-19
+
+**See the [Upgrading to 7.0](https://github.com/ruby-shoryuken/shoryuken/wiki/Upgrading-to-7.0) guide for detailed migration instructions.**
+
 - Breaking: Add `Shoryuken::Errors` module with domain-specific error classes
   - Introduces `Shoryuken::Errors::BaseError` as base class for all Shoryuken errors
   - `Shoryuken::Errors::QueueNotFoundError` for non-existent or inaccessible SQS queues
@@ -8,9 +120,12 @@
   - `Shoryuken::Errors::InvalidEventError` for invalid lifecycle event names
   - `Shoryuken::Errors::InvalidDelayError` for delays exceeding SQS 15-minute maximum
   - `Shoryuken::Errors::InvalidArnError` for invalid ARN format
-  - `Shoryuken::Errors::Shutdown` for graceful shutdown (replaces `Shoryuken::Shutdown`)
   - Replaces generic Ruby exceptions (ArgumentError, RuntimeError) with specific error types
-  - Code rescuing `Shoryuken::Shutdown` must change to `Shoryuken::Errors::Shutdown`
+
+- Removed: `Shoryuken::Shutdown` class
+  - This class was unused since the Celluloid removal in 2016
+  - Originally used to raise on worker threads during hard shutdown
+  - Current shutdown flow uses `Interrupt` and executor-level shutdown instead
 
 - Fix: Raise ArgumentError when using delay with FIFO queues
   - FIFO queues do not support per-message DelaySeconds

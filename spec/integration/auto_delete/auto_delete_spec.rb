@@ -3,7 +3,7 @@
 # This spec tests the auto_delete middleware functionality.
 # When auto_delete: true, messages should be automatically deleted after successful processing.
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name)

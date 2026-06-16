@@ -10,7 +10,7 @@ Shoryuken.sqs_client = nil
 # Configure AWS options programmatically (simulating PORO setup with config file)
 Shoryuken.options[:aws] = {
   region: 'us-east-1',
-  endpoint: 'http://localhost:4566',
+  endpoint: 'http://localhost:9324',
   access_key_id: 'test-key-from-config',
   secret_access_key: 'test-secret-from-config'
 }
@@ -22,7 +22,7 @@ client = Shoryuken.sqs_client
 config = client.config
 
 assert_equal('us-east-1', config.region, "Region should be set from options[:aws]")
-assert_equal('http://localhost:4566', config.endpoint.to_s, "Endpoint should be set from options[:aws]")
+assert_equal('http://localhost:9324', config.endpoint.to_s, "Endpoint should be set from options[:aws]")
 
 # Verify the client actually works by creating a queue
 queue_name = "aws-config-test-#{SecureRandom.hex(6)}"
@@ -49,7 +49,7 @@ assert_equal('us-west-2', client2.config.region, "New client should use updated 
 Shoryuken.sqs_client = nil
 Shoryuken.options[:aws] = {
   region: 'us-east-1',
-  endpoint: 'http://localhost:4566',
+  endpoint: 'http://localhost:9324',
   access_key_id: 'another-key',
   secret_access_key: 'another-secret'
 }

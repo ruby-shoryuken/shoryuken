@@ -92,6 +92,62 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
         expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
       end
+
+      it 'keeps reusing the last interval for far-later attempts (does not give up)' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
+
+        allow(sqs_msg).to receive(:attributes) { { 'ApproximateReceiveCount' => 10 } }
+        allow(sqs_msg).to receive(:queue) { sqs_queue }
+        expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 1800)
+
+        expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
+      end
+    end
+
+    context 'and the exception is non-retryable' do
+      it 're-raises so NonRetryableException can delete the message' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
+        TestWorker.get_shoryuken_options['non_retryable_exceptions'] = [ArgumentError]
+
+        expect(sqs_msg).not_to receive(:change_visibility)
+
+        expect {
+          subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise ArgumentError, 'permanently invalid' }
+        }.to raise_error(ArgumentError, 'permanently invalid')
+      end
+
+      it 're-raises when a non_retryable_exceptions lambda returns true' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
+        TestWorker.get_shoryuken_options['non_retryable_exceptions'] = ->(e) { e.message.include?('permanent') }
+
+        expect(sqs_msg).not_to receive(:change_visibility)
+
+        expect {
+          subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'permanent failure' }
+        }.to raise_error(RuntimeError, 'permanent failure')
+      end
+
+      it 'still retries when a non_retryable_exceptions lambda returns false' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
+        TestWorker.get_shoryuken_options['non_retryable_exceptions'] = ->(e) { e.message.include?('permanent') }
+
+        allow(sqs_msg).to receive(:queue) { sqs_queue }
+        expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 300)
+
+        expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'transient failure' } }
+          .not_to raise_error
+      end
+
+      it 'still retries exceptions not in the non-retryable list' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
+        TestWorker.get_shoryuken_options['non_retryable_exceptions'] = [ArgumentError]
+
+        allow(sqs_msg).to receive(:queue) { sqs_queue }
+        expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 300)
+
+        expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'transient failure' } }
+          .not_to raise_error
+      end
     end
 
     it 'limits the visibility timeout to 12 hours' do

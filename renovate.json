@@ -4,26 +4,73 @@
     "config:recommended"
   ],
   "minimumReleaseAge": "7 days",
+  "includePaths": [
+    ".ruby-version",
+    "Gemfile",
+    "Gemfile.lint",
+    "shoryuken.gemspec",
+    "spec/gemfiles/**",
+    "spec/integration/**/Gemfile",
+    ".github/workflows/**",
+    "docker-compose.yml"
+  ],
   "github-actions": {
     "enabled": true,
     "pinDigests": true
   },
   "bundler": {
     "enabled": true,
-    "fileMatch": ["(^|/)Gemfile$", "\\.gemfile$", "(^|/)gems\\.rb$", "spec/gemfiles/.+\\.gemfile$", "spec/integration/.*/Gemfile$"]
+    "managerFilePatterns": [
+      "/(^|/)Gemfile$/",
+      "/(^|/)Gemfile\\.lint$/",
+      "/\\.gemfile$/",
+      "/(^|/)gems\\.rb$/",
+      "/spec/gemfiles/.+\\.gemfile$/",
+      "/spec/integration/.*/Gemfile$/"
+    ]
   },
   "packageRules": [
     {
-      "matchManagers": ["bundler"],
-      "matchFiles": ["spec/gemfiles/**"],
+      "matchManagers": [
+        "bundler"
+      ],
+      "matchFileNames": [
+        "spec/gemfiles/**"
+      ],
       "groupName": "Rails test dependencies",
       "description": "Group Rails version-specific test Gemfiles together"
     },
     {
-      "matchManagers": ["bundler"],
-      "matchFiles": ["spec/integration/**/Gemfile"],
+      "matchManagers": [
+        "bundler"
+      ],
+      "matchFileNames": [
+        "spec/integration/**/Gemfile"
+      ],
       "groupName": "Integration test dependencies",
       "description": "Group integration test Gemfiles together"
+    },
+    {
+      "description": "Group ruby/setup-ruby action with ruby version updates",
+      "matchPackageNames": [
+        "ruby/setup-ruby",
+        "ruby"
+      ],
+      "groupName": "ruby setup",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "description": "Let setup-ruby pass age gate before ruby so it is ready when the group PR is created",
+      "matchPackageNames": [
+        "ruby/setup-ruby"
+      ],
+      "minimumReleaseAge": "5 days"
     }
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 4am on the first day of the month"
+    ]
+  }
 }

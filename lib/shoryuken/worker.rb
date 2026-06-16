@@ -123,6 +123,7 @@ module Shoryuken
       # @option opts [Boolean] :auto_delete (false) Automatically delete messages after processing
       # @option opts [Boolean] :auto_visibility_timeout (false) Automatically extend message visibility
       # @option opts [Array<Integer>] :retry_intervals Exponential backoff retry intervals in seconds
+      # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should skip retries and delete message immediately
       # @option opts [Hash] :sqs Additional SQS client options
       #
       # @example Basic worker configuration
@@ -171,6 +172,34 @@ module Shoryuken
       #       complex_processing(body)
       #     end
       #   end
+      #
+      # @example Worker with non-retryable exceptions
+      #   class ValidationWorker
+      #     include Shoryuken::Worker
+      #     shoryuken_options queue: 'validation_queue',
+      #                       non_retryable_exceptions: [InvalidInputError, RecordNotFoundError]
+      #
+      #     def perform(sqs_msg, body)
+      #       # If InvalidInputError or RecordNotFoundError is raised,
+      #       # the message will be deleted immediately instead of retrying
+      #       validate_and_process(body)
+      #     end
+      #   end
+      #
+      # @example Worker with lambda for dynamic exception classification
+      #   class SmartWorker
+      #     include Shoryuken::Worker
+      #     shoryuken_options queue: 'smart_queue',
+      #                       non_retryable_exceptions: ->(error) {
+      #                         error.is_a?(ValidationError) || 
+      #                         (error.is_a?(NetworkError) && error.message.include?('permanent'))
+      #                       }
+      #
+      #     def perform(sqs_msg, body)
+      #       # Lambda receives the exception and returns true if non-retryable
+      #       process_with_validation(body)
+      #     end
+      #   end
       def shoryuken_options(opts = {})
         self.shoryuken_options_hash = get_shoryuken_options.merge(stringify_keys(opts || {}))
         normalize_worker_queue!
@@ -195,7 +224,11 @@ module Shoryuken
       #
       # @example Configuring exponential backoff
       #   shoryuken_options retry_intervals: [1, 5, 25, 125, 625]
-      #   # Will retry after 1s, 5s, 25s, 125s, then 625s before giving up
+      #   # Retries after 1s, 5s, 25s, 125s, then 625s for every later attempt.
+      #   # Shoryuken does not stop retrying on its own once the intervals are
+      #   # exhausted - it keeps reusing the last interval. Configure an SQS
+      #   # redrive policy (maxReceiveCount) to send exhausted messages to a
+      #   # dead-letter queue.
       #
       # @see #shoryuken_options Documentation for configuring retry_intervals
       def exponential_backoff?

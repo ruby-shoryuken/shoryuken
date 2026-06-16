@@ -5,7 +5,7 @@
 
 require 'concurrent'
 
-setup_localstack
+setup_sqs
 
 queue_name = DT.queue
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '2' })

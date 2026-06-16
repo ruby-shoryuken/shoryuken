@@ -98,7 +98,7 @@ module ActiveJob
       # @param job [ActiveJob::Base] the job to enqueue
       # @param timestamp [Float] Unix timestamp when the job should be processed
       # @return [Aws::SQS::Types::SendMessageResult] the send result
-      # @raise [ArgumentError] if delay is used with a FIFO queue
+      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if delay is used with a FIFO queue
       def enqueue_at(job, timestamp) # :nodoc:
         delay = calculate_delay(timestamp)
 
@@ -110,7 +110,7 @@ module ActiveJob
         if delay.positive?
           queue = Shoryuken::Client.queues(job.queue_name)
           if queue.fifo?
-            raise ArgumentError,
+            raise Shoryuken::Errors::FifoDelayNotSupportedError,
                   "FIFO queue '#{queue.name}' does not support per-message delays. " \
                   'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
           end

@@ -285,13 +285,13 @@ RSpec.shared_examples 'active_job_adapters' do
     context 'when fifo' do
       let(:fifo) { true }
 
-      it 'raises ArgumentError when delay is positive' do
+      it 'raises FifoDelayNotSupportedError when delay is positive' do
         allow(subject).to receive(:calculate_delay).and_return(3)
         allow(queue).to receive(:name).and_return('test.fifo')
         expect(queue).not_to receive(:send_message)
 
         expect { subject.enqueue_at(job, nil) }.to raise_error(
-          ArgumentError, /FIFO queue.*does not support per-message delays/
+          Shoryuken::Errors::FifoDelayNotSupportedError, /FIFO queue.*does not support per-message delays/
         )
       end
 

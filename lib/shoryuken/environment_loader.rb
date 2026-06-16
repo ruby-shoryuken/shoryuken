@@ -200,7 +200,7 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.each do |group, options|
-        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay])
+        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay], polling_strategy: options[:polling_strategy])
 
         options[:queues].to_a.each do |queue, weight|
           parse_queue(queue, weight, group)

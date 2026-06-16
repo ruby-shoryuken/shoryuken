@@ -57,6 +57,9 @@ module Shoryuken
       # There might still be a dispatching on-going, as the response from SQS could take some time
       # We don't want to stop the process before processing incoming messages, as they would stay "in-flight" for some time on SQS
       # We use a queue, as the dispatch_loop is running on another thread, and this is a efficient way of communicating between threads.
+      # The dispatch loop closes the queue when it observes the stop flag; pop on a closed queue
+      # returns immediately, so this stays safe when stop is requested more than once
+      # (e.g. TSTP followed by USR1, which both trigger a graceful stop).
       @dispatching_release_signal.pop
     end
 
@@ -74,11 +77,23 @@ module Shoryuken
     # @return [void]
     def dispatch_loop
       if @stop_new_dispatching.true? || !running?
-        @dispatching_release_signal << 1
+        # Close (instead of push) so every pending and future
+        # await_dispatching_in_progress call returns, not just the first one
+        @dispatching_release_signal.close
         return
       end
 
       @executor.post { dispatch }
+    rescue Concurrent::RejectedExecutionError
+      # The executor was shut down between the running? check and the post
+      # (e.g. a hard stop racing the dispatch loop); release any waiters as
+      # the dispatch chain ends here
+      @dispatching_release_signal.close
+    rescue StandardError
+      # Unexpected error from post (e.g. ThreadError if the OS thread limit is
+      # hit); the dispatch chain ends here so release waiters before re-raising
+      @dispatching_release_signal.close
+      raise
     end
 
     # Dispatches messages from a queue
@@ -134,6 +149,12 @@ module Shoryuken
       return unless @polling_strategy.respond_to?(:message_processed)
 
       @polling_strategy.message_processed(queue)
+    rescue => e
+      # Swallow (but log) failures from the SQS lookups or the strategy callback:
+      # the busy counter was already decremented above and the caller's ensure
+      # must not run completion twice
+      logger.error { "Processor completion failed for #{queue}: #{e.message}" }
+      logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
     end
 
     # Assigns a message to a processor
@@ -152,6 +173,11 @@ module Shoryuken
       @busy_processors.increment
       fire_utilization_update_event
 
+      # Completion runs in an ensure so it executes exactly once whether
+      # processing succeeds or raises. The previous `.then { processor_done }
+      # .rescue { processor_done }` chain ran completion twice when
+      # processor_done itself raised, double decrementing the busy counter
+      # and silently breaking the concurrency limit
       Concurrent::Promise
         .execute(executor: @executor) do
           original_priority = Thread.current.priority
@@ -160,10 +186,9 @@ module Shoryuken
             Processor.process(queue_name, sqs_msg)
           ensure
             Thread.current.priority = original_priority
+            processor_done(queue_name)
           end
         end
-        .then { processor_done(queue_name) }
-        .rescue { processor_done(queue_name) }
     end
 
     # Dispatches a batch of messages from a queue
@@ -220,9 +245,17 @@ module Shoryuken
                                 error_class: ex.class.name,
                                 backtrace: ex.backtrace)
 
-      Process.kill('USR1', Process.pid)
-
+      # Stop this manager first so Launcher#healthy? surfaces the failure to
+      # whoever is supervising us (the CLI Runner, or an embedding application).
       @running.make_false
+
+      # In server (CLI) mode the Runner traps USR1 and turns it into a graceful
+      # shutdown of the whole process, so a process supervisor can restart us.
+      # When embedded (no Runner), USR1 keeps its default disposition and would
+      # terminate the host process - and any in-flight workers - so we must not
+      # send it. The stopped manager above is enough for Launcher#healthy? to
+      # report the failure to the embedding application.
+      Process.kill('USR1', Process.pid) if Shoryuken.server?
     end
 
     # Fires a utilization update event

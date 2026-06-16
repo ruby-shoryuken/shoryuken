@@ -2,12 +2,15 @@
 
 # Integration test helper for process-isolated testing
 
-# Enable Ruby warnings to catch deprecations and potential issues
-Warning[:performance] = true if RUBY_VERSION >= '3.3'
-Warning[:deprecated] = true
+require 'warning'
+
 $VERBOSE = true
 
-require 'warning'
+if Warning.respond_to?(:categories)
+  (Warning.categories - %i[experimental]).each do |cat|
+    Warning[cat] = true
+  end
+end
 
 # Process warnings and raise on unexpected ones from our code
 Warning.process do |warning|
@@ -16,10 +19,6 @@ Warning.process do |warning|
 
   # Filter out warnings we don't care about in specs
   next if warning.include?('_spec')
-
-  # We redefine methods to simulate various scenarios in tests
-  next if warning.include?('previous definition of')
-  next if warning.include?('method redefined')
 
   # Ignore vendor directory
   next if warning.include?('vendor/')
@@ -145,13 +144,13 @@ module IntegrationsHelper
     ActiveJob::Base.queue_adapter = :shoryuken
   end
 
-  # Configure Shoryuken to use LocalStack for real SQS integration tests
-  def setup_localstack
+  # Configure Shoryuken to use ElasticMQ for real SQS integration tests
+  def setup_sqs
     Aws.config[:stub_responses] = false
 
     sqs_client = Aws::SQS::Client.new(
       region: 'us-east-1',
-      endpoint: 'http://localhost:4566',
+      endpoint: 'http://localhost:9324',
       access_key_id: 'fake',
       secret_access_key: 'fake'
     )
@@ -191,7 +190,9 @@ module IntegrationsHelper
     launcher.start
     Timeout.timeout(timeout) { sleep 0.5 until yield }
   ensure
-    launcher.stop
+    # Guard stop with a hard deadline so a stuck dispatch thread (e.g. an SQS
+    # HTTP call that never returns) can't block the spec process forever.
+    Timeout.timeout(30) { launcher.stop }
   end
 
   # Simple mock object

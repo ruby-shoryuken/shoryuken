@@ -2,7 +2,7 @@
 
 # CurrentAttributes are persisted correctly when using bulk enqueue (perform_all_later)
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 require 'active_support/current_attributes'

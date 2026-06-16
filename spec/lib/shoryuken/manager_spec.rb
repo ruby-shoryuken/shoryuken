@@ -39,6 +39,39 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#await_dispatching_in_progress' do
+    it 'returns for repeated graceful stops (e.g. TSTP followed by USR1)' do
+      subject.stop_new_dispatching
+      # The dispatch loop observes the stop flag and releases all waiters
+      subject.start
+
+      waiter = Thread.new do
+        subject.await_dispatching_in_progress
+        subject.await_dispatching_in_progress
+      end
+
+      expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked on a repeated stop'
+    end
+
+    context 'when the executor rejects the dispatch post' do
+      let(:executor) do
+        double('executor', running?: true).tap do |rejecting_executor|
+          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+        end
+      end
+
+      it 'releases waiters instead of leaving the signal queue unsignaled' do
+        # A hard stop can shut the executor down between the running? check and
+        # the post; the dispatch chain must still release stop waiters
+        subject.start
+
+        waiter = Thread.new { subject.await_dispatching_in_progress }
+
+        expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked after a rejected post'
+      end
+    end
+  end
+
   describe '#start' do
     before do
       # prevent dispatch loop
@@ -161,6 +194,44 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#assign' do
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
+
+    before do
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+      allow(Shoryuken::Processor).to receive(:process)
+    end
+
+    it 'runs completion exactly once on success' do
+      expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(subject.send(:busy)).to eq(0)
+    end
+
+    it 'runs completion exactly once when processing raises' do
+      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
+
+      expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(subject.send(:busy)).to eq(0)
+    end
+
+    it 'does not double decrement the busy counter when completion raises' do
+      allow(sqs_queue).to receive(:fifo?).and_return(true)
+      allow(polling_strategy).to receive(:message_processed).and_raise('callback failed')
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(polling_strategy).to have_received(:message_processed).once
+      expect(subject.send(:busy)).to eq(0)
+    end
+  end
+
   describe '#processor_done' do
     let(:sqs_queue)         { double Shoryuken::Queue }
 
@@ -181,6 +252,34 @@ RSpec.describe Shoryuken::Manager do
         expect(sqs_queue).to receive(:fifo?).and_return(false)
         expect(polling_strategy).to_not receive(:message_processed)
         subject.send(:processor_done, queue)
+      end
+    end
+  end
+
+  describe '#handle_dispatch_error' do
+    let(:error) { StandardError.new('boom') }
+
+    context 'when running under the CLI (server mode)' do
+      before { allow(Shoryuken).to receive(:server?).and_return(true) }
+
+      it 'stops the manager and signals the process to shut down' do
+        expect(Process).to receive(:kill).with('USR1', Process.pid)
+
+        subject.send(:handle_dispatch_error, error)
+
+        expect(subject.running?).to be false
+      end
+    end
+
+    context 'when embedded (no Runner)' do
+      before { allow(Shoryuken).to receive(:server?).and_return(false) }
+
+      it 'stops the manager without signalling the process' do
+        expect(Process).not_to receive(:kill)
+
+        subject.send(:handle_dispatch_error, error)
+
+        expect(subject.running?).to be false
       end
     end
   end

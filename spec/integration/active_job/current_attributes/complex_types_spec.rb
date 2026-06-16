@@ -2,7 +2,7 @@
 
 # CurrentAttributes with complex data types (hashes, arrays, symbols) are serialized and restored
 
-setup_localstack
+setup_sqs
 setup_active_job
 
 require 'active_support/current_attributes'
