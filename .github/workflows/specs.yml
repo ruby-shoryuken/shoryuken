@@ -24,7 +24,23 @@ jobs:
           bundler-cache: true
 
       - name: Run specs
-        run: bundle exec rake spec
+        run: |
+          bundle exec rake spec &
+          SPEC_PID=$!
+          # Send USR1 after 8 minutes so the thread-dump handler in spec_helper
+          # prints a backtrace before the 10-minute job timeout kills everything.
+          ( sleep 480
+            if kill -0 $SPEC_PID 2>/dev/null; then
+              echo "=== specs still running after 8 minutes — requesting thread dump ==="
+              kill -USR1 $SPEC_PID 2>/dev/null || true
+              sleep 5
+            fi
+          ) &
+          WATCHDOG_PID=$!
+          wait $SPEC_PID
+          EXIT_CODE=$?
+          kill $WATCHDOG_PID 2>/dev/null || true
+          exit $EXIT_CODE
 
   integrations:
     name: Integrations

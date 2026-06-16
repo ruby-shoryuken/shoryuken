@@ -130,10 +130,12 @@ RSpec.describe Shoryuken::Launcher do
         allow(first_group_manager).to receive(:stop_new_dispatching)
         allow(second_group_manager).to receive(:stop_new_dispatching)
 
-        expect(Concurrent.global_io_executor).not_to receive(:shutdown)
-        expect(Concurrent.global_io_executor).not_to receive(:kill)
-
         subject.stop!
+
+        # Verify by inspecting state after the call rather than mocking methods
+        # on the process-global singleton: RSpec proxies on a singleton used by
+        # background concurrent-ruby threads can deadlock on Ruby 3.2.
+        expect(Concurrent.global_io_executor).to be_running
       end
     end
   end

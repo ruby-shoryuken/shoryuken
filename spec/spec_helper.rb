@@ -77,6 +77,24 @@ class TestWorker
   def perform(sqs_msg, body); end
 end
 
+# Emit a full Ruby thread dump when the process receives USR1.  The CI
+# watchdog (specs.yml) sends this signal when unit specs run longer than
+# expected so we can see exactly which thread is stuck without waiting for the
+# job-level timeout to kill the process silently.
+if Signal.list.key?('USR1')
+  Signal.trap('USR1') do
+    # Signal handlers run in a restricted context; use a plain IO write
+    # rather than puts/logger to stay async-signal safe.
+    output = +"\n=== Thread dump (USR1 watchdog) ===\n"
+    Thread.list.each do |t|
+      output << "--- Thread #{t.object_id} [#{t.status}] ---\n"
+      output << ((t.backtrace || ['(no backtrace)']).join("\n")) << "\n"
+    end
+    output << "=== End thread dump ===\n"
+    $stderr.write(output)
+  end
+end
+
 RSpec.configure do |config|
   config.before do
     Shoryuken::Client.class_variable_set :@@queues, {}
