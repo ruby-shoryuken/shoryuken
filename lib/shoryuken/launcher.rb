@@ -105,9 +105,15 @@ module Shoryuken
 
     # Returns the executor for running async operations
     #
+    # Owns a dedicated executor rather than borrowing Concurrent.global_io_executor:
+    # {#stop} and {#stop!} shut down and kill this executor, and destroying the
+    # process-global pool would break anything else relying on it (including
+    # Shoryuken's own ShoryukenConcurrentSendAdapter) and prevent a fresh launcher
+    # from starting in the same process.
+    #
     # @return [Concurrent::ExecutorService] the executor service
     def executor
-      @_executor ||= Shoryuken.launcher_executor || Concurrent.global_io_executor
+      @_executor ||= Shoryuken.launcher_executor || Concurrent::CachedThreadPool.new(auto_terminate: true)
     end
 
     # Starts all managers in parallel futures

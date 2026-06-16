@@ -70,21 +70,23 @@ class IntegrationRunner
   def run_specs(specs)
     results = []
 
-    specs.each do |spec|
+    specs.each_with_index do |spec, idx|
+      prefix = "[#{idx + 1}/#{specs.size}]"
+      puts "#{prefix} RUNNING  #{spec[:name]}"
+      $stdout.flush
+
       result = run_spec(spec)
       results << result
 
-      if result[:skipped]
-        print 'S'
-      elsif result[:success]
-        print '.'
-      else
-        print 'F'
-      end
+      elapsed = result[:duration] ? format('%.1fs', result[:duration]) : '?'
+      status  = if result[:skipped] then 'SKIPPED'
+                elsif result[:success] then 'OK     '
+                else                       'FAILED '
+                end
+      puts "#{prefix} #{status} #{spec[:name]} (#{elapsed})"
       $stdout.flush
     end
 
-    puts
     results
   end
 

@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
+  - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
+    and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
+  - Shutting down that process-wide pool broke anything else relying on concurrent-ruby's `:io` pool
+    (including Shoryuken's own `ShoryukenConcurrentSendAdapter`) and prevented starting a fresh launcher
+    in the same process
+  - The launcher now owns a dedicated `Concurrent::CachedThreadPool`, so stopping it leaves the global
+    IO executor untouched
+
 - Fix: `Queue#delete_messages` now logs every batch-delete failure and returns a robust boolean (mensfeld)
   - It used `failed.any? { |f| logger.error ... }`, which short-circuited after the first failure - so when
     a batch had multiple failures only the first was logged - and only returned truthy because `Logger#error`
