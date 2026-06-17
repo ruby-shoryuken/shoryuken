@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `Shoryuken::Client.queues` no longer builds the same queue more than once under concurrency (mensfeld)
+  - The cache used an unsynchronized `@@queues[name] ||= Shoryuken::Queue.new(...)`. Building a queue makes
+    SQS API calls, and that I/O releases the GVL, so concurrent first-access (dispatch, processor-completion
+    and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
+    on JRuby/TruffleRuby
+  - Access to the cache is now guarded by a mutex
+
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
   - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
     run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)
