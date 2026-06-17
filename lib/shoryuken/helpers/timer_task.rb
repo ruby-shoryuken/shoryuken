@@ -42,14 +42,21 @@ module Shoryuken
       #
       # @return [Boolean] true if killed, false if already killed
       def kill
+        thread_to_kill = nil
+
         @mutex.synchronize do
           return false if @killed
 
           @killed = true
           @running = false
-
-          @thread.kill if @thread&.alive?
+          thread_to_kill = @thread
         end
+
+        # Kill the thread AFTER releasing the mutex. The timer loop's ensure
+        # block calls @mutex.synchronize to clear @running; killing the thread
+        # while holding that mutex deadlocks on Ruby 3.2, where Thread#kill
+        # yields the GVL to the killed thread for cleanup before returning.
+        thread_to_kill&.kill if thread_to_kill&.alive?
         true
       end
 
