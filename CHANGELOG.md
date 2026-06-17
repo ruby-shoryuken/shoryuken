@@ -9,6 +9,12 @@
     `message_processed` could stay stuck behind an earlier-paused queue; it now unpauses the first expired entry
     anywhere in the list
 
+- Fix: `TimerTask#kill` no longer deadlocks on Ruby 3.2 under concurrent callers (mensfeld)
+  - `kill` called `@thread.kill` while holding `@mutex`; the timer loop's `ensure` block calls
+    `@mutex.synchronize` to clear `@running`, so on Ruby 3.2 (where `Thread#kill` yields the GVL
+    to the killed thread for cleanup before returning) both threads waited on each other forever
+  - The thread is now killed after the mutex is released, so the ensure block can always acquire it
+
 - Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
   - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
     and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
