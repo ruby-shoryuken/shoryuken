@@ -155,4 +155,29 @@ RSpec.describe Shoryuken::Polling::StrictPriority do
       expect(strategy.active_queues).to eq([[queue1, 2], [queue2, 1]])
     end
   end
+
+  describe 'thread safety' do
+    it 'serializes concurrent next_queue, messages_found and message_processed' do
+      strategy = Shoryuken::Polling::StrictPriority.new([queue1, queue2], 10)
+
+      errors = []
+      errors_mutex = Mutex.new
+
+      threads = Array.new(6) do
+        Thread.new do
+          50.times do |i|
+            strategy.next_queue
+            strategy.messages_found(queue1, i.even? ? 0 : 1)
+            strategy.message_processed(queue1)
+            strategy.active_queues
+          end
+        rescue => e
+          errors_mutex.synchronize { errors << e }
+        end
+      end
+      threads.each(&:join)
+
+      expect(errors).to be_empty
+    end
+  end
 end
