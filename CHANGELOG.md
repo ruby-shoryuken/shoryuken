@@ -8,6 +8,21 @@
     jobs are no longer silently dropped (rely on the queue's content-based deduplication or explicit ids)
   - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
 
+- Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
+  - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
+    run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)
+    but corrupts state on JRuby/TruffleRuby. Both `WeightedRoundRobin` and `StrictPriority` now serialize access
+    with a mutex
+  - `WeightedRoundRobin#unpause_queues` only checked the head of the paused list, so a queue marked ready by
+    `message_processed` could stay stuck behind an earlier-paused queue; it now unpauses the first expired entry
+    anywhere in the list
+
+- Fix: `TimerTask#kill` no longer deadlocks on Ruby 3.2 under concurrent callers (mensfeld)
+  - `kill` called `@thread.kill` while holding `@mutex`; the timer loop's `ensure` block calls
+    `@mutex.synchronize` to clear `@running`, so on Ruby 3.2 (where `Thread#kill` yields the GVL
+    to the killed thread for cleanup before returning) both threads waited on each other forever
+  - The thread is now killed after the mutex is released, so the ensure block can always acquire it
+
 - Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
   - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
     and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
