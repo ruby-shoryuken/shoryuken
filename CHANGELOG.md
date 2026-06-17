@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Feature: `ShoryukenConcurrentSendAdapter#wait_for_pending_sends` to drain in-flight async sends (mensfeld)
+  - The concurrent send adapter enqueues by scheduling the SQS send on a background future and returning
+    immediately, so jobs enqueued shortly before the process exits could be silently dropped
+  - `wait_for_pending_sends(timeout = nil)` blocks until every in-flight send has finished (returning
+    false if the optional timeout elapses first); call it from your shutdown sequence to flush pending sends
+  - In-flight futures are tracked and removed as they resolve, so the set does not grow unbounded
+
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
   - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
     run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)
