@@ -138,5 +138,55 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
       expect(subject.next_queue).to eq(queue1) # implicitly unpauses queue2
       expect(subject.active_queues).to eq([[queue1, 2], [queue2, 1]])
     end
+
+    it 'unpauses a processed queue stuck behind an earlier-paused queue' do
+      queues << queue1
+      queues << queue2
+
+      allow(subject).to receive(:delay).and_return(10)
+      now = Time.now
+      allow(Time).to receive(:now).and_return(now)
+
+      subject.messages_found(queue1, 0) # queue1 paused until now + 10
+
+      now += 1
+      allow(Time).to receive(:now).and_return(now)
+      subject.messages_found(queue2, 0) # queue2 paused until now + 10 (after queue1)
+
+      # both queues paused, nothing pollable yet
+      expect(subject.next_queue).to eq(nil)
+
+      # queue2 finishes processing and is marked ready while queue1 is still paused
+      subject.message_processed(queue2)
+
+      # queue2 must be pollable even though the earlier-paused queue1 is still paused
+      expect(subject.next_queue).to eq(queue2)
+    end
+  end
+
+  describe 'thread safety' do
+    it 'serializes concurrent next_queue, messages_found and message_processed' do
+      queues << queue1
+      queues << queue2
+
+      errors = []
+      errors_mutex = Mutex.new
+
+      threads = Array.new(6) do
+        Thread.new do
+          50.times do |i|
+            subject.next_queue
+            subject.messages_found(queue1, i.even? ? 0 : 1)
+            subject.message_processed(queue1)
+            subject.active_queues
+          end
+        rescue => e
+          errors_mutex.synchronize { errors << e }
+        end
+      end
+      threads.each(&:join)
+
+      expect(errors).to be_empty
+    end
   end
 end
