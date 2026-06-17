@@ -15,18 +15,26 @@ module Shoryuken
         @queues = queues.dup.uniq
         @paused_queues = []
         @delay = delay
+        # next_queue/messages_found run on the dispatch thread while
+        # message_processed runs on processor-completion threads (for FIFO
+        # queues), so all access to the shared state is serialized.
+        @mutex = Mutex.new
       end
 
       # Returns the next queue to poll in round-robin order
       #
       # @return [QueueConfiguration, nil] the next queue configuration or nil if all paused
       def next_queue
-        unpause_queues
-        queue = @queues.shift
-        return nil if queue.nil?
-
-        @queues << queue
-        QueueConfiguration.new(queue, {})
+        @mutex.synchronize do
+          unpause_queues
+          queue = @queues.shift
+          if queue.nil?
+            nil
+          else
+            @queues << queue
+            QueueConfiguration.new(queue, {})
+          end
+        end
       end
 
       # Handles the result of polling a queue, adjusting weight if messages were found
@@ -35,16 +43,17 @@ module Shoryuken
       # @param messages_found [Integer] number of messages found
       # @return [void]
       def messages_found(queue, messages_found)
-        if messages_found == 0
-          pause(queue)
-          return
-        end
-
-        maximum_weight = maximum_queue_weight(queue)
-        current_weight = current_queue_weight(queue)
-        if maximum_weight > current_weight
-          logger.info { "Increasing #{queue} weight to #{current_weight + 1}, max: #{maximum_weight}" }
-          @queues << queue
+        @mutex.synchronize do
+          if messages_found == 0
+            pause(queue)
+          else
+            maximum_weight = maximum_queue_weight(queue)
+            current_weight = current_queue_weight(queue)
+            if maximum_weight > current_weight
+              logger.info { "Increasing #{queue} weight to #{current_weight + 1}, max: #{maximum_weight}" }
+              @queues << queue
+            end
+          end
         end
       end
 
@@ -52,7 +61,7 @@ module Shoryuken
       #
       # @return [Array<Array>] array of [queue_name, weight] pairs
       def active_queues
-        unparse_queues(@queues)
+        @mutex.synchronize { unparse_queues(@queues) }
       end
 
       # Called when a message from a queue has been processed
@@ -60,10 +69,10 @@ module Shoryuken
       # @param queue [String] the queue name
       # @return [void]
       def message_processed(queue)
-        paused_queue = @paused_queues.find { |_time, name| name == queue }
-        return unless paused_queue
-
-        paused_queue[0] = Time.at 0
+        @mutex.synchronize do
+          paused_queue = @paused_queues.find { |_time, name| name == queue }
+          paused_queue[0] = Time.at(0) if paused_queue
+        end
       end
 
       private
@@ -79,16 +88,21 @@ module Shoryuken
         logger.debug "Paused #{queue}"
       end
 
-      # Unpauses queues whose delay has expired
+      # Unpauses the first queue whose delay has expired.
+      #
+      # Scans for any expired entry rather than only the head of the list:
+      # message_processed marks a queue ready by setting its time to the epoch,
+      # and that entry may sit behind an earlier-paused queue that is still
+      # paused - checking only the head would leave the ready queue stuck.
       #
       # @return [void]
       def unpause_queues
-        return if @paused_queues.empty?
-        return if Time.now < @paused_queues.first[0]
+        index = @paused_queues.index { |time, _name| time <= Time.now }
+        return if index.nil?
 
-        pause = @paused_queues.shift
-        @queues << pause[1]
-        logger.debug "Unpaused #{pause[1]}"
+        paused = @paused_queues.delete_at(index)
+        @queues << paused[1]
+        logger.debug "Unpaused #{paused[1]}"
       end
 
       # Returns the current weight of a queue in the active rotation
