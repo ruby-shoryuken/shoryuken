@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+- Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
+  - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
+    serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
+    class and arguments within SQS's 5-minute window silently collapse into one - a "skipped message" trap
+  - Set `Shoryuken.active_job_fifo_message_deduplication = false` to stop generating that id, so identical
+    jobs are no longer silently dropped (rely on the queue's content-based deduplication or explicit ids)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
+
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
   - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
     run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)

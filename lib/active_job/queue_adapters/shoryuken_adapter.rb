@@ -177,9 +177,11 @@ module ActiveJob
           message_attributes: attributes.merge(MESSAGE_ATTRIBUTES)
         }
 
-        if queue.fifo?
+        if queue.fifo? && Shoryuken.active_job_fifo_message_deduplication?
           # See https://github.com/ruby-shoryuken/shoryuken/issues/457 and
           # https://github.com/ruby-shoryuken/shoryuken/pull/750#issuecomment-1781317929
+          # Disable via Shoryuken.active_job_fifo_message_deduplication = false when distinct
+          # enqueues of the same job class and arguments must not be silently deduplicated.
           msg[:message_deduplication_id] = Digest::SHA256.hexdigest(
             JSON.dump(body.except('job_id', 'enqueued_at'))
           )
