@@ -12,6 +12,14 @@ module Shoryuken
       # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
       MAX_BATCH_SIZE = 1024 * 1024
 
+      # Long-poll wait (seconds) used when draining a queue in find_all, so a
+      # short-poll empty batch doesn't end dump/mv prematurely.
+      FIND_ALL_WAIT_SECONDS = 1
+
+      # Number of consecutive empty long-poll batches before find_all concludes
+      # the queue is drained.
+      FIND_ALL_MAX_EMPTY_BATCHES = 3
+
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
@@ -163,6 +171,7 @@ module Shoryuken
         # @return [Integer] the number of messages received
         def find_all(url, limit, &block)
           count = 0
+          empty_batches = 0
           batch_size = limit > 10 ? 10 : limit
 
           loop do
@@ -172,6 +181,11 @@ module Shoryuken
             messages = sqs.receive_message(
               queue_url: url,
               max_number_of_messages: batch_size,
+              # Long poll: short polling (the default wait_time_seconds: 0)
+              # samples only a subset of SQS hosts and routinely returns an empty
+              # batch even when the queue still has messages, which made dump/mv
+              # stop early and miss messages on real (distributed) SQS.
+              wait_time_seconds: FIND_ALL_WAIT_SECONDS,
               attribute_names: ['All'],
               message_attribute_names: ['All']
             ).messages || []
@@ -181,7 +195,15 @@ module Shoryuken
             count += messages.size
 
             break if count >= limit
-            break if messages.empty?
+
+            # Even with long polling an occasional empty batch is possible while
+            # messages remain, so only give up after several consecutive empties.
+            if messages.empty?
+              empty_batches += 1
+              break if empty_batches >= FIND_ALL_MAX_EMPTY_BATCHES
+            else
+              empty_batches = 0
+            end
           end
 
           count
