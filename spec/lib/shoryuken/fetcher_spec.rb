@@ -128,5 +128,42 @@ RSpec.describe Shoryuken::Fetcher do
         end
       end
     end
+
+    context 'when receive_messages fails transiently' do
+      before do
+        allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+        # Don't actually sleep between retries
+        allow(subject).to receive(:sleep)
+      end
+
+      it 'retries and then succeeds' do
+        calls = 0
+        allow(queue).to receive(:receive_messages) do
+          calls += 1
+          raise 'transient' if calls < 3
+
+          []
+        end
+
+        expect { subject.fetch(queue_config, 1) }.not_to raise_error
+        expect(calls).to eq(3)
+      end
+
+      it 're-raises after exhausting the retries' do
+        allow(queue).to receive(:receive_messages).and_raise('persistent')
+
+        expect { subject.fetch(queue_config, 1) }.to raise_error('persistent')
+      end
+
+      it 'backs off incrementally between attempts (1s, 2s, 3s)' do
+        allow(queue).to receive(:receive_messages).and_raise('persistent')
+
+        expect(subject).to receive(:sleep).with(1).ordered
+        expect(subject).to receive(:sleep).with(2).ordered
+        expect(subject).to receive(:sleep).with(3).ordered
+
+        expect { subject.fetch(queue_config, 1) }.to raise_error('persistent')
+      end
+    end
   end
 end
