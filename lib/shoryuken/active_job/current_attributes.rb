@@ -113,13 +113,10 @@ module Shoryuken
         # @param hash [Hash] the deserialized job data
         # @return [void]
         def perform(sqs_msg, hash)
-          klasses_to_reset = []
-
           CurrentAttributes.cattrs&.each do |key, klass_name|
             next unless hash.key?(key)
 
             klass = klass_name.constantize
-            klasses_to_reset << klass
 
             begin
               attrs = Serializer.deserialize(hash[key])
@@ -135,7 +132,16 @@ module Shoryuken
 
           super
         ensure
-          klasses_to_reset.each(&:reset)
+          # Reset every registered CurrentAttributes class, not only the ones
+          # present in this message. A message without a cattr key (enqueued
+          # before persist was configured, by a different producer, or with an
+          # empty context) would otherwise leave a previous job's values set on a
+          # reused worker thread, leaking context into the next job.
+          CurrentAttributes.cattrs&.each_value do |klass_name|
+            klass_name.constantize.reset
+          rescue => e
+            Shoryuken.logger.warn("Failed to reset CurrentAttributes #{klass_name}: #{e.message}")
+          end
         end
       end
     end
