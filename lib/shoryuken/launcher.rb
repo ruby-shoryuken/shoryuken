@@ -45,6 +45,8 @@ module Shoryuken
 
       shutdown_executor
 
+      drain_pending_active_job_sends
+
       fire_event(:stopped)
     end
 
@@ -61,6 +63,8 @@ module Shoryuken
       await_dispatching_in_progress
 
       shutdown_executor
+
+      drain_pending_active_job_sends
 
       fire_event(:stopped)
     end
@@ -101,6 +105,30 @@ module Shoryuken
     def shutdown_executor
       executor.shutdown
       executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+    end
+
+    # Drains in-flight asynchronous ActiveJob sends so jobs enqueued just before
+    # shutdown (e.g. by a worker during processing) are flushed to SQS instead of
+    # being dropped when the process exits.
+    #
+    # No-op unless ActiveJob is loaded and its configured adapter supports
+    # draining (i.e. ShoryukenConcurrentSendAdapter). Bounded by the configured
+    # timeout so it can never block shutdown indefinitely, and any error is
+    # swallowed so a draining hiccup can't break the shutdown sequence.
+    #
+    # @return [void]
+    def drain_pending_active_job_sends
+      return unless defined?(::ActiveJob::Base)
+
+      adapter = ::ActiveJob::Base.queue_adapter
+      return unless adapter.respond_to?(:wait_for_pending_sends)
+
+      logger.info { 'Draining in-flight ActiveJob sends' }
+
+      drained = adapter.wait_for_pending_sends(Shoryuken.options[:timeout])
+      logger.warn { 'Timed out draining in-flight ActiveJob sends; some may not have been delivered' } unless drained
+    rescue => e
+      logger.warn { "Error draining in-flight ActiveJob sends: #{e.class}: #{e.message}" }
     end
 
     # Returns the executor for running async operations
