@@ -60,6 +60,8 @@ module Shoryuken
     :active_job_queue_name_prefixing=,
     :active_job_fifo_message_deduplication?,
     :active_job_fifo_message_deduplication=,
+    :fifo_message_deduplication?,
+    :fifo_message_deduplication=,
     :sqs_client,
     :sqs_client=,
     :sqs_client_receive_message_opts,
