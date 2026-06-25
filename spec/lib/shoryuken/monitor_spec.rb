@@ -46,4 +46,19 @@ RSpec.describe 'Shoryuken.monitor' do
       expect(events).to be_empty
     end
   end
+
+  describe 'thread-safe initialization' do
+    it 'returns a single instance under concurrent first access' do
+      Shoryuken.reset_monitor!
+
+      monitors = Queue.new
+      threads = 20.times.map { Thread.new { monitors << Shoryuken.monitor } }
+      threads.each(&:join)
+
+      collected = []
+      collected << monitors.pop until monitors.empty?
+
+      expect(collected.uniq.size).to eq(1)
+    end
+  end
 end

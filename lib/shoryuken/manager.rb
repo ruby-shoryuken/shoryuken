@@ -238,6 +238,13 @@ module Shoryuken
     # @param ex [Exception] the exception that occurred
     # @return [void]
     def handle_dispatch_error(ex)
+      # Log directly (in addition to the manager.failed event) so a fatal
+      # dispatch/fetch error - which triggers the USR1 process shutdown below in
+      # server mode - is never silent, even when no instrumentation listener is
+      # subscribed.
+      logger.error { "Manager failed: #{ex.message}" }
+      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+
       Shoryuken.monitor.publish('manager.failed',
                                 group: @group,
                                 error: ex,

@@ -36,6 +36,11 @@ module Shoryuken
     Shoryuken::Runner.instance.healthy?
   end
 
+  # Guards lazy initialization of the instrumentation monitor so the first
+  # concurrent access (dispatch + processor threads) can't create, and lose
+  # subscribers across, multiple monitor instances.
+  MONITOR_MUTEX = Mutex.new
+
   # Returns the global instrumentation monitor.
   # Use this to subscribe to Shoryuken lifecycle events.
   #
@@ -51,7 +56,11 @@ module Shoryuken
   #     logger.info("Event: #{event.name}")
   #   end
   def self.monitor
-    @_monitor ||= Instrumentation::Notifications.new
+    return @_monitor if @_monitor
+
+    MONITOR_MUTEX.synchronize do
+      @_monitor ||= Instrumentation::Notifications.new
+    end
   end
 
   # Resets the monitor instance (useful for testing)
@@ -59,7 +68,7 @@ module Shoryuken
   # @return [void]
   # @api private
   def self.reset_monitor!
-    @_monitor = nil
+    MONITOR_MUTEX.synchronize { @_monitor = nil }
   end
 
   def_delegators(

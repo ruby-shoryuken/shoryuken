@@ -27,6 +27,8 @@ module Shoryuken
     #
     # @return [void]
     def start
+      logger.info { 'Starting' }
+
       start_callback
       start_managers
     end
@@ -127,6 +129,8 @@ module Shoryuken
     #
     # @return [void]
     def initiate_stop
+      logger.info { 'Shutting down' }
+
       stop_callback
     end
 
