@@ -116,6 +116,7 @@ RSpec.configure do |config|
     TestWorker.get_shoryuken_options['queue'] = 'default'
 
     Shoryuken.active_job_queue_name_prefixing = false
+    Shoryuken.active_job_fifo_message_deduplication = true
 
     Shoryuken.worker_registry.clear
     Shoryuken.register_worker('default', TestWorker)

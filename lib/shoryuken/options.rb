@@ -34,7 +34,8 @@ module Shoryuken
     # @return [Class] the executor class for running workers
     # @return [Shoryuken::WorkerRegistry] the registry for worker classes
     # @return [Array<#call>] handlers for processing exceptions
-    attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout,
+    attr_accessor :active_job_queue_name_prefixing, :active_job_fifo_message_deduplication,
+                  :cache_visibility_timeout,
                   :groups, :launcher_executor, :reloader, :enable_reloading,
                   :start_callback, :stop_callback, :worker_executor, :worker_registry,
                   :exception_handlers
@@ -53,6 +54,7 @@ module Shoryuken
       self.worker_registry = DefaultWorkerRegistry.new
       self.exception_handlers = [DefaultExceptionHandler]
       self.active_job_queue_name_prefixing = false
+      self.active_job_fifo_message_deduplication = true
       self.worker_executor = Worker::DefaultExecutor
       self.cache_visibility_timeout = false
       self.reloader = proc { |&block| block.call }
@@ -300,6 +302,15 @@ module Shoryuken
     # @return [Boolean] true if prefixing is enabled
     def active_job_queue_name_prefixing?
       @active_job_queue_name_prefixing
+    end
+
+    # Checks if the ActiveJob adapter should auto-generate a content-based
+    # message_deduplication_id for FIFO queues. When disabled, distinct enqueues
+    # of the same job class and arguments are no longer silently deduplicated.
+    #
+    # @return [Boolean] true if FIFO deduplication id generation is enabled
+    def active_job_fifo_message_deduplication?
+      @active_job_fifo_message_deduplication
     end
 
     private

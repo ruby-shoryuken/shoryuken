@@ -1,11 +1,12 @@
 ## [Unreleased]
 
-- Fix: `auto_visibility_timeout` no longer breaks processing on queues with a short visibility timeout (mensfeld)
-  - `AutoExtendVisibility` scheduled its `TimerTask` at `visibility_timeout - EXTEND_UPFRONT_SECONDS` (5s);
-    when the queue's visibility timeout was `<= 5s` that interval was `<= 0`, so `TimerTask` raised
-    `ArgumentError` before the worker ran and every message failed (and was reprocessed) until it hit a DLQ
-  - The interval is now clamped to half the visibility timeout when it would be non-positive, and the
-    extension is skipped with a clear warning only when the timeout is `<= 0`; the worker always runs
+- Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
+  - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
+    serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
+    class and arguments within SQS's 5-minute window silently collapse into one - a "skipped message" trap
+  - Set `Shoryuken.active_job_fifo_message_deduplication = false` to stop generating that id, so identical
+    jobs are no longer silently dropped (rely on the queue's content-based deduplication or explicit ids)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
 
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
   - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
