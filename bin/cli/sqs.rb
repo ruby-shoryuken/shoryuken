@@ -154,6 +154,13 @@ module Shoryuken
                            value[:string_value].bytesize
                          elsif value[:binary_value]
                            value[:binary_value].bytesize
+                         else
+                           # List-type attributes (string_list_values /
+                           # binary_list_values) carry no scalar value here and
+                           # are intentionally not requeued (see
+                           # normalize_dump_message). Size them as 0 rather than
+                           # crashing the whole batch with `nil + Integer`.
+                           0
                          end
             name_size + data_type_size + value_size
           end
