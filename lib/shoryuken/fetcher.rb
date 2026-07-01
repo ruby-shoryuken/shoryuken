@@ -72,11 +72,17 @@ module Shoryuken
 
       shoryuken_queue = Shoryuken::Client.queues(queue.name)
 
-      options[:max_number_of_messages]  = max_number_of_messages(shoryuken_queue, limit, options)
       options[:message_attribute_names] = %w[All]
       options[:attribute_names]         = %w[All]
 
+      # Merge per-queue options BEFORE computing the cap so the FIFO
+      # one-at-a-time guard (and FETCH_LIMIT) always win. Computing the cap last
+      # means a queue option of max_number_of_messages can only lower the count,
+      # never raise a non-batch FIFO queue above 1 - which would let SQS return
+      # several messages from the same group and break ordering.
       options.merge!(queue.options)
+
+      options[:max_number_of_messages] = max_number_of_messages(shoryuken_queue, limit, options)
 
       shoryuken_queue.receive_messages(options)
     end
