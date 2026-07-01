@@ -11,7 +11,12 @@ module Shoryuken
     # This ensures that request-scoped context (like current user, tenant, locale)
     # automatically flows from the code that enqueues a job to the job's execution.
     #
-    # Based on Sidekiq's approach to persisting current attributes.
+    # Based on Sidekiq's approach to persisting current attributes, with one
+    # deliberate difference in cleanup: Sidekiq only touches the classes carried
+    # by a job and leaves the general reset to the Rails executor it runs jobs
+    # inside. Shoryuken does not run jobs inside that executor by default, so the
+    # loader resets every registered class after each job itself - see the note
+    # on {Loading#perform}.
     #
     # @example Setup in initializer
     #   require 'shoryuken/active_job/current_attributes'
@@ -132,11 +137,24 @@ module Shoryuken
 
           super
         ensure
-          # Reset every registered CurrentAttributes class, not only the ones
-          # present in this message. A message without a cattr key (enqueued
-          # before persist was configured, by a different producer, or with an
-          # empty context) would otherwise leave a previous job's values set on a
-          # reused worker thread, leaking context into the next job.
+          # Reset every registered CurrentAttributes class after the job - not
+          # only the ones whose key was in this message.
+          #
+          # Why unconditional (and why this differs from Sidekiq): Sidekiq's
+          # loader only touches classes present in the job and relies on the
+          # Rails executor - which it runs every job inside - to reset all
+          # CurrentAttributes between units of work. Shoryuken has no such safety
+          # net: it wraps a job in the reloader/executor only when
+          # `enable_reloading` is set, which is off by default, so nothing else
+          # clears CurrentAttributes between jobs.
+          #
+          # A blanket reset here is therefore the only thing guaranteeing a clean
+          # thread. Resetting only the present keys leaks whenever a value ends up
+          # set during a job whose message carried no cattr key - e.g. the worker
+          # (or code it calls) writes to Current, on a keyless message (empty
+          # context at enqueue, a different producer, or persist configured after
+          # the message was queued). CurrentAttributes are thread-local and the
+          # pool reuses threads, so that value would surface in the next job.
           CurrentAttributes.cattrs&.each_value do |klass_name|
             klass_name.constantize.reset
           rescue => e
