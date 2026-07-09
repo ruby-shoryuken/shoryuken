@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)
+  - `find_all` used short polling and broke on the first empty `receive_message` response. Real
+    (distributed) SQS routinely returns an empty batch while the queue still has messages, so dump/mv
+    quietly processed only a fraction of the queue (invisible on single-node ElasticMQ/LocalStack)
+  - It now long-polls and only stops after several consecutive empty batches, so the queue is actually drained
+
 - Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
   - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
     serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
