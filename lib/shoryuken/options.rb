@@ -35,6 +35,7 @@ module Shoryuken
     # @return [Shoryuken::WorkerRegistry] the registry for worker classes
     # @return [Array<#call>] handlers for processing exceptions
     attr_accessor :active_job_queue_name_prefixing, :active_job_fifo_message_deduplication,
+                  :fifo_message_deduplication,
                   :cache_visibility_timeout,
                   :groups, :launcher_executor, :reloader, :enable_reloading,
                   :start_callback, :stop_callback, :worker_executor, :worker_registry,
@@ -55,6 +56,7 @@ module Shoryuken
       self.exception_handlers = [DefaultExceptionHandler]
       self.active_job_queue_name_prefixing = false
       self.active_job_fifo_message_deduplication = true
+      self.fifo_message_deduplication = true
       self.worker_executor = Worker::DefaultExecutor
       self.cache_visibility_timeout = false
       self.reloader = proc { |&block| block.call }
@@ -311,6 +313,18 @@ module Shoryuken
     # @return [Boolean] true if FIFO deduplication id generation is enabled
     def active_job_fifo_message_deduplication?
       @active_job_fifo_message_deduplication
+    end
+
+    # Checks whether Shoryuken auto-generates a content-based
+    # message_deduplication_id for raw FIFO sends (Worker.perform_async,
+    # Queue#send_message / #send_messages). When disabled, distinct sends of an
+    # identical body are no longer silently deduplicated by SQS - you must then
+    # provide a message_deduplication_id yourself or enable
+    # ContentBasedDeduplication on the queue.
+    #
+    # @return [Boolean] true if FIFO deduplication id generation is enabled
+    def fifo_message_deduplication?
+      @fifo_message_deduplication
     end
 
     private

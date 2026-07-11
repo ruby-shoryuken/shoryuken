@@ -224,8 +224,16 @@ module Shoryuken
     def add_fifo_attributes!(options)
       return unless fifo?
 
-      options[:message_group_id]         ||= MESSAGE_GROUP_ID
-      options[:message_deduplication_id] ||= Digest::SHA256.hexdigest(options[:message_body].to_s)
+      options[:message_group_id] ||= MESSAGE_GROUP_ID
+
+      # Auto-generate a content-based dedup id unless disabled. With it on, two
+      # sends of an identical body within SQS's 5-minute window are deduplicated
+      # (the second is silently dropped); disable it to send such messages
+      # distinctly (requires an explicit message_deduplication_id or the queue's
+      # ContentBasedDeduplication attribute).
+      if Shoryuken.fifo_message_deduplication?
+        options[:message_deduplication_id] ||= Digest::SHA256.hexdigest(options[:message_body].to_s)
+      end
 
       options
     end

@@ -254,6 +254,22 @@ RSpec.describe Shoryuken::Queue do
           )
         end
       end
+
+      context 'and Shoryuken.fifo_message_deduplication is disabled' do
+        before { Shoryuken.fifo_message_deduplication = false }
+        after { Shoryuken.fifo_message_deduplication = true }
+
+        it 'does not auto-generate a message_deduplication_id' do
+          expect(sqs).to receive(:send_message_batch) do |arg|
+            first_entry = arg[:entries].first
+
+            expect(first_entry[:message_group_id]).to eq described_class::MESSAGE_GROUP_ID
+            expect(first_entry).not_to have_key(:message_deduplication_id)
+          end
+
+          subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
+        end
+      end
     end
 
     it 'accepts an array of string' do
