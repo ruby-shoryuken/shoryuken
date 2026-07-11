@@ -158,5 +158,22 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
       expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
+
+    it 'never sets a negative visibility timeout for jobs longer than the SQS ceiling' do
+      started_at = Time.now - 43_300 # ran longer than the 12h SQS maximum
+
+      expect(subject.send(:next_visibility_timeout, 300, started_at)).to eq(0)
+    end
+
+    it 'does not mask the original error when rescheduling fails' do
+      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
+
+      # e.g. an expired receipt handle - change_visibility raises
+      allow(sqs_msg).to receive(:change_visibility).and_raise(StandardError, 'visibility boom')
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
+      }.to raise_error(RuntimeError, 'original worker error')
+    end
   end
 end
