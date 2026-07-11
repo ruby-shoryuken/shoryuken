@@ -265,6 +265,19 @@ RSpec.describe Shoryuken::Queue do
 
       subject.send_messages(%w[msg1 msg2])
     end
+
+    context 'when some sends fail' do
+      it 'logs each failure (so bulk/enqueue_all drops are not silent)' do
+        failure = double(id: '1', code: 'code', message: '...', sender_fault: false)
+        logger = double('Logger')
+        allow(sqs).to receive(:send_message_batch).and_return(double(failed: [failure]))
+        allow(subject).to receive(:logger).and_return(logger)
+
+        expect(logger).to receive(:error)
+
+        subject.send_messages(entries: [{ id: '0', message_body: 'msg1' }])
+      end
+    end
   end
 
   describe '#fifo?' do
