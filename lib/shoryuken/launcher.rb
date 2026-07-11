@@ -138,11 +138,7 @@ module Shoryuken
     #
     # @return [void]
     def start_callback
-      if (callback = Shoryuken.start_callback)
-        logger.debug { 'Calling start_callback' }
-        callback.call
-      end
-
+      Shoryuken.start_callback&.call
       fire_event(:startup)
     end
 
@@ -150,11 +146,7 @@ module Shoryuken
     #
     # @return [void]
     def stop_callback
-      if (callback = Shoryuken.stop_callback)
-        logger.debug { 'Calling stop_callback' }
-        callback.call
-      end
-
+      Shoryuken.stop_callback&.call
       fire_event(:shutdown, true)
     end
 

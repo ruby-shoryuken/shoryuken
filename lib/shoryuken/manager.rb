@@ -108,7 +108,12 @@ module Shoryuken
 
       fire_event(:dispatch, false, queue_name: queue.name)
 
-      logger.debug { "Ready: #{ready}, Busy: #{busy}, Active Queues: #{@polling_strategy.active_queues}" }
+      Shoryuken.monitor.publish('manager.dispatch',
+                                group: @group,
+                                queue: queue.name,
+                                ready: ready,
+                                busy: busy,
+                                active_queues: @polling_strategy.active_queues)
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
     rescue => e
@@ -160,7 +165,10 @@ module Shoryuken
     def assign(queue_name, sqs_msg)
       return unless running?
 
-      logger.debug { "Assigning #{sqs_msg.message_id}" }
+      Shoryuken.monitor.publish('manager.processor_assigned',
+                                group: @group,
+                                queue: queue_name,
+                                message_id: sqs_msg.message_id)
 
       @busy_processors.increment
       fire_utilization_update_event
@@ -230,8 +238,19 @@ module Shoryuken
     # @param ex [Exception] the exception that occurred
     # @return [void]
     def handle_dispatch_error(ex)
+      # Log directly (in addition to the manager.failed event) so a fatal
+      # dispatch/fetch error - which triggers the USR1 process shutdown below in
+      # server mode - is never silent, even when no instrumentation listener is
+      # subscribed.
       logger.error { "Manager failed: #{ex.message}" }
       logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+
+      Shoryuken.monitor.publish('manager.failed',
+                                group: @group,
+                                error: ex,
+                                error_message: ex.message,
+                                error_class: ex.class.name,
+                                backtrace: ex.backtrace)
 
       # Stop this manager first so Launcher#healthy? surfaces the failure to
       # whoever is supervising us (the CLI Runner, or an embedding application).
