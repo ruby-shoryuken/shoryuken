@@ -86,6 +86,14 @@ Documentation/LineLength:
   # Aligned with RuboCop's Layout/LineLength.
   MaxLength: 125
 
+Documentation/TextSubstitution:
+  Description: Detects em/en-dashes in documentation and replaces them with hyphens.
+  Enabled: true
+  Severity: error
+  Substitutions:
+    "—": "-"    # em-dash (U+2014)
+    "–": "-"    # en-dash (U+2013)
+
 # Tags validators
 Tags/Order:
   Description: Enforces consistent ordering of YARD tags.
