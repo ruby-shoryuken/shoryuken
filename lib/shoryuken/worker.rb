@@ -8,6 +8,9 @@ module Shoryuken
   # middleware. Workers can be configured for different processing patterns including single message processing, batch
   # processing, and various retry and visibility timeout strategies.
   #
+  # @see ClassMethods#shoryuken_options Primary configuration method
+  # @see ClassMethods#perform_async For enqueueing jobs
+  # @see https://github.com/ruby-shoryuken/shoryuken/wiki/Workers Comprehensive worker documentation
   # @example Basic worker implementation
   #   class EmailWorker
   #     include Shoryuken::Worker
@@ -36,10 +39,6 @@ module Shoryuken
   #       # Worker implementation
   #     end
   #   end
-  #
-  # @see ClassMethods#shoryuken_options Primary configuration method
-  # @see ClassMethods#perform_async For enqueueing jobs
-  # @see https://github.com/ruby-shoryuken/shoryuken/wiki/Workers Comprehensive worker documentation
   module Worker
     # Sets up the including class with Shoryuken worker functionality
     #
@@ -221,6 +220,7 @@ module Shoryuken
       #
       # @return [Boolean] true if retry intervals are configured
       #
+      # @see #shoryuken_options Documentation for configuring retry_intervals
       # @example Configuring exponential backoff
       #   shoryuken_options retry_intervals: [1, 5, 25, 125, 625]
       #   # Retries after 1s, 5s, 25s, 125s, then 625s for every later attempt.
@@ -228,8 +228,6 @@ module Shoryuken
       #   # exhausted - it keeps reusing the last interval. Configure an SQS
       #   # redrive policy (maxReceiveCount) to send exhausted messages to a
       #   # dead-letter queue.
-      #
-      # @see #shoryuken_options Documentation for configuring retry_intervals
       def exponential_backoff?
         !!get_shoryuken_options['retry_intervals']
       end
@@ -240,14 +238,13 @@ module Shoryuken
       #
       # @return [Boolean] true if auto delete is enabled
       #
+      # @see #shoryuken_options Documentation for enabling auto_delete
       # @example Manual message deletion when auto_delete is false
       #   def perform(sqs_msg, body)
       #     process_message(body)
       #     # Manually delete the message after successful processing
       #     sqs_msg.delete
       #   end
-      #
-      # @see #shoryuken_options Documentation for enabling auto_delete
       def auto_delete?
         !!(get_shoryuken_options['delete'] || get_shoryuken_options['auto_delete'])
       end

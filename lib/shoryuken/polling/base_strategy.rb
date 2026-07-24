@@ -9,9 +9,8 @@ module Shoryuken
     # control in Shoryuken workers. Polling strategies determine which queue to fetch messages from next and how to handle
     # scenarios where queues have no messages available.
     #
-    # @abstract Subclass and override {#next_queue}, {#messages_found}, and {#active_queues}
-    #   to implement a custom polling strategy.
-    #
+    # @see WeightedRoundRobin
+    # @see StrictPriority
     # @example Implementing a custom polling strategy
     #   class CustomStrategy < BaseStrategy
     #     def initialize(queues)
@@ -34,8 +33,8 @@ module Shoryuken
     #     end
     #   end
     #
-    # @see WeightedRoundRobin
-    # @see StrictPriority
+    # @abstract Subclass and override {#next_queue}, {#messages_found}, and {#active_queues}
+    #   to implement a custom polling strategy.
     class BaseStrategy
       include Util
 

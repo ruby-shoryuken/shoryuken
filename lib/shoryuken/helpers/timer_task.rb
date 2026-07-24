@@ -9,9 +9,9 @@ module Shoryuken
       #
       # @param execution_interval [Float] interval in seconds between task executions
       # @param task [Proc] the task to execute on each interval (provided as a block)
+      # @yield the task to execute on each interval
       # @return [TimerTask] a new TimerTask instance
       # @raise [ArgumentError] if no block is provided or interval is not positive
-      # @yield the task to execute on each interval
       def initialize(execution_interval:, &task)
         raise ArgumentError, 'A block must be provided' unless block_given?
 

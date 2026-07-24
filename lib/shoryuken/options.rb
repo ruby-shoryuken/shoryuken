@@ -247,8 +247,8 @@ module Shoryuken
     # Registers a callback to run when the server starts
     #
     # @param block [Proc] the block to execute on start
-    # @return [void]
     # @yield the block to execute on start
+    # @return [void]
     def on_start(&block)
       self.start_callback = block
     end
@@ -256,8 +256,8 @@ module Shoryuken
     # Registers a callback to run when the server stops
     #
     # @param block [Proc] the block to execute on stop
-    # @return [void]
     # @yield the block to execute on stop
+    # @return [void]
     def on_stop(&block)
       self.stop_callback = block
     end
@@ -266,9 +266,9 @@ module Shoryuken
     #
     # @param event [Symbol] the lifecycle event (:startup, :quiet, :shutdown, or :stopped)
     # @param block [Proc] the block to execute for the event
+    # @yield the block to execute for the event
     # @return [void]
     # @raise [ArgumentError] if event is not a Symbol or not a valid event name
-    # @yield the block to execute for the event
     # @example
     #   Shoryuken.configure_server do |config|
     #     config.on(:shutdown) do

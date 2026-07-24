@@ -16,15 +16,14 @@ module Shoryuken
     # does not run jobs inside that executor by default, so the loader resets every registered class after each job itself -
     # see the note on {Loading#perform}.
     #
+    # @see https://api.rubyonrails.org/classes/ActiveSupport/CurrentAttributes.html
+    # @see https://github.com/sidekiq/sidekiq/blob/main/lib/sidekiq/middleware/current_attributes.rb
     # @example Setup in initializer
     #   require 'shoryuken/active_job/current_attributes'
     #   Shoryuken::ActiveJob::CurrentAttributes.persist('MyApp::Current')
     #
     # @example Multiple CurrentAttributes classes
     #   Shoryuken::ActiveJob::CurrentAttributes.persist('MyApp::Current', 'MyApp::RequestContext')
-    #
-    # @see https://api.rubyonrails.org/classes/ActiveSupport/CurrentAttributes.html
-    # @see https://github.com/sidekiq/sidekiq/blob/main/lib/sidekiq/middleware/current_attributes.rb
     module CurrentAttributes
       # Serializer for current attributes using ActiveJob::Arguments.
       # Supports Symbols and GlobalID objects.

@@ -12,12 +12,6 @@ module Shoryuken
     # safety and simplicity. This approach avoids the complexity of copy-on-write while maintaining excellent performance for
     # typical usage patterns.
     #
-    # @note This implementation uses mutex synchronization for all operations,
-    #   ensuring complete thread safety with minimal performance impact.
-    #
-    # @note All operations are atomic and will never see partial effects from
-    #   concurrent operations.
-    #
     # @example Basic hash operations
     #   hash = Shoryuken::Helpers::AtomicHash.new
     #   hash['key'] = 'value'
@@ -47,6 +41,11 @@ module Shoryuken
     #   # Multiple threads can safely read concurrently
     #   Thread.new { puts hash['key1'] }
     #   Thread.new { puts hash.keys.size }
+    # @note This implementation uses mutex synchronization for all operations,
+    #   ensuring complete thread safety with minimal performance impact.
+    #
+    # @note All operations are atomic and will never see partial effects from
+    #   concurrent operations.
     class AtomicHash
       # Creates a new empty atomic hash.
       #

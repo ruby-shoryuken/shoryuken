@@ -10,9 +10,6 @@ module Shoryuken
     # The implementation uses a Mutex to ensure thread safety across all Ruby implementations including JRuby, where true
     # parallelism makes atomic operations critical for data integrity.
     #
-    # @note This class is optimized for scenarios with frequent atomic updates
-    #   and occasional reads, such as tracking active worker counts.
-    #
     # @example Basic usage
     #   counter = Shoryuken::Helpers::AtomicCounter.new(0)
     #   counter.increment  # => 1
@@ -31,6 +28,8 @@ module Shoryuken
     #
     #   # Check current load
     #   current_busy = @busy_processors.value
+    # @note This class is optimized for scenarios with frequent atomic updates
+    #   and occasional reads, such as tracking active worker counts.
     class AtomicCounter
       # Creates a new atomic counter with the specified initial value.
       #

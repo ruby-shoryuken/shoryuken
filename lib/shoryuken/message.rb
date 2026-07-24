@@ -119,10 +119,9 @@ module Shoryuken
     # @return [Aws::SQS::Types::ChangeMessageVisibilityResult] The change result
     # @raise [Aws::SQS::Errors::ServiceError] If the change fails
     #
+    # @see #visibility_timeout= For a simpler interface
     # @example Extending visibility with additional options
     #   sqs_msg.change_visibility(visibility_timeout: 300)
-    #
-    # @see #visibility_timeout= For a simpler interface
     def change_visibility(options)
       client.change_message_visibility(
         options.merge(queue_url: queue_url, receipt_handle: data.receipt_handle)
