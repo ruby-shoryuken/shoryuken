@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Default exception handler that logs errors during message processing.
-  # Implements a simple error logging strategy that outputs the exception
-  # message and backtrace to the configured logger.
+  # Default exception handler that logs errors during message processing. Implements a simple error logging strategy that
+  # outputs the exception message and backtrace to the configured logger.
   class DefaultExceptionHandler
     extend Util
 
