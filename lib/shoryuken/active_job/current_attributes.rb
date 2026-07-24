@@ -11,12 +11,10 @@ module Shoryuken
     # This ensures that request-scoped context (like current user, tenant, locale)
     # automatically flows from the code that enqueues a job to the job's execution.
     #
-    # Based on Sidekiq's approach to persisting current attributes, with one
-    # deliberate difference in cleanup: Sidekiq only touches the classes carried
-    # by a job and leaves the general reset to the Rails executor it runs jobs
-    # inside. Shoryuken does not run jobs inside that executor by default, so the
-    # loader resets every registered class after each job itself - see the note
-    # on {Loading#perform}.
+    # Based on Sidekiq's approach to persisting current attributes, with one deliberate difference in cleanup: Sidekiq only
+    # touches the classes carried by a job and leaves the general reset to the Rails executor it runs jobs inside. Shoryuken
+    # does not run jobs inside that executor by default, so the loader resets every registered class after each job itself -
+    # see the note on {Loading#perform}.
     #
     # @example Setup in initializer
     #   require 'shoryuken/active_job/current_attributes'

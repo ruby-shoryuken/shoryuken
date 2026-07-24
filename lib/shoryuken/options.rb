@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Stores and manages all Shoryuken configuration options.
-  # This class is used internally to hold settings for workers, queues,
-  # middleware, and other runtime configurations.
+  # Stores and manages all Shoryuken configuration options. This class is used internally to hold settings for workers,
+  # queues, middleware, and other runtime configurations.
   class Options
     # Default configuration values for Shoryuken
     DEFAULTS = {
@@ -304,9 +303,8 @@ module Shoryuken
       @active_job_queue_name_prefixing
     end
 
-    # Checks if the ActiveJob adapter should auto-generate a content-based
-    # message_deduplication_id for FIFO queues. When disabled, distinct enqueues
-    # of the same job class and arguments are no longer silently deduplicated.
+    # Checks if the ActiveJob adapter should auto-generate a content-based message_deduplication_id for FIFO queues. When
+    # disabled, distinct enqueues of the same job class and arguments are no longer silently deduplicated.
     #
     # @return [Boolean] true if FIFO deduplication id generation is enabled
     def active_job_fifo_message_deduplication?
