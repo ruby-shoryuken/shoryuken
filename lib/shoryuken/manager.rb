@@ -156,7 +156,8 @@ module Shoryuken
     #
     # @param queue_name [String] the queue name
     # @param sqs_msg [Aws::SQS::Types::Message, Array<Aws::SQS::Types::Message>] the message or batch
-    # @return [Concurrent::Promise, nil] the processing promise or nil if not running
+    # @return [Concurrent::Promise, nil] the processing promise, or nil if the manager
+    #   is not running or the executor rejects the worker post
     def assign(queue_name, sqs_msg)
       return unless running?
 

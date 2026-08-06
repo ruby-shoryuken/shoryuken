@@ -245,6 +245,19 @@ RSpec.describe Shoryuken::Manager do
 
         expect(subject.send(:busy)).to eq(0)
       end
+
+      it 'does not run the FIFO message_processed callback' do
+        # The message was never processed, so the rejection rollback must
+        # decrement directly and never reach the FIFO bookkeeping - even for a
+        # FIFO queue. Guards against a refactor routing rollback through
+        # processor_done.
+        allow(sqs_queue).to receive(:fifo?).and_return(true)
+        expect(polling_strategy).not_to receive(:message_processed)
+
+        subject.send(:assign, queue, sqs_msg)
+
+        expect(subject.send(:busy)).to eq(0)
+      end
     end
   end
 
