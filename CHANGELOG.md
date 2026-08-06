@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [7.0.3] - 2026-07-10
+
 - Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
   - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
     serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job

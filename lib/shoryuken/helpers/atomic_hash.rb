@@ -4,14 +4,12 @@ module Shoryuken
   module Helpers
     # A thread-safe hash implementation using Ruby's Mutex for all operations.
     #
-    # This class provides a hash-like interface with thread-safe operations, serving as a
-    # drop-in replacement for Concurrent::Hash without requiring external dependencies.
-    # The implementation uses a single mutex to protect both read and write operations,
-    # ensuring complete thread safety across all Ruby implementations including JRuby.
+    # This class provides a hash-like interface with thread-safe operations, serving as a drop-in replacement for
+    # Concurrent::Hash without requiring external dependencies. The implementation uses a single mutex to protect both read
+    # and write operations, ensuring complete thread safety across all Ruby implementations including JRuby.
     #
-    # Since hash operations (lookup, assignment) are very fast, the mutex overhead is
-    # minimal while providing guaranteed safety and simplicity. This approach avoids
-    # the complexity of copy-on-write while maintaining excellent performance for
+    # Since hash operations (lookup, assignment) are very fast, the mutex overhead is minimal while providing guaranteed
+    # safety and simplicity. This approach avoids the complexity of copy-on-write while maintaining excellent performance for
     # typical usage patterns.
     #
     # @note This implementation uses mutex synchronization for all operations,
@@ -52,8 +50,7 @@ module Shoryuken
     class AtomicHash
       # Creates a new empty atomic hash.
       #
-      # The hash starts empty and ready to accept key-value pairs through
-      # thread-safe operations.
+      # The hash starts empty and ready to accept key-value pairs through thread-safe operations.
       #
       # @return [AtomicHash] A new empty atomic hash instance
       #
@@ -67,8 +64,7 @@ module Shoryuken
 
       # Returns the value associated with the given key.
       #
-      # This operation is thread-safe and will return a consistent value
-      # even when called concurrently with write operations.
+      # This operation is thread-safe and will return a consistent value even when called concurrently with write operations.
       #
       # @param key [Object] The key to look up
       # @return [Object, nil] The value associated with the key, or nil if not found
@@ -115,8 +111,7 @@ module Shoryuken
 
       # Removes all key-value pairs from the hash.
       #
-      # This is a thread-safe write operation that ensures atomicity
-      # when called concurrently with other operations.
+      # This is a thread-safe write operation that ensures atomicity when called concurrently with other operations.
       #
       # @return [Hash] An empty hash (for compatibility with standard Hash#clear)
       #
@@ -154,8 +149,7 @@ module Shoryuken
 
       # Returns the value for the given key, or a default value if the key is not found.
       #
-      # This operation is thread-safe and will return a consistent value
-      # even when called concurrently with write operations.
+      # This operation is thread-safe and will return a consistent value even when called concurrently with write operations.
       #
       # @param key [Object] The key to look up
       # @param default [Object] The value to return if the key is not found

@@ -4,10 +4,9 @@ module Shoryuken
   module Helpers
     # Utility methods for hash manipulation.
     #
-    # This module provides helper methods for common hash operations that were
-    # previously implemented as core class extensions. By using a dedicated
-    # helper module, we avoid polluting the global namespace while maintaining
-    # the same functionality.
+    # This module provides helper methods for common hash operations that were previously implemented as core class
+    # extensions. By using a dedicated helper module, we avoid polluting the global namespace while maintaining the same
+    # functionality.
     #
     # @example Basic usage
     #   hash = { 'key1' => 'value1', 'key2' => { 'nested' => 'value2' } }
@@ -17,9 +16,8 @@ module Shoryuken
       class << self
         # Recursively converts hash keys to symbols.
         #
-        # This method traverses a hash structure and converts all string keys
-        # to symbols, including nested hashes. Non-hash values are left unchanged.
-        # This is useful for normalizing configuration data loaded from YAML files.
+        # This method traverses a hash structure and converts all string keys to symbols, including nested hashes. Non-hash
+        # values are left unchanged. This is useful for normalizing configuration data loaded from YAML files.
         #
         # @param hash [Hash, Object] The hash to convert, or any other object
         # @return [Hash, Object] Hash with symbolized keys, or the original object if not a hash
