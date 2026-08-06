@@ -1,5 +1,17 @@
 ## [Unreleased]
 
+## [7.0.4] - Unreleased
+
+- Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
+  - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the
+    matching decrement (`processor_done`) runs inside the promise body. When the post is rejected with
+    `Concurrent::RejectedExecutionError` - a hard stop racing the `running?` check, or a saturated bounded custom
+    `launcher_executor` - the body never runs and the counter leaks
+  - With a bounded executor the leak is permanent: `ready` (`@max_processors - busy`) keeps shrinking until
+    dispatch stalls and the group silently stops processing
+  - The increment is now rolled back on `RejectedExecutionError` by decrementing directly (the message was never
+    processed, so the FIFO `message_processed` callback must not run) (#1029)
+
 ## [7.0.3] - 2026-07-10
 
 - Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
