@@ -113,6 +113,19 @@ RSpec.describe Shoryuken::Fetcher do
         subject.fetch(queue_config, limit)
       end
 
+      it 'caps at one message even when the queue config requests more' do
+        # A custom polling strategy can put max_number_of_messages in the
+        # QueueConfiguration options; the FIFO one-at-a-time guard must still win
+        # so SQS can't return several messages from the same group.
+        config = Shoryuken::Polling::QueueConfiguration.new(queue_name, max_number_of_messages: 10)
+
+        allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+        expect(queue).to receive(:receive_messages)
+          .with(hash_including(max_number_of_messages: 1)).and_return([])
+
+        subject.fetch(config, limit)
+      end
+
       context 'with batch=true' do
         it 'polls the provided limit' do
           # see https://github.com/ruby-shoryuken/shoryuken/pull/530

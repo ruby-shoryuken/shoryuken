@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Middleware provides a way to wrap message processing with custom logic,
-  # similar to Rack middleware in web applications. Middleware runs on the server
-  # side and can perform setup, teardown, error handling, and monitoring around
-  # job execution.
+  # Middleware provides a way to wrap message processing with custom logic, similar to Rack middleware in web applications.
+  # Middleware runs on the server side and can perform setup, teardown, error handling, and monitoring around job execution.
   #
   # Middleware classes must implement a `call` method that accepts the worker instance,
   # queue name, and SQS message, and must yield to continue the middleware chain.
@@ -84,9 +82,8 @@ module Shoryuken
   # @see Shoryuken::Middleware::Chain Middleware chain management
   # @see https://github.com/ruby-shoryuken/shoryuken/wiki/Middleware Comprehensive middleware guide
   module Middleware
-    # Manages a chain of middleware classes that will be instantiated and invoked
-    # in sequence around message processing. Provides methods for adding, removing,
-    # and reordering middleware.
+    # Manages a chain of middleware classes that will be instantiated and invoked in sequence around message processing.
+    # Provides methods for adding, removing, and reordering middleware.
     class Chain
       # @return [Array<Entry>] The ordered list of middleware entries
       attr_reader :entries
@@ -121,8 +118,7 @@ module Shoryuken
         entries.delete_if { |entry| entry.klass == klass }
       end
 
-      # Adds middleware to the end of the chain. Does nothing if the middleware
-      # class is already present in the chain.
+      # Adds middleware to the end of the chain. Does nothing if the middleware class is already present in the chain.
       #
       # @param klass [Class] The middleware class to add
       # @param args [Array] Arguments to pass to the middleware constructor
@@ -132,8 +128,7 @@ module Shoryuken
         entries << Entry.new(klass, *args) unless exists?(klass)
       end
 
-      # Adds middleware to the beginning of the chain. Does nothing if the middleware
-      # class is already present in the chain.
+      # Adds middleware to the beginning of the chain. Does nothing if the middleware class is already present in the chain.
       #
       # @param klass [Class] The middleware class to prepend
       # @param args [Array] Arguments to pass to the middleware constructor
@@ -195,8 +190,7 @@ module Shoryuken
         entries.clear
       end
 
-      # Invokes the middleware chain with the given arguments.
-      # Each middleware's call method will be invoked in sequence,
+      # Invokes the middleware chain with the given arguments. Each middleware's call method will be invoked in sequence,
       # with control passed through yielding.
       #
       # @param args [Array] arguments to pass to each middleware
