@@ -3,9 +3,8 @@
 module Shoryuken
   module Middleware
     module Server
-      # Middleware that implements exponential backoff retry for failed messages.
-      # When a job fails, the message visibility timeout is adjusted based on
-      # configured retry intervals.
+      # Middleware that implements exponential backoff retry for failed messages. When a job fails, the message visibility
+      # timeout is adjusted based on configured retry intervals.
       class ExponentialBackoffRetry
         include Util
 
