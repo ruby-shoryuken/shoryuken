@@ -90,10 +90,9 @@ module Shoryuken
 
       # Unpauses the first queue whose delay has expired.
       #
-      # Scans for any expired entry rather than only the head of the list:
-      # message_processed marks a queue ready by setting its time to the epoch,
-      # and that entry may sit behind an earlier-paused queue that is still
-      # paused - checking only the head would leave the ready queue stuck.
+      # Scans for any expired entry rather than only the head of the list: message_processed marks a queue ready by setting
+      # its time to the epoch, and that entry may sit behind an earlier-paused queue that is still paused - checking only the
+      # head would leave the ready queue stuck.
       #
       # @return [void]
       def unpause_queues
