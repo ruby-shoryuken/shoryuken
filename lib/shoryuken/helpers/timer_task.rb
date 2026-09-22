@@ -66,6 +66,16 @@ module Shoryuken
       #
       # @return [void]
       def run_timer_loop
+        # The timer thread inherits the priority of the thread that called
+        # #execute. Shoryuken runs workers at a lowered priority
+        # (Shoryuken.thread_priority, default -1) and starts the
+        # auto-visibility-extension timer from inside that worker thread, so the
+        # timer would otherwise inherit -1. A latency-sensitive timer must not
+        # run below normal priority: under CPU contention a delayed extension can
+        # miss the visibility timeout and let the message be redelivered (double
+        # processed). Reset to normal priority.
+        Thread.current.priority = 0
+
         until @killed
           sleep(@execution_interval)
           break if @killed

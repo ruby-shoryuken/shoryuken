@@ -4,7 +4,7 @@ module Shoryuken
   # Client class for interacting with SQS queues.
   # Provides a simple interface for accessing and managing queue instances.
   class Client
-    # @return [Hash{String => Shoryuken::Queue}] cached queue instances by name
+    # Cached queue instances by name (Hash{String => Shoryuken::Queue}).
     @@queues = {}
 
     # Guards the queue cache. queues is called concurrently from the dispatch

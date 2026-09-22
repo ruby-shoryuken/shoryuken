@@ -7,6 +7,28 @@
     on JRuby/TruffleRuby
   - Access to the cache is now guarded by a mutex
 
+## [7.0.4] - Unreleased
+
+- Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
+  - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the
+    matching decrement (`processor_done`) runs inside the promise body. When the post is rejected with
+    `Concurrent::RejectedExecutionError` - a hard stop racing the `running?` check, or a saturated bounded custom
+    `launcher_executor` - the body never runs and the counter leaks
+  - With a bounded executor the leak is permanent: `ready` (`@max_processors - busy`) keeps shrinking until
+    dispatch stalls and the group silently stops processing
+  - The increment is now rolled back on `RejectedExecutionError` by decrementing directly (the message was never
+    processed, so the FIFO `message_processed` callback must not run) (#1029)
+
+## [7.0.3] - 2026-07-10
+
+- Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
+  - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
+    serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
+    class and arguments within SQS's 5-minute window silently collapse into one - a "skipped message" trap
+  - Set `Shoryuken.active_job_fifo_message_deduplication = false` to stop generating that id, so identical
+    jobs are no longer silently dropped (rely on the queue's content-based deduplication or explicit ids)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
+
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
   - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
     run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)

@@ -27,9 +27,8 @@ module Shoryuken
     @_shoryuken_options ||= Shoryuken::Options.new
   end
 
-  # Checks if the Shoryuken server is running and healthy.
-  # A server is considered healthy when all configured processing groups
-  # are running and able to process messages.
+  # Checks if the Shoryuken server is running and healthy. A server is considered healthy when all configured processing
+  # groups are running and able to process messages.
   #
   # @return [Boolean] true if the server is healthy
   def self.healthy?
@@ -58,6 +57,8 @@ module Shoryuken
     :stop_callback=,
     :active_job_queue_name_prefixing?,
     :active_job_queue_name_prefixing=,
+    :active_job_fifo_message_deduplication?,
+    :active_job_fifo_message_deduplication=,
     :sqs_client,
     :sqs_client=,
     :sqs_client_receive_message_opts,

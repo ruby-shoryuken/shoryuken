@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Represents an SQS message received by a Shoryuken worker.
-  # This class wraps the raw AWS SQS message data and provides convenient methods
-  # for interacting with the message, including deletion and visibility timeout management.
+  # Represents an SQS message received by a Shoryuken worker. This class wraps the raw AWS SQS message data and provides
+  # convenient methods for interacting with the message, including deletion and visibility timeout management.
   #
   # Message instances are automatically created by Shoryuken and passed to your
   # worker's `perform` method as the first argument.

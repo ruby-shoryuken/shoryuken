@@ -43,23 +43,23 @@ Dotenv.load
 unless ENV['SIMPLECOV_DISABLED']
   require 'simplecov'
   SimpleCov.start do
-  add_filter '/spec/'
-  add_filter '/test_workers/'
-  add_filter '/examples/'
-  add_filter '/vendor/'
-  add_filter '/.bundle/'
+  skip '/spec/'
+  skip '/test_workers/'
+  skip '/examples/'
+  skip '/vendor/'
+  skip '/.bundle/'
 
-  add_group 'Library', 'lib/'
-  add_group 'ActiveJob', 'lib/active_job'
-  add_group 'Middleware', 'lib/shoryuken/middleware'
-  add_group 'Polling', 'lib/shoryuken/polling'
-  add_group 'Workers', 'lib/shoryuken/worker'
-  add_group 'Helpers', 'lib/shoryuken/helpers'
+  group 'Library', 'lib/'
+  group 'ActiveJob', 'lib/active_job'
+  group 'Middleware', 'lib/shoryuken/middleware'
+  group 'Polling', 'lib/shoryuken/polling'
+  group 'Workers', 'lib/shoryuken/worker'
+  group 'Helpers', 'lib/shoryuken/helpers'
 
   enable_coverage :branch
 
   minimum_coverage 89
-  minimum_coverage_by_file 60
+  coverage(:line) { minimum 60, per: :file }
   end
 end
 
@@ -116,6 +116,7 @@ RSpec.configure do |config|
     TestWorker.get_shoryuken_options['queue'] = 'default'
 
     Shoryuken.active_job_queue_name_prefixing = false
+    Shoryuken.active_job_fifo_message_deduplication = true
 
     Shoryuken.worker_registry.clear
     Shoryuken.register_worker('default', TestWorker)

@@ -13,7 +13,7 @@ module ActiveJob
     # Shoryuken adapter for Active Job.
     # To use Shoryuken set the queue_adapter config to +:shoryuken+.
     #
-    # @example Rails configuration
+    # Example Rails configuration:
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
 
     # Determine the appropriate base class based on Rails version
@@ -63,9 +63,8 @@ module ActiveJob
 
       # Indicates whether Shoryuken is in the process of shutting down.
       #
-      # This method is required for ActiveJob Continuations support (Rails 8.1+).
-      # When true, it signals to jobs that they should checkpoint their progress
-      # and gracefully interrupt execution to allow for resumption after restart.
+      # This method is required for ActiveJob Continuations support (Rails 8.1+). When true, it signals to jobs that they
+      # should checkpoint their progress and gracefully interrupt execution to allow for resumption after restart.
       #
       # @return [Boolean] true if Shoryuken is shutting down, false otherwise
       # @see https://github.com/rails/rails/pull/55127 Rails ActiveJob Continuations
@@ -177,9 +176,11 @@ module ActiveJob
           message_attributes: attributes.merge(MESSAGE_ATTRIBUTES)
         }
 
-        if queue.fifo?
+        if queue.fifo? && Shoryuken.active_job_fifo_message_deduplication?
           # See https://github.com/ruby-shoryuken/shoryuken/issues/457 and
           # https://github.com/ruby-shoryuken/shoryuken/pull/750#issuecomment-1781317929
+          # Disable via Shoryuken.active_job_fifo_message_deduplication = false when distinct
+          # enqueues of the same job class and arguments must not be silently deduplicated.
           msg[:message_deduplication_id] = Digest::SHA256.hexdigest(
             JSON.dump(body.except('job_id', 'enqueued_at'))
           )
