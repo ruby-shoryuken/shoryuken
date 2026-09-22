@@ -59,7 +59,7 @@ unless ENV['SIMPLECOV_DISABLED']
   enable_coverage :branch
 
   minimum_coverage 89
-  coverage(:line) { minimum_per_file 60 }
+  coverage(:line) { minimum 60, per: :file }
   end
 end
 
