@@ -17,6 +17,21 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
     it 'yields' do
       expect { |b| subject.call(TestWorker.new, nil, [], nil, &b) }.to yield_control
     end
+
+    it 'does not mask the original error when the batch raises' do
+      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
+
+      # Use a logger that actually evaluates lazy log blocks (StringIO, not
+      # IO::NULL which skips them), as the default production level does - so a
+      # stray message_id/attributes call on the batch Array would surface.
+      # Batches aren't backoff-retried, so the original error must propagate
+      # rather than a NoMethodError from calling message APIs on the Array.
+      allow(subject).to receive(:logger).and_return(Logger.new(StringIO.new, level: Logger::DEBUG))
+
+      expect {
+        subject.call(TestWorker.new, nil, [sqs_msg], nil) { raise 'original batch error' }
+      }.to raise_error(RuntimeError, 'original batch error')
+    end
   end
 
   context 'when no exception' do

@@ -27,24 +27,31 @@ module Shoryuken
           end
 
           started_at = Time.now
-          yield
-        rescue => e
-          worker_options = worker.class.get_shoryuken_options
-          retry_intervals = worker_options['retry_intervals']
 
-          # Non-retryable exceptions must not be backoff retried; re-raise so the
-          # NonRetryableException middleware can delete the message immediately.
-          raise if NonRetryableException.non_retryable?(e, worker_options['non_retryable_exceptions'])
+          # Scope the rescue to the single-message yield only. A method-level
+          # rescue would also catch the batch `return yield` above, then route the
+          # Array into handle_failure (which calls #attributes/#message_id on it),
+          # raising a NoMethodError that masks the original worker error.
+          begin
+            yield
+          rescue => e
+            worker_options = worker.class.get_shoryuken_options
+            retry_intervals = worker_options['retry_intervals']
 
-          if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
-            # Re-raise the exception if the job is not going to be exponential backoff retried.
-            # This allows custom middleware (like exception notifiers) to be aware of the unhandled failure.
-            raise
+            # Non-retryable exceptions must not be backoff retried; re-raise so the
+            # NonRetryableException middleware can delete the message immediately.
+            raise if NonRetryableException.non_retryable?(e, worker_options['non_retryable_exceptions'])
+
+            if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
+              # Re-raise the exception if the job is not going to be exponential backoff retried.
+              # This allows custom middleware (like exception notifiers) to be aware of the unhandled failure.
+              raise
+            end
+
+            logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{e.message}" }
+            # since we didn't raise, lets log the backtrace for debugging purposes.
+            logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
           end
-
-          logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{e.message}" }
-          # since we didn't raise, lets log the backtrace for debugging purposes.
-          logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
         end
 
         private

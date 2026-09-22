@@ -8,6 +8,8 @@
     escaped the `rescue` in `#call` and masked the original worker error from exception handlers/notifiers; it
     now rescues, logs, and reports "not retried" so the original error is re-raised and the message falls back
     to the queue's default visibility timeout
+  - The failure `rescue` in `#call` is now scoped to the single-message `yield` only, so a batch worker's error
+    no longer routes the message Array into `handle_failure` (raising a `NoMethodError` that masked the original)
 
 - Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
   - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
