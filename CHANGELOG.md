@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
+  - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
+    `:message_body`, and wrote `shoryuken_class` into the nested `:message_attributes` in place, so a caller
+    reusing one options hash across enqueues had `:queue` stripped after the first call - silently routing later
+    jobs to the worker's default queue
+  - Both now operate on a `dup` and rebuild `:message_attributes` with `merge`, leaving the caller's hash untouched
+
 - Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
   - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
     serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
