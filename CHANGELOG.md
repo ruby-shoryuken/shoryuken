@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
+  - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
+    `:message_body`, and wrote `shoryuken_class` into the nested `:message_attributes` in place, so a caller
+    reusing one options hash across enqueues had `:queue` stripped after the first call - silently routing later
+    jobs to the worker's default queue
+  - Both now operate on a `dup` and rebuild `:message_attributes` with `merge`, leaving the caller's hash untouched
+
 - Fix: `Shoryuken::Client.queues` no longer builds the same queue more than once under concurrency (mensfeld)
   - The cache used an unsynchronized `@@queues[name] ||= Shoryuken::Queue.new(...)`. Building a queue makes
     SQS API calls, and that I/O releases the GVL, so concurrent first-access (dispatch, processor-completion
