@@ -14,9 +14,8 @@ module Shoryuken
 
     # Indicates whether the launcher is in the process of stopping.
     #
-    # This flag is set to true when either {#stop} or {#stop!} is called,
-    # and is used by ActiveJob adapters to signal jobs that they should
-    # checkpoint and prepare for graceful shutdown.
+    # This flag is set to true when either {#stop} or {#stop!} is called, and is used by ActiveJob adapters to signal jobs
+    # that they should checkpoint and prepare for graceful shutdown.
     #
     # @return [Boolean] true if stopping, false otherwise
     def stopping?
@@ -91,11 +90,9 @@ module Shoryuken
       @managers.each(&:await_dispatching_in_progress)
     end
 
-    # Shuts the executor down, giving in-flight workers up to the configured
-    # timeout to finish before force-killing them so the process can exit.
-    # Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns:
-    # a graceful stop still waits for workers, but must not block forever on a
-    # hung one.
+    # Shuts the executor down, giving in-flight workers up to the configured timeout to finish before force-killing them so
+    # the process can exit. Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns: a graceful stop still
+    # waits for workers, but must not block forever on a hung one.
     #
     # @return [void]
     def shutdown_executor
@@ -105,11 +102,9 @@ module Shoryuken
 
     # Returns the executor for running async operations
     #
-    # Owns a dedicated executor rather than borrowing Concurrent.global_io_executor:
-    # {#stop} and {#stop!} shut down and kill this executor, and destroying the
-    # process-global pool would break anything else relying on it (including
-    # Shoryuken's own ShoryukenConcurrentSendAdapter) and prevent a fresh launcher
-    # from starting in the same process.
+    # Owns a dedicated executor rather than borrowing Concurrent.global_io_executor: {#stop} and {#stop!} shut down and kill
+    # this executor, and destroying the process-global pool would break anything else relying on it (including Shoryuken's
+    # own ShoryukenConcurrentSendAdapter) and prevent a fresh launcher from starting in the same process.
     #
     # @return [Concurrent::ExecutorService] the executor service
     def executor
