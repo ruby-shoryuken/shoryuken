@@ -35,5 +35,24 @@ RSpec.describe Shoryuken::Client do
 
       expect(construction_count.value).to eq(1)
     end
+
+    it 'rebuilds cached queues after the sqs client is replaced' do
+      allow(described_class).to receive(:sqs).and_return(sqs)
+
+      construction_count = Shoryuken::Helpers::AtomicCounter.new(0)
+      allow(Shoryuken::Queue).to receive(:new) do
+        construction_count.increment
+        instance_double(Shoryuken::Queue)
+      end
+
+      described_class.queues(queue_name)
+      described_class.queues(queue_name)
+      expect(construction_count.value).to eq(1)
+
+      described_class.sqs = sqs
+
+      described_class.queues(queue_name)
+      expect(construction_count.value).to eq(2)
+    end
   end
 end
