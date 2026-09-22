@@ -54,5 +54,30 @@ RSpec.describe Shoryuken::Client do
       described_class.queues(queue_name)
       expect(construction_count.value).to eq(2)
     end
+
+    it 'does not cache a queue built with the previous client while it is being replaced' do
+      old_sqs = :old_client
+      new_sqs = :new_client
+
+      described_class.sqs = old_sqs
+
+      allow(Shoryuken::Queue).to receive(:new) do |client, _name|
+        instance_double(Shoryuken::Queue, client: client)
+      end
+
+      # Widen the window between resetting the cache and installing the new client so a concurrent
+      # `queues` call would cache a queue built with the old client unless the swap is atomic.
+      allow(Shoryuken).to receive(:sqs_client=).and_wrap_original do |original, client|
+        sleep 0.05
+        original.call(client)
+      end
+
+      replacer = Thread.new { described_class.sqs = new_sqs }
+      sleep 0.01
+      reader = Thread.new { described_class.queues('concurrent') }
+      [replacer, reader].each(&:join)
+
+      expect(described_class.queues('concurrent').client).to eq(new_sqs)
+    end
   end
 end

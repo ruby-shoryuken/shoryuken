@@ -35,10 +35,13 @@ module Shoryuken
       # @return [Aws::SQS::Client] the SQS client
       def sqs=(sqs)
         # Since the @@queues values (Shoryuken::Queue objects) are built referencing @@sqs, if it changes, we need to
-        #   re-build them on subsequent calls to `.queues(name)`.
-        @@queues_mutex.synchronize { @@queues = {} }
-
-        Shoryuken.sqs_client = sqs
+        #   re-build them on subsequent calls to `.queues(name)`. Swap the client and reset the cache inside the same
+        #   critical section: otherwise a concurrent `queues` call could slip between the reset and the assignment,
+        #   read the old client, and cache a queue built with it that survives the replacement.
+        @@queues_mutex.synchronize do
+          Shoryuken.sqs_client = sqs
+          @@queues = {}
+        end
       end
     end
   end
