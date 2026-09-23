@@ -1,4 +1,4 @@
-## [Unreleased]
+## [7.0.4] - 2026-09-23
 
 - Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)
   - `find_all` used short polling and broke on the first empty `receive_message` response. Real
@@ -53,8 +53,6 @@
     and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
     on JRuby/TruffleRuby
   - Access to the cache is now guarded by a mutex
-
-## [7.0.4] - Unreleased
 
 - Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
   - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the
