@@ -27,24 +27,31 @@ module Shoryuken
           end
 
           started_at = Time.now
-          yield
-        rescue => e
-          worker_options = worker.class.get_shoryuken_options
-          retry_intervals = worker_options['retry_intervals']
 
-          # Non-retryable exceptions must not be backoff retried; re-raise so the
-          # NonRetryableException middleware can delete the message immediately.
-          raise if NonRetryableException.non_retryable?(e, worker_options['non_retryable_exceptions'])
+          # Scope the rescue to the single-message yield only. A method-level
+          # rescue would also catch the batch `return yield` above, then route the
+          # Array into handle_failure (which calls #attributes/#message_id on it),
+          # raising a NoMethodError that masks the original worker error.
+          begin
+            yield
+          rescue => e
+            worker_options = worker.class.get_shoryuken_options
+            retry_intervals = worker_options['retry_intervals']
 
-          if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
-            # Re-raise the exception if the job is not going to be exponential backoff retried.
-            # This allows custom middleware (like exception notifiers) to be aware of the unhandled failure.
-            raise
+            # Non-retryable exceptions must not be backoff retried; re-raise so the
+            # NonRetryableException middleware can delete the message immediately.
+            raise if NonRetryableException.non_retryable?(e, worker_options['non_retryable_exceptions'])
+
+            if retry_intervals.nil? || !handle_failure(sqs_msg, started_at, retry_intervals)
+              # Re-raise the exception if the job is not going to be exponential backoff retried.
+              # This allows custom middleware (like exception notifiers) to be aware of the unhandled failure.
+              raise
+            end
+
+            logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{e.message}" }
+            # since we didn't raise, lets log the backtrace for debugging purposes.
+            logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
           end
-
-          logger.warn { "Message #{sqs_msg.message_id} will attempt retry due to error: #{e.message}" }
-          # since we didn't raise, lets log the backtrace for debugging purposes.
-          logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
         end
 
         private
@@ -68,11 +75,14 @@ module Shoryuken
         #
         # @param interval [Integer] the desired interval
         # @param started_at [Time] when processing started
-        # @return [Integer] the capped visibility timeout
+        # @return [Integer] the capped visibility timeout (never negative)
         def next_visibility_timeout(interval, started_at)
           max_timeout = 43_200 - (Time.now - started_at).ceil - 1
           interval = max_timeout if interval > max_timeout
-          interval.to_i
+          # Never go negative: a job that ran longer than the 12h SQS ceiling
+          # drives max_timeout below zero, and change_message_visibility rejects
+          # a negative timeout. Clamp to 0 (retry as soon as possible) instead.
+          [interval.to_i, 0].max
         end
 
         # Handles a message failure by adjusting visibility timeout
@@ -91,6 +101,14 @@ module Shoryuken
           logger.info { "Message #{sqs_msg.message_id} failed, will be retried in #{interval} seconds" }
 
           true
+        rescue => e
+          # Rescheduling itself failed (e.g. an expired receipt handle, or a
+          # transient SQS error). Don't let that exception escape and mask the
+          # original worker failure - log it and report "not retried" so the
+          # caller re-raises the original error and the message falls back to the
+          # queue's default visibility timeout.
+          logger.warn { "Failed to set backoff visibility timeout for #{sqs_msg.message_id}: #{e.message}" }
+          false
         end
       end
     end
