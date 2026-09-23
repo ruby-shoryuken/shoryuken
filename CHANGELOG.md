@@ -6,7 +6,10 @@
     quietly processed only a fraction of the queue (invisible on single-node ElasticMQ/LocalStack)
   - It now long-polls and only stops after several consecutive empty batches, so the queue is actually drained
   - Because a longer drain can outlast the queue's visibility timeout (dump/mv delete only after `find_all`
-    returns), re-read messages are now deduplicated by message id, so they are not dumped/moved or counted twice
+    returns), re-read messages are now deduplicated by message id, so they are not dumped/moved or counted
+    twice, and the newest receipt handle is kept so the deferred delete still succeeds
+  - Deletion stays deferred (a failed dump/mv deletes nothing), so a queue larger than SQS's in-flight limit
+    (~120k standard / ~20k FIFO) drains over multiple runs rather than one - no message is lost
 
 - Fix: Graceful stop no longer deadlocks when a manager's dispatch loop never started (mensfeld)
   - `await_dispatching_in_progress` blocks on a `Queue` that is only closed from inside `dispatch_loop` when it

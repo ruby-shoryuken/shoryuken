@@ -180,11 +180,22 @@ module Shoryuken
           count = 0
           empty_batches = 0
           # Callers (dump/mv) collect messages and only delete them after this
-          # method returns, so nothing is removed from the queue during the
-          # drain. A large drain can outlast the queue's visibility timeout, at
-          # which point already-received messages become visible again and are
-          # handed back on a later receive. Track message ids so those re-reads
-          # are not yielded, counted, or dumped/moved twice.
+          # method returns (so a failed dump/mv deletes nothing), which means
+          # nothing is removed from the queue during the drain. Two consequences:
+          #
+          #   1. A large drain can outlast the queue's visibility timeout, at
+          #      which point already-received messages become visible again and
+          #      are handed back on a later receive. `seen` maps message id to
+          #      the first yielded message so those re-reads are not yielded,
+          #      counted, or dumped/moved twice - but the newest receipt handle
+          #      is copied onto that message, because SQS only honors the most
+          #      recently received handle for deletion (an older one can report
+          #      success yet leave the message in the queue).
+          #   2. Because messages stay in flight until the caller deletes them,
+          #      a queue larger than SQS's in-flight limit (~120k standard /
+          #      ~20k FIFO) cannot be drained in a single pass: once the limit
+          #      is reached receive returns empty and find_all stops. No message
+          #      is lost - re-run dump/mv to drain the remainder.
           seen = {}
           batch_size = limit > 10 ? 10 : limit
 
@@ -204,11 +215,21 @@ module Shoryuken
               message_attribute_names: ['All']
             ).messages || []
 
-            # Drop messages we've already handled (a re-read after the visibility
-            # timeout lapsed); a batch of only re-reads counts as empty so the
-            # drain still terminates.
-            fresh = messages.reject { |message| seen.key?(message.message_id) }
-            fresh.each { |message| seen[message.message_id] = true }
+            # Split first-time messages from re-reads (same id handed back after
+            # the visibility timeout lapsed). A batch of only re-reads counts as
+            # empty so the drain still terminates.
+            fresh = []
+            messages.each do |message|
+              if (previous = seen[message.message_id])
+                # Keep the newest receipt handle on the already-yielded message
+                # so the caller's deferred batch_delete targets a handle SQS
+                # still accepts.
+                previous.receipt_handle = message.receipt_handle
+              else
+                seen[message.message_id] = message
+                fresh << message
+              end
+            end
 
             fresh.each(&block)
 
