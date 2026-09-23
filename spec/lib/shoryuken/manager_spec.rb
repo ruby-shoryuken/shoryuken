@@ -48,6 +48,17 @@ RSpec.describe Shoryuken::Manager do
       expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked on a repeated stop'
     end
 
+    it 'returns when stopped before the dispatch loop ever runs' do
+      # No #start here: the dispatch loop never runs, so there is nothing to
+      # observe the stop flag and close the signal - stop_new_dispatching must
+      # release waiters itself.
+      subject.stop_new_dispatching
+
+      waiter = Thread.new { subject.await_dispatching_in_progress }
+
+      expect(waiter.join(5)).to eq(waiter), 'await_dispatching_in_progress deadlocked when start never ran'
+    end
+
     context 'when the executor rejects the dispatch post' do
       let(:executor) do
         double('executor', running?: true).tap do |rejecting_executor|
