@@ -187,6 +187,32 @@ RSpec.describe Shoryuken::Queue do
         subject.send_message(message_body: 'original')
       end
     end
+
+    context 'when FIFO' do
+      before { allow(subject).to receive(:fifo?).and_return(true) }
+
+      it 'auto-generates message_group_id and message_deduplication_id by default' do
+        expect(sqs).to receive(:send_message) do |arg|
+          expect(arg[:message_group_id]).to eq described_class::MESSAGE_GROUP_ID
+          expect(arg[:message_deduplication_id]).to be
+        end
+
+        subject.send_message(message_body: 'msg1')
+      end
+
+      context 'and Shoryuken.fifo_message_deduplication is disabled' do
+        before { Shoryuken.fifo_message_deduplication = false }
+
+        it 'does not auto-generate a message_deduplication_id' do
+          expect(sqs).to receive(:send_message) do |arg|
+            expect(arg[:message_group_id]).to eq described_class::MESSAGE_GROUP_ID
+            expect(arg).not_to have_key(:message_deduplication_id)
+          end
+
+          subject.send_message(message_body: 'msg1')
+        end
+      end
+    end
   end
 
   describe '#send_messages' do
@@ -233,6 +259,26 @@ RSpec.describe Shoryuken::Queue do
 
           subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
         end
+
+        it 'derives the id from the full body, so bodies differing only in an embedded id are not deduplicated' do
+          # Guards the ActiveJob opt-out path: when the adapter omits its own id
+          # (active_job dedup disabled), this fallback still hashes the full body
+          # - which for ActiveJob includes the per-enqueue job_id - so distinct
+          # enqueues get distinct ids and are NOT silently collapsed by SQS.
+          expect(sqs).to receive(:send_message_batch) do |arg|
+            ids = arg[:entries].map { |e| e[:message_deduplication_id] }
+
+            expect(ids).to all(be)
+            expect(ids.uniq.length).to eq(2)
+          end
+
+          subject.send_messages(
+            [
+              { message_body: JSON.dump('job_id' => 'a', 'arguments' => ['same']) },
+              { message_body: JSON.dump('job_id' => 'b', 'arguments' => ['same']) }
+            ]
+          )
+        end
       end
 
       context 'and message_group_id and message_deduplication_id are present' do
@@ -251,6 +297,33 @@ RSpec.describe Shoryuken::Queue do
                 message_group_id: 'my group',
                 message_deduplication_id: 'my id' }
             ]
+          )
+        end
+      end
+
+      context 'and Shoryuken.fifo_message_deduplication is disabled' do
+        before { Shoryuken.fifo_message_deduplication = false }
+
+        it 'does not auto-generate a message_deduplication_id' do
+          expect(sqs).to receive(:send_message_batch) do |arg|
+            first_entry = arg[:entries].first
+
+            expect(first_entry[:message_group_id]).to eq described_class::MESSAGE_GROUP_ID
+            expect(first_entry).not_to have_key(:message_deduplication_id)
+          end
+
+          subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
+        end
+
+        it 'still honors an explicit message_deduplication_id' do
+          expect(sqs).to receive(:send_message_batch) do |arg|
+            first_entry = arg[:entries].first
+
+            expect(first_entry[:message_deduplication_id]).to eq 'my id'
+          end
+
+          subject.send_messages(
+            [{ message_body: 'msg1', message_attributes: { attr: 'attr1' }, message_deduplication_id: 'my id' }]
           )
         end
       end

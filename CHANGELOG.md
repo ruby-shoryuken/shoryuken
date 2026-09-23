@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+- Feature: `Shoryuken.fifo_message_deduplication` to opt out of content-based dedup id generation for raw sends (mensfeld)
+  - `Queue#add_fifo_attributes!` always set `message_deduplication_id` to a SHA256 of the body when none was
+    given, so two raw sends of an identical body within SQS's 5-minute window (`Worker.perform_async`,
+    `Queue#send_message`/`#send_messages`) were silently deduplicated - the second dropped. ActiveJob got an
+    opt-out in #1017 but the raw path had none
+  - Set `Shoryuken.fifo_message_deduplication = false` to stop auto-generating that id, so identical bodies are
+    no longer silently dropped (provide a `message_deduplication_id` yourself or enable
+    `ContentBasedDeduplication` on the queue)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
+
 - Fix: Harden `ExponentialBackoffRetry` visibility handling (mensfeld)
   - `next_visibility_timeout` could return a negative value when a job ran past the 12h SQS ceiling (its
     `max_timeout` goes below zero), and `change_message_visibility` rejects a negative timeout; it now clamps
