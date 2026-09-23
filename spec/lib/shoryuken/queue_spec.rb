@@ -187,6 +187,37 @@ RSpec.describe Shoryuken::Queue do
         subject.send_message(message_body: 'original')
       end
     end
+
+    context 'when FIFO' do
+      before { allow(subject).to receive(:fifo?).and_return(true) }
+
+      it 'auto-generates message_group_id and message_deduplication_id by default' do
+        expect(sqs).to receive(:send_message) do |arg|
+          expect(arg[:message_group_id]).to eq described_class::MESSAGE_GROUP_ID
+          expect(arg[:message_deduplication_id]).to be
+        end
+
+        subject.send_message(message_body: 'msg1')
+      end
+
+      context 'and Shoryuken.fifo_message_deduplication is disabled' do
+        around do |example|
+          previous = Shoryuken.fifo_message_deduplication?
+          Shoryuken.fifo_message_deduplication = false
+          example.run
+          Shoryuken.fifo_message_deduplication = previous
+        end
+
+        it 'does not auto-generate a message_deduplication_id' do
+          expect(sqs).to receive(:send_message) do |arg|
+            expect(arg[:message_group_id]).to eq described_class::MESSAGE_GROUP_ID
+            expect(arg).not_to have_key(:message_deduplication_id)
+          end
+
+          subject.send_message(message_body: 'msg1')
+        end
+      end
+    end
   end
 
   describe '#send_messages' do
@@ -256,8 +287,12 @@ RSpec.describe Shoryuken::Queue do
       end
 
       context 'and Shoryuken.fifo_message_deduplication is disabled' do
-        before { Shoryuken.fifo_message_deduplication = false }
-        after { Shoryuken.fifo_message_deduplication = true }
+        around do |example|
+          previous = Shoryuken.fifo_message_deduplication?
+          Shoryuken.fifo_message_deduplication = false
+          example.run
+          Shoryuken.fifo_message_deduplication = previous
+        end
 
         it 'does not auto-generate a message_deduplication_id' do
           expect(sqs).to receive(:send_message_batch) do |arg|
@@ -268,6 +303,18 @@ RSpec.describe Shoryuken::Queue do
           end
 
           subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
+        end
+
+        it 'still honors an explicit message_deduplication_id' do
+          expect(sqs).to receive(:send_message_batch) do |arg|
+            first_entry = arg[:entries].first
+
+            expect(first_entry[:message_deduplication_id]).to eq 'my id'
+          end
+
+          subject.send_messages(
+            [{ message_body: 'msg1', message_attributes: { attr: 'attr1' }, message_deduplication_id: 'my id' }]
+          )
         end
       end
     end

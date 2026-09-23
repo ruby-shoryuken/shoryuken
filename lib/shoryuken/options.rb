@@ -320,6 +320,11 @@ module Shoryuken
     # provide a message_deduplication_id yourself or enable
     # ContentBasedDeduplication on the queue.
     #
+    # This governs the raw send path only. ActiveJob enqueues are controlled
+    # separately by #active_job_fifo_message_deduplication? - the adapter sets
+    # its own message_deduplication_id before the raw send, so this flag does
+    # not affect them.
+    #
     # @return [Boolean] true if FIFO deduplication id generation is enabled
     def fifo_message_deduplication?
       @fifo_message_deduplication
