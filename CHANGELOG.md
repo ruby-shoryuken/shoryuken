@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
+  - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
+    dispatch thread, which was non-deterministic and untestable
+  - It now backs off incrementally (1s, 2s, 3s, ... via `backoff_interval`), naturally bounded because
+    `attempts` never exceeds `max_attempts`; the broad rescue is unchanged (the AWS SDK already retries
+    throttling/5xx/networking internally) and now carries specs for retry, exhaustion, and the backoff schedule
+
 - Feature: `Shoryuken.fifo_message_deduplication` to opt out of content-based dedup id generation for raw sends (mensfeld)
   - `Queue#add_fifo_attributes!` always set `message_deduplication_id` to a SHA256 of the body when none was
     given, so two raw sends of an identical body within SQS's 5-minute window (`Worker.perform_async`,
