@@ -201,12 +201,7 @@ RSpec.describe Shoryuken::Queue do
       end
 
       context 'and Shoryuken.fifo_message_deduplication is disabled' do
-        around do |example|
-          previous = Shoryuken.fifo_message_deduplication?
-          Shoryuken.fifo_message_deduplication = false
-          example.run
-          Shoryuken.fifo_message_deduplication = previous
-        end
+        before { Shoryuken.fifo_message_deduplication = false }
 
         it 'does not auto-generate a message_deduplication_id' do
           expect(sqs).to receive(:send_message) do |arg|
@@ -287,12 +282,7 @@ RSpec.describe Shoryuken::Queue do
       end
 
       context 'and Shoryuken.fifo_message_deduplication is disabled' do
-        around do |example|
-          previous = Shoryuken.fifo_message_deduplication?
-          Shoryuken.fifo_message_deduplication = false
-          example.run
-          Shoryuken.fifo_message_deduplication = previous
-        end
+        before { Shoryuken.fifo_message_deduplication = false }
 
         it 'does not auto-generate a message_deduplication_id' do
           expect(sqs).to receive(:send_message_batch) do |arg|
