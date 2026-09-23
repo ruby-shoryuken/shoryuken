@@ -118,6 +118,51 @@ RSpec.describe Shoryuken::Launcher do
     end
   end
 
+  describe 'draining in-flight ActiveJob sends on shutdown' do
+    let(:adapter) { double('queue_adapter') }
+
+    before do
+      allow(first_group_manager).to receive(:stop_new_dispatching)
+      allow(first_group_manager).to receive(:await_dispatching_in_progress)
+      allow(second_group_manager).to receive(:stop_new_dispatching)
+      allow(second_group_manager).to receive(:await_dispatching_in_progress)
+
+      # Make ActiveJob present and point its adapter at our double, regardless of
+      # whether active_job happens to be loaded by another spec.
+      stub_const('ActiveJob::Base', Class.new)
+      allow(ActiveJob::Base).to receive(:queue_adapter).and_return(adapter)
+    end
+
+    it 'drains pending sends on graceful stop when the adapter supports it' do
+      expect(adapter).to receive(:wait_for_pending_sends).with(Shoryuken.options[:timeout]).and_return(true)
+
+      subject.stop
+    end
+
+    it 'drains pending sends on immediate stop! when the adapter supports it' do
+      expect(adapter).to receive(:wait_for_pending_sends).with(Shoryuken.options[:timeout]).and_return(true)
+
+      subject.stop!
+    end
+
+    it 'is a no-op when the adapter does not support draining' do
+      # adapter is a plain double, so it does not respond to wait_for_pending_sends
+      expect { subject.stop }.not_to raise_error
+    end
+
+    it 'does not break shutdown when draining raises' do
+      allow(adapter).to receive(:wait_for_pending_sends).and_raise('drain boom')
+
+      expect { subject.stop }.not_to raise_error
+    end
+
+    it 'completes shutdown even if draining times out' do
+      allow(adapter).to receive(:wait_for_pending_sends).and_return(false)
+
+      expect { subject.stop }.not_to raise_error
+    end
+  end
+
   describe 'executor ownership' do
     context 'when no launcher_executor is configured' do
       before { allow(Shoryuken).to receive(:launcher_executor).and_return(nil) }
