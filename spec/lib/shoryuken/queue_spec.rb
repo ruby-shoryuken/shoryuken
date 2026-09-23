@@ -259,6 +259,26 @@ RSpec.describe Shoryuken::Queue do
 
           subject.send_messages([{ message_body: 'msg1', message_attributes: { attr: 'attr1' } }])
         end
+
+        it 'derives the id from the full body, so bodies differing only in an embedded id are not deduplicated' do
+          # Guards the ActiveJob opt-out path: when the adapter omits its own id
+          # (active_job dedup disabled), this fallback still hashes the full body
+          # - which for ActiveJob includes the per-enqueue job_id - so distinct
+          # enqueues get distinct ids and are NOT silently collapsed by SQS.
+          expect(sqs).to receive(:send_message_batch) do |arg|
+            ids = arg[:entries].map { |e| e[:message_deduplication_id] }
+
+            expect(ids).to all(be)
+            expect(ids.uniq.length).to eq(2)
+          end
+
+          subject.send_messages(
+            [
+              { message_body: JSON.dump('job_id' => 'a', 'arguments' => ['same']) },
+              { message_body: JSON.dump('job_id' => 'b', 'arguments' => ['same']) }
+            ]
+          )
+        end
       end
 
       context 'and message_group_id and message_deduplication_id are present' do

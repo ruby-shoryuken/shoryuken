@@ -320,10 +320,15 @@ module Shoryuken
     # provide a message_deduplication_id yourself or enable
     # ContentBasedDeduplication on the queue.
     #
-    # This governs the raw send path only. ActiveJob enqueues are controlled
-    # separately by #active_job_fifo_message_deduplication? - the adapter sets
-    # its own message_deduplication_id before the raw send, so this flag does
-    # not affect them.
+    # ActiveJob enqueues are primarily controlled by
+    # #active_job_fifo_message_deduplication?. When that is enabled the adapter
+    # sets a content-based message_deduplication_id itself (from the body minus
+    # job_id/enqueued_at) before the raw send, so this flag is a no-op for them.
+    # When it is disabled the adapter omits the id and this flag governs the
+    # fallback: left enabled (the default) each enqueue still gets a hash of the
+    # full serialized body - which includes the per-enqueue job_id, so distinct
+    # enqueues are NOT deduplicated - while disabling it drops the id entirely
+    # (then requiring an explicit id or the queue's ContentBasedDeduplication).
     #
     # @return [Boolean] true if FIFO deduplication id generation is enabled
     def fifo_message_deduplication?
