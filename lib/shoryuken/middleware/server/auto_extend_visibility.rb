@@ -73,11 +73,9 @@ module Shoryuken
 
           private
 
-          # Returns a positive interval at which to re-extend the message's
-          # visibility before it expires, or nil when the visibility timeout is
-          # too short to schedule one. Normally this is EXTEND_UPFRONT_SECONDS
-          # before expiry, but for short timeouts (<= EXTEND_UPFRONT_SECONDS) it
-          # falls back to half the timeout so the timer still fires in time
+          # Returns a positive interval at which to re-extend the message's visibility before it expires, or nil when the
+          # visibility timeout is too short to schedule one. Normally this is EXTEND_UPFRONT_SECONDS before expiry, but for
+          # short timeouts (<= EXTEND_UPFRONT_SECONDS) it falls back to half the timeout so the timer still fires in time
           # instead of TimerTask raising on a non-positive interval.
           #
           # @param visibility_timeout [Integer] the queue's visibility timeout in seconds

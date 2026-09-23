@@ -15,11 +15,17 @@ module Shoryuken
         # @option options [String] :queue override the default queue
         # @return [Aws::SQS::Types::SendMessageResult] the send result
         def perform_async(worker_class, body, options = {})
-          options[:message_attributes] ||= {}
-          options[:message_attributes]['shoryuken_class'] = {
-            string_value: worker_class.to_s,
-            data_type: 'String'
-          }
+          # Work on a copy: callers may reuse the same options hash across
+          # enqueues, and mutating it (deleting :queue, adding :message_body)
+          # would silently reroute or corrupt later jobs. Merge - rather than
+          # mutate - the nested :message_attributes hash for the same reason.
+          options = options.dup
+          options[:message_attributes] = (options[:message_attributes] || {}).merge(
+            'shoryuken_class' => {
+              string_value: worker_class.to_s,
+              data_type: 'String'
+            }
+          )
 
           options[:message_body] = body
 
