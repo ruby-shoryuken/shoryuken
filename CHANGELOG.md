@@ -5,6 +5,8 @@
     (distributed) SQS routinely returns an empty batch while the queue still has messages, so dump/mv
     quietly processed only a fraction of the queue (invisible on single-node ElasticMQ/LocalStack)
   - It now long-polls and only stops after several consecutive empty batches, so the queue is actually drained
+  - Because a longer drain can outlast the queue's visibility timeout (dump/mv delete only after `find_all`
+    returns), re-read messages are now deduplicated by message id, so they are not dumped/moved or counted twice
 
 - Fix: Graceful stop no longer deadlocks when a manager's dispatch loop never started (mensfeld)
   - `await_dispatching_in_progress` blocks on a `Queue` that is only closed from inside `dispatch_loop` when it

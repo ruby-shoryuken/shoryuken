@@ -179,6 +179,13 @@ module Shoryuken
         def find_all(url, limit, &block)
           count = 0
           empty_batches = 0
+          # Callers (dump/mv) collect messages and only delete them after this
+          # method returns, so nothing is removed from the queue during the
+          # drain. A large drain can outlast the queue's visibility timeout, at
+          # which point already-received messages become visible again and are
+          # handed back on a later receive. Track message ids so those re-reads
+          # are not yielded, counted, or dumped/moved twice.
+          seen = {}
           batch_size = limit > 10 ? 10 : limit
 
           loop do
@@ -197,15 +204,22 @@ module Shoryuken
               message_attribute_names: ['All']
             ).messages || []
 
-            messages.each(&block)
+            # Drop messages we've already handled (a re-read after the visibility
+            # timeout lapsed); a batch of only re-reads counts as empty so the
+            # drain still terminates.
+            fresh = messages.reject { |message| seen.key?(message.message_id) }
+            fresh.each { |message| seen[message.message_id] = true }
 
-            count += messages.size
+            fresh.each(&block)
+
+            count += fresh.size
 
             break if count >= limit
 
             # Even with long polling an occasional empty batch is possible while
-            # messages remain, so only give up after several consecutive empties.
-            if messages.empty?
+            # messages remain, so only give up after several consecutive batches
+            # that yielded no new messages.
+            if fresh.empty?
               empty_batches += 1
               break if empty_batches >= FIND_ALL_MAX_EMPTY_BATCHES
             else

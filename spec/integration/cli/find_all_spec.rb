@@ -6,8 +6,9 @@
 # on the first empty response - otherwise dump/mv silently process only a
 # fraction of the queue.
 #
-# ElasticMQ never produces those false-empties, so this drives find_all with a
-# scripted client to verify the behavior deterministically.
+# ElasticMQ never produces those false-empties (nor visibility-timeout re-reads),
+# so this drives find_all with scripted clients to verify the behavior
+# deterministically.
 #
 # Lives under spec/integration (not spec/lib) because requiring bin/cli defines
 # Shoryuken::CLI, and Shoryuken#server? is `defined?(Shoryuken::CLI)` - loading
@@ -18,11 +19,12 @@ require 'thor'
 require_relative '../../../bin/cli/base'
 require_relative '../../../bin/cli/sqs'
 
-# A scripted SQS client: hands out batches in order (including a false-empty in
-# the middle), recording the wait_time_seconds it was asked for.
-class ScriptedSqsClient
-  Msg = Struct.new(:message_id)
+Msg = Struct.new(:message_id)
 
+# A scripted SQS client: hands out pre-canned batches in order (to simulate
+# false-empties and visibility-timeout re-reads), ignoring max_number_of_messages
+# and recording the wait_time_seconds it was asked for.
+class ScriptedSqsClient
   attr_reader :wait_times
 
   def initialize(batches)
@@ -36,27 +38,62 @@ class ScriptedSqsClient
   end
 end
 
-m = ScriptedSqsClient::Msg
-script = [
-  [m.new('a'), m.new('b'), m.new('c')],
-  [m.new('d'), m.new('e')],
-  [],                       # false-empty while 'f' is still queued
-  [m.new('f')]
-]
-client = ScriptedSqsClient.new(script)
+# A more realistic client backed by a flat list that honours
+# max_number_of_messages, so the finite-limit / batch-sizing path can be driven.
+class FlatSqsClient
+  def initialize(messages)
+    @messages = messages.dup
+  end
 
-cli = Shoryuken::CLI::SQS.allocate
-cli.instance_variable_set(:@_sqs, client)
+  def receive_message(params)
+    Struct.new(:messages).new(@messages.shift(params[:max_number_of_messages]))
+  end
+end
 
-collected = []
-cli.send(:find_all, 'http://example.com/q', Float::INFINITY) { |msg| collected << msg.message_id }
+def find_all_with(client, limit)
+  cli = Shoryuken::CLI::SQS.allocate
+  cli.instance_variable_set(:@_sqs, client)
 
-# Drains everything, including 'f' after the false-empty - short polling would
-# have stopped at the first empty batch and missed it.
+  collected = []
+  count = cli.send(:find_all, 'http://example.com/q', limit) { |msg| collected << msg.message_id }
+  [collected, count]
+end
+
+# --- Drains past a false-empty batch, using long polling -------------------
+client = ScriptedSqsClient.new(
+  [
+    [Msg.new('a'), Msg.new('b'), Msg.new('c')],
+    [Msg.new('d'), Msg.new('e')],
+    [],                       # false-empty while 'f' is still queued
+    [Msg.new('f')]
+  ]
+)
+collected, = find_all_with(client, Float::INFINITY)
+
 assert_equal(%w[a b c d e f], collected, 'find_all should drain past a false-empty batch')
-
-# And it long-polls rather than short-polls.
 assert(
   client.wait_times.any? && client.wait_times.all? { |w| w && w.positive? },
   "find_all should use long polling, saw wait_time_seconds: #{client.wait_times.uniq.inspect}"
 )
+
+# --- Does not re-yield a message that reappears after its visibility timeout ---
+# 'a' is handed back on a later receive (its visibility timeout lapsed before
+# dump/mv deleted it). find_all must yield and count it only once.
+reappearing = ScriptedSqsClient.new(
+  [
+    [Msg.new('a'), Msg.new('b')],
+    [Msg.new('a')],           # re-read of 'a' while it is still in the queue
+    [Msg.new('c')]
+  ]
+)
+collected, count = find_all_with(reappearing, Float::INFINITY)
+
+assert_equal(%w[a b c], collected, 'find_all must not re-yield a re-read message')
+assert_equal(3, count, 'find_all count must not double-count a re-read message')
+
+# --- Stops at a finite limit without over-fetching -------------------------
+flat = FlatSqsClient.new((1..25).map { |i| Msg.new("m#{i}") })
+collected, count = find_all_with(flat, 15)
+
+assert_equal(15, count, 'find_all must stop once the limit is reached')
+assert_equal((1..15).map { |i| "m#{i}" }, collected, 'find_all must yield exactly the first `limit` messages')
