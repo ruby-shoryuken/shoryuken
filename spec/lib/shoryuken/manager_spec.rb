@@ -233,6 +233,43 @@ RSpec.describe Shoryuken::Manager do
       expect(polling_strategy).to have_received(:message_processed).once
       expect(subject.send(:busy)).to eq(0)
     end
+
+    context 'when the executor rejects the worker post' do
+      # A real ExecutorService instance (Concurrent::Promise validates the
+      # executor type), with running? stubbed true so #assign proceeds past its
+      # guard and post rejecting - exactly the shutdown race / saturated
+      # bounded launcher_executor case. ImmediateExecutor spawns no background
+      # thread, so nothing lingers at teardown.
+      let(:executor) do
+        Concurrent::ImmediateExecutor.new.tap do |rejecting_executor|
+          allow(rejecting_executor).to receive(:running?).and_return(true)
+          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+        end
+      end
+
+      it 'rolls back the busy counter and does not leak it' do
+        # The promise body never runs, so completion must not run either
+        # (decrement directly, and no FIFO message_processed callback).
+        expect(subject).not_to receive(:processor_done)
+
+        expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
+
+        expect(subject.send(:busy)).to eq(0)
+      end
+
+      it 'does not run the FIFO message_processed callback' do
+        # The message was never processed, so the rejection rollback must
+        # decrement directly and never reach the FIFO bookkeeping - even for a
+        # FIFO queue. Guards against a refactor routing rollback through
+        # processor_done.
+        allow(sqs_queue).to receive(:fifo?).and_return(true)
+        expect(polling_strategy).not_to receive(:message_processed)
+
+        subject.send(:assign, queue, sqs_msg)
+
+        expect(subject.send(:busy)).to eq(0)
+      end
+    end
   end
 
   describe '#processor_done' do

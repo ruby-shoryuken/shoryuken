@@ -4,13 +4,11 @@ module Shoryuken
   module Helpers
     # A thread-safe counter implementation using Ruby's Mutex.
     #
-    # This class provides atomic operations for incrementing, decrementing, and reading
-    # integer values in a thread-safe manner. It serves as a drop-in replacement for
-    # Concurrent::AtomicFixnum without requiring external dependencies.
+    # This class provides atomic operations for incrementing, decrementing, and reading integer values in a thread-safe
+    # manner. It serves as a drop-in replacement for Concurrent::AtomicFixnum without requiring external dependencies.
     #
-    # The implementation uses a Mutex to ensure thread safety across all Ruby
-    # implementations including JRuby, where true parallelism makes atomic operations
-    # critical for data integrity.
+    # The implementation uses a Mutex to ensure thread safety across all Ruby implementations including JRuby, where true
+    # parallelism makes atomic operations critical for data integrity.
     #
     # @note This class is optimized for scenarios with frequent atomic updates
     #   and occasional reads, such as tracking active worker counts.
@@ -82,9 +80,8 @@ module Shoryuken
 
       # Atomically decrements the counter by 1 and returns the new value.
       #
-      # This operation is thread-safe and can be called concurrently from
-      # multiple threads without risk of data corruption or lost updates.
-      # The counter can go negative if decremented below zero.
+      # This operation is thread-safe and can be called concurrently from multiple threads without risk of data corruption or
+      # lost updates. The counter can go negative if decremented below zero.
       #
       # @return [Integer] The new counter value after decrementing
       #

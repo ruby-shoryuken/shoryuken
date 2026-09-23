@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Namespace for all Shoryuken-specific errors.
-  # These provide more meaningful error types than generic Ruby exceptions,
+  # Namespace for all Shoryuken-specific errors. These provide more meaningful error types than generic Ruby exceptions,
   # making it easier to rescue and handle specific failure cases.
   module Errors
     # Base class for all Shoryuken errors
@@ -14,8 +13,7 @@ module Shoryuken
     # Raised when a specified SQS queue does not exist or cannot be accessed
     QueueNotFoundError = Class.new(BaseError)
 
-    # Raised when worker registration fails due to conflicts
-    # (e.g., registering multiple workers for a batch queue)
+    # Raised when worker registration fails due to conflicts (e.g., registering multiple workers for a batch queue)
     InvalidWorkerRegistrationError = Class.new(BaseError)
 
     # Raised when an invalid polling strategy is specified

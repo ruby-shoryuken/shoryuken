@@ -1,5 +1,54 @@
 ## [Unreleased]
 
+- Feature: `Shoryuken.fifo_message_deduplication` to opt out of content-based dedup id generation for raw sends (mensfeld)
+  - `Queue#add_fifo_attributes!` always set `message_deduplication_id` to a SHA256 of the body when none was
+    given, so two raw sends of an identical body within SQS's 5-minute window (`Worker.perform_async`,
+    `Queue#send_message`/`#send_messages`) were silently deduplicated - the second dropped. ActiveJob got an
+    opt-out in #1017 but the raw path had none
+  - Set `Shoryuken.fifo_message_deduplication = false` to stop auto-generating that id, so identical bodies are
+    no longer silently dropped (provide a `message_deduplication_id` yourself or enable
+    `ContentBasedDeduplication` on the queue)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
+
+- Fix: Harden `ExponentialBackoffRetry` visibility handling (mensfeld)
+  - `next_visibility_timeout` could return a negative value when a job ran past the 12h SQS ceiling (its
+    `max_timeout` goes below zero), and `change_message_visibility` rejects a negative timeout; it now clamps
+    to 0 so the message is retried as soon as possible
+  - `handle_failure` called `change_visibility` unguarded, so a failure there (e.g. an expired receipt handle)
+    escaped the `rescue` in `#call` and masked the original worker error from exception handlers/notifiers; it
+    now rescues, logs, and reports "not retried" so the original error is re-raised and the message falls back
+    to the queue's default visibility timeout
+  - The failure `rescue` in `#call` is now scoped to the single-message `yield` only, so a batch worker's error
+    no longer routes the message Array into `handle_failure` (raising a `NoMethodError` that masked the original)
+
+- Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
+  - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
+    `:message_body`, and wrote `shoryuken_class` into the nested `:message_attributes` in place, so a caller
+    reusing one options hash across enqueues had `:queue` stripped after the first call - silently routing later
+    jobs to the worker's default queue
+  - Both now operate on a `dup` and rebuild `:message_attributes` with `merge`, leaving the caller's hash untouched
+
+- Fix: `Shoryuken::Client.queues` no longer builds the same queue more than once under concurrency (mensfeld)
+  - The cache used an unsynchronized `@@queues[name] ||= Shoryuken::Queue.new(...)`. Building a queue makes
+    SQS API calls, and that I/O releases the GVL, so concurrent first-access (dispatch, processor-completion
+    and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
+    on JRuby/TruffleRuby
+  - Access to the cache is now guarded by a mutex
+
+## [7.0.4] - Unreleased
+
+- Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
+  - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the
+    matching decrement (`processor_done`) runs inside the promise body. When the post is rejected with
+    `Concurrent::RejectedExecutionError` - a hard stop racing the `running?` check, or a saturated bounded custom
+    `launcher_executor` - the body never runs and the counter leaks
+  - With a bounded executor the leak is permanent: `ready` (`@max_processors - busy`) keeps shrinking until
+    dispatch stalls and the group silently stops processing
+  - The increment is now rolled back on `RejectedExecutionError` by decrementing directly (the message was never
+    processed, so the FIFO `message_processed` callback must not run) (#1029)
+
+## [7.0.3] - 2026-07-10
+
 - Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
   - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
     serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
