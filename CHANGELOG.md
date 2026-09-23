@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+- Fix: Harden `ExponentialBackoffRetry` visibility handling (mensfeld)
+  - `next_visibility_timeout` could return a negative value when a job ran past the 12h SQS ceiling (its
+    `max_timeout` goes below zero), and `change_message_visibility` rejects a negative timeout; it now clamps
+    to 0 so the message is retried as soon as possible
+  - `handle_failure` called `change_visibility` unguarded, so a failure there (e.g. an expired receipt handle)
+    escaped the `rescue` in `#call` and masked the original worker error from exception handlers/notifiers; it
+    now rescues, logs, and reports "not retried" so the original error is re-raised and the message falls back
+    to the queue's default visibility timeout
+  - The failure `rescue` in `#call` is now scoped to the single-message `yield` only, so a batch worker's error
+    no longer routes the message Array into `handle_failure` (raising a `NoMethodError` that masked the original)
+
 - Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
   - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
     `:message_body`, and wrote `shoryuken_class` into the nested `:message_attributes` in place, so a caller
