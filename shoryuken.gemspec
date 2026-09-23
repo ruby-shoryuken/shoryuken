@@ -11,6 +11,15 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/ruby-shoryuken/shoryuken'
   spec.license       = 'LGPL-3.0'
 
+  spec.metadata = {
+    'homepage_uri' => spec.homepage,
+    'source_code_uri' => spec.homepage,
+    'changelog_uri' => "#{spec.homepage}/blob/main/CHANGELOG.md",
+    'bug_tracker_uri' => "#{spec.homepage}/issues",
+    'documentation_uri' => spec.homepage,
+    'rubygems_mfa_required' => 'true'
+  }
+
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = %w[shoryuken]
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
