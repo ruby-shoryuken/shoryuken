@@ -1,11 +1,38 @@
 ## [Unreleased]
 
+- Fix: Fetched messages that are never started are now released at once instead of staying in flight
+  - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
+    rejected the worker post, so it stayed invisible until its visibility timeout expired
+  - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
+    release is logged and does not break dispatch or shutdown
+
 - Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
   - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
     dispatch thread, which was non-deterministic and untestable
   - It now backs off incrementally (1s, 2s, 3s, ... via `backoff_interval`), naturally bounded because
     `attempts` never exceeds `max_attempts`; the broad rescue is unchanged (the AWS SDK already retries
     throttling/5xx/networking internally) and now carries specs for retry, exhaustion, and the backoff schedule
+
+## [7.0.4] - 2026-09-23
+
+- Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)
+  - `find_all` used short polling and broke on the first empty `receive_message` response. Real
+    (distributed) SQS routinely returns an empty batch while the queue still has messages, so dump/mv
+    quietly processed only a fraction of the queue (invisible on single-node ElasticMQ/LocalStack)
+  - It now long-polls and only stops after several consecutive empty batches, so the queue is actually drained
+  - Because a longer drain can outlast the queue's visibility timeout (dump/mv delete only after `find_all`
+    returns), re-read messages are now deduplicated by message id, so they are not dumped/moved or counted
+    twice, and the newest receipt handle is kept so the deferred delete still succeeds
+  - Deletion stays deferred (a failed dump/mv deletes nothing), so a queue larger than SQS's in-flight limit
+    (~120k standard / ~20k FIFO) drains over multiple runs rather than one - no message is lost
+
+- Fix: Graceful stop no longer deadlocks when a manager's dispatch loop never started (mensfeld)
+  - `await_dispatching_in_progress` blocks on a `Queue` that is only closed from inside `dispatch_loop` when it
+    observes the stop flag. If the loop never runs - a graceful stop arriving before the start `Future` is
+    scheduled, or an embedded host whose executor pool is saturated so `manager.start` never runs - the signal
+    was never closed and `Launcher#stop` deadlocked
+  - `stop_new_dispatching` now closes the release signal itself when the loop hasn't started (tracked via a new
+    flag); `Queue#close` is idempotent, so a loop that does start later and closes it again is harmless
 
 - Feature: `Shoryuken.fifo_message_deduplication` to opt out of content-based dedup id generation for raw sends (mensfeld)
   - `Queue#add_fifo_attributes!` always set `message_deduplication_id` to a SHA256 of the body when none was
@@ -41,8 +68,6 @@
     and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
     on JRuby/TruffleRuby
   - Access to the cache is now guarded by a mutex
-
-## [7.0.4] - Unreleased
 
 - Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
   - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the

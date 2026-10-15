@@ -32,6 +32,7 @@ module Shoryuken
       @executor                   = executor
       @running                    = Shoryuken::Helpers::AtomicBoolean.new(true)
       @stop_new_dispatching       = Shoryuken::Helpers::AtomicBoolean.new(false)
+      @dispatch_started           = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatching_release_signal = ::Queue.new
     end
 
@@ -48,6 +49,14 @@ module Shoryuken
     # @return [void]
     def stop_new_dispatching
       @stop_new_dispatching.make_true
+
+      # If the dispatch loop never ran (e.g. a stop arrives before the start
+      # Future is scheduled, or in an embedded host whose executor is
+      # saturated), there is no loop to observe the flag and close the release
+      # signal, so await_dispatching_in_progress would block forever. Close it
+      # here in that case. Queue#close is idempotent, so a dispatch_loop that
+      # does start later and closes it again is harmless.
+      @dispatching_release_signal.close unless @dispatch_started.true?
     end
 
     # Waits for any in-progress dispatching to complete
@@ -76,6 +85,11 @@ module Shoryuken
     #
     # @return [void]
     def dispatch_loop
+      # Mark that the loop has run at least once so stop_new_dispatching knows
+      # it can rely on the loop to close the release signal (and otherwise
+      # closes it itself to avoid a deadlock).
+      @dispatch_started.make_true
+
       if @stop_new_dispatching.true? || !running?
         # Close (instead of push) so every pending and future
         # await_dispatching_in_progress call returns, not just the first one
@@ -157,9 +171,12 @@ module Shoryuken
     # @param queue_name [String] the queue name
     # @param sqs_msg [Aws::SQS::Types::Message, Array<Aws::SQS::Types::Message>] the message or batch
     # @return [Concurrent::Promise, nil] the processing promise, or nil if the manager
-    #   is not running or the executor rejects the worker post
+    #   is not running or the executor rejects the worker post (the message is then released)
     def assign(queue_name, sqs_msg)
-      return unless running?
+      unless running?
+        release(sqs_msg)
+        return
+      end
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
@@ -192,7 +209,21 @@ module Shoryuken
       # FIFO message_processed callback - decrement directly instead.
       @busy_processors.decrement
       fire_utilization_update_event
+      release(sqs_msg)
       nil
+    end
+
+    # Makes fetched but never started messages visible again, so another consumer can receive them at once instead of
+    # after the visibility timeout. A failed release is logged, not raised, so it cannot break dispatch or shutdown
+    #
+    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch
+    # @return [void]
+    def release(sqs_msg)
+      (sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]).each do |message|
+        message.visibility_timeout = 0
+      rescue => e
+        logger.error { "Failed to release message #{message.message_id}: #{e.message}" }
+      end
     end
 
     # Dispatches a batch of messages from a queue

@@ -12,6 +12,14 @@ module Shoryuken
       # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
       MAX_BATCH_SIZE = 1024 * 1024
 
+      # Long-poll wait (seconds) used when draining a queue in find_all, so a
+      # short-poll empty batch doesn't end dump/mv prematurely.
+      FIND_ALL_WAIT_SECONDS = 1
+
+      # Number of consecutive empty long-poll batches before find_all concludes
+      # the queue is drained.
+      FIND_ALL_MAX_EMPTY_BATCHES = 3
+
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
@@ -170,6 +178,25 @@ module Shoryuken
         # @return [Integer] the number of messages received
         def find_all(url, limit, &block)
           count = 0
+          empty_batches = 0
+          # Callers (dump/mv) collect messages and only delete them after this
+          # method returns (so a failed dump/mv deletes nothing), which means
+          # nothing is removed from the queue during the drain. Two consequences:
+          #
+          #   1. A large drain can outlast the queue's visibility timeout, at
+          #      which point already-received messages become visible again and
+          #      are handed back on a later receive. `seen` maps message id to
+          #      the first yielded message so those re-reads are not yielded,
+          #      counted, or dumped/moved twice - but the newest receipt handle
+          #      is copied onto that message, because SQS only honors the most
+          #      recently received handle for deletion (an older one can report
+          #      success yet leave the message in the queue).
+          #   2. Because messages stay in flight until the caller deletes them,
+          #      a queue larger than SQS's in-flight limit (~120k standard /
+          #      ~20k FIFO) cannot be drained in a single pass: once the limit
+          #      is reached receive returns empty and find_all stops. No message
+          #      is lost - re-run dump/mv to drain the remainder.
+          seen = {}
           batch_size = limit > 10 ? 10 : limit
 
           loop do
@@ -179,16 +206,46 @@ module Shoryuken
             messages = sqs.receive_message(
               queue_url: url,
               max_number_of_messages: batch_size,
+              # Long poll: short polling (the default wait_time_seconds: 0)
+              # samples only a subset of SQS hosts and routinely returns an empty
+              # batch even when the queue still has messages, which made dump/mv
+              # stop early and miss messages on real (distributed) SQS.
+              wait_time_seconds: FIND_ALL_WAIT_SECONDS,
               attribute_names: ['All'],
               message_attribute_names: ['All']
             ).messages || []
 
-            messages.each(&block)
+            # Split first-time messages from re-reads (same id handed back after
+            # the visibility timeout lapsed). A batch of only re-reads counts as
+            # empty so the drain still terminates.
+            fresh = []
+            messages.each do |message|
+              if (previous = seen[message.message_id])
+                # Keep the newest receipt handle on the already-yielded message
+                # so the caller's deferred batch_delete targets a handle SQS
+                # still accepts.
+                previous.receipt_handle = message.receipt_handle
+              else
+                seen[message.message_id] = message
+                fresh << message
+              end
+            end
 
-            count += messages.size
+            fresh.each(&block)
+
+            count += fresh.size
 
             break if count >= limit
-            break if messages.empty?
+
+            # Even with long polling an occasional empty batch is possible while
+            # messages remain, so only give up after several consecutive batches
+            # that yielded no new messages.
+            if fresh.empty?
+              empty_batches += 1
+              break if empty_batches >= FIND_ALL_MAX_EMPTY_BATCHES
+            else
+              empty_batches = 0
+            end
           end
 
           count
