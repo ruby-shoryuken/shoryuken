@@ -198,7 +198,7 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#assign' do
-    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil) }
     let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
 
     before do
@@ -222,6 +222,43 @@ RSpec.describe Shoryuken::Manager do
       subject.send(:assign, queue, sqs_msg)
 
       expect(subject.send(:busy)).to eq(0)
+    end
+
+    it 'does not release a message it processes' do
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(sqs_msg).not_to have_received(:visibility_timeout=)
+    end
+
+    context 'when the manager is not running' do
+      before { allow(subject).to receive(:running?).and_return(false) }
+
+      it 'releases the message by setting its visibility timeout to 0' do
+        expect(subject.send(:assign, queue, sqs_msg)).to be_nil
+
+        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+        expect(Shoryuken::Processor).not_to have_received(:process)
+      end
+
+      it 'releases every message of a batch' do
+        other_msg = double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil)
+
+        subject.send(:assign, queue, [sqs_msg, other_msg])
+
+        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+        expect(other_msg).to have_received(:visibility_timeout=).with(0)
+      end
+
+      it 'logs a failed release and still releases the rest of the batch' do
+        other_msg = double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil)
+        allow(sqs_msg).to receive(:visibility_timeout=).and_raise('change visibility failed')
+        allow(Shoryuken.logger).to receive(:error)
+
+        expect { subject.send(:assign, queue, [sqs_msg, other_msg]) }.not_to raise_error
+
+        expect(other_msg).to have_received(:visibility_timeout=).with(0)
+        expect(Shoryuken.logger).to have_received(:error)
+      end
     end
 
     it 'does not double decrement the busy counter when completion raises' do
@@ -266,6 +303,21 @@ RSpec.describe Shoryuken::Manager do
         expect(polling_strategy).not_to receive(:message_processed)
 
         subject.send(:assign, queue, sqs_msg)
+
+        expect(subject.send(:busy)).to eq(0)
+      end
+
+      it 'releases the message by setting its visibility timeout to 0' do
+        subject.send(:assign, queue, sqs_msg)
+
+        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+      end
+
+      it 'does not raise when the release fails' do
+        allow(sqs_msg).to receive(:visibility_timeout=).and_raise('change visibility failed')
+        allow(Shoryuken.logger).to receive(:error)
+
+        expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
 
         expect(subject.send(:busy)).to eq(0)
       end
