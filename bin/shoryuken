@@ -34,7 +34,7 @@ module Shoryuken
       method_option :daemon,      aliases: '-d', type: :boolean, desc: 'Daemonize process'
       method_option :pidfile,     aliases: '-P', type: :string,  desc: 'Path to pidfile'
       def start
-        opts = environment_opts
+        opts = normalized_options
 
         fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
 
@@ -44,7 +44,7 @@ module Shoryuken
       desc 'check', 'Validates the configuration, queues and workers without starting to process'
       environment_options
       def check
-        problems = Shoryuken::EnvironmentLoader.setup_options(environment_opts.freeze).check
+        problems = Shoryuken::EnvironmentLoader.setup_options(normalized_options.freeze).check
 
         fail_task problems.join("\n") if problems.any?
 
@@ -54,7 +54,8 @@ module Shoryuken
              Aws::Errors::MissingRegionError,
              Aws::Sigv4::Errors::MissingCredentialsError,
              Aws::Errors::ServiceError,
-             Seahorse::Client::NetworkingError => e
+             Seahorse::Client::NetworkingError,
+             LoadError => e
         fail_task e.message
       end
 
@@ -65,7 +66,7 @@ module Shoryuken
 
       no_commands do
         # Normalizes the command line options for {Shoryuken::EnvironmentLoader}
-        def environment_opts
+        def normalized_options
           opts = options.to_h.transform_keys(&:to_sym)
 
           say '[DEPRECATED] Please use --config instead of --config-file', :yellow if opts[:config_file]

@@ -73,6 +73,12 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       it 'reports the queue' do
         expect(subject.check).to eq(['No worker supplied for queue2'])
       end
+
+      it 'does not also log it as a warning' do
+        expect(Shoryuken.logger).not_to receive(:warn)
+
+        subject.check
+      end
     end
 
     context 'when a queue has no worker but ActiveJob is in use' do
@@ -87,10 +93,19 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
 
     context 'when no queues are configured' do
-      before { Shoryuken.options[:queues] = [] }
+      before do
+        Shoryuken.options[:queues] = []
+        allow(subject).to receive(:validate_queues).and_call_original
+      end
 
       it 'reports it' do
         expect(subject.check).to eq(['No queues supplied'])
+      end
+
+      it 'does not also log it as a warning' do
+        expect(Shoryuken.logger).not_to receive(:warn)
+
+        subject.check
       end
     end
 

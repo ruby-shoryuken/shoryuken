@@ -52,6 +52,7 @@ begin
   output, code = run_check('-q', with_worker, without_worker, '-r', worker_file)
   assert_equal(1, code, "queue without a worker must exit 1, got: #{output}")
   assert_includes(output, "[FAIL] No worker supplied for #{without_worker}")
+  refute(output.include?('WARN'), "problems must be reported once, not also logged as warnings, got: #{output}")
 
   output, code = run_check('-q', missing, '-r', worker_file)
   assert_equal(1, code, "missing queue must exit 1, got: #{output}")
@@ -61,6 +62,11 @@ begin
   output, code = run_check('-r', worker_file)
   assert_equal(1, code, "no queues must exit 1, got: #{output}")
   assert_includes(output, '[FAIL] No queues supplied')
+
+  output, code = run_check('-q', with_worker, '-r', File.join(dir, 'missing_worker.rb'))
+  assert_equal(1, code, "missing require path must exit 1, got: #{output}")
+  assert_includes(output, '[FAIL] cannot load such file')
+  refute(output.include?('.rb:'), "a missing require path must not print a backtrace, got: #{output}")
 
   output, code = run_check('-C', File.join(dir, 'missing.yml'))
   assert_equal(1, code, "missing config file must exit 1, got: #{output}")

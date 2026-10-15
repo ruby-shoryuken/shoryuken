@@ -57,27 +57,35 @@ module Shoryuken
     #
     # @return [void]
     def load
-      prefix_active_job_queue_names
-      parse_queues
-      require_workers
+      load_queues_and_workers
       validate_queues
       validate_workers
     end
 
-    # Loads the environment like {#load}, without starting to process, and also reports what {#load} only warns
-    # about: no queues at all, and queues without a worker
+    # Loads and validates the environment like {#load}, without starting to process, and returns as problems what
+    # {#load} only logs as warnings: no queues at all, and queues without a worker
     #
     # @return [Array<String>] the problems found, empty when the configuration is valid
     # @raise [Shoryuken::Errors::BaseError] when {#load} fails, e.g. on a queue that does not exist
     def check
-      load
+      load_queues_and_workers
 
       return ['No queues supplied'] if Shoryuken.ungrouped_queues.empty?
 
+      validate_queues
       queues_without_workers.map { |queue| "No worker supplied for #{queue}" }
     end
 
     private
+
+    # Sets up the queues and requires the workers, the part of {#load} that comes before validation
+    #
+    # @return [void]
+    def load_queues_and_workers
+      prefix_active_job_queue_names
+      parse_queues
+      require_workers
+    end
 
     # Merges configuration file options with runtime options
     #

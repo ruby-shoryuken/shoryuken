@@ -16,6 +16,7 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 - [Exponential backoff](https://github.com/ruby-shoryuken/shoryuken/wiki/Worker-options#retry_intervals)
 - [Middleware support](https://github.com/ruby-shoryuken/shoryuken/wiki/Middleware)
 - Amazon SQS CLI. See `shoryuken help sqs`
+- Configuration check without processing. See `shoryuken help check`
 
 ## Requirements
 
