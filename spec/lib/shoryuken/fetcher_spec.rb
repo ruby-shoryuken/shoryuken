@@ -35,20 +35,22 @@ RSpec.describe Shoryuken::Fetcher do
       subject.fetch(queue_config, limit)
     end
 
-    it 'logs debug only' do
+    it 'publishes fetcher events' do
       # See https://github.com/ruby-shoryuken/shoryuken/issues/435
-      logger = double 'logger'
-
-      allow(subject).to receive(:logger).and_return(logger)
+      # Fetcher should publish events instead of direct logging
+      events = []
+      Shoryuken.monitor.subscribe('fetcher.started') { |e| events << e }
+      Shoryuken.monitor.subscribe('fetcher.completed') { |e| events << e }
 
       expect(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
-
       expect(queue).to receive(:receive_messages).and_return([double('SQS Msg')])
 
-      expect(logger).to receive(:debug).exactly(3).times
-      expect(logger).to_not receive(:info)
-
       subject.fetch(queue_config, limit)
+
+      expect(events.size).to eq(2)
+      expect(events.map(&:name)).to eq(%w[fetcher.started fetcher.completed])
+      expect(events.first[:queue]).to eq(queue_name)
+      expect(events.last[:message_count]).to eq(1)
     end
 
     context 'when receive options per queue' do
