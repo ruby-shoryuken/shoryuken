@@ -116,6 +116,7 @@ module Shoryuken
       yield
     rescue => e
       logger.error { "Shutdown step '#{step}' failed: #{e.class.name}: #{e.message}" }
+      logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
     end
 
     # Returns the executor for running async operations
