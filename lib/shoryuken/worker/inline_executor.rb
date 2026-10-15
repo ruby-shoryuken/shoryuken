@@ -15,13 +15,18 @@ module Shoryuken
         # @option options [Hash] :message_attributes custom message attributes
         # @return [Object] the result of the worker's perform method
         def perform_async(worker_class, body, options = {})
+          # Work on a copy so reused/shared options hashes aren't mutated across
+          # calls (deleting :queue would reroute later jobs to the default
+          # queue). Merge - rather than mutate - the nested message_attributes.
+          options = options.dup
           body = JSON.dump(body) if body.is_a?(Hash)
           queue_name = options.delete(:queue) || worker_class.get_shoryuken_options['queue']
-          message_attributes = options.delete(:message_attributes) || {}
-          message_attributes['shoryuken_class'] = {
-            string_value: worker_class.to_s,
-            data_type: 'String'
-          }
+          message_attributes = (options.delete(:message_attributes) || {}).merge(
+            'shoryuken_class' => {
+              string_value: worker_class.to_s,
+              data_type: 'String'
+            }
+          )
 
           sqs_msg = InlineMessage.new(
             body: body,
