@@ -95,14 +95,15 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(subject.wait_for_pending_sends(5)).to be true
 
       # Removal happens on the resolving thread, so poll the mutex-guarded set.
-      sends = subject.send(:pending_sends)
+      mutex = described_class.const_get(:PENDING_SENDS_MUTEX)
+      pending_count = -> { mutex.synchronize { subject.send(:pending_sends).futures.size } }
       50.times do
-        break if sends.mutex.synchronize { sends.futures.empty? }
+        break if pending_count.call.zero?
 
         sleep 0.02
       end
 
-      expect(sends.mutex.synchronize { sends.futures.size }).to eq(0)
+      expect(pending_count.call).to eq(0)
     end
 
     it 'does not wait in a forked child for sends that were in flight in the parent' do

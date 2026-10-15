@@ -19,9 +19,11 @@ module ActiveJob
     #
     #   config.active_job.queue_adapter = adapter
     class ShoryukenConcurrentSendAdapter < ShoryukenAdapter
-      # In-flight send futures of one process, with the mutex guarding them
-      PendingSends = Struct.new(:pid, :mutex, :futures)
-      private_constant :PendingSends
+      # In-flight send futures of one process
+      PendingSends = Struct.new(:pid, :futures)
+      # Guards pending sends of every instance, so it also exists when a subclass initialize skips super
+      PENDING_SENDS_MUTEX = Mutex.new
+      private_constant :PendingSends, :PENDING_SENDS_MUTEX
 
       # Initializes a new concurrent send adapter
       #
@@ -31,7 +33,6 @@ module ActiveJob
         super() if defined?(super)
         @success_handler = success_handler
         @error_handler = error_handler
-        @pending_sends = Concurrent::AtomicReference.new
       end
 
       # Enqueues a job asynchronously
@@ -56,8 +57,7 @@ module ActiveJob
       # @param timeout [Numeric, nil] maximum seconds to wait; nil waits indefinitely
       # @return [Boolean] true if all pending sends finished, false if the timeout elapsed first
       def wait_for_pending_sends(timeout = nil)
-        sends = pending_sends
-        pending = sends.mutex.synchronize { sends.futures.to_a }
+        pending = PENDING_SENDS_MUTEX.synchronize { pending_sends.futures.to_a }
         return true if pending.empty?
 
         if timeout
@@ -116,23 +116,20 @@ module ActiveJob
       # @param future [Concurrent::Promises::Future] the send future to track
       # @return [Concurrent::Promises::Future] the same future
       def track_pending_send(future)
-        sends = pending_sends
-        sends.mutex.synchronize { sends.futures.add(future) }
-        future.on_resolution! { sends.mutex.synchronize { sends.futures.delete(future) } }
+        sends = PENDING_SENDS_MUTEX.synchronize { pending_sends.tap { |current| current.futures.add(future) } }
+        future.on_resolution! { PENDING_SENDS_MUTEX.synchronize { sends.futures.delete(future) } }
         future
       end
 
       # Returns the in-flight sends of the current process. A forked child starts with an empty set: the parent's
       # futures are resolved by threads that do not exist in the child, so they would stay pending there forever.
       #
+      # Callers must hold PENDING_SENDS_MUTEX.
+      #
       # @return [PendingSends] the pending sends of this process
       def pending_sends
-        ref = (@pending_sends ||= Concurrent::AtomicReference.new)
-        current = ref.get
-        return current if current&.pid == Process.pid
-
-        fresh = PendingSends.new(Process.pid, Mutex.new, Set.new)
-        ref.compare_and_set(current, fresh) ? fresh : ref.get
+        @pending_sends = PendingSends.new(Process.pid, Set.new) unless @pending_sends&.pid == Process.pid
+        @pending_sends
       end
     end
   end
