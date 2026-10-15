@@ -1,3 +1,13 @@
+## [Unreleased]
+
+- Feature: `shoryuken check` validates the configuration without starting to process
+  - Takes the same options as `start` (`-C`, `-r`, `-q`, `-R`, ...), loads the config and the workers and validates
+    the queues and workers, then exits 0 with `Configuration OK`
+  - Exits 1 with the problem and no backtrace on a missing config file or queue, missing AWS credentials or
+    region, no queues configured, or a queue without a worker (the last two are only warnings on `start`)
+- Fix: A missing queue reported by SQS as `QueueDoesNotExist` (the error the current SQS JSON protocol raises) now
+  gets the same "queue(s) do not exist" error on startup as `NonExistentQueue`, instead of the raw SQS error
+
 ## [7.0.4] - 2026-09-23
 
 - Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)

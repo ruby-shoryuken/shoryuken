@@ -64,6 +64,19 @@ module Shoryuken
       validate_workers
     end
 
+    # Loads the environment like {#load}, without starting to process, and also reports what {#load} only warns
+    # about: no queues at all, and queues without a worker
+    #
+    # @return [Array<String>] the problems found, empty when the configuration is valid
+    # @raise [Shoryuken::Errors::BaseError] when {#load} fails, e.g. on a queue that does not exist
+    def check
+      load
+
+      return ['No queues supplied'] if Shoryuken.ungrouped_queues.empty?
+
+      queues_without_workers.map { |queue| "No worker supplied for #{queue}" }
+    end
+
     private
 
     # Merges configuration file options with runtime options
@@ -234,7 +247,7 @@ module Shoryuken
 
       Shoryuken.ungrouped_queues.uniq.each do |queue|
         Shoryuken::Client.queues(queue)
-      rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
+      rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
         non_existent_queues << queue
       end
 
@@ -255,14 +268,18 @@ module Shoryuken
     #
     # @return [void]
     def validate_workers
-      return if Shoryuken.active_job?
-
-      all_queues = Shoryuken.ungrouped_queues
-      queues_with_workers = Shoryuken.worker_registry.queues
-
-      (all_queues - queues_with_workers).each do |queue|
+      queues_without_workers.each do |queue|
         Shoryuken.logger.warn { "No worker supplied for #{queue}" }
       end
+    end
+
+    # Returns the configured queues that have no registered worker
+    #
+    # @return [Array<String>] queue names without a worker, always empty when ActiveJob is in use
+    def queues_without_workers
+      return [] if Shoryuken.active_job?
+
+      (Shoryuken.ungrouped_queues - Shoryuken.worker_registry.queues).uniq
     end
   end
 end

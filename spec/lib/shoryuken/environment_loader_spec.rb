@@ -21,6 +21,19 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       Shoryuken.options[:groups] = [['custom', { queues: ['stubbed_queue'] }]]
     end
 
+    context 'when SQS reports a missing queue as QueueDoesNotExist' do
+      before do
+        allow(Shoryuken::Client)
+          .to receive(:queues)
+          .with('stubbed_queue')
+          .and_raise(Aws::SQS::Errors::QueueDoesNotExist.new(nil, nil))
+      end
+
+      it 'raises QueueNotFoundError naming the queue' do
+        expect { subject.load }.to raise_error(Shoryuken::Errors::QueueNotFoundError, /stubbed_queue do not exist/)
+      end
+    end
+
     context "when given queues don't exist" do
       specify do
         expect { subject.load }.to raise_error(
@@ -31,6 +44,68 @@ RSpec.describe Shoryuken::EnvironmentLoader do
             It's also possible that you don't have permission to access the specified queues.
           MSG
         )
+      end
+    end
+  end
+
+  describe '#check' do
+    before do
+      Shoryuken.groups.clear
+      Shoryuken.options[:groups] = nil
+      allow(subject).to receive(:prefix_active_job_queue_names)
+      allow(subject).to receive(:require_workers)
+      allow(subject).to receive(:validate_queues)
+      allow(Shoryuken).to receive(:active_job?).and_return(false)
+      allow(Shoryuken.worker_registry).to receive(:queues).and_return(%w[queue1])
+    end
+
+    context 'when every queue has a worker' do
+      before { Shoryuken.options[:queues] = ['queue1', ['queue1', 2]] }
+
+      it 'returns no problems' do
+        expect(subject.check).to eq([])
+      end
+    end
+
+    context 'when a queue has no worker' do
+      before { Shoryuken.options[:queues] = %w[queue1 queue2] }
+
+      it 'reports the queue' do
+        expect(subject.check).to eq(['No worker supplied for queue2'])
+      end
+    end
+
+    context 'when a queue has no worker but ActiveJob is in use' do
+      before do
+        Shoryuken.options[:queues] = %w[queue1 queue2]
+        allow(Shoryuken).to receive(:active_job?).and_return(true)
+      end
+
+      it 'returns no problems' do
+        expect(subject.check).to eq([])
+      end
+    end
+
+    context 'when no queues are configured' do
+      before { Shoryuken.options[:queues] = [] }
+
+      it 'reports it' do
+        expect(subject.check).to eq(['No queues supplied'])
+      end
+    end
+
+    context 'when a queue does not exist' do
+      before do
+        Shoryuken.options[:queues] = %w[queue1]
+        allow(subject).to receive(:validate_queues).and_call_original
+        allow(Shoryuken::Client)
+          .to receive(:queues)
+          .with('queue1')
+          .and_raise(Aws::SQS::Errors::NonExistentQueue.new(nil, nil))
+      end
+
+      it 'raises QueueNotFoundError' do
+        expect { subject.check }.to raise_error(Shoryuken::Errors::QueueNotFoundError)
       end
     end
   end
