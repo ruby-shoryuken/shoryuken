@@ -11,7 +11,8 @@
 # Expected behavior: #wait_for_pending_sends blocks until every in-flight send
 # has finished (so the job actually reaches SQS). With a timeout it returns
 # false while a send is still running, and a failed send (reported to the error
-# handler) counts as finished.
+# handler) counts as finished. A child forked while a send is in flight does not
+# wait for the parent's send, which only the parent can complete.
 #
 # Regression: the adapter offered no drain, so in-flight sends could be lost.
 
@@ -100,3 +101,27 @@ DrainTestJob.set(queue: "missing-#{DT.uuid}").perform_later('lost payload')
 
 assert(failing_adapter.wait_for_pending_sends(15), 'a failed send must not block the drain')
 assert_equal(1, DT[:errors].size, 'the failed send must reach the error handler')
+
+# --- A forked child does not wait for the parent's in-flight send -----------
+DT.clear
+ActiveJob::Base.queue_adapter = adapter
+
+DrainTestJob.perform_later('sent by the parent')
+
+reader, writer = IO.pipe
+child = fork do
+  reader.close
+  started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  drained = adapter.wait_for_pending_sends(5)
+  writer.write("#{drained} #{Process.clock_gettime(Process::CLOCK_MONOTONIC) - started}")
+  writer.close
+  exit!(0)
+end
+writer.close
+child_drained, child_elapsed = reader.read.split
+Process.wait(child)
+
+assert_equal('true', child_drained, "the forked child's drain must not report the parent's send as pending")
+assert(child_elapsed.to_f < 1, "the forked child's drain must return at once, took #{child_elapsed}s")
+assert(adapter.wait_for_pending_sends(15), "the parent's drain must still wait for its own send")
+assert_equal(1, DT[:sent].size, "the parent's send should have completed during its drain")

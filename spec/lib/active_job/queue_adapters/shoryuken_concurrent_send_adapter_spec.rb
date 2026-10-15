@@ -120,16 +120,16 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
         reader.close
         started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         drained = subject.wait_for_pending_sends(5)
-        writer.write(Marshal.dump([drained, Process.clock_gettime(Process::CLOCK_MONOTONIC) - started]))
+        writer.write("#{drained} #{Process.clock_gettime(Process::CLOCK_MONOTONIC) - started}")
         writer.close
         exit!(0)
       end
       writer.close
-      drained, elapsed = Marshal.load(reader.read)
+      drained, elapsed = reader.read.split
       Process.wait(pid)
 
-      expect(drained).to be true
-      expect(elapsed).to be < 1
+      expect(drained).to eq('true')
+      expect(elapsed.to_f).to be < 1
       expect(subject.wait_for_pending_sends(5)).to be true
     end
 
