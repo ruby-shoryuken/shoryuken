@@ -59,18 +59,14 @@ module Shoryuken
 
         logger.debug { "Retrying fetch attempt #{attempts}/#{max_attempts} after error: #{e.message}" }
 
-        # Incremental, bounded backoff (1s, 2s, 3s, ...): deterministic and
-        # testable, unlike the previous random 1-5s sleep, and capped because
-        # attempts never exceeds max_attempts.
         sleep(backoff_interval(attempts))
 
         retry
       end
     end
 
-    # Backoff interval, in seconds, before the next fetch retry. Grows linearly
-    # with the attempt number and is naturally bounded because attempts never
-    # exceeds max_attempts.
+    # Backoff interval, in seconds, before the next fetch retry. Grows linearly with the attempt number and is
+    # naturally bounded because attempts never exceeds max_attempts.
     #
     # @param attempts [Integer] the current (1-based) attempt number
     # @return [Integer] seconds to sleep before retrying
