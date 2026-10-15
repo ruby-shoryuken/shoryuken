@@ -45,10 +45,10 @@ module ActiveJob
 
       # Blocks until all in-flight asynchronous sends have completed.
       #
-      # Because {#enqueue} schedules the SQS send on a background future and
-      # returns immediately, jobs enqueued shortly before the process exits can
-      # be silently dropped before their send runs. Call this from your shutdown
-      # sequence to flush them.
+      # Because {#enqueue} schedules the SQS send on a background future and returns immediately, jobs enqueued shortly
+      # before the process exits can be silently dropped before their send runs. Call this from your shutdown sequence to
+      # flush them. Only sends already in flight when it is called are awaited; a failed send counts as finished (it is
+      # reported to the error handler).
       #
       # @param timeout [Numeric, nil] maximum seconds to wait; nil waits indefinitely
       # @return [Boolean] true if all pending sends finished, false if the timeout elapsed first

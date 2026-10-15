@@ -9,7 +9,9 @@
 # send never runs.
 #
 # Expected behavior: #wait_for_pending_sends blocks until every in-flight send
-# has finished (so the job actually reaches SQS), with an optional timeout.
+# has finished (so the job actually reaches SQS). With a timeout it returns
+# false while a send is still running, and a failed send (reported to the error
+# handler) counts as finished.
 #
 # Regression: the adapter offered no drain, so in-flight sends could be lost.
 
@@ -74,3 +76,27 @@ Timeout.timeout(10) do
 end
 
 assert_equal(1, count, 'the drained job should be present in SQS')
+
+# --- A timeout shorter than the send returns false, then the drain completes --
+DT.clear
+
+DrainTestJob.perform_later('timeout payload')
+
+assert_equal(false, adapter.wait_for_pending_sends(0.1), 'a drain timing out before the send ends must return false')
+assert(DT[:sent].empty?, 'the send should still be in-flight after the timed-out drain')
+assert(adapter.wait_for_pending_sends(15), 'a later drain should still wait for the send to finish')
+assert_equal(1, DT[:sent].size, 'the send should have completed during the second drain')
+
+# --- A failed send is reported and counts as drained ------------------------
+DT.clear
+
+failing_adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new(
+  nil,
+  ->(error, _job, _options) { DT[:errors] << error }
+)
+ActiveJob::Base.queue_adapter = failing_adapter
+
+DrainTestJob.set(queue: "missing-#{DT.uuid}").perform_later('lost payload')
+
+assert(failing_adapter.wait_for_pending_sends(15), 'a failed send must not block the drain')
+assert_equal(1, DT[:errors].size, 'the failed send must reach the error handler')
