@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: Fetched messages that are never started are now released at once instead of staying in flight
+  - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
+    rejected the worker post, so it stayed invisible until its visibility timeout expired
+  - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
+    release is logged and does not break dispatch or shutdown
+
 - Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
   - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
     executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
