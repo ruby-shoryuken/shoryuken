@@ -61,7 +61,8 @@ Shoryuken::Client.sqs.send_message(queue_url: queue_url, message_body: 'rejected
 launcher = Shoryuken::Launcher.new
 launcher.start
 
-# Stop as soon as the first worker post is rejected.
+# This executor rejects every worker post, so each rejection releases the message
+# and the next poll fetches it again. Stop after the first one to end that loop.
 Timeout.timeout(15) { sleep 0.05 until DT[:rejected].size >= 1 }
 Timeout.timeout(20) { launcher.stop! }
 

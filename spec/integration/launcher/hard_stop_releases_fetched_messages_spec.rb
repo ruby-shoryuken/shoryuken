@@ -20,6 +20,9 @@ setup_sqs
 
 DT.clear
 
+executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+Shoryuken.define_singleton_method(:launcher_executor) { executor }
+
 queue_name = DT.queue
 # Far longer than the spec runs, so the message can only reappear if released.
 create_test_queue(queue_name, attributes: { 'VisibilityTimeout' => '60' })
@@ -52,7 +55,7 @@ stopper = Thread.new { launcher.stop! }
 
 # Send only once the executor is shutting down, so the in-flight poll returns the
 # message to a manager that is no longer running.
-Timeout.timeout(5) { sleep 0.05 while launcher.send(:executor).running? }
+Timeout.timeout(5) { sleep 0.05 while executor.running? }
 Shoryuken::Client.sqs.send_message(queue_url: queue_url, message_body: 'fetched during stop')
 
 Timeout.timeout(20) { stopper.join }
