@@ -95,15 +95,53 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(subject.wait_for_pending_sends(5)).to be true
 
       # Removal happens on the resolving thread, so poll the mutex-guarded set.
-      mutex = subject.instance_variable_get(:@pending_sends_mutex)
-      set = subject.instance_variable_get(:@pending_sends)
+      sends = subject.send(:pending_sends)
       50.times do
-        break if mutex.synchronize { set.empty? }
+        break if sends.mutex.synchronize { sends.futures.empty? }
 
         sleep 0.02
       end
 
-      expect(mutex.synchronize { set.size }).to eq(0)
+      expect(sends.mutex.synchronize { sends.futures.size }).to eq(0)
+    end
+
+    it 'does not wait in a forked child for sends that were in flight in the parent' do
+      skip 'fork is not supported on this platform' unless Process.respond_to?(:fork)
+
+      allow(queue).to receive(:send_message) do
+        sleep 1
+        true
+      end
+
+      subject.enqueue(job, options)
+
+      reader, writer = IO.pipe
+      pid = fork do
+        reader.close
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        drained = subject.wait_for_pending_sends(5)
+        writer.write(Marshal.dump([drained, Process.clock_gettime(Process::CLOCK_MONOTONIC) - started]))
+        writer.close
+        exit!(0)
+      end
+      writer.close
+      drained, elapsed = Marshal.load(reader.read)
+      Process.wait(pid)
+
+      expect(drained).to be true
+      expect(elapsed).to be < 1
+      expect(subject.wait_for_pending_sends(5)).to be true
+    end
+
+    it 'tracks sends for a subclass whose initialize does not call super' do
+      subclass = Class.new(described_class) do
+        def initialize; end # rubocop:disable Lint/MissingSuper
+      end
+      adapter = subclass.new
+      allow(queue).to receive(:send_message).and_return(true)
+
+      expect { adapter.enqueue(job, options) }.not_to raise_error
+      expect(adapter.wait_for_pending_sends(5)).to be true
     end
   end
 end
