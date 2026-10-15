@@ -1,3 +1,11 @@
+## [Unreleased]
+
+- Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
+  - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
+    executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
+    shutdown and the `:shutdown`/`:stopped` events - never ran
+  - Each step now runs in its own rescue and logs the error, so the remaining steps always run
+
 ## [7.0.4] - 2026-09-23
 
 - Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)

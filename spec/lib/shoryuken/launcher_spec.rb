@@ -94,6 +94,76 @@ RSpec.describe Shoryuken::Launcher do
 
       subject.stop
     end
+
+    context 'when stop_callback raises' do
+      before do
+        allow(Shoryuken).to receive(:stop_callback).and_return(-> { raise 'stop_callback failure' })
+        allow(Shoryuken.logger).to receive(:error)
+      end
+
+      it 'still stops the managers, shuts the executor down and fires the remaining events' do
+        allow(subject).to receive(:fire_event)
+
+        expect { subject.stop }.not_to raise_error
+
+        expect(first_group_manager).to have_received(:stop_new_dispatching)
+        expect(second_group_manager).to have_received(:await_dispatching_in_progress)
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:shutdown, true)
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+
+      it 'logs the error' do
+        subject.stop
+
+        expect(Shoryuken.logger).to have_received(:error) do |&block|
+          expect(block.call).to include('stop_callback', 'RuntimeError: stop_callback failure')
+        end
+      end
+    end
+
+    context 'when a manager fails to stop dispatching' do
+      before do
+        allow(first_group_manager).to receive(:stop_new_dispatching).and_raise('stop failure')
+        allow(Shoryuken.logger).to receive(:error)
+      end
+
+      it 'still stops the other managers and shuts the executor down' do
+        expect { subject.stop }.not_to raise_error
+
+        expect(second_group_manager).to have_received(:stop_new_dispatching)
+        expect(executor).to be_shutdown
+      end
+    end
+
+    context 'when awaiting a manager dispatch raises' do
+      before do
+        allow(first_group_manager).to receive(:await_dispatching_in_progress).and_raise('await failure')
+        allow(Shoryuken.logger).to receive(:error)
+      end
+
+      it 'still awaits the other managers and shuts the executor down' do
+        expect { subject.stop }.not_to raise_error
+
+        expect(second_group_manager).to have_received(:await_dispatching_in_progress)
+        expect(executor).to be_shutdown
+      end
+    end
+
+    context 'when the executor shutdown raises' do
+      before do
+        allow(executor).to receive(:shutdown).and_raise('executor failure')
+        allow(Shoryuken.logger).to receive(:error)
+      end
+
+      it 'still fires the stopped event' do
+        allow(subject).to receive(:fire_event)
+
+        expect { subject.stop }.not_to raise_error
+
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+    end
   end
 
   describe '#stop!' do
@@ -115,6 +185,38 @@ RSpec.describe Shoryuken::Launcher do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)
       expect(second_group_manager).to have_received(:stop_new_dispatching)
+    end
+
+    context 'when stop_callback raises' do
+      before do
+        allow(Shoryuken).to receive(:stop_callback).and_return(-> { raise 'stop_callback failure' })
+        allow(Shoryuken.logger).to receive(:error)
+      end
+
+      it 'still stops the managers, shuts the executor down and fires the stopped event' do
+        allow(subject).to receive(:fire_event)
+
+        expect { subject.stop! }.not_to raise_error
+
+        expect(first_group_manager).to have_received(:stop_new_dispatching)
+        expect(second_group_manager).to have_received(:stop_new_dispatching)
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+    end
+
+    context 'when a manager fails to stop dispatching' do
+      before do
+        allow(first_group_manager).to receive(:stop_new_dispatching).and_raise('stop failure')
+        allow(Shoryuken.logger).to receive(:error)
+      end
+
+      it 'still stops the other managers and shuts the executor down' do
+        expect { subject.stop! }.not_to raise_error
+
+        expect(second_group_manager).to have_received(:stop_new_dispatching)
+        expect(executor).to be_shutdown
+      end
     end
   end
 
