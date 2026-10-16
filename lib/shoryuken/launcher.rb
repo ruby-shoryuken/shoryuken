@@ -132,18 +132,21 @@ module Shoryuken
     end
 
     # Returns the monotonic time by which the executor shutdown and the send drain must both be done, so together they
-    # stay within the configured timeout
+    # stay within the configured timeout. A nil timeout means no deadline, as for the executor shutdown.
     #
-    # @return [Float] the deadline, in monotonic seconds
+    # @return [Float, nil] the deadline, in monotonic seconds, or nil when no timeout is configured
     def shutdown_deadline
-      Process.clock_gettime(Process::CLOCK_MONOTONIC) + Shoryuken.options[:timeout]
+      timeout = Shoryuken.options[:timeout]
+      return if timeout.nil?
+
+      Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
     end
 
     # Drains in-flight asynchronous ActiveJob sends, so jobs enqueued just before shutdown (e.g. by a worker) reach SQS
     # instead of being dropped when the process exits. Covers the adapter of every loaded job class that supports
     # draining (i.e. ShoryukenConcurrentSendAdapter), including adapters set on a single job class.
     #
-    # @param deadline [Float] monotonic time by which the drain must finish
+    # @param deadline [Float, nil] monotonic time by which the drain must finish, or nil to wait without a deadline
     # @return [void]
     def drain_pending_active_job_sends(deadline)
       return unless defined?(::ActiveJob::Base)
@@ -156,7 +159,8 @@ module Shoryuken
         logger.info { 'Draining in-flight ActiveJob sends' }
 
         drained = adapters.map do |adapter|
-          adapter.wait_for_pending_sends([deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max)
+          remaining = [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
+          adapter.wait_for_pending_sends(remaining)
         end
 
         logger.warn { 'Timed out draining in-flight ActiveJob sends; some may not have been delivered' } unless drained.all?

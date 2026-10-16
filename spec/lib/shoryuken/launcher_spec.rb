@@ -301,6 +301,30 @@ RSpec.describe Shoryuken::Launcher do
       subject.stop!
     end
 
+    context 'when the timeout is nil' do
+      before { Shoryuken.options[:timeout] = nil }
+
+      it 'drains without a deadline on graceful stop' do
+        allow(subject).to receive(:fire_event)
+        expect(adapter).to receive(:wait_for_pending_sends).with(nil).and_return(true)
+
+        subject.stop
+
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+
+      it 'drains without a deadline on immediate stop!' do
+        allow(subject).to receive(:fire_event)
+        expect(adapter).to receive(:wait_for_pending_sends).with(nil).and_return(true)
+
+        subject.stop!
+
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+    end
+
     it 'is a no-op when the adapter does not support draining' do
       # adapter is a plain double, so it does not respond to wait_for_pending_sends
       expect { subject.stop }.not_to raise_error

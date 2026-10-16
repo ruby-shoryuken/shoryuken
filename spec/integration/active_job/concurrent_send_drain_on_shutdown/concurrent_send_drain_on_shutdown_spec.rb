@@ -7,13 +7,16 @@
 # send on a background future and returns at once. The process is then stopped
 # while that send is still running: with TERM (Launcher#stop!) and with USR1
 # (Launcher#stop). Both handlers call exit right after the launcher stops. The
-# adapter is set on ActiveJob::Base, and in a last run on the job class only.
+# adapter is set on ActiveJob::Base, and in one run on the job class only. A
+# last run sets no timeout (a config key with no value, e.g. an unset ERB env
+# variable), which means no shutdown deadline.
 #
 # Expected behavior: the launcher waits for the pending send, so the job
 # enqueued by the worker reaches SQS, and the drain is logged.
 #
 # Regression: the launcher never drained the adapter, so exit killed the send
-# thread and the job was silently lost.
+# thread and the job was silently lost. A nil timeout must not crash the
+# shutdown with a TypeError.
 
 require 'open3'
 require 'rbconfig'
@@ -41,15 +44,19 @@ def queue_size(queue_name)
   ).attributes.values.sum(&:to_i)
 end
 
-def run_scenario(signal, dir, adapter_on: 'ActiveJob::Base')
+def run_scenario(signal, dir, adapter_on: 'ActiveJob::Base', timeout: 15)
   source = DT.uuid
   target = DT.uuid
   create_test_queue(source)
   create_test_queue(target)
 
-  name = "#{signal}_#{adapter_on.gsub('::', '_')}"
+  name = "#{signal}_#{adapter_on.gsub('::', '_')}_timeout_#{timeout.inspect}"
   enqueued_marker = File.join(dir, "#{name}.enqueued")
   boot_file = File.join(dir, "#{name}_boot.rb")
+  config_file = File.join(dir, "#{name}.yml")
+
+  File.write(config_file, "timeout: <%= ENV['SHORYUKEN_UNSET_TIMEOUT'] %>\n") if timeout.nil?
+  timeout_args = timeout.nil? ? ['-C', config_file] : ['-t', timeout.to_s]
 
   File.write(boot_file, <<~RUBY)
     require 'active_job'
@@ -91,7 +98,8 @@ def run_scenario(signal, dir, adapter_on: 'ActiveJob::Base')
   Shoryuken::Client.queues(source).send_message(message_body: 'trigger')
 
   output = +''
-  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-q', source, '-r', boot_file, '-t', '15') do |_in, out, wait|
+  status = nil
+  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-q', source, '-r', boot_file, *timeout_args) do |_in, out, wait|
     reader = Thread.new { out.each_line { |line| output << line } }
 
     Timeout.timeout(30) { sleep 0.1 until File.exist?(enqueued_marker) }
@@ -99,9 +107,11 @@ def run_scenario(signal, dir, adapter_on: 'ActiveJob::Base')
 
     Process.kill(signal, wait.pid)
 
-    Timeout.timeout(30) { wait.value }
+    status = Timeout.timeout(30) { wait.value }
     reader.join
   end
+
+  assert(status.success?, "#{name}: the process must exit cleanly, got #{status.inspect}: #{output}")
 
   assert_equal(1, queue_size(target), "#{name}: the job enqueued before shutdown must reach SQS, got: #{output}")
   assert_includes(output, 'Draining in-flight ActiveJob sends', "#{name}: the drain must be logged, got: #{output}")
@@ -116,6 +126,7 @@ begin
   run_scenario('TERM', dir)
   run_scenario('USR1', dir)
   run_scenario('TERM', dir, adapter_on: 'DrainedOnShutdownJob')
+  run_scenario('TERM', dir, timeout: nil)
 ensure
   FileUtils.remove_entry(dir)
 end
