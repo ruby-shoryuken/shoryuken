@@ -55,7 +55,7 @@ module Shoryuken
              Aws::Sigv4::Errors::MissingCredentialsError,
              Aws::Errors::ServiceError,
              Seahorse::Client::NetworkingError,
-             Psych::SyntaxError,
+             Psych::Exception,
              LoadError => e
         fail_task e.message
       end
