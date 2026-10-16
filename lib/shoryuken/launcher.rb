@@ -42,9 +42,10 @@ module Shoryuken
       # Don't await here so the timeout below is not delayed
       stop_new_dispatching
 
+      deadline = shutdown_deadline
       shutdown_executor
 
-      drain_pending_active_job_sends
+      drain_pending_active_job_sends(deadline)
 
       fire_event(:stopped)
     end
@@ -61,9 +62,10 @@ module Shoryuken
       signalled_managers = stop_new_dispatching
       await_dispatching_in_progress(signalled_managers)
 
+      deadline = shutdown_deadline
       shutdown_executor
 
-      drain_pending_active_job_sends
+      drain_pending_active_job_sends(deadline)
 
       fire_event(:stopped)
     end
@@ -129,28 +131,36 @@ module Shoryuken
       nil
     end
 
-    # Drains in-flight asynchronous ActiveJob sends so jobs enqueued just before
-    # shutdown (e.g. by a worker during processing) are flushed to SQS instead of
-    # being dropped when the process exits.
+    # Returns the monotonic time by which the executor shutdown and the send drain must both be done, so together they
+    # stay within the configured timeout
     #
-    # No-op unless ActiveJob is loaded and its configured adapter supports
-    # draining (i.e. ShoryukenConcurrentSendAdapter). Bounded by the configured
-    # timeout so it can never block shutdown indefinitely, and any error is
-    # swallowed so a draining hiccup can't break the shutdown sequence.
+    # @return [Float] the deadline, in monotonic seconds
+    def shutdown_deadline
+      Process.clock_gettime(Process::CLOCK_MONOTONIC) + Shoryuken.options[:timeout]
+    end
+
+    # Drains in-flight asynchronous ActiveJob sends, so jobs enqueued just before shutdown (e.g. by a worker) reach SQS
+    # instead of being dropped when the process exits. Covers the adapter of every loaded job class that supports
+    # draining (i.e. ShoryukenConcurrentSendAdapter), including adapters set on a single job class.
     #
+    # @param deadline [Float] monotonic time by which the drain must finish
     # @return [void]
-    def drain_pending_active_job_sends
+    def drain_pending_active_job_sends(deadline)
       return unless defined?(::ActiveJob::Base)
 
-      adapter = ::ActiveJob::Base.queue_adapter
-      return unless adapter.respond_to?(:wait_for_pending_sends)
+      shutdown_step(:drain_pending_active_job_sends) do
+        adapters = [::ActiveJob::Base, *::ActiveJob::Base.descendants].map(&:queue_adapter).uniq
+        adapters.select! { |adapter| adapter.respond_to?(:wait_for_pending_sends) }
+        next if adapters.empty?
 
-      logger.info { 'Draining in-flight ActiveJob sends' }
+        logger.info { 'Draining in-flight ActiveJob sends' }
 
-      drained = adapter.wait_for_pending_sends(Shoryuken.options[:timeout])
-      logger.warn { 'Timed out draining in-flight ActiveJob sends; some may not have been delivered' } unless drained
-    rescue => e
-      logger.warn { "Error draining in-flight ActiveJob sends: #{e.class}: #{e.message}" }
+        drained = adapters.map do |adapter|
+          adapter.wait_for_pending_sends([deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max)
+        end
+
+        logger.warn { 'Timed out draining in-flight ActiveJob sends; some may not have been delivered' } unless drained.all?
+      end
     end
 
     # Returns the executor for running async operations

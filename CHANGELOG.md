@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+- Fix: Shoryuken now drains in-flight `ShoryukenConcurrentSendAdapter` sends on shutdown (mensfeld)
+  - A job enqueued with the concurrent adapter shortly before the process stopped (e.g. by a worker) was lost: the
+    TERM/USR1 handlers exit right after the launcher stops, which killed the background send
+  - `Launcher#stop`/`#stop!` now call `wait_for_pending_sends` on every loaded ActiveJob adapter that supports it
+    (including adapters set on a single job class) after the executor shutdown
+  - The executor shutdown and the drain together stay within `timeout`; a drain that runs out of time or fails is
+    logged and does not break shutdown
+
 - Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
   - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
     unlock wakeup, so the other `#kill` callers slept forever

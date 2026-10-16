@@ -254,16 +254,49 @@ RSpec.describe Shoryuken::Launcher do
       # whether active_job happens to be loaded by another spec.
       stub_const('ActiveJob::Base', Class.new)
       allow(ActiveJob::Base).to receive(:queue_adapter).and_return(adapter)
+      allow(ActiveJob::Base).to receive(:descendants).and_return([])
     end
 
+    let(:remaining_timeout) { a_value_within(1).of(Shoryuken.options[:timeout]) }
+
     it 'drains pending sends on graceful stop when the adapter supports it' do
-      expect(adapter).to receive(:wait_for_pending_sends).with(Shoryuken.options[:timeout]).and_return(true)
+      expect(adapter).to receive(:wait_for_pending_sends).with(remaining_timeout).and_return(true)
 
       subject.stop
     end
 
     it 'drains pending sends on immediate stop! when the adapter supports it' do
-      expect(adapter).to receive(:wait_for_pending_sends).with(Shoryuken.options[:timeout]).and_return(true)
+      expect(adapter).to receive(:wait_for_pending_sends).with(remaining_timeout).and_return(true)
+
+      subject.stop!
+    end
+
+    it 'drains an adapter set on a single job class' do
+      job_adapter = double('job_queue_adapter')
+      job_class = Class.new(ActiveJob::Base)
+      allow(job_class).to receive(:queue_adapter).and_return(job_adapter)
+      allow(ActiveJob::Base).to receive(:descendants).and_return([job_class])
+
+      expect(job_adapter).to receive(:wait_for_pending_sends).with(remaining_timeout).and_return(true)
+
+      subject.stop
+    end
+
+    it 'drains a shared adapter once' do
+      job_class = Class.new(ActiveJob::Base)
+      allow(job_class).to receive(:queue_adapter).and_return(adapter)
+      allow(ActiveJob::Base).to receive(:descendants).and_return([job_class])
+
+      expect(adapter).to receive(:wait_for_pending_sends).once.and_return(true)
+
+      subject.stop
+    end
+
+    it 'gives the drain only the part of the timeout the executor shutdown left' do
+      Shoryuken.options[:timeout] = 1
+      executor.post { sleep 3 }
+
+      expect(adapter).to receive(:wait_for_pending_sends).with(0).and_return(false)
 
       subject.stop!
     end

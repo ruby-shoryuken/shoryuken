@@ -6,7 +6,8 @@
 # A worker enqueues a job with the concurrent adapter, which schedules the SQS
 # send on a background future and returns at once. The process is then stopped
 # while that send is still running: with TERM (Launcher#stop!) and with USR1
-# (Launcher#stop). Both handlers call exit right after the launcher stops.
+# (Launcher#stop). Both handlers call exit right after the launcher stops. The
+# adapter is set on ActiveJob::Base, and in a last run on the job class only.
 #
 # Expected behavior: the launcher waits for the pending send, so the job
 # enqueued by the worker reaches SQS, and the drain is logged.
@@ -40,14 +41,15 @@ def queue_size(queue_name)
   ).attributes.values.sum(&:to_i)
 end
 
-def run_scenario(signal, dir)
+def run_scenario(signal, dir, adapter_on: 'ActiveJob::Base')
   source = DT.uuid
   target = DT.uuid
   create_test_queue(source)
   create_test_queue(target)
 
-  enqueued_marker = File.join(dir, "#{signal}.enqueued")
-  boot_file = File.join(dir, "#{signal}_boot.rb")
+  name = "#{signal}_#{adapter_on.gsub('::', '_')}"
+  enqueued_marker = File.join(dir, "#{name}.enqueued")
+  boot_file = File.join(dir, "#{name}_boot.rb")
 
   File.write(boot_file, <<~RUBY)
     require 'active_job'
@@ -64,13 +66,15 @@ def run_scenario(signal, dir)
       end)
     end
 
-    ActiveJob::Base.queue_adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new
+    ActiveJob::Base.queue_adapter = :shoryuken
 
     class DrainedOnShutdownJob < ActiveJob::Base
       queue_as '#{target}'
 
       def perform; end
     end
+
+    #{adapter_on}.queue_adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new
 
     class EnqueueingWorker
       include Shoryuken::Worker
@@ -99,8 +103,8 @@ def run_scenario(signal, dir)
     reader.join
   end
 
-  assert_equal(1, queue_size(target), "#{signal}: the job enqueued before shutdown must reach SQS, got: #{output}")
-  assert_includes(output, 'Draining in-flight ActiveJob sends', "#{signal}: the drain must be logged, got: #{output}")
+  assert_equal(1, queue_size(target), "#{name}: the job enqueued before shutdown must reach SQS, got: #{output}")
+  assert_includes(output, 'Draining in-flight ActiveJob sends', "#{name}: the drain must be logged, got: #{output}")
 ensure
   delete_test_queue(source)
   delete_test_queue(target)
@@ -111,6 +115,7 @@ dir = Dir.mktmpdir
 begin
   run_scenario('TERM', dir)
   run_scenario('USR1', dir)
+  run_scenario('TERM', dir, adapter_on: 'DrainedOnShutdownJob')
 ensure
   FileUtils.remove_entry(dir)
 end
