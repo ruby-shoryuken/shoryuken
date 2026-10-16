@@ -74,7 +74,7 @@ RSpec.describe Shoryuken::OptionsContract do
     it { expect_invalid('timeout', options.merge(timeout: '8')) }
     it { expect_invalid('aws', options.merge(aws: 'us-east-1')) }
     it { expect_invalid('queues', options.merge(queues: 'default')) }
-    it { expect_invalid('queues', options.merge(queues: [['default', 'high']])) }
+    it { expect_invalid('queues', options.merge(queues: [%w[default high]])) }
     it { expect_invalid('queues', options.merge(queues: [['default', 1, 2]])) }
     it { expect_invalid('queues', options.merge(queues: [''])) }
     it { expect_invalid('polling_strategy', options.merge(polling_strategy: 1)) }

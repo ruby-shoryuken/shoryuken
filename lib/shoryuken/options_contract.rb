@@ -41,11 +41,11 @@ module Shoryuken
     class << self
       # Validates the given options
       #
-      # @param options [Hash] the options to validate
+      # @param config [Hash] the options to validate
       # @return [void]
       # @raise [Errors::InvalidConfigurationError] when an option has an invalid value
-      def validate!(options)
-        new.validate!(options)
+      def validate!(config)
+        new.validate!(config)
       end
 
       # Checks a single queue entry: a name, or a name with an optional weight
@@ -71,13 +71,13 @@ module Shoryuken
 
     # Validates the given options
     #
-    # @param options [Hash] the options to validate
+    # @param config [Hash] the options to validate
     # @return [void]
     # @raise [Errors::InvalidConfigurationError] when an option has an invalid value
-    def validate!(options)
-      check(options, RULES, 'options')
+    def validate!(config)
+      check(config, RULES, 'options')
 
-      options[:groups].to_a.each do |group, group_options|
+      config[:groups].to_a.each do |group, group_options|
         scope = "groups.#{group}"
         raise Errors::InvalidConfigurationError, "Invalid #{scope}: must be a Hash" unless group_options.is_a?(Hash)
 
@@ -87,12 +87,12 @@ module Shoryuken
 
     private
 
-    # @param options [Hash] the options to check
+    # @param values [Hash] the options to check
     # @param rules [Hash{Symbol => Proc}] the checks per known key
     # @param scope [String] where the options come from, used in messages
     # @return [void]
-    def check(options, rules, scope)
-      options.each do |key, value|
+    def check(values, rules, scope)
+      values.each do |key, value|
         rule = rules[key]
 
         if rule.nil?
