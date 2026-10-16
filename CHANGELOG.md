@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
+  - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
+    unlock wakeup, so the other `#kill` callers slept forever
+  - The loop now clears its running flag without the mutex
+
 - Fix: Fetched messages that are never started are now released at once instead of staying in flight
   - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
     rejected the worker post, so it stayed invisible until its visibility timeout expired
@@ -12,6 +17,21 @@
   - `wait_for_pending_sends(timeout = nil)` blocks until every in-flight send has finished (returning
     false if the optional timeout elapses first); call it from your shutdown sequence to flush pending sends
   - In-flight futures are tracked and removed as they resolve, so the set does not grow unbounded
+
+- Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
+  - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
+    executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
+    shutdown and the `:shutdown`/`:stopped` events - never ran
+  - Each step now runs in its own rescue and logs the error, so the remaining steps always run
+  - A graceful stop awaits only the managers it signalled, so a manager whose `stop_new_dispatching` raised no
+    longer hangs the shutdown
+
+- Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
+  - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
+    dispatch thread, which was non-deterministic and untestable
+  - It now backs off incrementally (1s, 2s, 3s, ... via `backoff_interval`), naturally bounded because
+    `attempts` never exceeds `max_attempts`; the broad rescue is unchanged (the AWS SDK already retries
+    throttling/5xx/networking internally) and now carries specs for retry, exhaustion, and the backoff schedule
 
 ## [7.0.4] - 2026-09-23
 
