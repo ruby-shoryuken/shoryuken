@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Breaking: Drop support for Ruby 3.2 (EOL March 2026)
+  - Minimum required Ruby version is now 3.3.0
+  - Supported Ruby versions: 3.3, 3.4, 4.0
+  - Users on Ruby 3.2 should upgrade or remain on Shoryuken 7.0.x
+
 - Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
   - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
     unlock wakeup, so the other `#kill` callers slept forever

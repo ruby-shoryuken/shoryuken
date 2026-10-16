@@ -19,7 +19,7 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 
 ## Requirements
 
-Ruby 3.2 or greater.
+Ruby 3.3 or greater.
 
 ## Installation
 
