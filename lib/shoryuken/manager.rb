@@ -171,9 +171,12 @@ module Shoryuken
     # @param queue_name [String] the queue name
     # @param sqs_msg [Aws::SQS::Types::Message, Array<Aws::SQS::Types::Message>] the message or batch
     # @return [Concurrent::Promise, nil] the processing promise, or nil if the manager
-    #   is not running or the executor rejects the worker post
+    #   is not running or the executor rejects the worker post (the message is then released)
     def assign(queue_name, sqs_msg)
-      return unless running?
+      unless running?
+        release(sqs_msg)
+        return
+      end
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
@@ -206,7 +209,21 @@ module Shoryuken
       # FIFO message_processed callback - decrement directly instead.
       @busy_processors.decrement
       fire_utilization_update_event
+      release(sqs_msg)
       nil
+    end
+
+    # Makes fetched but never started messages visible again, so another consumer can receive them at once instead of
+    # after the visibility timeout. A failed release is logged, not raised, so it cannot break dispatch or shutdown
+    #
+    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch
+    # @return [void]
+    def release(sqs_msg)
+      (sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]).each do |message|
+        message.visibility_timeout = 0
+      rescue => e
+        logger.error { "Failed to release message #{message.message_id}: #{e.message}" }
+      end
     end
 
     # Dispatches a batch of messages from a queue

@@ -7,6 +7,11 @@
     region, no queues configured, or a queue without a worker (the last two are only warnings on `start`)
 - Fix: A missing queue reported by SQS as `QueueDoesNotExist` (the error the current SQS JSON protocol raises) now
   gets the same "queue(s) do not exist" error on startup as `NonExistentQueue`, instead of the raw SQS error
+- Fix: Fetched messages that are never started are now released at once instead of staying in flight
+  - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
+    rejected the worker post, so it stayed invisible until its visibility timeout expired
+  - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
+    release is logged and does not break dispatch or shutdown
 
 ## [7.0.4] - 2026-09-23
 
