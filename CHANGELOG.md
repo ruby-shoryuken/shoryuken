@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+- Feature: `shoryuken check` validates the configuration without starting to process
+  - Takes the same options as `start` (`-C`, `-r`, `-q`, `-R`, ...), loads the config and the workers and validates
+    the queues and workers, then exits 0 with `Configuration OK`
+  - Exits 1 with the problem and no backtrace on a missing or malformed config file, a missing `-r` path or queue,
+    missing AWS credentials or region, no queues configured, or a queue without a worker (the last two are only
+    warnings on `start`)
+
+- Fix: A missing queue reported by SQS as `QueueDoesNotExist` (the error the current SQS JSON protocol raises) now
+  gets the same "queue(s) do not exist" error on startup as `NonExistentQueue`, instead of the raw SQS error
+
 - Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
   - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
     unlock wakeup, so the other `#kill` callers slept forever
