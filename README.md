@@ -49,7 +49,9 @@ For more information check the [wiki page](https://github.com/ruby-shoryuken/sho
 
 ## License
 
-Copyright (c) Pablo Cantero
+Copyright (c) Pablo Cantero\
+Copyright (c) Maciej Mensfeld\
+Copyright (c) [Shoryuken contributors](https://github.com/ruby-shoryuken/shoryuken/graphs/contributors)
 
 Shoryuken is an Open Source project licensed under the terms of the LGPLv3 license. See [LICENSE](LICENSE) for the license text.
 
