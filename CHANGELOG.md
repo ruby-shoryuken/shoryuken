@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
+  - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
+    unlock wakeup, so the other `#kill` callers slept forever
+  - The loop now clears its running flag without the mutex
+
 - Fix: Fetched messages that are never started are now released at once instead of staying in flight
   - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
     rejected the worker post, so it stayed invisible until its visibility timeout expired
