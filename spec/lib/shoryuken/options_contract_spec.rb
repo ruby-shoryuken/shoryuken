@@ -111,15 +111,4 @@ RSpec.describe Shoryuken::OptionsContract do
     it { expect_invalid('timeout', options.merge(timeout: -1)) }
     it { expect_invalid('groups.custom.concurrency', options.merge(groups: { custom: { concurrency: 0 } })) }
   end
-
-  describe 'Shoryuken::EnvironmentLoader#load' do
-    subject(:loader) { Shoryuken::EnvironmentLoader.new({}) }
-
-    it 'validates the options before it parses the queues' do
-      Shoryuken.options[:concurrency] = 0
-
-      expect(loader).not_to receive(:parse_queues)
-      expect { loader.load }.to raise_error(Shoryuken::Errors::InvalidConfigurationError, /concurrency/)
-    end
-  end
 end

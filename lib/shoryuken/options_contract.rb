@@ -48,6 +48,8 @@ module Shoryuken
         new.validate!(config)
       end
 
+      private
+
       # Checks a single queue entry: a name, or a name with an optional weight
       #
       # @param queue [Object] the queue entry
@@ -70,8 +72,8 @@ module Shoryuken
         value.is_a?(String) && !Float(value, exception: false).nil?
       end
 
-      private
-
+      # Checks a queue name, URL or ARN
+      #
       # @param name [Object] the queue name, URL or ARN
       # @return [Boolean] true if the name is a non-empty String or Symbol
       def valid_queue_name?(name)
@@ -97,6 +99,8 @@ module Shoryuken
 
     private
 
+    # Checks each option against the rule for its key, warning about unknown keys
+    #
     # @param values [Hash] the options to check
     # @param rules [Hash{Symbol => Proc}] the checks per known key
     # @param scope [String] where the options come from, used in messages
@@ -116,6 +120,8 @@ module Shoryuken
       end
     end
 
+    # Builds the option name used in messages
+    #
     # @param scope [String] where the option comes from
     # @param key [Symbol] the option name
     # @return [String] the option name, with its group when it belongs to one
