@@ -56,8 +56,8 @@ module Shoryuken
 
       initiate_stop
 
-      stop_new_dispatching
-      await_dispatching_in_progress
+      signalled_managers = stop_new_dispatching
+      await_dispatching_in_progress(signalled_managers)
 
       shutdown_executor
 
@@ -78,18 +78,23 @@ module Shoryuken
 
     # Stops all managers from dispatching new messages
     #
-    # @return [void]
+    # @return [Array<Shoryuken::Manager>] the managers that were signalled without an error
     def stop_new_dispatching
-      @managers.each do |manager|
-        shutdown_step(:stop_new_dispatching) { manager.stop_new_dispatching }
+      @managers.select do |manager|
+        shutdown_step(:stop_new_dispatching) do
+          manager.stop_new_dispatching
+          true
+        end
       end
     end
 
-    # Waits for any in-progress dispatching to complete
+    # Waits for any in-progress dispatching to complete. Only managers that were signalled are awaited: a manager whose
+    # stop_new_dispatching raised may never release its waiters, and a rescue cannot unblock that wait.
     #
+    # @param managers [Array<Shoryuken::Manager>] the managers to wait for
     # @return [void]
-    def await_dispatching_in_progress
-      @managers.each do |manager|
+    def await_dispatching_in_progress(managers)
+      managers.each do |manager|
         shutdown_step(:await_dispatching_in_progress) { manager.await_dispatching_in_progress }
       end
     end
@@ -111,12 +116,13 @@ module Shoryuken
     #
     # @param step [Symbol] name of the step, used in the log message
     # @yield the shutdown step to run
-    # @return [void]
+    # @return [Object, nil] the block's result, or nil if it raised
     def shutdown_step(step)
       yield
     rescue => e
       logger.error { "Shutdown step '#{step}' failed: #{e.class.name}: #{e.message}" }
       logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
+      nil
     end
 
     # Returns the executor for running async operations

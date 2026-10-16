@@ -134,6 +134,27 @@ RSpec.describe Shoryuken::Launcher do
         expect(second_group_manager).to have_received(:stop_new_dispatching)
         expect(executor).to be_shutdown
       end
+
+      it 'does not await the manager that failed to stop dispatching' do
+        subject.stop
+
+        expect(first_group_manager).not_to have_received(:await_dispatching_in_progress)
+        expect(second_group_manager).to have_received(:await_dispatching_in_progress)
+      end
+
+      it 'does not hang when that manager never releases its waiters' do
+        # Like a real manager whose stop failed before closing its release signal
+        allow(first_group_manager).to receive(:await_dispatching_in_progress) { ::Queue.new.pop }
+        allow(subject).to receive(:fire_event)
+
+        stopper = Thread.new { subject.stop }
+
+        expect(stopper.join(2)).to eq(stopper)
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      ensure
+        stopper&.kill
+      end
     end
 
     context 'when awaiting a manager dispatch raises' do
