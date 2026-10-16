@@ -71,6 +71,13 @@ begin
   output, code = run_check('-C', File.join(dir, 'missing.yml'))
   assert_equal(1, code, "missing config file must exit 1, got: #{output}")
   assert_includes(output, 'does not exist')
+
+  malformed_config = File.join(dir, 'malformed.yml')
+  File.write(malformed_config, "queues:\n  - [#{with_worker}\n")
+  output, code = run_check('-C', malformed_config, '-r', worker_file)
+  assert_equal(1, code, "malformed config file must exit 1, got: #{output}")
+  assert_includes(output, '[FAIL] (<unknown>): did not find expected')
+  refute(output.include?('.rb:'), "a malformed config file must not print a backtrace, got: #{output}")
 ensure
   delete_test_queue(with_worker)
   delete_test_queue(without_worker)

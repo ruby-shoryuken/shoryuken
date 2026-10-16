@@ -66,7 +66,7 @@ module Shoryuken
     # {#load} only logs as warnings: no queues at all, and queues without a worker
     #
     # @return [Array<String>] the problems found, empty when the configuration is valid
-    # @raise [Shoryuken::Errors::BaseError] when {#load} fails, e.g. on a queue that does not exist
+    # @raise [Shoryuken::Errors::BaseError] when a queue does not exist
     def check
       load_queues_and_workers
 
