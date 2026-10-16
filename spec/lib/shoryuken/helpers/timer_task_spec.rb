@@ -295,4 +295,28 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect(false_count).to eq(4)
     end
   end
+
+  describe 'thread priority' do
+    it 'does not inherit a lowered priority from the creating thread' do
+      observed = ::Queue.new
+
+      # Shoryuken starts the visibility-extension timer from a worker thread
+      # whose priority is lowered to Shoryuken.thread_priority (default -1).
+      # The timer thread must not inherit that lowered priority, otherwise a
+      # delayed extension under load can miss the visibility timeout and let the
+      # message be redelivered (double processed).
+      creator = Thread.new do
+        Thread.current.priority = -1
+        timer = described_class.new(execution_interval: 0.05) do
+          observed << Thread.current.priority
+        end
+        timer.execute
+        sleep(0.15)
+        timer.kill
+      end
+      creator.join
+
+      expect(observed.pop).to eq(0)
+    end
+  end
 end

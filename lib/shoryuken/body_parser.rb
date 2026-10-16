@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Parses SQS message bodies according to worker configuration.
-  # Supports JSON parsing, text extraction, custom Procs, and
+  # Parses SQS message bodies according to worker configuration. Supports JSON parsing, text extraction, custom Procs, and
   # any object that responds to parse or load methods.
   class BodyParser
     class << self

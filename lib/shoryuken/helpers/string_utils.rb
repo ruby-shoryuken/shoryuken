@@ -4,10 +4,9 @@ module Shoryuken
   module Helpers
     # Utility methods for string manipulation.
     #
-    # This module provides helper methods for common string operations that were
-    # previously implemented as core class extensions. By using a dedicated
-    # helper module, we avoid polluting the global namespace while maintaining
-    # the same functionality.
+    # This module provides helper methods for common string operations that were previously implemented as core class
+    # extensions. By using a dedicated helper module, we avoid polluting the global namespace while maintaining the same
+    # functionality.
     #
     # @example Basic usage
     #   klass = Shoryuken::Helpers::StringUtils.constantize('MyWorker')
@@ -16,10 +15,9 @@ module Shoryuken
       class << self
         # Converts a string to a constant.
         #
-        # This method takes a string representation of a constant name and returns
-        # the actual constant. It handles nested constants (e.g., 'Foo::Bar') and
-        # leading double colons (e.g., '::Object'). This is commonly used for
-        # dynamically loading worker classes from configuration.
+        # This method takes a string representation of a constant name and returns the actual constant. It handles nested
+        # constants (e.g., 'Foo::Bar') and leading double colons (e.g., '::Object'). This is commonly used for dynamically
+        # loading worker classes from configuration.
         #
         # @param string [String] The string to convert to a constant
         # @return [Class, Module] The constant represented by the string

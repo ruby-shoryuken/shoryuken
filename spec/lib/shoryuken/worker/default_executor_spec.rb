@@ -101,5 +101,18 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
 
       TestWorker.perform_async('delayed message', queue: new_queue)
     end
+
+    it 'does not mutate the caller-supplied options hash' do
+      allow(sqs_queue).to receive(:send_message)
+
+      options = { queue: queue, message_attributes: { 'custom' => { string_value: 'v', data_type: 'String' } } }
+
+      TestWorker.perform_async('message', options)
+
+      # :queue must not be deleted, :message_body must not be injected, and the
+      # nested message_attributes must not gain shoryuken_class - otherwise a
+      # reused options hash would reroute/corrupt later enqueues.
+      expect(options).to eq(queue: queue, message_attributes: { 'custom' => { string_value: 'v', data_type: 'String' } })
+    end
   end
 end

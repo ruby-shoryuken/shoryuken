@@ -13,7 +13,7 @@ module ActiveJob
     # Shoryuken adapter for Active Job.
     # To use Shoryuken set the queue_adapter config to +:shoryuken+.
     #
-    # @example Rails configuration
+    # Example Rails configuration:
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
 
     # Determine the appropriate base class based on Rails version
@@ -63,9 +63,8 @@ module ActiveJob
 
       # Indicates whether Shoryuken is in the process of shutting down.
       #
-      # This method is required for ActiveJob Continuations support (Rails 8.1+).
-      # When true, it signals to jobs that they should checkpoint their progress
-      # and gracefully interrupt execution to allow for resumption after restart.
+      # This method is required for ActiveJob Continuations support (Rails 8.1+). When true, it signals to jobs that they
+      # should checkpoint their progress and gracefully interrupt execution to allow for resumption after restart.
       #
       # @return [Boolean] true if Shoryuken is shutting down, false otherwise
       # @see https://github.com/rails/rails/pull/55127 Rails ActiveJob Continuations

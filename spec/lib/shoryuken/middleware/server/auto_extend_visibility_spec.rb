@@ -114,4 +114,39 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
       Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, visibility_timeout)
     end
   end
+
+  context 'when the visibility timeout is too short for the upfront margin' do
+    # interval would be visibility_timeout - extend_upfront == 0, which used to
+    # make TimerTask raise before the worker ran.
+    let(:visibility_timeout) { extend_upfront }
+
+    it 'runs the worker instead of raising' do
+      TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
+      allow(sqs_msg).to receive(:queue) { sqs_queue }
+      allow(sqs_msg).to receive(:message_id).and_return('test-message-id')
+      allow(sqs_msg).to receive(:change_visibility)
+
+      ran = false
+      subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { ran = true }
+
+      expect(ran).to be true
+    end
+  end
+
+  context 'when the visibility timeout is zero' do
+    let(:visibility_timeout) { 0 }
+
+    it 'warns and runs the worker without scheduling an extension' do
+      TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
+      allow(sqs_msg).to receive(:queue) { sqs_queue }
+      allow(sqs_msg).to receive(:message_id).and_return('test-message-id')
+      expect(sqs_msg).not_to receive(:change_visibility)
+      expect(Shoryuken.logger).to receive(:warn)
+
+      ran = false
+      subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { ran = true }
+
+      expect(ran).to be true
+    end
+  end
 end
