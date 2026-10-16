@@ -12,6 +12,13 @@
     shutdown and the `:shutdown`/`:stopped` events - never ran
   - Each step now runs in its own rescue and logs the error, so the remaining steps always run
 
+- Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
+  - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
+    dispatch thread, which was non-deterministic and untestable
+  - It now backs off incrementally (1s, 2s, 3s, ... via `backoff_interval`), naturally bounded because
+    `attempts` never exceeds `max_attempts`; the broad rescue is unchanged (the AWS SDK already retries
+    throttling/5xx/networking internally) and now carries specs for retry, exhaustion, and the backoff schedule
+
 ## [7.0.4] - 2026-09-23
 
 - Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)
