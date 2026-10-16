@@ -12,11 +12,11 @@
 # variable), which means no shutdown deadline.
 #
 # Expected behavior: the launcher waits for the pending send, so the job
-# enqueued by the worker reaches SQS, and the drain is logged.
+# enqueued by the worker reaches SQS, the drain is logged and the process exits
+# cleanly. Without a timeout the drain waits with no deadline.
 #
 # Regression: the launcher never drained the adapter, so exit killed the send
-# thread and the job was silently lost. A nil timeout must not crash the
-# shutdown with a TypeError.
+# thread and the job was silently lost.
 
 require 'open3'
 require 'rbconfig'
