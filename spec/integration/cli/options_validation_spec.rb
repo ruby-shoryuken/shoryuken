@@ -9,6 +9,8 @@
 #   starts, with an InvalidConfigurationError naming the option.
 # - An unknown key (a mistyped `concurency`, globally or in a group) logs a
 #   warning naming the key, and the process starts and processes messages.
+#   Values that are coerced where they are used (a String `delay`, a fractional
+#   queue weight) are accepted in the same run.
 #
 # Regression: any key was merged into the options without a check, so a typo
 # was silently ignored and an invalid value failed later, or not at all.
@@ -96,8 +98,9 @@ begin
     groups:
       custom:
         dealy: 5
+        delay: '1'
         queues:
-          - #{queue}
+          - [#{queue}, 1.5]
   YAML
 
   output = +''

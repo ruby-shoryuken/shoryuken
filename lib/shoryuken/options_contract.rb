@@ -12,7 +12,7 @@ module Shoryuken
     # Checks shared by the global options and the options of a processing group
     GROUP_RULES = {
       concurrency: ->(value) { value.is_a?(Integer) && value.positive? },
-      delay: ->(value) { value.nil? || (value.is_a?(Numeric) && value >= 0) },
+      delay: ->(value) { value.nil? || (numeric?(value) && Float(value) >= 0) },
       polling_strategy: ->(value) { value.nil? || value.is_a?(String) || value.is_a?(Class) },
       queues: ->(value) { value.nil? || (value.is_a?(Array) && value.all? { |queue| valid_queue?(queue) }) }
     }.freeze
@@ -56,8 +56,18 @@ module Shoryuken
         return valid_queue_name?(queue) unless queue.is_a?(Array)
         return false unless (1..2).cover?(queue.size) && valid_queue_name?(queue.first)
 
-        weight = queue[1]
-        weight.nil? || weight.is_a?(Integer) || (weight.is_a?(String) && weight.match?(/\A\d+\z/))
+        queue[1].nil? || numeric?(queue[1])
+      end
+
+      # Checks for a number, or a String holding one. The delay and queue weights are coerced with to_f/to_i where they
+      # are used, so YAML strings and CLI weights such as "2.5" work
+      #
+      # @param value [Object] the value to check
+      # @return [Boolean] true if the value is numeric
+      def numeric?(value)
+        return true if value.is_a?(Numeric)
+
+        value.is_a?(String) && !Float(value, exception: false).nil?
       end
 
       private

@@ -45,6 +45,16 @@ RSpec.describe Shoryuken::OptionsContract do
       expect { validate(opts) }.not_to raise_error
     end
 
+    it 'accepts a numeric String delay and fractional or String queue weights, as they are coerced when used' do
+      opts = options.merge(
+        delay: '5',
+        queues: [['queue1', 1.5], %w[queue2 2.5]],
+        groups: { custom: { delay: '0.5', queues: [%w[queue3 2]] } }
+      )
+
+      expect { validate(opts) }.not_to raise_error
+    end
+
     it 'accepts groups given as an array of pairs' do
       expect { validate(options.merge(groups: [['custom', { queues: ['q1'], delay: 25 }]])) }.not_to raise_error
     end
@@ -71,6 +81,7 @@ RSpec.describe Shoryuken::OptionsContract do
   context 'with a wrong type' do
     it { expect_invalid('concurrency', options.merge(concurrency: '25')) }
     it { expect_invalid('delay', options.merge(delay: 'soon')) }
+    it { expect_invalid('delay', options.merge(delay: '-1')) }
     it { expect_invalid('timeout', options.merge(timeout: '8')) }
     it { expect_invalid('aws', options.merge(aws: 'us-east-1')) }
     it { expect_invalid('queues', options.merge(queues: 'default')) }
