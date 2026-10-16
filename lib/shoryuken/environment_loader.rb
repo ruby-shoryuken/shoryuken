@@ -58,7 +58,7 @@ module Shoryuken
     # @return [void]
     # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
     def load
-      OptionsContract.validate!(Shoryuken.options)
+      Contracts::Options.new.validate!(Shoryuken.options)
       prefix_active_job_queue_names
       parse_queues
       require_workers

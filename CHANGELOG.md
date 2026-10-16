@@ -6,6 +6,8 @@
     `Shoryuken::Errors::InvalidConfigurationError` naming the option, instead of failing later or being ignored
   - Unknown keys, globally or in a group (e.g. a mistyped `concurency`), log a warning naming the key; they are not
     rejected, so custom keys kept in the options keep working
+  - Validation runs on `Shoryuken::Contractable`, a copy of the karafka-core contract layer (MIT), with no new
+    dependency
 
 - Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
   - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the

@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-RSpec.describe Shoryuken::OptionsContract do
+RSpec.describe Shoryuken::Contracts::Options do
   let(:options) { Shoryuken::Options::DEFAULTS.merge(queues: ['default']) }
 
   def validate(opts = options)
-    described_class.validate!(opts)
+    described_class.new.validate!(opts)
   end
 
   def expect_invalid(key, opts)
-    expect { validate(opts) }.to raise_error(Shoryuken::Errors::InvalidConfigurationError, /Invalid value for #{key}:/)
+    expect(described_class.new.call(opts).errors.keys).to eq([key.to_sym])
   end
 
   context 'with valid options' do
@@ -99,8 +99,24 @@ RSpec.describe Shoryuken::OptionsContract do
     end
 
     it 'rejects a group that is not a Hash' do
-      expect { validate(options.merge(groups: { custom: ['q1'] })) }
-        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, 'Invalid groups.custom: must be a Hash')
+      expect(described_class.new.call(options.merge(groups: { custom: ['q1'] })).errors)
+        .to eq('groups.custom': 'needs to be a Hash')
+    end
+  end
+
+  context 'with an invalid value' do
+    it 'raises InvalidConfigurationError with the key path and the error message' do
+      expect { validate(options.merge(concurrency: 0, groups: { custom: { queues: 'q1' } })) }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError) do |error|
+          expect(error.message).to include('concurrency', 'needs to be an Integer greater than 0')
+          expect(error.message).to include('groups.custom.queues', 'needs to be nil or an Array of queue names')
+        end
+    end
+
+    it 'does not warn about known keys' do
+      expect(Shoryuken.logger).not_to receive(:warn)
+
+      expect { validate(options.merge(concurrency: 0)) }.to raise_error(Shoryuken::Errors::InvalidConfigurationError)
     end
   end
 

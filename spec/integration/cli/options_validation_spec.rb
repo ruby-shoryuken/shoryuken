@@ -41,7 +41,7 @@ def start_shoryuken(dir, config, *args)
   end
 end
 
-def expect_rejected(dir, config, message, *args)
+def expect_rejected(dir, config, key, message, *args)
   start_shoryuken(dir, config, *args) do |out, wait|
     output = +''
     reader = Thread.new { out.each_line { |line| output << line } }
@@ -57,6 +57,7 @@ def expect_rejected(dir, config, message, *args)
 
     refute(status.success?, "the process must fail to start, got: #{output}")
     assert_includes(output, 'Shoryuken::Errors::InvalidConfigurationError', "got: #{output}")
+    assert_includes(output, key, "got: #{output}")
     assert_includes(output, message, "got: #{output}")
     refute(output.include?('Starting'), "the process must not start, got: #{output}")
   end
@@ -68,13 +69,15 @@ create_test_queue(queue)
 
 begin
   # --- invalid value in the config file ---
-  expect_rejected(dir, "concurrency: 0\nqueues:\n  - #{queue}\n", 'Invalid value for concurrency: 0')
+  expect_rejected(dir, "concurrency: 0\nqueues:\n  - #{queue}\n", 'concurrency', 'needs to be an Integer greater than 0')
 
   # --- invalid value on the CLI ---
-  expect_rejected(dir, "queues:\n  - #{queue}\n", 'Invalid value for timeout: -1', '-t', '-1')
+  expect_rejected(dir, "queues:\n  - #{queue}\n", 'timeout', 'needs to be nil or a number greater than or equal to 0',
+                  '-t', '-1')
 
   # --- invalid group option ---
-  expect_rejected(dir, "groups:\n  custom:\n    queues: #{queue}\n", "Invalid value for groups.custom.queues: \"#{queue}\"")
+  expect_rejected(dir, "groups:\n  custom:\n    queues: #{queue}\n", 'groups.custom.queues',
+                  'needs to be nil or an Array of queue names')
 
   # --- unknown keys: warned, the process still runs ---
   marker = File.join(dir, 'processed')
