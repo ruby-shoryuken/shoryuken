@@ -6,6 +6,14 @@
   - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
     release is logged and does not break dispatch or shutdown
 
+- Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
+  - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
+    executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
+    shutdown and the `:shutdown`/`:stopped` events - never ran
+  - Each step now runs in its own rescue and logs the error, so the remaining steps always run
+  - A graceful stop awaits only the managers it signalled, so a manager whose `stop_new_dispatching` raised no
+    longer hangs the shutdown
+
 - Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
   - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
     dispatch thread, which was non-deterministic and untestable
