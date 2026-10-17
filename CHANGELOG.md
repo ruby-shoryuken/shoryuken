@@ -1,8 +1,9 @@
 ## [Unreleased]
 
-- Enhancement: `shoryuken_options` rejects unknown worker option keys when the worker class loads
+- Breaking: `shoryuken_options` rejects unknown worker option keys when the worker class loads
   - A mistyped key (e.g. `auto_delte`) now raises `Shoryuken::Errors::InvalidConfigurationError` naming the worker
     and the key, instead of being silently ignored
+  - Workers with any other key, including the formerly documented but unused `sqs`, no longer load
   - Known keys: `queue`, `delete`, `auto_delete`, `auto_visibility_timeout`, `retry_intervals`, `batch`,
     `body_parser` and `non_retryable_exceptions`
 

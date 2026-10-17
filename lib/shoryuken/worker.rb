@@ -120,6 +120,7 @@ module Shoryuken
       # @option opts [String, Array<String>] :queue Queue name(s) this worker processes
       # @option opts [Boolean] :batch (false) Process messages in batches of up to 10
       # @option opts [Boolean] :auto_delete (false) Automatically delete messages after processing
+      # @option opts [Boolean] :delete (false) Alias of :auto_delete
       # @option opts [Boolean] :auto_visibility_timeout (false) Automatically extend message visibility
       # @option opts [Array<Integer>] :retry_intervals Exponential backoff retry intervals in seconds
       # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should
