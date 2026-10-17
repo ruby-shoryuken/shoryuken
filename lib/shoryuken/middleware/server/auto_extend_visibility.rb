@@ -74,17 +74,13 @@ module Shoryuken
           private
 
           # Returns the visibility timeout that applies to a message of the queue: the receive-time visibility_timeout
-          # when it is set (looked up like Fetcher#receive_options: per queue, then per group), else the queue's
-          # VisibilityTimeout attribute
+          # when it is set, else the queue's VisibilityTimeout attribute
           #
           # @param queue [String] the queue name
           # @return [Integer] the visibility timeout in seconds
           def message_visibility_timeout(queue)
-            receive_options = Shoryuken.sqs_client_receive_message_opts
-            options = receive_options[queue]
-            options ||= receive_options[queue_group(queue)]
-
-            options.to_h[:visibility_timeout] || Shoryuken::Client.queues(queue).visibility_timeout
+            Shoryuken.receive_message_opts_for(queue, queue_group(queue))[:visibility_timeout] ||
+              Shoryuken::Client.queues(queue).visibility_timeout
           end
 
           # Finds the group a queue belongs to, whose receive options apply when the queue has none of its own
