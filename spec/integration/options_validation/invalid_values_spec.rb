@@ -37,8 +37,6 @@ def queue_size(queue_name)
   ).attributes.values.sum(&:to_i)
 end
 
-# Starts shoryuken with the given config file content and CLI arguments, and
-# checks that it fails to start, reporting each [key path, message] pair
 def expect_rejected(dir, boot_file, config, errors, *args)
   config_file = File.join(dir, "#{DT.uuid}.yml")
   File.write(config_file, config)

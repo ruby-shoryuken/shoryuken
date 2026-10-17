@@ -7,9 +7,6 @@
 # weights (config file `delay: '5'`, `[queue, 1.5]`, CLI `-q queue,2.5`), with
 # an unset timeout and with a processing group, the process starts, processes
 # the message, logs no validation error or warning and exits cleanly on TERM.
-#
-# Regression: validation must not reject a configuration that ran before it
-# was added.
 
 require 'open3'
 require 'rbconfig'
@@ -37,8 +34,6 @@ def queue_size(queue_name)
   ).attributes.values.sum(&:to_i)
 end
 
-# Starts shoryuken with the given config file content (none when nil) and CLI
-# arguments, and checks that it processes one message and stops cleanly
 def expect_processed(dir, name, queue, config, *args)
   marker = File.join(dir, "#{name}.processed")
   boot_file = File.join(dir, "#{name}_boot.rb")
