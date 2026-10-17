@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: `auto_visibility_timeout` now extends a message by the `visibility_timeout` set in
+  `sqs_client_receive_message_opts` when there is one
+  - It used only the queue's `VisibilityTimeout`, so a shorter receive-time timeout let the message become visible
+    again during processing, and it was performed more than once
+
 - Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
   - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
     unlock wakeup, so the other `#kill` callers slept forever
