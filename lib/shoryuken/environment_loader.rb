@@ -56,7 +56,9 @@ module Shoryuken
     # Loads the environment including queues and workers
     #
     # @return [void]
+    # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
     def load
+      Contracts::Options.new.validate!(Shoryuken.options)
       prefix_active_job_queue_names
       parse_queues
       require_workers

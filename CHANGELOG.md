@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Enhancement: Global options are validated when the server loads its configuration
+  - Invalid values from the config file, the CLI or Ruby code (e.g. `concurrency: 0`, a `delay` or `timeout` that is
+    not a non-negative number, a malformed `queues` entry or group) now raise
+    `Shoryuken::Errors::InvalidConfigurationError` naming the option, instead of failing later or being ignored
+  - Unknown keys, globally or in a group (e.g. a mistyped `concurency`), log a warning naming the key; they are not
+    rejected, so custom keys kept in the options keep working
+  - Validation runs on `Shoryuken::Contractable`, a copy of the karafka-core contract layer (MIT), with no new
+    dependency
+
 - Fix: `auto_visibility_timeout` now extends a message by the `visibility_timeout` set in
   `sqs_client_receive_message_opts` when there is one
   - It used only the queue's `VisibilityTimeout`, so a shorter receive-time timeout let the message become visible
