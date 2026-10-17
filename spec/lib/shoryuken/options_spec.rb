@@ -21,6 +21,19 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '#on' do
+    let(:options) { described_class.new }
+
+    it 'does not leak handlers into the defaults' do
+      options.on(:startup) {}
+      options.options[:queues] << 'default'
+
+      expect(described_class.new.options[:lifecycle_events]).to all(satisfy { |_event, handlers| handlers.empty? })
+      expect(described_class.new.options[:queues]).to be_empty
+      expect(described_class::DEFAULTS[:lifecycle_events][:startup]).to be_empty
+    end
+  end
+
   describe '.add_group adds queues and optional delay' do
     before do
       Shoryuken.groups.clear

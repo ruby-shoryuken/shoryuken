@@ -178,7 +178,8 @@ module Shoryuken
     #
     # @return [Hash] the options hash
     def options
-      @options ||= DEFAULTS.dup
+      # A deep copy, as handlers and queues are appended to the nested defaults
+      @options ||= Marshal.load(Marshal.dump(DEFAULTS))
     end
 
     # Returns the logger instance
