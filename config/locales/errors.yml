@@ -28,3 +28,6 @@ en:
       delay_format: needs to be nil or a number greater than or equal to 0
       polling_strategy_format: needs to be nil, a String or a Class
       queues_format: needs to be nil or an Array of queue names or [name, weight] pairs
+
+    worker:
+      unknown: is not a known worker option
