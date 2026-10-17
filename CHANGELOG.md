@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: Lifecycle event handlers registered with `Shoryuken.on` no longer leak into `Shoryuken::Options::DEFAULTS`
+  - `options` copied the defaults shallowly, so handlers were appended to the shared nested arrays and fired for
+    every later `Shoryuken::Options` instance; the defaults are now deep-copied
+
 - Enhancement: Global options are validated when the server loads its configuration
   - Invalid values from the config file, the CLI or Ruby code (e.g. `concurrency: 0`, a `delay` or `timeout` that is
     not a non-negative number, a malformed `queues` entry or group) now raise
