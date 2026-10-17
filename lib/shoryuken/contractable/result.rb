@@ -13,6 +13,8 @@ module Shoryuken
       private_constant :EMPTY_HASH
 
       class << self
+        # Returns the shared result of a successful validation
+        #
         # @return [Result] cached frozen success result to avoid allocating a new Result on
         #   every successful contract validation. Safe because successful results are
         #   identical regardless of contract (they all have @errors = EMPTY_HASH).
