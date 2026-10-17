@@ -126,10 +126,7 @@ module Shoryuken
     # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
     # @return [Hash] the receive options hash
     def receive_options(queue)
-      options = Shoryuken.sqs_client_receive_message_opts[queue.name]
-      options ||= Shoryuken.sqs_client_receive_message_opts[@group]
-
-      options.to_h.dup
+      Shoryuken.receive_message_opts_for(queue.name, @group)
     end
 
     # Checks if a queue uses batch message processing

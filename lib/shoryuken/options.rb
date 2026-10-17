@@ -161,6 +161,19 @@ module Shoryuken
       @sqs_client_receive_message_opts['default'] = sqs_client_receive_message_opts
     end
 
+    # Returns the receive message options that apply to a queue: its own options, else the options of its group
+    #
+    # @api private
+    # @param queue [String] the queue name
+    # @param group [String, nil] the group the queue is fetched by
+    # @return [Hash] a copy of the options, empty when none are set
+    def receive_message_opts_for(queue, group)
+      options = sqs_client_receive_message_opts[queue]
+      options ||= sqs_client_receive_message_opts[group]
+
+      options.to_h.dup
+    end
+
     # Returns the global options hash
     #
     # @return [Hash] the options hash
