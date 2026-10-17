@@ -24,7 +24,7 @@ RSpec.describe Shoryuken::Options do
   describe '#on' do
     let(:options) { described_class.new }
 
-    it 'does not leak handlers into the defaults' do
+    it 'does not leak handlers or queues into the defaults' do
       options.on(:startup) {}
       options.options[:queues] << 'default'
 
