@@ -117,8 +117,8 @@ end
 # Short alias for DataCollector
 DT = DataCollector
 
-# Scratch resources for a single spec
-module ScratchHelper
+# Resources a single spec creates and cleans up afterwards
+module CleanupHelper
   # Yields a new queue and a temporary directory, and deletes both afterwards
   def with_queue_and_dir(attributes: {})
     dir = Dir.mktmpdir
@@ -192,7 +192,7 @@ module ProcessHelper
 end
 
 module IntegrationsHelper
-  include ScratchHelper
+  include CleanupHelper
   include ProcessHelper
 
   class TestFailure < StandardError; end
