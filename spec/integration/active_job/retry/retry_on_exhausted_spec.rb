@@ -12,8 +12,6 @@
 # - With a block, the error does not escape, the message is deleted and does not
 #   come back.
 # - With a redrive policy, the message ends in the dead letter queue.
-#
-# Docs: wiki Rails-Integration-Active-Job.md "How to use retry_on" (#553).
 
 setup_sqs
 setup_active_job
