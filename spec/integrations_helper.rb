@@ -31,6 +31,10 @@ end
 
 require 'timeout'
 require 'json'
+require 'open3'
+require 'rbconfig'
+require 'tmpdir'
+require 'fileutils'
 require 'securerandom'
 require 'aws-sdk-sqs'
 require 'shoryuken'
@@ -113,7 +117,62 @@ end
 # Short alias for DataCollector
 DT = DataCollector
 
+# Helpers for specs that run bin/shoryuken in a child process
+module ProcessHelper
+  SHORYUKEN_BIN = File.expand_path('../bin/shoryuken', __dir__)
+
+  SHORYUKEN_ENV = {
+    'AWS_ENDPOINT_URL_SQS' => 'http://localhost:9324',
+    'AWS_REGION' => 'us-east-1',
+    'AWS_ACCESS_KEY_ID' => 'fake',
+    'AWS_SECRET_ACCESS_KEY' => 'fake'
+  }.freeze
+
+  # Runs `bin/shoryuken start` until it exits on its own, returns [status, output]
+  def run_shoryuken_until_exit(*args, timeout: 30)
+    Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
+      output = +''
+      reader = Thread.new { out.each_line { |line| output << line } }
+
+      unless wait.join(timeout)
+        Process.kill('KILL', wait.pid)
+        reader.join
+        raise IntegrationsHelper::TestFailure, "shoryuken must exit, but it kept running: #{output}"
+      end
+
+      reader.join
+      [wait.value, output]
+    end
+  end
+
+  # Runs `bin/shoryuken start` until the block returns true, stops it with TERM, returns [status, output]
+  def run_shoryuken_until(*args, timeout: 30, &condition)
+    Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
+      output = +''
+      reader = Thread.new { out.each_line { |line| output << line } }
+
+      begin
+        Timeout.timeout(timeout) { sleep 0.1 until condition.call || !wait.alive? }
+      rescue Timeout::Error
+        Process.kill('KILL', wait.pid)
+      end
+
+      unless condition.call
+        reader.join
+        raise IntegrationsHelper::TestFailure, "shoryuken stopped or timed out before the condition was met: #{output}"
+      end
+
+      Process.kill('TERM', wait.pid)
+      status = Timeout.timeout(timeout) { wait.value }
+      reader.join
+      [status, output]
+    end
+  end
+end
+
 module IntegrationsHelper
+  include ProcessHelper
+
   class TestFailure < StandardError; end
 
   # Assertions
@@ -182,6 +241,16 @@ module IntegrationsHelper
       'FifoQueue' => 'true',
       'ContentBasedDeduplication' => 'true'
     })
+  end
+
+  # Messages in a queue, visible and in flight
+  def queue_size(queue_name)
+    queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
+
+    Shoryuken::Client.sqs.get_queue_attributes(
+      queue_url: queue_url,
+      attribute_names: %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
+    ).attributes.values.sum(&:to_i)
   end
 
   # Poll until condition met

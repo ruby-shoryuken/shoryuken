@@ -105,6 +105,27 @@ RSpec.describe Shoryuken::Worker do
       expect(ParentWorker.get_shoryuken_options['auto_delete']).to eq(false)
       expect(ChildWorker.get_shoryuken_options['auto_delete']).to eq(true)
     end
+
+    it 'accepts every known worker option' do
+      expect do
+        Class.new do
+          include Shoryuken::Worker
+
+          shoryuken_options queue: 'known_options', delete: false, auto_delete: true, auto_visibility_timeout: true,
+                            retry_intervals: [1, 5], batch: false, body_parser: :json,
+                            non_retryable_exceptions: [ArgumentError]
+        end
+      end.not_to raise_error
+    end
+
+    it 'raises on an unknown option, naming the worker and the key' do
+      worker = stub_const('TypoTestWorker', Class.new { include Shoryuken::Worker })
+
+      expect { worker.shoryuken_options(queue: 'typo_queue', auto_delte: true) }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /TypoTestWorker\.auto_delte/)
+
+      expect(Shoryuken.worker_registry.workers('typo_queue')).to be_empty
+    end
   end
 
   describe '.server_middleware' do

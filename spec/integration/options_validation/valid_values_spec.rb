@@ -8,31 +8,7 @@
 # an unset timeout and with a processing group, the process starts, processes
 # the message, logs no validation error or warning and exits cleanly on TERM.
 
-require 'open3'
-require 'rbconfig'
-require 'tmpdir'
-require 'fileutils'
-require 'timeout'
-
 setup_sqs
-
-BIN = File.expand_path('../../../bin/shoryuken', __dir__)
-
-ENV_VARS = {
-  'AWS_ENDPOINT_URL_SQS' => 'http://localhost:9324',
-  'AWS_REGION' => 'us-east-1',
-  'AWS_ACCESS_KEY_ID' => 'fake',
-  'AWS_SECRET_ACCESS_KEY' => 'fake'
-}.freeze
-
-def queue_size(queue_name)
-  queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
-
-  Shoryuken::Client.sqs.get_queue_attributes(
-    queue_url: queue_url,
-    attribute_names: %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
-  ).attributes.values.sum(&:to_i)
-end
 
 def expect_processed(dir, name, queue, config, *args)
   marker = File.join(dir, "#{name}.processed")
@@ -58,26 +34,7 @@ def expect_processed(dir, name, queue, config, *args)
 
   Shoryuken::Client.queues(queue).send_message(message_body: name)
 
-  output = +''
-  status = nil
-  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-r', boot_file, *config_args, *args) do |_in, out, wait|
-    reader = Thread.new { out.each_line { |line| output << line } }
-
-    begin
-      Timeout.timeout(30) { sleep 0.1 until File.exist?(marker) || !wait.alive? }
-    rescue Timeout::Error
-      Process.kill('KILL', wait.pid)
-    end
-
-    unless File.exist?(marker)
-      reader.join
-      raise "#{name}: the message must be processed, got: #{output}"
-    end
-
-    Process.kill('TERM', wait.pid)
-    status = Timeout.timeout(30) { wait.value }
-    reader.join
-  end
+  status, output = run_shoryuken_until('-r', boot_file, *config_args, *args) { File.exist?(marker) }
 
   assert(status.success?, "#{name}: the process must exit cleanly, got #{status.inspect}: #{output}")
   refute(output.include?('InvalidConfigurationError'), "#{name}: no validation error expected, got: #{output}")
