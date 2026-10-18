@@ -163,9 +163,15 @@ module ProcessHelper
       end
 
       Process.kill('TERM', wait.pid)
-      status = Timeout.timeout(timeout) { wait.value }
+
+      unless wait.join(timeout)
+        Process.kill('KILL', wait.pid)
+        reader.join
+        raise IntegrationsHelper::TestFailure, "shoryuken must exit after TERM, but it kept running: #{output}"
+      end
+
       reader.join
-      [status, output]
+      [wait.value, output]
     end
   end
 end
