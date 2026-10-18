@@ -1,10 +1,55 @@
 ## [Unreleased]
 
+- Breaking: `shoryuken_options` rejects unknown worker option keys when the worker class loads
+  - A mistyped key (e.g. `auto_delte`) now raises `Shoryuken::Errors::InvalidConfigurationError` naming the worker
+    and the key, instead of being silently ignored
+  - Workers with any other key, including the formerly documented but unused `sqs`, no longer load
+  - Known keys: `queue`, `delete`, `auto_delete`, `auto_visibility_timeout`, `retry_intervals`, `batch`,
+    `body_parser` and `non_retryable_exceptions`
+
+- Fix: Lifecycle event handlers registered with `Shoryuken.on` no longer leak into `Shoryuken::Options::DEFAULTS`
+  - `options` copied the defaults shallowly, so handlers were appended to the shared nested arrays and fired for
+    every later `Shoryuken::Options` instance; the defaults are now deep-copied
+
+- Enhancement: Global options are validated when the server loads its configuration
+  - Invalid values from the config file, the CLI or Ruby code (e.g. `concurrency: 0`, a `delay` or `timeout` that is
+    not a non-negative number, a malformed `queues` entry or group) now raise
+    `Shoryuken::Errors::InvalidConfigurationError` naming the option, instead of failing later or being ignored
+  - Unknown keys, globally or in a group (e.g. a mistyped `concurency`), log a warning naming the key; they are not
+    rejected, so custom keys kept in the options keep working
+  - Validation runs on `Shoryuken::Contractable`, a copy of the karafka-core contract layer (MIT), with no new
+    dependency
+
+- Fix: `auto_visibility_timeout` now extends a message by the `visibility_timeout` set in
+  `sqs_client_receive_message_opts` when there is one
+  - It used only the queue's `VisibilityTimeout`, so a shorter receive-time timeout let the message become visible
+    again during processing, and it was performed more than once
+
+- Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
+  - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
+    unlock wakeup, so the other `#kill` callers slept forever
+  - The loop now clears its running flag without the mutex
+
 - Fix: Fetched messages that are never started are now released at once instead of staying in flight
   - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
     rejected the worker post, so it stayed invisible until its visibility timeout expired
   - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
     release is logged and does not break dispatch or shutdown
+
+- Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
+  - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
+    executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
+    shutdown and the `:shutdown`/`:stopped` events - never ran
+  - Each step now runs in its own rescue and logs the error, so the remaining steps always run
+  - A graceful stop awaits only the managers it signalled, so a manager whose `stop_new_dispatching` raised no
+    longer hangs the shutdown
+
+- Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
+  - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
+    dispatch thread, which was non-deterministic and untestable
+  - It now backs off incrementally (1s, 2s, 3s, ... via `backoff_interval`), naturally bounded because
+    `attempts` never exceeds `max_attempts`; the broad rescue is unchanged (the AWS SDK already retries
+    throttling/5xx/networking internally) and now carries specs for retry, exhaustion, and the backoff schedule
 
 ## [7.0.4] - 2026-09-23
 

@@ -49,17 +49,29 @@ module Shoryuken
       begin
         yield
       rescue => e
-        # Tries to auto retry connectivity errors
+        # Retry transient fetch failures. The rescue is intentionally broad: the
+        # AWS SDK already retries throttling/5xx/networking errors internally, so
+        # whatever surfaces here is uncommon - give it a few bounded attempts
+        # before giving up (which stops the manager so a supervisor can react).
         raise if attempts >= max_attempts
 
         attempts += 1
 
-        logger.debug { "Retrying fetch attempt #{attempts} for #{e.message}" }
+        logger.debug { "Retrying fetch attempt #{attempts}/#{max_attempts} after error: #{e.message}" }
 
-        sleep((1..5).to_a.sample)
+        sleep(backoff_interval(attempts))
 
         retry
       end
+    end
+
+    # Backoff interval, in seconds, before the next fetch retry. Grows linearly with the attempt number and is
+    # naturally bounded because attempts never exceeds max_attempts.
+    #
+    # @param attempts [Integer] the current (1-based) attempt number
+    # @return [Integer] seconds to sleep before retrying
+    def backoff_interval(attempts)
+      attempts
     end
 
     # Receives messages from an SQS queue
@@ -114,10 +126,7 @@ module Shoryuken
     # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
     # @return [Hash] the receive options hash
     def receive_options(queue)
-      options = Shoryuken.sqs_client_receive_message_opts[queue.name]
-      options ||= Shoryuken.sqs_client_receive_message_opts[@group]
-
-      options.to_h.dup
+      Shoryuken.receive_message_opts_for(queue.name, @group)
     end
 
     # Checks if a queue uses batch message processing

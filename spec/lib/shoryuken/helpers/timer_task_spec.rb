@@ -294,6 +294,26 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect(true_count).to eq(1)
       expect(false_count).to eq(4)
     end
+
+    it 'does not strand concurrent kill callers when the timer thread is killed during shutdown' do
+      timer = described_class.new(execution_interval: 0.01) {}
+      timer.execute
+      timer_thread = timer.instance_variable_get(:@thread)
+      mutex = timer.instance_variable_get(:@mutex)
+
+      # Hold the mutex like a losing #kill caller while the loop sees @killed and leaves
+      mutex.lock
+      timer.instance_variable_set(:@killed, true)
+      sleep(0.05)
+      callers = 3.times.map { Thread.new { timer.kill } }
+      Thread.pass until callers.all? { |t| t.status == 'sleep' }
+      timer_thread.kill
+      mutex.unlock
+
+      expect(callers.map { |t| t.join(1) }).to all(be_a(Thread))
+    ensure
+      callers&.each(&:kill)
+    end
   end
 
   describe 'thread priority' do
