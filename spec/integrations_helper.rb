@@ -117,6 +117,21 @@ end
 # Short alias for DataCollector
 DT = DataCollector
 
+# Scratch resources for a single spec
+module ScratchHelper
+  # Yields a new queue and a temporary directory, and deletes both afterwards
+  def with_queue_and_dir(attributes: {})
+    dir = Dir.mktmpdir
+    queue = DT.uuid
+    create_test_queue(queue, attributes: attributes)
+
+    yield queue, dir
+  ensure
+    delete_test_queue(queue) if queue
+    FileUtils.remove_entry(dir) if dir
+  end
+end
+
 # Helpers for specs that run bin/shoryuken in a child process
 module ProcessHelper
   SHORYUKEN_BIN = File.expand_path('../bin/shoryuken', __dir__)
@@ -145,8 +160,8 @@ module ProcessHelper
     end
   end
 
-  # Runs `bin/shoryuken start` until the block returns true, stops it with TERM, returns [status, output]
-  def run_shoryuken_until(*args, timeout: 30, &condition)
+  # Runs `bin/shoryuken start` until the block returns true, stops it with the signal, returns [status, output]
+  def run_shoryuken_until(*args, signal: 'TERM', timeout: 30, &condition)
     Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
@@ -162,12 +177,12 @@ module ProcessHelper
         raise IntegrationsHelper::TestFailure, "shoryuken stopped or timed out before the condition was met: #{output}"
       end
 
-      Process.kill('TERM', wait.pid)
+      Process.kill(signal, wait.pid)
 
       unless wait.join(timeout)
         Process.kill('KILL', wait.pid)
         reader.join
-        raise IntegrationsHelper::TestFailure, "shoryuken must exit after TERM, but it kept running: #{output}"
+        raise IntegrationsHelper::TestFailure, "shoryuken must exit after #{signal}, but it kept running: #{output}"
       end
 
       reader.join
@@ -177,6 +192,7 @@ module ProcessHelper
 end
 
 module IntegrationsHelper
+  include ScratchHelper
   include ProcessHelper
 
   class TestFailure < StandardError; end

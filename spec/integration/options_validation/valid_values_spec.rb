@@ -42,11 +42,7 @@ def expect_processed(dir, name, queue, config, *args)
   assert_equal(0, queue_size(queue), "#{name}: the message must be deleted")
 end
 
-dir = Dir.mktmpdir
-queue = DT.uuid
-create_test_queue(queue)
-
-begin
+with_queue_and_dir do |queue, dir|
   # --- defaults, queue from the CLI ---
   expect_processed(dir, 'defaults', queue, nil, '-q', queue)
 
@@ -72,7 +68,4 @@ begin
         queues:
           - [#{queue}, 2]
   YAML
-ensure
-  delete_test_queue(queue)
-  FileUtils.remove_entry(dir)
 end
