@@ -10,22 +10,7 @@
 # Regression: any key was merged into the options without a check, so a typo
 # was silently ignored.
 
-require 'open3'
-require 'rbconfig'
-require 'tmpdir'
-require 'fileutils'
-require 'timeout'
-
 setup_sqs
-
-BIN = File.expand_path('../../../bin/shoryuken', __dir__)
-
-ENV_VARS = {
-  'AWS_ENDPOINT_URL_SQS' => 'http://localhost:9324',
-  'AWS_REGION' => 'us-east-1',
-  'AWS_ACCESS_KEY_ID' => 'fake',
-  'AWS_SECRET_ACCESS_KEY' => 'fake'
-}.freeze
 
 dir = Dir.mktmpdir
 queue = DT.uuid
@@ -58,26 +43,7 @@ begin
 
   Shoryuken::Client.queues(queue).send_message(message_body: 'hello')
 
-  output = +''
-  status = nil
-  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-C', config_file, '-r', boot_file) do |_in, out, wait|
-    reader = Thread.new { out.each_line { |line| output << line } }
-
-    begin
-      Timeout.timeout(30) { sleep 0.1 until File.exist?(marker) || !wait.alive? }
-    rescue Timeout::Error
-      Process.kill('KILL', wait.pid)
-    end
-
-    unless File.exist?(marker)
-      reader.join
-      raise "the message must be processed, got: #{output}"
-    end
-
-    Process.kill('TERM', wait.pid)
-    status = Timeout.timeout(30) { wait.value }
-    reader.join
-  end
+  status, output = run_shoryuken_until('-C', config_file, '-r', boot_file) { File.exist?(marker) }
 
   assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
   assert_includes(output, "Unknown option 'concurency' is ignored", "got: #{output}")

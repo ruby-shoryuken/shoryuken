@@ -19,6 +19,8 @@ module Shoryuken
         non_retryable_exceptions
       ].freeze
 
+      private_constant :KNOWN_KEYS
+
       virtual do |data|
         (data.keys.map(&:to_s) - KNOWN_KEYS).map { |key| [[key], :unknown] }
       end

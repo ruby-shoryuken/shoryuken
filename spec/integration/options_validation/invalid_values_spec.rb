@@ -12,55 +12,21 @@
 # process started and failed later (e.g. a Manager crash on a nil
 # concurrency), or ran with a value it could not use.
 
-require 'open3'
-require 'rbconfig'
-require 'tmpdir'
-require 'fileutils'
-
 setup_sqs
-
-BIN = File.expand_path('../../../bin/shoryuken', __dir__)
-
-ENV_VARS = {
-  'AWS_ENDPOINT_URL_SQS' => 'http://localhost:9324',
-  'AWS_REGION' => 'us-east-1',
-  'AWS_ACCESS_KEY_ID' => 'fake',
-  'AWS_SECRET_ACCESS_KEY' => 'fake'
-}.freeze
-
-def queue_size(queue_name)
-  queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
-
-  Shoryuken::Client.sqs.get_queue_attributes(
-    queue_url: queue_url,
-    attribute_names: %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
-  ).attributes.values.sum(&:to_i)
-end
 
 def expect_rejected(dir, boot_file, config, errors, *args)
   config_file = File.join(dir, "#{DT.uuid}.yml")
   File.write(config_file, config)
 
-  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-C', config_file, '-r', boot_file, *args) do |_in, out, wait|
-    output = +''
-    reader = Thread.new { out.each_line { |line| output << line } }
+  status, output = run_shoryuken_until_exit('-C', config_file, '-r', boot_file, *args)
 
-    unless wait.join(30)
-      Process.kill('KILL', wait.pid)
-      reader.join
-      raise "the process must fail to start, but it kept running: #{output}"
-    end
-
-    reader.join
-
-    refute(wait.value.success?, "the process must fail to start, got: #{output}")
-    assert_includes(output, 'Shoryuken::Errors::InvalidConfigurationError', "got: #{output}")
-    errors.each do |key, message|
-      assert_includes(output, key, "got: #{output}")
-      assert_includes(output, message, "got: #{output}")
-    end
-    refute(output.include?('Starting'), "the process must not start, got: #{output}")
+  refute(status.success?, "the process must fail to start, got: #{output}")
+  assert_includes(output, 'Shoryuken::Errors::InvalidConfigurationError', "got: #{output}")
+  errors.each do |key, message|
+    assert_includes(output, key, "got: #{output}")
+    assert_includes(output, message, "got: #{output}")
   end
+  refute(output.include?('Starting'), "the process must not start, got: #{output}")
 end
 
 dir = Dir.mktmpdir

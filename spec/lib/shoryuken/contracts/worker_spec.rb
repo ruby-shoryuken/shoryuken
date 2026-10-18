@@ -6,7 +6,9 @@ RSpec.describe Shoryuken::Contracts::Worker do
   end
 
   it 'accepts every known worker option' do
-    opts = described_class::KNOWN_KEYS.to_h { |key| [key, nil] }
+    opts = %w[
+      queue delete auto_delete auto_visibility_timeout retry_intervals batch body_parser non_retryable_exceptions
+    ].to_h { |key| [key, nil] }
 
     expect(errors(opts)).to be_empty
   end

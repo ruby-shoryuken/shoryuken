@@ -12,31 +12,7 @@
 # Regression: any key was merged into the worker options without a check, so a
 # typo was silently ignored (e.g. messages were never deleted).
 
-require 'open3'
-require 'rbconfig'
-require 'tmpdir'
-require 'fileutils'
-require 'timeout'
-
 setup_sqs
-
-BIN = File.expand_path('../../../bin/shoryuken', __dir__)
-
-ENV_VARS = {
-  'AWS_ENDPOINT_URL_SQS' => 'http://localhost:9324',
-  'AWS_REGION' => 'us-east-1',
-  'AWS_ACCESS_KEY_ID' => 'fake',
-  'AWS_SECRET_ACCESS_KEY' => 'fake'
-}.freeze
-
-def queue_size(queue_name)
-  queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
-
-  Shoryuken::Client.sqs.get_queue_attributes(
-    queue_url: queue_url,
-    attribute_names: %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
-  ).attributes.values.sum(&:to_i)
-end
 
 def write_worker(dir, name, options, marker)
   boot_file = File.join(dir, "#{name}.rb")
@@ -68,24 +44,13 @@ begin
   # --- unknown key ---
   boot_file = write_worker(dir, 'TypoWorker', "queue: '#{queue}', auto_delte: true", marker)
 
-  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-C', config_file, '-r', boot_file) do |_in, out, wait|
-    output = +''
-    reader = Thread.new { out.each_line { |line| output << line } }
+  status, output = run_shoryuken_until_exit('-C', config_file, '-r', boot_file)
 
-    unless wait.join(30)
-      Process.kill('KILL', wait.pid)
-      reader.join
-      raise "the process must fail to start, but it kept running: #{output}"
-    end
-
-    reader.join
-
-    refute(wait.value.success?, "the process must fail to start, got: #{output}")
-    assert_includes(output, 'Shoryuken::Errors::InvalidConfigurationError', "got: #{output}")
-    assert_includes(output, 'TypoWorker.auto_delte', "got: #{output}")
-    assert_includes(output, 'is not a known worker option', "got: #{output}")
-    refute(output.include?('Starting'), "the process must not start, got: #{output}")
-  end
+  refute(status.success?, "the process must fail to start, got: #{output}")
+  assert_includes(output, 'Shoryuken::Errors::InvalidConfigurationError', "got: #{output}")
+  assert_includes(output, 'TypoWorker.auto_delte', "got: #{output}")
+  assert_includes(output, 'is not a known worker option', "got: #{output}")
+  refute(output.include?('Starting'), "the process must not start, got: #{output}")
 
   refute(File.exist?(marker), 'no message must be processed')
   assert_equal(1, queue_size(queue), 'the message must still be in the queue')
@@ -98,26 +63,7 @@ begin
     marker
   )
 
-  output = +''
-  status = nil
-  Open3.popen2e(ENV_VARS, RbConfig.ruby, BIN, 'start', '-C', config_file, '-r', boot_file) do |_in, out, wait|
-    reader = Thread.new { out.each_line { |line| output << line } }
-
-    begin
-      Timeout.timeout(30) { sleep 0.1 until File.exist?(marker) || !wait.alive? }
-    rescue Timeout::Error
-      Process.kill('KILL', wait.pid)
-    end
-
-    unless File.exist?(marker)
-      reader.join
-      raise "the message must be processed, got: #{output}"
-    end
-
-    Process.kill('TERM', wait.pid)
-    status = Timeout.timeout(30) { wait.value }
-    reader.join
-  end
+  status, output = run_shoryuken_until('-C', config_file, '-r', boot_file) { File.exist?(marker) }
 
   assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
   refute(output.include?('InvalidConfigurationError'), "got: #{output}")
