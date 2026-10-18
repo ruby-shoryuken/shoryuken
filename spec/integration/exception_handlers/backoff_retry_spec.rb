@@ -52,7 +52,8 @@ handled = DT[:handled].group_by(&:first).transform_values { |calls| calls.map(&:
 receive_counts, times = DT[backoff_queue].transpose
 assert_equal([1, 2, 3], receive_counts)
 gaps = times.each_cons(2).map { |earlier, later| later - earlier }
-assert(gaps.all? { |gap| gap.between?(1, 10) }, "retries must follow the 1s interval, not the 30s VisibilityTimeout: #{gaps}")
+assert(gaps.all? { |gap| gap.between?(1, 10) },
+       "retries must follow the 1s interval, not the 30s visibility timeout: #{gaps}")
 assert_equal(nil, handled[backoff_queue], 'a scheduled retry must not reach the exception handlers')
 
 # --- No retry_intervals ---
