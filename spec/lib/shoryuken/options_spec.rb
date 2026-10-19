@@ -21,6 +21,19 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '#on' do
+    let(:options) { described_class.new }
+
+    it 'does not leak handlers or queues into the defaults' do
+      options.on(:startup) {}
+      options.options[:queues] << 'default'
+
+      expect(described_class.new.options[:lifecycle_events]).to all(satisfy { |_event, handlers| handlers.empty? })
+      expect(described_class.new.options[:queues]).to be_empty
+      expect(described_class::DEFAULTS[:lifecycle_events][:startup]).to be_empty
+    end
+  end
+
   describe '.add_group adds queues and optional delay' do
     before do
       Shoryuken.groups.clear
@@ -116,6 +129,31 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '.receive_message_opts_for' do
+    before do
+      Shoryuken.sqs_client_receive_message_opts['group1'] = { wait_time_seconds: 20 }
+      Shoryuken.sqs_client_receive_message_opts['queue1'] = { visibility_timeout: 10 }
+    end
+
+    it 'returns the options of the queue over those of its group' do
+      expect(Shoryuken.receive_message_opts_for('queue1', 'group1')).to eq(visibility_timeout: 10)
+    end
+
+    it 'returns the options of the group when the queue has none' do
+      expect(Shoryuken.receive_message_opts_for('queue2', 'group1')).to eq(wait_time_seconds: 20)
+    end
+
+    it 'returns an empty Hash when neither has options' do
+      expect(Shoryuken.receive_message_opts_for('queue2', nil)).to eq({})
+    end
+
+    it 'returns a copy, so a change does not leak into the stored options' do
+      Shoryuken.receive_message_opts_for('queue1', 'group1')[:max_number_of_messages] = 1
+
+      expect(Shoryuken.sqs_client_receive_message_opts['queue1']).to eq(visibility_timeout: 10)
+    end
+  end
+
   describe '.register_worker' do
     it 'registers a worker' do
       subject.worker_registry.clear
@@ -159,8 +197,10 @@ RSpec.describe Shoryuken::Options do
 
           def perform(sqs_msg, body); end
         end
-      }.to raise_error('Could not register BatchableWorker for default, because TestWorker is already registered for this queue, ' \
-        "and Shoryuken doesn't support a batchable worker for a queue with multiple workers")
+      }.to raise_error(
+        'Could not register BatchableWorker for default, because TestWorker is already registered for this queue, ' \
+        "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
+      )
     end
   end
 

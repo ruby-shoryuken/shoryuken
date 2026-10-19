@@ -25,12 +25,14 @@ RSpec.describe Shoryuken::Fetcher do
 
       Shoryuken.sqs_client_receive_message_opts[group] = { wait_time_seconds: 10 }
 
-      expect(queue).to receive(:receive_messages).with({
-                                                         wait_time_seconds: 10,
-                                                         max_number_of_messages: limit,
-                                                         message_attribute_names: ['All'],
-                                                         attribute_names: ['All']
-                                                       }).and_return([])
+      expect(queue).to receive(:receive_messages).with(
+        {
+          wait_time_seconds: 10,
+          max_number_of_messages: limit,
+          message_attribute_names: ['All'],
+          attribute_names: ['All']
+        }
+      ).and_return([])
 
       subject.fetch(queue_config, limit)
     end
@@ -61,11 +63,13 @@ RSpec.describe Shoryuken::Fetcher do
 
         Shoryuken.sqs_client_receive_message_opts[queue_name] = { max_number_of_messages: 1 }
 
-        expect(queue).to receive(:receive_messages).with({
-                                                           max_number_of_messages: 1,
-                                                           message_attribute_names: ['All'],
-                                                           attribute_names: ['All']
-                                                         }).and_return([])
+        expect(queue).to receive(:receive_messages).with(
+          {
+            max_number_of_messages: 1,
+            message_attribute_names: ['All'],
+            attribute_names: ['All']
+          }
+        ).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -77,11 +81,13 @@ RSpec.describe Shoryuken::Fetcher do
 
         Shoryuken.sqs_client_receive_message_opts[queue_name] = { max_number_of_messages: 20 }
 
-        expect(queue).to receive(:receive_messages).with({
-                                                           max_number_of_messages: limit,
-                                                           message_attribute_names: ['All'],
-                                                           attribute_names: ['All']
-                                                         }).and_return([])
+        expect(queue).to receive(:receive_messages).with(
+          {
+            max_number_of_messages: limit,
+            message_attribute_names: ['All'],
+            attribute_names: ['All']
+          }
+        ).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -92,9 +98,11 @@ RSpec.describe Shoryuken::Fetcher do
 
       specify do
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
-        expect(queue).to receive(:receive_messages).with({
-                                                           max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']
-                                                         }).and_return([])
+        expect(queue).to receive(:receive_messages).with(
+          {
+            max_number_of_messages: described_class::FETCH_LIMIT, attribute_names: ['All'], message_attribute_names: ['All']
+          }
+        ).and_return([])
 
         subject.fetch(queue_config, limit)
       end
@@ -108,11 +116,26 @@ RSpec.describe Shoryuken::Fetcher do
         # see https://github.com/ruby-shoryuken/shoryuken/pull/530
 
         allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
-        expect(queue).to receive(:receive_messages).with({
-                                                           max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']
-                                                         }).and_return([])
+        expect(queue).to receive(:receive_messages).with(
+          {
+            max_number_of_messages: 1, attribute_names: ['All'], message_attribute_names: ['All']
+          }
+        ).and_return([])
 
         subject.fetch(queue_config, limit)
+      end
+
+      it 'caps at one message even when the queue config requests more' do
+        # A custom polling strategy can put max_number_of_messages in the
+        # QueueConfiguration options; the FIFO one-at-a-time guard must still win
+        # so SQS can't return several messages from the same group.
+        config = Shoryuken::Polling::QueueConfiguration.new(queue_name, max_number_of_messages: 10)
+
+        allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+        expect(queue).to receive(:receive_messages)
+          .with(hash_including(max_number_of_messages: 1)).and_return([])
+
+        subject.fetch(config, limit)
       end
 
       context 'with batch=true' do
@@ -122,12 +145,51 @@ RSpec.describe Shoryuken::Fetcher do
           allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
           allow(Shoryuken.worker_registry).to receive(:batch_receive_messages?).with(queue.name).and_return(true)
 
-          expect(queue).to receive(:receive_messages).with({
-                                                             max_number_of_messages: limit, attribute_names: ['All'], message_attribute_names: ['All']
-                                                           }).and_return([])
+          expect(queue).to receive(:receive_messages).with(
+            {
+              max_number_of_messages: limit, attribute_names: ['All'], message_attribute_names: ['All']
+            }
+          ).and_return([])
 
           subject.fetch(queue_config, limit)
         end
+      end
+    end
+
+    context 'when receive_messages fails transiently' do
+      before do
+        allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+        # Don't actually sleep between retries
+        allow(subject).to receive(:sleep)
+      end
+
+      it 'retries and then succeeds' do
+        calls = 0
+        allow(queue).to receive(:receive_messages) do
+          calls += 1
+          raise 'transient' if calls < 3
+
+          []
+        end
+
+        expect { subject.fetch(queue_config, 1) }.not_to raise_error
+        expect(calls).to eq(3)
+      end
+
+      it 're-raises after exhausting the retries' do
+        allow(queue).to receive(:receive_messages).and_raise('persistent')
+
+        expect { subject.fetch(queue_config, 1) }.to raise_error('persistent')
+      end
+
+      it 'backs off incrementally between attempts (1s, 2s, 3s)' do
+        allow(queue).to receive(:receive_messages).and_raise('persistent')
+
+        expect(subject).to receive(:sleep).with(1).ordered
+        expect(subject).to receive(:sleep).with(2).ordered
+        expect(subject).to receive(:sleep).with(3).ordered
+
+        expect { subject.fetch(queue_config, 1) }.to raise_error('persistent')
       end
     end
   end

@@ -29,10 +29,12 @@ module Shoryuken
 
         sqs_msgs = Array(receive_messages(queue, limit))
 
-        Shoryuken.monitor.publish('fetcher.completed',
-                                  queue: queue.name,
-                                  message_count: sqs_msgs.size,
-                                  duration_ms: elapsed(started_at))
+        Shoryuken.monitor.publish(
+          'fetcher.completed',
+          queue: queue.name,
+          message_count: sqs_msgs.size,
+          duration_ms: elapsed(started_at)
+        )
 
         sqs_msgs
       end
@@ -51,21 +53,35 @@ module Shoryuken
       begin
         yield
       rescue => e
-        # Tries to auto retry connectivity errors
+        # Retry transient fetch failures. The rescue is intentionally broad: the
+        # AWS SDK already retries throttling/5xx/networking errors internally, so
+        # whatever surfaces here is uncommon - give it a few bounded attempts
+        # before giving up (which stops the manager so a supervisor can react).
         raise if attempts >= max_attempts
 
         attempts += 1
 
-        Shoryuken.monitor.publish('fetcher.retry',
-                                  attempt: attempts,
-                                  max_attempts: max_attempts,
-                                  error_message: e.message,
-                                  error_class: e.class.name)
+        Shoryuken.monitor.publish(
+          'fetcher.retry',
+          attempt: attempts,
+          max_attempts: max_attempts,
+          error_message: e.message,
+          error_class: e.class.name
+        )
 
-        sleep((1..5).to_a.sample)
+        sleep(backoff_interval(attempts))
 
         retry
       end
+    end
+
+    # Backoff interval, in seconds, before the next fetch retry. Grows linearly with the attempt number and is
+    # naturally bounded because attempts never exceeds max_attempts.
+    #
+    # @param attempts [Integer] the current (1-based) attempt number
+    # @return [Integer] seconds to sleep before retrying
+    def backoff_interval(attempts)
+      attempts
     end
 
     # Receives messages from an SQS queue
@@ -78,11 +94,17 @@ module Shoryuken
 
       shoryuken_queue = Shoryuken::Client.queues(queue.name)
 
-      options[:max_number_of_messages]  = max_number_of_messages(shoryuken_queue, limit, options)
       options[:message_attribute_names] = %w[All]
       options[:attribute_names]         = %w[All]
 
+      # Merge per-queue options BEFORE computing the cap so the FIFO
+      # one-at-a-time guard (and FETCH_LIMIT) always win. Computing the cap last
+      # means a queue option of max_number_of_messages can only lower the count,
+      # never raise a non-batch FIFO queue above 1 - which would let SQS return
+      # several messages from the same group and break ordering.
       options.merge!(queue.options)
+
+      options[:max_number_of_messages] = max_number_of_messages(shoryuken_queue, limit, options)
 
       shoryuken_queue.receive_messages(options)
     end
@@ -114,10 +136,7 @@ module Shoryuken
     # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
     # @return [Hash] the receive options hash
     def receive_options(queue)
-      options = Shoryuken.sqs_client_receive_message_opts[queue.name]
-      options ||= Shoryuken.sqs_client_receive_message_opts[@group]
-
-      options.to_h.dup
+      Shoryuken.receive_message_opts_for(queue.name, @group)
     end
 
     # Checks if a queue uses batch message processing

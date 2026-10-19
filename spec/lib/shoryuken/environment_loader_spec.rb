@@ -33,6 +33,13 @@ RSpec.describe Shoryuken::EnvironmentLoader do
         )
       end
     end
+
+    it 'validates the options before it parses the queues' do
+      Shoryuken.options[:concurrency] = 0
+
+      expect(subject).not_to receive(:parse_queues)
+      expect { subject.load }.to raise_error(Shoryuken::Errors::InvalidConfigurationError, /concurrency/)
+    end
   end
 
   describe '#parse_queues loads default queues' do

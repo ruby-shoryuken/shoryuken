@@ -294,5 +294,49 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect(true_count).to eq(1)
       expect(false_count).to eq(4)
     end
+
+    it 'does not strand concurrent kill callers when the timer thread is killed during shutdown' do
+      timer = described_class.new(execution_interval: 0.01) {}
+      timer.execute
+      timer_thread = timer.instance_variable_get(:@thread)
+      mutex = timer.instance_variable_get(:@mutex)
+
+      # Hold the mutex like a losing #kill caller while the loop sees @killed and leaves
+      mutex.lock
+      timer.instance_variable_set(:@killed, true)
+      sleep(0.05)
+      callers = 3.times.map { Thread.new { timer.kill } }
+      Thread.pass until callers.all? { |t| t.status == 'sleep' }
+      timer_thread.kill
+      mutex.unlock
+
+      expect(callers.map { |t| t.join(1) }).to all(be_a(Thread))
+    ensure
+      callers&.each(&:kill)
+    end
+  end
+
+  describe 'thread priority' do
+    it 'does not inherit a lowered priority from the creating thread' do
+      observed = ::Queue.new
+
+      # Shoryuken starts the visibility-extension timer from a worker thread
+      # whose priority is lowered to Shoryuken.thread_priority (default -1).
+      # The timer thread must not inherit that lowered priority, otherwise a
+      # delayed extension under load can miss the visibility timeout and let the
+      # message be redelivered (double processed).
+      creator = Thread.new do
+        Thread.current.priority = -1
+        timer = described_class.new(execution_interval: 0.05) do
+          observed << Thread.current.priority
+        end
+        timer.execute
+        sleep(0.15)
+        timer.kill
+      end
+      creator.join
+
+      expect(observed.pop).to eq(0)
+    end
   end
 end

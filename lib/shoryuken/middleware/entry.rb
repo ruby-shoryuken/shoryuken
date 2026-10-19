@@ -2,8 +2,7 @@
 
 module Shoryuken
   module Middleware
-    # Represents an entry in a middleware chain, storing the middleware class
-    # and any arguments needed for its instantiation.
+    # Represents an entry in a middleware chain, storing the middleware class and any arguments needed for its instantiation.
     #
     # @api private
     class Entry

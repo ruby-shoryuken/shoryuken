@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Represents an SQS message received by a Shoryuken worker.
-  # This class wraps the raw AWS SQS message data and provides convenient methods
-  # for interacting with the message, including deletion and visibility timeout management.
+  # Represents an SQS message received by a Shoryuken worker. This class wraps the raw AWS SQS message data and provides
+  # convenient methods for interacting with the message, including deletion and visibility timeout management.
   #
   # Message instances are automatically created by Shoryuken and passed to your
   # worker's `perform` method as the first argument.
@@ -65,14 +64,16 @@ module Shoryuken
     # @!method message_attributes
     #   Returns custom message attributes set by the sender.
     #   @return [Hash] Custom message attributes with typed values
-    def_delegators(:data,
-                   :message_id,
-                   :receipt_handle,
-                   :md5_of_body,
-                   :body,
-                   :attributes,
-                   :md5_of_message_attributes,
-                   :message_attributes)
+    def_delegators(
+      :data,
+      :message_id,
+      :receipt_handle,
+      :md5_of_body,
+      :body,
+      :attributes,
+      :md5_of_message_attributes,
+      :message_attributes
+    )
 
     # @return [Aws::SQS::Client] The SQS client used for message operations
     attr_accessor :client

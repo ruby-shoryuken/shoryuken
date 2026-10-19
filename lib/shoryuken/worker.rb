@@ -4,10 +4,9 @@ module Shoryuken
   # Worker module provides the core functionality for creating Shoryuken workers
   # that process messages from Amazon SQS queues.
   #
-  # Including this module in a class provides methods for configuring queue processing,
-  # enqueueing jobs, and setting up middleware. Workers can be configured for different
-  # processing patterns including single message processing, batch processing, and
-  # various retry and visibility timeout strategies.
+  # Including this module in a class provides methods for configuring queue processing, enqueueing jobs, and setting up
+  # middleware. Workers can be configured for different processing patterns including single message processing, batch
+  # processing, and various retry and visibility timeout strategies.
   #
   # @example Basic worker implementation
   #   class EmailWorker
@@ -121,10 +120,13 @@ module Shoryuken
       # @option opts [String, Array<String>] :queue Queue name(s) this worker processes
       # @option opts [Boolean] :batch (false) Process messages in batches of up to 10
       # @option opts [Boolean] :auto_delete (false) Automatically delete messages after processing
+      # @option opts [Boolean] :delete (false) Alias of :auto_delete
       # @option opts [Boolean] :auto_visibility_timeout (false) Automatically extend message visibility
       # @option opts [Array<Integer>] :retry_intervals Exponential backoff retry intervals in seconds
-      # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should skip retries and delete message immediately
-      # @option opts [Hash] :sqs Additional SQS client options
+      # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should
+      #   skip retries and delete message immediately
+      # @option opts [Symbol, Class, Proc] :body_parser (:text) How the message body is parsed before #perform
+      # @raise [Shoryuken::Errors::InvalidConfigurationError] when an option is not a known worker option
       #
       # @example Basic worker configuration
       #   class MyWorker
@@ -201,7 +203,10 @@ module Shoryuken
       #     end
       #   end
       def shoryuken_options(opts = {})
-        self.shoryuken_options_hash = get_shoryuken_options.merge(stringify_keys(opts || {}))
+        opts = stringify_keys(opts || {})
+        Contracts::Worker.new.validate!(opts, scope: [name].compact)
+
+        self.shoryuken_options_hash = get_shoryuken_options.merge(opts)
         normalize_worker_queue!
       end
 
@@ -216,9 +221,8 @@ module Shoryuken
         !!get_shoryuken_options['auto_visibility_timeout']
       end
 
-      # Checks if exponential backoff retry is configured for this worker.
-      # When retry intervals are specified, failed jobs will be retried with
-      # increasing delays between attempts.
+      # Checks if exponential backoff retry is configured for this worker. When retry intervals are specified, failed jobs
+      # will be retried with increasing delays between attempts.
       #
       # @return [Boolean] true if retry intervals are configured
       #
@@ -235,10 +239,9 @@ module Shoryuken
         !!get_shoryuken_options['retry_intervals']
       end
 
-      # Checks if automatic message deletion is enabled for this worker.
-      # When enabled, successfully processed messages are automatically deleted
-      # from the SQS queue. When disabled, you must manually delete messages
-      # or they will become visible again after the visibility timeout.
+      # Checks if automatic message deletion is enabled for this worker. When enabled, successfully processed messages are
+      # automatically deleted from the SQS queue. When disabled, you must manually delete messages or they will become
+      # visible again after the visibility timeout.
       #
       # @return [Boolean] true if auto delete is enabled
       #

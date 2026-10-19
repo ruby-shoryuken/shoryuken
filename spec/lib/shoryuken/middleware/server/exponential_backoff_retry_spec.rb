@@ -5,8 +5,10 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   let(:queue)     { 'default' }
   let(:sqs_queue) { double Shoryuken::Queue }
   let(:sqs_msg)   {
-    double Shoryuken::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid,
-                               attributes: { 'ApproximateReceiveCount' => 1 }, message_id: SecureRandom.uuid
+    double(
+      Shoryuken::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid,
+      attributes: { 'ApproximateReceiveCount' => 1 }, message_id: SecureRandom.uuid
+    )
   }
 
   before do
@@ -16,6 +18,21 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   context 'when batch worker' do
     it 'yields' do
       expect { |b| subject.call(TestWorker.new, nil, [], nil, &b) }.to yield_control
+    end
+
+    it 'does not mask the original error when the batch raises' do
+      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
+
+      # Use a logger that actually evaluates lazy log blocks (StringIO, not
+      # IO::NULL which skips them), as the default production level does - so a
+      # stray message_id/attributes call on the batch Array would surface.
+      # Batches aren't backoff-retried, so the original error must propagate
+      # rather than a NoMethodError from calling message APIs on the Array.
+      allow(subject).to receive(:logger).and_return(Logger.new(StringIO.new, level: Logger::DEBUG))
+
+      expect {
+        subject.call(TestWorker.new, nil, [sqs_msg], nil) { raise 'original batch error' }
+      }.to raise_error(RuntimeError, 'original batch error')
     end
   end
 
@@ -157,6 +174,23 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 43_198)
 
       expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
+    end
+
+    it 'never sets a negative visibility timeout for jobs longer than the SQS ceiling' do
+      started_at = Time.now - 43_300 # ran longer than the 12h SQS maximum
+
+      expect(subject.send(:next_visibility_timeout, 300, started_at)).to eq(0)
+    end
+
+    it 'does not mask the original error when rescheduling fails' do
+      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
+
+      # e.g. an expired receipt handle - change_visibility raises
+      allow(sqs_msg).to receive(:change_visibility).and_raise(StandardError, 'visibility boom')
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
+      }.to raise_error(RuntimeError, 'original worker error')
     end
   end
 end

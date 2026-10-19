@@ -1,5 +1,137 @@
 ## [Unreleased]
 
+- Breaking: Drop support for Ruby 3.2 (EOL March 2026)
+  - Minimum required Ruby version is now 3.3.0
+  - Supported Ruby versions: 3.3, 3.4, 4.0
+  - Users on Ruby 3.2 should upgrade or remain on Shoryuken 7.0.x
+
+- Breaking: `shoryuken_options` rejects unknown worker option keys when the worker class loads
+  - A mistyped key (e.g. `auto_delte`) now raises `Shoryuken::Errors::InvalidConfigurationError` naming the worker
+    and the key, instead of being silently ignored
+  - Workers with any other key, including the formerly documented but unused `sqs`, no longer load
+  - Known keys: `queue`, `delete`, `auto_delete`, `auto_visibility_timeout`, `retry_intervals`, `batch`,
+    `body_parser` and `non_retryable_exceptions`
+
+- Fix: Lifecycle event handlers registered with `Shoryuken.on` no longer leak into `Shoryuken::Options::DEFAULTS`
+  - `options` copied the defaults shallowly, so handlers were appended to the shared nested arrays and fired for
+    every later `Shoryuken::Options` instance; the defaults are now deep-copied
+
+- Enhancement: Global options are validated when the server loads its configuration
+  - Invalid values from the config file, the CLI or Ruby code (e.g. `concurrency: 0`, a `delay` or `timeout` that is
+    not a non-negative number, a malformed `queues` entry or group) now raise
+    `Shoryuken::Errors::InvalidConfigurationError` naming the option, instead of failing later or being ignored
+  - Unknown keys, globally or in a group (e.g. a mistyped `concurency`), log a warning naming the key; they are not
+    rejected, so custom keys kept in the options keep working
+  - Validation runs on `Shoryuken::Contractable`, a copy of the karafka-core contract layer (MIT), with no new
+    dependency
+
+- Fix: `auto_visibility_timeout` now extends a message by the `visibility_timeout` set in
+  `sqs_client_receive_message_opts` when there is one
+  - It used only the queue's `VisibilityTimeout`, so a shorter receive-time timeout let the message become visible
+    again during processing, and it was performed more than once
+
+- Fix: `TimerTask#kill` no longer hangs concurrent callers when it kills the timer thread during shutdown
+  - The timer loop's `ensure` took the task mutex; a thread killed while waiting on a `Mutex` can swallow the
+    unlock wakeup, so the other `#kill` callers slept forever
+  - The loop now clears its running flag without the mutex
+
+- Fix: Fetched messages that are never started are now released at once instead of staying in flight
+  - `Manager#assign` dropped a fetched message when the manager was no longer running (stop) or the executor
+    rejected the worker post, so it stayed invisible until its visibility timeout expired
+  - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
+    release is logged and does not break dispatch or shutdown
+
+- Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
+  - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
+    executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
+    shutdown and the `:shutdown`/`:stopped` events - never ran
+  - Each step now runs in its own rescue and logs the error, so the remaining steps always run
+  - A graceful stop awaits only the managers it signalled, so a manager whose `stop_new_dispatching` raised no
+    longer hangs the shutdown
+
+- Fix: `Fetcher` retries now use a deterministic bounded backoff instead of a random sleep (mensfeld)
+  - `fetch_with_auto_retry` slept for a random 1-5s between retries (`sleep((1..5).to_a.sample)`) on the
+    dispatch thread, which was non-deterministic and untestable
+  - It now backs off incrementally (1s, 2s, 3s, ... via `backoff_interval`), naturally bounded because
+    `attempts` never exceeds `max_attempts`; the broad rescue is unchanged (the AWS SDK already retries
+    throttling/5xx/networking internally) and now carries specs for retry, exhaustion, and the backoff schedule
+
+## [7.0.4] - 2026-09-23
+
+- Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)
+  - `find_all` used short polling and broke on the first empty `receive_message` response. Real
+    (distributed) SQS routinely returns an empty batch while the queue still has messages, so dump/mv
+    quietly processed only a fraction of the queue (invisible on single-node ElasticMQ/LocalStack)
+  - It now long-polls and only stops after several consecutive empty batches, so the queue is actually drained
+  - Because a longer drain can outlast the queue's visibility timeout (dump/mv delete only after `find_all`
+    returns), re-read messages are now deduplicated by message id, so they are not dumped/moved or counted
+    twice, and the newest receipt handle is kept so the deferred delete still succeeds
+  - Deletion stays deferred (a failed dump/mv deletes nothing), so a queue larger than SQS's in-flight limit
+    (~120k standard / ~20k FIFO) drains over multiple runs rather than one - no message is lost
+
+- Fix: Graceful stop no longer deadlocks when a manager's dispatch loop never started (mensfeld)
+  - `await_dispatching_in_progress` blocks on a `Queue` that is only closed from inside `dispatch_loop` when it
+    observes the stop flag. If the loop never runs - a graceful stop arriving before the start `Future` is
+    scheduled, or an embedded host whose executor pool is saturated so `manager.start` never runs - the signal
+    was never closed and `Launcher#stop` deadlocked
+  - `stop_new_dispatching` now closes the release signal itself when the loop hasn't started (tracked via a new
+    flag); `Queue#close` is idempotent, so a loop that does start later and closes it again is harmless
+
+- Feature: `Shoryuken.fifo_message_deduplication` to opt out of content-based dedup id generation for raw sends (mensfeld)
+  - `Queue#add_fifo_attributes!` always set `message_deduplication_id` to a SHA256 of the body when none was
+    given, so two raw sends of an identical body within SQS's 5-minute window (`Worker.perform_async`,
+    `Queue#send_message`/`#send_messages`) were silently deduplicated - the second dropped. ActiveJob got an
+    opt-out in #1017 but the raw path had none
+  - Set `Shoryuken.fifo_message_deduplication = false` to stop auto-generating that id, so identical bodies are
+    no longer silently dropped (provide a `message_deduplication_id` yourself or enable
+    `ContentBasedDeduplication` on the queue)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
+
+- Fix: Harden `ExponentialBackoffRetry` visibility handling (mensfeld)
+  - `next_visibility_timeout` could return a negative value when a job ran past the 12h SQS ceiling (its
+    `max_timeout` goes below zero), and `change_message_visibility` rejects a negative timeout; it now clamps
+    to 0 so the message is retried as soon as possible
+  - `handle_failure` called `change_visibility` unguarded, so a failure there (e.g. an expired receipt handle)
+    escaped the `rescue` in `#call` and masked the original worker error from exception handlers/notifiers; it
+    now rescues, logs, and reports "not retried" so the original error is re-raised and the message falls back
+    to the queue's default visibility timeout
+  - The failure `rescue` in `#call` is now scoped to the single-message `yield` only, so a batch worker's error
+    no longer routes the message Array into `handle_failure` (raising a `NoMethodError` that masked the original)
+
+- Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
+  - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
+    `:message_body`, and wrote `shoryuken_class` into the nested `:message_attributes` in place, so a caller
+    reusing one options hash across enqueues had `:queue` stripped after the first call - silently routing later
+    jobs to the worker's default queue
+  - Both now operate on a `dup` and rebuild `:message_attributes` with `merge`, leaving the caller's hash untouched
+
+- Fix: `Shoryuken::Client.queues` no longer builds the same queue more than once under concurrency (mensfeld)
+  - The cache used an unsynchronized `@@queues[name] ||= Shoryuken::Queue.new(...)`. Building a queue makes
+    SQS API calls, and that I/O releases the GVL, so concurrent first-access (dispatch, processor-completion
+    and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
+    on JRuby/TruffleRuby
+  - Access to the cache is now guarded by a mutex
+
+- Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
+  - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the
+    matching decrement (`processor_done`) runs inside the promise body. When the post is rejected with
+    `Concurrent::RejectedExecutionError` - a hard stop racing the `running?` check, or a saturated bounded custom
+    `launcher_executor` - the body never runs and the counter leaks
+  - With a bounded executor the leak is permanent: `ready` (`@max_processors - busy`) keeps shrinking until
+    dispatch stalls and the group silently stops processing
+  - The increment is now rolled back on `RejectedExecutionError` by decrementing directly (the message was never
+    processed, so the FIFO `message_processed` callback must not run) (#1029)
+
+## [7.0.3] - 2026-07-10
+
+- Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
+  - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
+    serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
+    class and arguments within SQS's 5-minute window silently collapse into one - a "skipped message" trap
+  - Set `Shoryuken.active_job_fifo_message_deduplication = false` to stop generating that id, so identical
+    jobs are no longer silently dropped (rely on the queue's content-based deduplication or explicit ids)
+  - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
+
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
   - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
     run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)

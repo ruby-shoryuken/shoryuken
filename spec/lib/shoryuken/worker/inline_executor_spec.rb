@@ -25,6 +25,18 @@ RSpec.describe Shoryuken::Worker::InlineExecutor do
 
       TestWorker.perform_async('test', message_attributes: custom_attributes)
     end
+
+    it 'does not mutate the caller-supplied options hash' do
+      allow_any_instance_of(TestWorker).to receive(:perform)
+
+      options = { queue: 'a_queue', message_attributes: { 'custom' => { string_value: 'v', data_type: 'String' } } }
+
+      TestWorker.perform_async('test', options)
+
+      # :queue and :message_attributes must survive intact so a reused options
+      # hash routes later jobs correctly instead of falling back to the default.
+      expect(options).to eq(queue: 'a_queue', message_attributes: { 'custom' => { string_value: 'v', data_type: 'String' } })
+    end
   end
 
   describe '.perform_in' do

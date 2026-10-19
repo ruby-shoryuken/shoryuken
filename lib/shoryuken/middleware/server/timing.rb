@@ -3,9 +3,8 @@
 module Shoryuken
   module Middleware
     module Server
-      # Middleware that logs timing information for message processing.
-      # Records start time, completion time, and warns if processing
-      # exceeds the queue's visibility timeout.
+      # Middleware that logs timing information for message processing. Records start time, completion time, and warns if
+      # processing exceeds the queue's visibility timeout.
       class Timing
         include Util
 

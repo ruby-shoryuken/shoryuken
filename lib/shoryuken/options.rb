@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 module Shoryuken
-  # Stores and manages all Shoryuken configuration options.
-  # This class is used internally to hold settings for workers, queues,
-  # middleware, and other runtime configurations.
+  # Stores and manages all Shoryuken configuration options. This class is used internally to hold settings for workers,
+  # queues, middleware, and other runtime configurations.
   class Options
     # Default configuration values for Shoryuken
     DEFAULTS = {
@@ -34,10 +33,14 @@ module Shoryuken
     # @return [Class] the executor class for running workers
     # @return [Shoryuken::WorkerRegistry] the registry for worker classes
     # @return [Array<#call>] handlers for processing exceptions
-    attr_accessor :active_job_queue_name_prefixing, :cache_visibility_timeout,
-                  :groups, :launcher_executor, :reloader, :enable_reloading,
-                  :start_callback, :stop_callback, :worker_executor, :worker_registry,
-                  :exception_handlers
+    attr_accessor(
+      :active_job_queue_name_prefixing, :active_job_fifo_message_deduplication,
+      :fifo_message_deduplication,
+      :cache_visibility_timeout,
+      :groups, :launcher_executor, :reloader, :enable_reloading,
+      :start_callback, :stop_callback, :worker_executor, :worker_registry,
+      :exception_handlers
+    )
 
     # @return [Hash] the default options for workers
     # @return [Aws::SQS::Client] the SQS client instance
@@ -53,6 +56,8 @@ module Shoryuken
       self.worker_registry = DefaultWorkerRegistry.new
       self.exception_handlers = [DefaultExceptionHandler]
       self.active_job_queue_name_prefixing = false
+      self.active_job_fifo_message_deduplication = true
+      self.fifo_message_deduplication = true
       self.worker_executor = Worker::DefaultExecutor
       self.cache_visibility_timeout = false
       self.reloader = proc { |&block| block.call }
@@ -158,11 +163,25 @@ module Shoryuken
       @sqs_client_receive_message_opts['default'] = sqs_client_receive_message_opts
     end
 
+    # Returns the receive message options that apply to a queue: its own options, else the options of its group
+    #
+    # @api private
+    # @param queue [String] the queue name
+    # @param group [String, nil] the group the queue is fetched by
+    # @return [Hash] a copy of the options, empty when none are set
+    def receive_message_opts_for(queue, group)
+      options = sqs_client_receive_message_opts[queue]
+      options ||= sqs_client_receive_message_opts[group]
+
+      options.to_h.dup
+    end
+
     # Returns the global options hash
     #
     # @return [Hash] the options hash
     def options
-      @options ||= DEFAULTS.dup
+      # A deep copy, as handlers and queues are appended to the nested defaults
+      @options ||= Marshal.load(Marshal.dump(DEFAULTS))
     end
 
     # Returns the logger instance
@@ -300,6 +319,36 @@ module Shoryuken
     # @return [Boolean] true if prefixing is enabled
     def active_job_queue_name_prefixing?
       @active_job_queue_name_prefixing
+    end
+
+    # Checks if the ActiveJob adapter should auto-generate a content-based message_deduplication_id for FIFO queues. When
+    # disabled, distinct enqueues of the same job class and arguments are no longer silently deduplicated.
+    #
+    # @return [Boolean] true if FIFO deduplication id generation is enabled
+    def active_job_fifo_message_deduplication?
+      @active_job_fifo_message_deduplication
+    end
+
+    # Checks whether Shoryuken auto-generates a content-based
+    # message_deduplication_id for raw FIFO sends (Worker.perform_async,
+    # Queue#send_message / #send_messages). When disabled, distinct sends of an
+    # identical body are no longer silently deduplicated by SQS - you must then
+    # provide a message_deduplication_id yourself or enable
+    # ContentBasedDeduplication on the queue.
+    #
+    # ActiveJob enqueues are primarily controlled by
+    # #active_job_fifo_message_deduplication?. When that is enabled the adapter
+    # sets a content-based message_deduplication_id itself (from the body minus
+    # job_id/enqueued_at) before the raw send, so this flag is a no-op for them.
+    # When it is disabled the adapter omits the id and this flag governs the
+    # fallback: left enabled (the default) each enqueue still gets a hash of the
+    # full serialized body - which includes the per-enqueue job_id, so distinct
+    # enqueues are NOT deduplicated - while disabling it drops the id entirely
+    # (then requiring an explicit id or the queue's ContentBasedDeduplication).
+    #
+    # @return [Boolean] true if FIFO deduplication id generation is enabled
+    def fifo_message_deduplication?
+      @fifo_message_deduplication
     end
 
     private
