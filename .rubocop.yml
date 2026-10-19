@@ -1,13 +1,7 @@
 require:
-  - ./.rubocop/cops/multiline_call_parentheses
-
-inherit_mode:
-  merge:
-    - Include
+  - ./rubocop/cops/multiline_method_call_parentheses
 
 AllCops:
-  Include:
-    - '.rubocop/**/*.rb'
   Exclude:
     - '**/Gemfile'
   TargetRubyVersion: 3.4
@@ -140,7 +134,7 @@ Layout/FirstMethodArgumentLineBreak:
   Enabled: true
 
 # Multi-line calls get parentheses, so the two cops above apply to them too
-Shoryuken/MultilineCallParentheses:
+Shoryuken/MultilineMethodCallParentheses:
   Enabled: true
 
 Layout/ArgumentAlignment:

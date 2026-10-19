@@ -2,7 +2,7 @@
 
 require 'rubocop'
 require 'rubocop/rspec/support'
-require_relative '../cops/multiline_call_parentheses'
+require_relative '../cops/multiline_method_call_parentheses'
 
 RSpec.configure do |config|
   config.include RuboCop::RSpec::ExpectOffense

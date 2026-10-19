@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe RuboCop::Cop::Shoryuken::MultilineCallParentheses, :config do
+RSpec.describe RuboCop::Cop::Shoryuken::MultilineMethodCallParentheses, :config do
   it 'registers and corrects several arguments spanning lines' do
     expect_offense(<<~RUBY)
       attr_accessor :foo, :bar,

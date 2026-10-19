@@ -4,8 +4,8 @@ module RuboCop
   module Cop
     module Shoryuken
       # Requires parentheses around the arguments of a call when they span several lines, so that
-      # Layout/FirstMethodArgumentLineBreak and Layout/MultilineMethodCallBraceLayout can then put each
-      # of them on a new line and the closing parenthesis on its own line.
+      # Layout/FirstMethodArgumentLineBreak and Layout/MultilineMethodCallBraceLayout can then put the
+      # first argument on a new line and the closing parenthesis on its own line.
       #
       # A single argument that spans lines (e.g. `expect(x).to receive(:y).with(...)`) is allowed.
       #
@@ -19,7 +19,7 @@ module RuboCop
       #     :foo,
       #     :bar
       #   )
-      class MultilineCallParentheses < Base
+      class MultilineMethodCallParentheses < Base
         extend AutoCorrector
 
         MSG = 'Use parentheses for a call whose arguments span several lines.'
