@@ -78,8 +78,10 @@ end
 message_ids, receive_counts = DT[plain_queue].transpose
 assert_equal(1, message_ids.uniq.size, 'the exhausted message must be the one that comes back')
 assert_equal((1..receive_counts.size).to_a, receive_counts, 'the message must come back after each visibility timeout')
-assert_equal([1, 1, *receive_counts], DT[:plain].first(receive_counts.size + 2),
-             'executions must be 1 for the 3 attempts, then follow the receive count')
+assert_equal(
+  [1, 1, *receive_counts], DT[:plain].first(receive_counts.size + 2),
+  'executions must be 1 for the 3 attempts, then follow the receive count'
+)
 
 # --- With a block ---
 assert_equal(['always fails'], DT[:block_called])
