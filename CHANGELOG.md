@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: A raising `retry_intervals` lambda is now logged as such
+  - `ExponentialBackoffRetry` logged it as `Failed to set backoff visibility timeout`, although no visibility change
+    was attempted; it now logs `retry_intervals raised for <message id>: <error class>: <message>`. The original worker
+    error is still re-raised
+
 - Fix: Shoryuken now drains in-flight `ShoryukenConcurrentSendAdapter` sends on shutdown (mensfeld)
   - A job enqueued with the concurrent adapter shortly before the process stopped (e.g. by a worker) was lost: the
     TERM/USR1 handlers exit right after the launcher stops, which killed the background send

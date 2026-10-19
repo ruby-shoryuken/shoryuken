@@ -94,7 +94,14 @@ module Shoryuken
         def handle_failure(sqs_msg, started_at, retry_intervals)
           receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
 
-          return false unless (interval = get_interval(retry_intervals, receive_count))
+          begin
+            interval = get_interval(retry_intervals, receive_count)
+          rescue => e
+            logger.warn { "retry_intervals raised for #{sqs_msg.message_id}: #{e.class}: #{e.message}" }
+            return false
+          end
+
+          return false unless interval
 
           sqs_msg.change_visibility(visibility_timeout: next_visibility_timeout(interval.to_i, started_at))
 
