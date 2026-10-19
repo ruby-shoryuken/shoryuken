@@ -51,6 +51,24 @@
       "description": "Group integration test Gemfiles together"
     },
     {
+      "description": "Each spec/integration/rails/rails_XY Gemfile tests one Rails minor; only patch updates stay in it",
+      "matchManagers": [
+        "bundler"
+      ],
+      "matchFileNames": [
+        "spec/integration/rails/**/Gemfile"
+      ],
+      "matchPackageNames": [
+        "rails",
+        "activejob"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Group ruby/setup-ruby action with ruby version updates",
       "matchPackageNames": [
         "ruby/setup-ruby",
