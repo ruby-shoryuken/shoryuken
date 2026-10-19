@@ -28,19 +28,20 @@ module ProcessHelper
     end
   end
 
-  # Runs `bin/shoryuken start` until the block returns true, stops it with the signal, returns [status, output]
+  # Runs `bin/shoryuken start` until the block (given the output so far) returns true, stops it with the signal,
+  # returns [status, output]
   def run_shoryuken_until(*args, signal: 'TERM', timeout: 30, &condition)
     Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 
       begin
-        Timeout.timeout(timeout) { sleep 0.1 until condition.call || !wait.alive? }
+        Timeout.timeout(timeout) { sleep 0.1 until condition.call(output) || !wait.alive? }
       rescue Timeout::Error
         Process.kill('KILL', wait.pid)
       end
 
-      unless condition.call
+      unless condition.call(output)
         reader.join
         raise IntegrationsHelper::TestFailure, "shoryuken stopped or timed out before the condition was met: #{output}"
       end
