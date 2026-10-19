@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs mv` and `requeue` no longer lose or miscount messages the target queue rejects
+  - `mv` deleted every received message from the source, also the ones the target rejected (e.g. a FIFO target and
+    messages without a group id); it now deletes only the accepted ones, so the rejected ones stay in the source
+  - `mv` and `requeue` count only the accepted messages, print every rejected entry (also on a failed delete, before
+    only the first of each batch) and exit with status 1 when an entry was rejected; so does `dump` when a delete fails
+
 - Fix: A raising `retry_intervals` lambda is now logged as such
   - `ExponentialBackoffRetry` logged it as `Failed to set backoff visibility timeout`, although no visibility change
     was attempted; it now logs `retry_intervals raised for <message id>: <error class>: <message>`. The original worker
