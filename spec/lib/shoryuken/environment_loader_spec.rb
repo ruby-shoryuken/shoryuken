@@ -56,9 +56,12 @@ RSpec.describe Shoryuken::EnvironmentLoader do
   end
 
   describe '#check' do
+    let(:contract) { instance_double(Shoryuken::Contracts::Options, validate!: nil) }
+
     before do
       Shoryuken.groups.clear
       Shoryuken.options[:groups] = nil
+      allow(Shoryuken::Contracts::Options).to receive(:new).and_return(contract)
       allow(subject).to receive(:prefix_active_job_queue_names)
       allow(subject).to receive(:require_workers)
       allow(subject).to receive(:validate_queues)
@@ -71,6 +74,18 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
       it 'returns no problems' do
         expect(subject.check).to eq([])
+      end
+    end
+
+    context 'when an option has an invalid value' do
+      before do
+        Shoryuken.options[:queues] = %w[queue1]
+        allow(contract).to receive(:validate!).and_raise(Shoryuken::Errors::InvalidConfigurationError, 'concurrency')
+      end
+
+      it 'raises before loading the workers' do
+        expect { subject.check }.to raise_error(Shoryuken::Errors::InvalidConfigurationError)
+        expect(subject).not_to have_received(:require_workers)
       end
     end
 

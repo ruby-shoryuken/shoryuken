@@ -1,41 +1,20 @@
 # frozen_string_literal: true
 
-# `shoryuken check` loads the configuration and workers and validates the queues
+# `shoryuken check` loads the configuration and workers and validates the options, queues
 # and workers like `start` does, but exits instead of processing: 0 with a short
 # OK message when the setup is valid, 1 with the problem (and no backtrace) when
 # it is not.
 
-require 'open3'
-require 'rbconfig'
-require 'tmpdir'
-require 'fileutils'
-
 setup_sqs
 
-BIN = File.expand_path('../../../bin/shoryuken', __dir__)
-
-ENV_VARS = {
-  'AWS_ENDPOINT_URL_SQS' => 'http://localhost:9324',
-  'AWS_REGION' => 'us-east-1',
-  'AWS_ACCESS_KEY_ID' => 'fake',
-  'AWS_SECRET_ACCESS_KEY' => 'fake'
-}.freeze
-
 def run_check(*args)
-  output, status = Open3.capture2e(ENV_VARS, RbConfig.ruby, BIN, 'check', *args)
+  output, status = Open3.capture2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'check', *args)
   [output, status.exitstatus]
 end
 
-with_worker = DT.uuid
-without_worker = DT.uuid
-missing = DT.uuid
+def check_scenarios(with_worker, without_worker, dir)
+  missing = DT.uuid
 
-create_test_queue(with_worker)
-create_test_queue(without_worker)
-
-dir = Dir.mktmpdir
-
-begin
   worker_file = File.join(dir, 'check_worker.rb')
   File.write(worker_file, <<~RUBY)
     class CheckWorker
@@ -58,6 +37,12 @@ begin
   assert_equal(1, code, "missing queue must exit 1, got: #{output}")
   assert_includes(output, "The specified queue(s) #{missing} do not exist")
   refute(output.include?('.rb:'), "expected config errors must not print a backtrace, got: #{output}")
+
+  output, code = run_check('-q', with_worker, '-r', worker_file, '-c', '0')
+  assert_equal(1, code, "an invalid option value must exit 1, got: #{output}")
+  assert_includes(output, '[FAIL]')
+  assert_includes(output, 'concurrency')
+  refute(output.include?('.rb:'), "an invalid option value must not print a backtrace, got: #{output}")
 
   output, code = run_check('-r', worker_file)
   assert_equal(1, code, "no queues must exit 1, got: #{output}")
@@ -85,8 +70,10 @@ begin
   assert_equal(1, code, "a config file YAML refuses to load must exit 1, got: #{output}")
   assert_includes(output, '[FAIL] Alias parsing was not enabled')
   refute(output.include?('.rb:'), "a config file YAML refuses to load must not print a backtrace, got: #{output}")
-ensure
-  delete_test_queue(with_worker)
-  delete_test_queue(without_worker)
-  FileUtils.remove_entry(dir)
+end
+
+with_queue_and_dir do |with_worker, dir|
+  with_queue_and_dir do |without_worker, _|
+    check_scenarios(with_worker, without_worker, dir)
+  end
 end
