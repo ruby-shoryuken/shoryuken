@@ -29,31 +29,32 @@ def expect_rejected(dir, boot_file, config, errors, *args)
   refute(output.include?('Starting'), "the process must not start, got: #{output}")
 end
 
-dir = Dir.mktmpdir
-queue = DT.uuid
-create_test_queue(queue)
+def write_worker(dir, queue, marker)
+  boot_file = File.join(dir, 'boot.rb')
+  File.write(boot_file, <<~RUBY)
+    class InvalidValuesWorker
+      include Shoryuken::Worker
 
-marker = File.join(dir, 'processed')
-boot_file = File.join(dir, 'boot.rb')
-File.write(boot_file, <<~RUBY)
-  class InvalidValuesWorker
-    include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}', auto_delete: true
 
-    shoryuken_options queue: '#{queue}', auto_delete: true
-
-    def perform(_sqs_msg, _body)
-      File.write('#{marker}', '')
+      def perform(_sqs_msg, _body)
+        File.write('#{marker}', '')
+      end
     end
-  end
-RUBY
+  RUBY
+  boot_file
+end
 
-Shoryuken::Client.queues(queue).send_message(message_body: 'must not be processed')
+with_queue_and_dir do |queue, dir|
+  marker = File.join(dir, 'processed')
+  boot_file = write_worker(dir, queue, marker)
 
-queues = "queues:\n  - #{queue}\n"
-concurrency = ['concurrency', 'needs to be an Integer greater than 0']
-delay = ['delay', 'needs to be nil or a number greater than or equal to 0']
+  Shoryuken::Client.queues(queue).send_message(message_body: 'must not be processed')
 
-begin
+  queues = "queues:\n  - #{queue}\n"
+  concurrency = ['concurrency', 'needs to be an Integer greater than 0']
+  delay = ['delay', 'needs to be nil or a number greater than or equal to 0']
+
   # --- config file ---
   expect_rejected(dir, boot_file, "concurrency: 0\n#{queues}", [concurrency])
   expect_rejected(dir, boot_file, "delay: soon\n#{queues}", [delay])
@@ -77,7 +78,4 @@ begin
 
   refute(File.exist?(marker), 'no message must be processed')
   assert_equal(1, queue_size(queue), 'the message must still be in the queue')
-ensure
-  delete_test_queue(queue)
-  FileUtils.remove_entry(dir)
 end

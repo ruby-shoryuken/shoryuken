@@ -12,11 +12,7 @@
 
 setup_sqs
 
-dir = Dir.mktmpdir
-queue = DT.uuid
-create_test_queue(queue)
-
-begin
+with_queue_and_dir do |queue, dir|
   marker = File.join(dir, 'processed')
   boot_file = File.join(dir, 'boot.rb')
   File.write(boot_file, <<~RUBY)
@@ -48,7 +44,4 @@ begin
   assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
   assert_includes(output, "Unknown option 'concurency' is ignored", "got: #{output}")
   assert_includes(output, "Unknown option 'groups.custom.dealy' is ignored", "got: #{output}")
-ensure
-  delete_test_queue(queue)
-  FileUtils.remove_entry(dir)
 end

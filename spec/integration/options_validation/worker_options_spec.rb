@@ -30,17 +30,13 @@ def write_worker(dir, name, options, marker)
   boot_file
 end
 
-dir = Dir.mktmpdir
-queue = DT.uuid
-create_test_queue(queue)
+with_queue_and_dir do |queue, dir|
+  marker = File.join(dir, 'processed')
+  config_file = File.join(dir, 'shoryuken.yml')
+  File.write(config_file, "queues:\n  - #{queue}\n")
 
-marker = File.join(dir, 'processed')
-config_file = File.join(dir, 'shoryuken.yml')
-File.write(config_file, "queues:\n  - #{queue}\n")
+  Shoryuken::Client.queues(queue).send_message(message_body: 'hello')
 
-Shoryuken::Client.queues(queue).send_message(message_body: 'hello')
-
-begin
   # --- unknown key ---
   boot_file = write_worker(dir, 'TypoWorker', "queue: '#{queue}', auto_delte: true", marker)
 
@@ -67,7 +63,4 @@ begin
 
   assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
   refute(output.include?('InvalidConfigurationError'), "got: #{output}")
-ensure
-  delete_test_queue(queue)
-  FileUtils.remove_entry(dir)
 end
