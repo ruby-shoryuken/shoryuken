@@ -21,10 +21,12 @@ dlq_arn = Shoryuken::Client.sqs.get_queue_attributes(
 
 # Create main queue with redrive policy - move to DLQ after 2 receives
 redrive_policy = { maxReceiveCount: 2, deadLetterTargetArn: dlq_arn }.to_json
-create_test_queue(main_queue_name, attributes: {
-  'VisibilityTimeout' => '1',
-  'RedrivePolicy' => redrive_policy
-})
+create_test_queue(
+  main_queue_name, attributes: {
+    'VisibilityTimeout' => '1',
+    'RedrivePolicy' => redrive_policy
+  }
+)
 
 main_queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: main_queue_name).queue_url
 

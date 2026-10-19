@@ -15,6 +15,7 @@ AllValidators:
   - bin/**/*
   - examples/**/*
   - test_workers/**/*
+  - rubocop/**/*
   FailOnSeverity: convention
   MinCoverage: 100
   DiffMode:

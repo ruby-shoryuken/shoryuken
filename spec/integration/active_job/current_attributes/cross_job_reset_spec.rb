@@ -43,5 +43,7 @@ CrossJobResetTestJob.perform_later
 
 poll_queues_until(timeout: 30) { DT[:observed].size >= 2 }
 
-assert_equal([nil, nil], DT[:observed].first(2),
-             "CurrentAttributes leaked across jobs: #{DT[:observed].inspect}")
+assert_equal(
+  [nil, nil], DT[:observed].first(2),
+  "CurrentAttributes leaked across jobs: #{DT[:observed].inspect}"
+)
