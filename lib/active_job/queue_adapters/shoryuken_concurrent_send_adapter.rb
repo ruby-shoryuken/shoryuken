@@ -102,16 +102,17 @@ module ActiveJob
       # @yield [job, options] the actual enqueue operation
       # @return [Concurrent::Promises::Future] the future representing the async operation
       def send_concurrently(job, options)
+        # Built unstarted and tracked before it runs, so {#wait_for_pending_sends} cannot miss a running send
         future = Concurrent::Promises
-                 .future(job, options) { |f_job, f_options| [yield(f_job, f_options), f_job, f_options] }
+                 .delay(job, options) { |f_job, f_options| [yield(f_job, f_options), f_job, f_options] }
                  .then { |response, f_job, f_options| success_handler.call(response, f_job, f_options) }
                  .rescue(job, options) { |err, f_job, f_options| error_handler.call(err, f_job, f_options) }
 
-        track_pending_send(future)
+        track_pending_send(future).touch
       end
 
-      # Tracks an in-flight send future so {#wait_for_pending_sends} can await it,
-      # removing it once it resolves to keep the set from growing unbounded.
+      # Tracks a send future before it starts so {#wait_for_pending_sends} can await it, removing it once it resolves to
+      # keep the set from growing unbounded.
       #
       # @param future [Concurrent::Promises::Future] the send future to track
       # @return [Concurrent::Promises::Future] the same future
