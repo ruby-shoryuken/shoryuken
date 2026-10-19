@@ -2,9 +2,8 @@
 
 module Shoryuken
   module Instrumentation
-    # Represents an instrumentation event with metadata.
-    # Events are published through the Notifications system and contain
-    # information about what happened, when, and relevant context.
+    # Represents an instrumentation event with metadata. Events are published through the Notifications system and
+    # contain information about what happened, when, and relevant context.
     #
     # @example Creating an event
     #   event = Event.new('message.processed', queue: 'default', duration: 0.5)

@@ -36,29 +36,53 @@ module Shoryuken
 
       # App lifecycle events
 
+      # Logs that Shoryuken started, with the number of processing groups
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the app.started event
+      # @return [void]
       def on_app_started(event)
         groups = event[:groups] || []
         logger.info { "Shoryuken started with #{groups.size} group(s)" }
       end
 
+      # Logs that Shoryuken is shutting down
+      #
+      # @param _event [Shoryuken::Instrumentation::Event] the app.stopping event
+      # @return [void]
       def on_app_stopping(_event)
         logger.info { 'Shoryuken shutting down...' }
       end
 
+      # Logs that Shoryuken stopped
+      #
+      # @param _event [Shoryuken::Instrumentation::Event] the app.stopped event
+      # @return [void]
       def on_app_stopped(_event)
         logger.info { 'Shoryuken stopped' }
       end
 
+      # Logs that Shoryuken is quiet
+      #
+      # @param _event [Shoryuken::Instrumentation::Event] the app.quiet event
+      # @return [void]
       def on_app_quiet(_event)
         logger.info { 'Shoryuken is quiet' }
       end
 
       # Fetcher events
 
+      # Logs that the fetcher is looking for messages in a queue
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the fetcher.started event
+      # @return [void]
       def on_fetcher_started(event)
         logger.debug { "Looking for new messages in #{event[:queue]}" }
       end
 
+      # Logs how many messages a fetch found and how long it took
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the fetcher.completed event
+      # @return [void]
       def on_fetcher_completed(event)
         queue = event[:queue]
         message_count = event[:message_count] || 0
@@ -68,22 +92,38 @@ module Shoryuken
         logger.debug { "Fetcher for #{queue} completed in #{duration_ms} ms" }
       end
 
+      # Logs a retried fetch attempt
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the fetcher.retry event
+      # @return [void]
       def on_fetcher_retry(event)
         logger.debug { "Retrying fetch attempt #{event[:attempt]} for #{event[:error_message]}" }
       end
 
       # Manager events
 
+      # Logs the ready and busy processors and the active queues on dispatch
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the manager.dispatch event
+      # @return [void]
       def on_manager_dispatch(event)
         logger.debug do
           "Ready: #{event[:ready]}, Busy: #{event[:busy]}, Active Queues: #{event[:active_queues]}"
         end
       end
 
+      # Logs the message assigned to a processor
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the manager.processor_assigned event
+      # @return [void]
       def on_manager_processor_assigned(event)
         logger.debug { "Assigning #{event[:message_id]}" }
       end
 
+      # Logs a manager failure with its backtrace
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the manager.failed event
+      # @return [void]
       def on_manager_failed(event)
         logger.error { "Manager failed: #{event[:error_message]}" }
         logger.error { event[:backtrace].join("\n") } if event[:backtrace]
@@ -91,6 +131,10 @@ module Shoryuken
 
       # Message processing events
 
+      # Logs a processed message with its duration, unless processing raised
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the message.processed event
+      # @return [void]
       def on_message_processed(event)
         # Skip logging if there was an exception - error.occurred handles that
         return if event[:exception]
@@ -102,6 +146,10 @@ module Shoryuken
         logger.info { "Processed #{worker}/#{queue} in #{duration_ms}ms" }
       end
 
+      # Logs a message that failed to process
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the message.failed event
+      # @return [void]
       def on_message_failed(event)
         worker = event[:worker] || 'Unknown'
         queue = event[:queue] || 'Unknown'
@@ -113,6 +161,10 @@ module Shoryuken
 
       # Error events
 
+      # Logs an error with its type and backtrace
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the error.occurred event
+      # @return [void]
       def on_error_occurred(event)
         error = event[:error]
         error_class = error.respond_to?(:class) ? error.class.name : 'Unknown'
@@ -130,11 +182,19 @@ module Shoryuken
 
       # Queue events
 
+      # Logs that a queue is being polled
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the queue.polling event
+      # @return [void]
       def on_queue_polling(event)
         queue = event[:queue] || 'Unknown'
         logger.debug { "Polling queue: #{queue}" }
       end
 
+      # Logs that a queue is empty
+      #
+      # @param event [Shoryuken::Instrumentation::Event] the queue.empty event
+      # @return [void]
       def on_queue_empty(event)
         logger.debug { "Queue #{event[:queue]} is empty" }
       end

@@ -2,9 +2,8 @@
 
 module Shoryuken
   module Instrumentation
-    # A thread-safe pub/sub notification system for instrumentation events.
-    # Inspired by Karafka's instrumentation architecture, this allows external
-    # systems (APM, logging, metrics) to subscribe to Shoryuken lifecycle events.
+    # A thread-safe pub/sub notification system for instrumentation events. Inspired by Karafka's instrumentation
+    # architecture, this allows external systems (APM, logging, metrics) to subscribe to Shoryuken lifecycle events.
     #
     # @example Subscribing to specific events
     #   Shoryuken.monitor.subscribe('message.processed') do |event|

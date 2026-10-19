@@ -35,9 +35,8 @@ module Shoryuken
     Shoryuken::Runner.instance.healthy?
   end
 
-  # Guards lazy initialization of the instrumentation monitor so the first
-  # concurrent access (dispatch + processor threads) can't create, and lose
-  # subscribers across, multiple monitor instances.
+  # Guards lazy initialization of the instrumentation monitor so the first concurrent access (dispatch + processor
+  # threads) can't create, and lose subscribers across, multiple monitor instances.
   MONITOR_MUTEX = Mutex.new
 
   # Returns the global instrumentation monitor.
