@@ -162,17 +162,21 @@ if defined?(ActiveSupport)
 
           remaining_options = job_instance.enqueue(options)
 
-          expect(job_instance.sqs_send_message_parameters).to eq({
-            message_attributes: { 'type' => 'important' },
-            message_system_attributes: { 'source' => 'api' },
-            message_deduplication_id: 'dedup123',
-            message_group_id: 'group456'
-          })
+          expect(job_instance.sqs_send_message_parameters).to eq(
+            {
+              message_attributes: { 'type' => 'important' },
+              message_system_attributes: { 'source' => 'api' },
+              message_deduplication_id: 'dedup123',
+              message_group_id: 'group456'
+            }
+          )
 
-          expect(remaining_options).to eq({
-            wait: 300,
-            other_option: 'value'
-          })
+          expect(remaining_options).to eq(
+            {
+              wait: 300,
+              other_option: 'value'
+            }
+          )
         end
 
         it 'handles empty options gracefully' do
@@ -187,10 +191,12 @@ if defined?(ActiveSupport)
           options = { message_deduplication_id: 'new_dedup' }
           job_instance.enqueue(options)
 
-          expect(job_instance.sqs_send_message_parameters).to eq({
-            message_group_id: 'existing_group',
-            message_deduplication_id: 'new_dedup'
-          })
+          expect(job_instance.sqs_send_message_parameters).to eq(
+            {
+              message_group_id: 'existing_group',
+              message_deduplication_id: 'new_dedup'
+            }
+          )
         end
 
         it 'overwrites existing SQS options when the same key is provided' do
@@ -199,9 +205,11 @@ if defined?(ActiveSupport)
           options = { message_group_id: 'new_group' }
           job_instance.enqueue(options)
 
-          expect(job_instance.sqs_send_message_parameters).to eq({
-            message_group_id: 'new_group'
-          })
+          expect(job_instance.sqs_send_message_parameters).to eq(
+            {
+              message_group_id: 'new_group'
+            }
+          )
         end
       end
     end
