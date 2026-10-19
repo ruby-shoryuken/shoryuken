@@ -120,11 +120,13 @@ module Shoryuken
       # @option opts [String, Array<String>] :queue Queue name(s) this worker processes
       # @option opts [Boolean] :batch (false) Process messages in batches of up to 10
       # @option opts [Boolean] :auto_delete (false) Automatically delete messages after processing
+      # @option opts [Boolean] :delete (false) Alias of :auto_delete
       # @option opts [Boolean] :auto_visibility_timeout (false) Automatically extend message visibility
       # @option opts [Array<Integer>] :retry_intervals Exponential backoff retry intervals in seconds
       # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should
       #   skip retries and delete message immediately
-      # @option opts [Hash] :sqs Additional SQS client options
+      # @option opts [Symbol, Class, Proc] :body_parser (:text) How the message body is parsed before #perform
+      # @raise [Shoryuken::Errors::InvalidConfigurationError] when an option is not a known worker option
       #
       # @example Basic worker configuration
       #   class MyWorker
@@ -201,7 +203,10 @@ module Shoryuken
       #     end
       #   end
       def shoryuken_options(opts = {})
-        self.shoryuken_options_hash = get_shoryuken_options.merge(stringify_keys(opts || {}))
+        opts = stringify_keys(opts || {})
+        Contracts::Worker.new.validate!(opts, scope: [name].compact)
+
+        self.shoryuken_options_hash = get_shoryuken_options.merge(opts)
         normalize_worker_queue!
       end
 

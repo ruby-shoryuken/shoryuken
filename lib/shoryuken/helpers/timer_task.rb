@@ -90,7 +90,9 @@ module Shoryuken
           end
         end
       ensure
-        @mutex.synchronize { @running = false }
+        # No @mutex here: #kill may kill this thread while it waits for the lock, and a thread killed while waiting on
+        # a Mutex can consume the unlock wakeup and leave the other waiters (concurrent #kill callers) asleep forever.
+        @running = false
       end
     end
   end
