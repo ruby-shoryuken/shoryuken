@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Breaking: Drop support for Ruby 3.2 (EOL March 2026)
+  - Minimum required Ruby version is now 3.3.0
+  - Supported Ruby versions: 3.3, 3.4, 4.0
+  - Users on Ruby 3.2 should upgrade or remain on Shoryuken 7.0.x
+
 - Breaking: `shoryuken_options` rejects unknown worker option keys when the worker class loads
   - A mistyped key (e.g. `auto_delte`) now raises `Shoryuken::Errors::InvalidConfigurationError` naming the worker
     and the key, instead of being silently ignored

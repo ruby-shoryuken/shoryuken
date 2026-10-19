@@ -9,7 +9,7 @@ jobs:
     name: Specs
     strategy:
       matrix:
-        ruby: ['3.2', '3.3', '3.4', '4.0']
+        ruby: ['3.3', '3.4', '4.0']
     runs-on: ubuntu-latest
     # Unit specs finish in under a minute; fail fast instead of letting a
     # wedged runner occupy the job slot for the 6-hour default
@@ -51,7 +51,7 @@ jobs:
     name: Integrations
     strategy:
       matrix:
-        ruby: ['3.2', '3.3', '3.4', '4.0']
+        ruby: ['3.3', '3.4', '4.0']
     runs-on: ubuntu-latest
     # Integration specs normally take ~4 minutes
     timeout-minutes: 15
