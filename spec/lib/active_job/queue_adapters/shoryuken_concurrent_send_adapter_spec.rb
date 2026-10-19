@@ -77,6 +77,26 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(elapsed).to be >= 0.2
     end
 
+    it 'does not start a send before it is tracked, so a drain cannot miss it' do
+      started = Concurrent::Event.new
+      allow(queue).to receive(:send_message) do
+        started.set
+        true
+      end
+
+      started_untracked = nil
+      allow(subject).to receive(:track_pending_send).and_wrap_original do |original, future|
+        started_untracked = started.wait(0.5)
+        original.call(future)
+      end
+
+      subject.enqueue(job, options)
+
+      expect(started_untracked).to be false
+      expect(subject.wait_for_pending_sends(5)).to be true
+      expect(started).to be_set
+    end
+
     it 'returns false when sends do not finish within the timeout' do
       allow(queue).to receive(:send_message) do
         sleep 2
