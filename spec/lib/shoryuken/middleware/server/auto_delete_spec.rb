@@ -5,10 +5,12 @@ describe Shoryuken::Middleware::Server::AutoDelete do
   let(:sqs_queue) { double Shoryuken::Queue }
 
   def build_message
-    double Shoryuken::Message,
+    double(
+      Shoryuken::Message,
       queue_url: queue,
       body: 'test',
       receipt_handle: SecureRandom.uuid
+    )
   end
 
   let(:sqs_msg) { build_message }

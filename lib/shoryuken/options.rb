@@ -33,12 +33,14 @@ module Shoryuken
     # @return [Class] the executor class for running workers
     # @return [Shoryuken::WorkerRegistry] the registry for worker classes
     # @return [Array<#call>] handlers for processing exceptions
-    attr_accessor :active_job_queue_name_prefixing, :active_job_fifo_message_deduplication,
+    attr_accessor(
+      :active_job_queue_name_prefixing, :active_job_fifo_message_deduplication,
       :fifo_message_deduplication,
       :cache_visibility_timeout,
       :groups, :launcher_executor, :reloader, :enable_reloading,
       :start_callback, :stop_callback, :worker_executor, :worker_registry,
       :exception_handlers
+    )
 
     # @return [Hash] the default options for workers
     # @return [Aws::SQS::Client] the SQS client instance

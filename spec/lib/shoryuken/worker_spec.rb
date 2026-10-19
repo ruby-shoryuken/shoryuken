@@ -111,9 +111,11 @@ RSpec.describe Shoryuken::Worker do
         Class.new do
           include Shoryuken::Worker
 
-          shoryuken_options queue: 'known_options', delete: false, auto_delete: true, auto_visibility_timeout: true,
+          shoryuken_options(
+            queue: 'known_options', delete: false, auto_delete: true, auto_visibility_timeout: true,
             retry_intervals: [1, 5], batch: false, body_parser: :json,
             non_retryable_exceptions: [ArgumentError]
+          )
         end
       end.not_to raise_error
     end

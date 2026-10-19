@@ -33,10 +33,12 @@ TransientNetworkError = Class.new(StandardError)
 combined_worker = Class.new do
   include Shoryuken::Worker
 
-  shoryuken_options auto_delete: true,
+  shoryuken_options(
+    auto_delete: true,
     batch: false,
     retry_intervals: [1, 1],
     non_retryable_exceptions: [PermanentValidationError]
+  )
 
   def perform(sqs_msg, body)
     receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i

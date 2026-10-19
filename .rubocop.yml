@@ -1,3 +1,6 @@
+require:
+  - ./.rubocop/cops/multiline_call_parentheses
+
 AllCops:
   Exclude:
     - '**/Gemfile'
@@ -130,7 +133,10 @@ Naming/MemoizedInstanceVariableName:
 Layout/FirstMethodArgumentLineBreak:
   Enabled: true
 
-# Continuation arguments of a call without parentheses are indented, not aligned with the first argument
+# Multi-line calls get parentheses, so the two cops above apply to them too
+Shoryuken/MultilineCallParentheses:
+  Enabled: true
+
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 
