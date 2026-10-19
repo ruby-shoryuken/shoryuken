@@ -66,8 +66,10 @@ assert_equal([first[0], 'single', 2], second, 'the failed message must come back
 # --- Batch worker ---
 failed_batch = DT[:batches].first
 assert(failed_batch.size > 1, "the failed batch must hold more than one message, got #{failed_batch.inspect}")
-assert_equal(batch_bodies, DT[:batches].drop(1).flatten.sort,
-             'every message must come back after the failed batch and be deleted after one successful perform')
+assert_equal(
+  batch_bodies, DT[:batches].drop(1).flatten.sort,
+  'every message must come back after the failed batch and be deleted after one successful perform'
+)
 
 delete_test_queue(single_queue)
 delete_test_queue(batch_queue)
