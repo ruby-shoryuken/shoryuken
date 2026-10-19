@@ -56,7 +56,9 @@ module Shoryuken
     # Loads the environment including queues and workers
     #
     # @return [void]
+    # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
     def load
+      Contracts::Options.new.validate!(Shoryuken.options)
       load_queues_and_workers
       validate_queues
       validate_workers
@@ -66,8 +68,9 @@ module Shoryuken
     # {#load} only logs as warnings: no queues at all, and queues without a worker
     #
     # @return [Array<String>] the problems found, empty when the configuration is valid
-    # @raise [Shoryuken::Errors::BaseError] when a queue does not exist
+    # @raise [Shoryuken::Errors::BaseError] when an option has an invalid value or a queue does not exist
     def check
+      Contracts::Options.new.validate!(Shoryuken.options)
       load_queues_and_workers
 
       return ['No queues supplied'] if Shoryuken.ungrouped_queues.empty?

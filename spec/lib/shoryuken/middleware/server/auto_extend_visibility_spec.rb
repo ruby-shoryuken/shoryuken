@@ -77,6 +77,41 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
     end
   end
 
+  context 'with a receive-time visibility_timeout' do
+    let(:receive_visibility_timeout) { 2 }
+
+    before do
+      TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
+      allow(sqs_msg).to receive(:message_id).and_return('test-message-id')
+    end
+
+    it 'extends by the visibility_timeout set for the queue, before it expires' do
+      Shoryuken.sqs_client_receive_message_opts[queue] = { visibility_timeout: receive_visibility_timeout }
+
+      expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: receive_visibility_timeout)
+
+      Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, 1.5)
+    end
+
+    it 'extends by the visibility_timeout set for the group of the queue' do
+      Shoryuken.add_group('custom', 1)
+      Shoryuken.add_queue(queue, 1, 'custom')
+      Shoryuken.sqs_client_receive_message_opts['custom'] = { visibility_timeout: receive_visibility_timeout }
+
+      expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: receive_visibility_timeout)
+
+      Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, 1.5)
+    end
+
+    it 'uses the queue visibility timeout when the receive options do not set one' do
+      Shoryuken.sqs_client_receive_message_opts[queue] = { wait_time_seconds: 1 }
+
+      expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: visibility_timeout)
+
+      Runner.new.run_and_sleep(TestWorker.new, queue, sqs_msg, visibility_timeout)
+    end
+  end
+
   context 'when visibility extension fails' do
     it 'logs error when change_visibility raises an exception' do
       TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true

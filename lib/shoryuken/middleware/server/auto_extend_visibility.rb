@@ -47,23 +47,23 @@ module Shoryuken
           # @param _body [Object] the parsed message body (unused)
           # @return [Shoryuken::Helpers::TimerTask] the timer task
           def auto_extend(_worker, queue, sqs_msg, _body)
-            queue_visibility_timeout = Shoryuken::Client.queues(queue).visibility_timeout
-            execution_interval = extension_interval(queue_visibility_timeout)
+            visibility_timeout = message_visibility_timeout(queue)
+            execution_interval = extension_interval(visibility_timeout)
 
             unless execution_interval
               logger.warn do
-                "Not auto-extending visibility for #{queue}/#{sqs_msg.message_id}: queue visibility " \
-                "timeout (#{queue_visibility_timeout}s) is too short. Increase it to use auto_visibility_timeout."
+                "Not auto-extending visibility for #{queue}/#{sqs_msg.message_id}: visibility " \
+                "timeout (#{visibility_timeout}s) is too short. Increase it to use auto_visibility_timeout."
               end
               return nil
             end
 
             Shoryuken::Helpers::TimerTask.new(execution_interval: execution_interval) do
               logger.debug do
-                "Extending message #{queue}/#{sqs_msg.message_id} visibility timeout by #{queue_visibility_timeout}s"
+                "Extending message #{queue}/#{sqs_msg.message_id} visibility timeout by #{visibility_timeout}s"
               end
 
-              sqs_msg.change_visibility(visibility_timeout: queue_visibility_timeout)
+              sqs_msg.change_visibility(visibility_timeout: visibility_timeout)
             rescue => e
               logger.error do
                 "Could not auto extend the message #{queue}/#{sqs_msg.message_id} visibility timeout. Error: #{e.message}"
@@ -73,12 +73,30 @@ module Shoryuken
 
           private
 
+          # Returns the visibility timeout that applies to a message of the queue: the receive-time visibility_timeout
+          # when it is set, else the queue's VisibilityTimeout attribute
+          #
+          # @param queue [String] the queue name
+          # @return [Integer] the visibility timeout in seconds
+          def message_visibility_timeout(queue)
+            Shoryuken.receive_message_opts_for(queue, queue_group(queue))[:visibility_timeout] ||
+              Shoryuken::Client.queues(queue).visibility_timeout
+          end
+
+          # Finds the group a queue belongs to, whose receive options apply when the queue has none of its own
+          #
+          # @param queue [String] the queue name
+          # @return [String, nil] the name of the group the queue belongs to
+          def queue_group(queue)
+            Shoryuken.groups.find { |_group, options| options[:queues].include?(queue) }&.first
+          end
+
           # Returns a positive interval at which to re-extend the message's visibility before it expires, or nil when the
           # visibility timeout is too short to schedule one. Normally this is EXTEND_UPFRONT_SECONDS before expiry, but for
           # short timeouts (<= EXTEND_UPFRONT_SECONDS) it falls back to half the timeout so the timer still fires in time
           # instead of TimerTask raising on a non-positive interval.
           #
-          # @param visibility_timeout [Integer] the queue's visibility timeout in seconds
+          # @param visibility_timeout [Integer] the message's visibility timeout in seconds
           # @return [Float, Integer, nil] the execution interval, or nil if too short
           def extension_interval(visibility_timeout)
             return nil if visibility_timeout <= 0

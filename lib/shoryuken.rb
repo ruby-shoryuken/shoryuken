@@ -65,6 +65,7 @@ module Shoryuken
     :sqs_client=,
     :sqs_client_receive_message_opts,
     :sqs_client_receive_message_opts=,
+    :receive_message_opts_for,
     :exception_handlers,
     :exception_handlers=,
     :options,
