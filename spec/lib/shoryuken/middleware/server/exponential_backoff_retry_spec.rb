@@ -68,6 +68,45 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       end
     end
 
+    context 'and retry_intervals is an Integer' do
+      it 'uses it for every attempt' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = 2
+
+        allow(sqs_msg).to receive(:attributes) { { 'ApproximateReceiveCount' => 3 } }
+        allow(sqs_msg).to receive(:queue) { sqs_queue }
+        expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 2)
+
+        expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
+      end
+    end
+
+    context 'and retry_intervals is a lambda that returns nil' do
+      it 'does not retry' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = ->(_attempts) {}
+
+        expect(sqs_msg).not_to receive(:change_visibility)
+
+        expect {
+          subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'Error' }
+        }.to raise_error(RuntimeError, 'Error')
+      end
+    end
+
+    context 'and retry_intervals is a lambda that raises' do
+      it 'logs the failure and re-raises the original error' do
+        TestWorker.get_shoryuken_options['retry_intervals'] = ->(_attempts) { raise 'interval boom' }
+
+        log = StringIO.new
+        allow(subject).to receive(:logger).and_return(Logger.new(log))
+        expect(sqs_msg).not_to receive(:change_visibility)
+
+        expect {
+          subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
+        }.to raise_error(RuntimeError, 'original worker error')
+        expect(log.string).to include("Failed to set backoff visibility timeout for #{sqs_msg.message_id}: interval boom")
+      end
+    end
+
     context 'and retry_intervals is empty' do
       it 'does not retry' do
         TestWorker.get_shoryuken_options['retry_intervals'] = []
