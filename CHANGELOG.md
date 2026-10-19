@@ -41,6 +41,13 @@
   - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
     release is logged and does not break dispatch or shutdown
 
+- Feature: `ShoryukenConcurrentSendAdapter#wait_for_pending_sends` to drain in-flight async sends (mensfeld)
+  - The concurrent send adapter enqueues by scheduling the SQS send on a background future and returning
+    immediately, so jobs enqueued shortly before the process exits could be silently dropped
+  - `wait_for_pending_sends(timeout = nil)` blocks until every in-flight send has finished (returning
+    false if the optional timeout elapses first); call it from your shutdown sequence to flush pending sends
+  - In-flight futures are tracked and removed as they resolve, so the set does not grow unbounded
+
 - Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
   - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
     executor shutdown propagated out of the stop sequence, so the remaining steps - including the executor
