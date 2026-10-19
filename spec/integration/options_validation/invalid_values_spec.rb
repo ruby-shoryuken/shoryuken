@@ -58,19 +58,27 @@ with_queue_and_dir do |queue, dir|
   # --- config file ---
   expect_rejected(dir, boot_file, "concurrency: 0\n#{queues}", [concurrency])
   expect_rejected(dir, boot_file, "delay: soon\n#{queues}", [delay])
-  expect_rejected(dir, boot_file, "queues:\n  - [#{queue}, high]\n",
-                  [['queues', 'needs to be nil or an Array of queue names or [name, weight] pairs']])
+  expect_rejected(
+    dir, boot_file, "queues:\n  - [#{queue}, high]\n",
+    [['queues', 'needs to be nil or an Array of queue names or [name, weight] pairs']]
+  )
 
   # --- CLI ---
   expect_rejected(dir, boot_file, queues, [concurrency], '-c', '-1')
-  expect_rejected(dir, boot_file, queues, [['timeout', 'needs to be nil or a number greater than or equal to 0']],
-                  '-t', '-1')
+  expect_rejected(
+    dir, boot_file, queues, [['timeout', 'needs to be nil or a number greater than or equal to 0']],
+    '-t', '-1'
+  )
 
   # --- groups ---
-  expect_rejected(dir, boot_file, "groups:\n  custom:\n    concurrency: 0\n    queues:\n      - #{queue}\n",
-                  [['groups.custom.concurrency', 'needs to be nil or an Integer greater than 0']])
-  expect_rejected(dir, boot_file, "groups:\n  custom:\n    queues: #{queue}\n",
-                  [['groups.custom.queues', 'needs to be nil or an Array of queue names']])
+  expect_rejected(
+    dir, boot_file, "groups:\n  custom:\n    concurrency: 0\n    queues:\n      - #{queue}\n",
+    [['groups.custom.concurrency', 'needs to be nil or an Integer greater than 0']]
+  )
+  expect_rejected(
+    dir, boot_file, "groups:\n  custom:\n    queues: #{queue}\n",
+    [['groups.custom.queues', 'needs to be nil or an Array of queue names']]
+  )
   expect_rejected(dir, boot_file, "groups:\n  custom:\n    - #{queue}\n", [['groups.custom', 'needs to be a Hash']])
 
   # --- every invalid option is reported at once ---

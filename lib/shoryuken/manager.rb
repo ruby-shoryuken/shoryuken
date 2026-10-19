@@ -293,11 +293,13 @@ module Shoryuken
     #
     # @return [void]
     def fire_utilization_update_event
-      fire_event :utilization_update, false, {
-        group: @group,
-        max_processors: @max_processors,
-        busy_processors: busy
-      }
+      fire_event(
+        :utilization_update, false, {
+          group: @group,
+          max_processors: @max_processors,
+          busy_processors: busy
+        }
+      )
     end
   end
 end

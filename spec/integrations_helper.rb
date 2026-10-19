@@ -112,10 +112,12 @@ module IntegrationsHelper
   end
 
   def create_fifo_queue(queue_name)
-    create_test_queue(queue_name, attributes: {
-      'FifoQueue' => 'true',
-      'ContentBasedDeduplication' => 'true'
-    })
+    create_test_queue(
+      queue_name, attributes: {
+        'FifoQueue' => 'true',
+        'ContentBasedDeduplication' => 'true'
+      }
+    )
   end
 
   # Messages in a queue, visible and in flight

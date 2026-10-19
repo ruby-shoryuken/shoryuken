@@ -7,16 +7,16 @@ RSpec.describe 'Helpers Integration' do
     describe '.deep_symbolize_keys' do
       it 'converts keys into symbols recursively' do
         input = { :key1 => 'value1',
-                 'key2' => 'value2',
-                 'key3' => {
-                   'key31' => { 'key311' => 'value311' },
-                   'key32' => 'value32'
-                 } }
+                  'key2' => 'value2',
+                  'key3' => {
+                    'key31' => { 'key311' => 'value311' },
+                    'key32' => 'value32'
+                  } }
 
         expected = { key1: 'value1',
-                    key2: 'value2',
-                    key3: { key31: { key311: 'value311' },
-                            key32: 'value32' } }
+                     key2: 'value2',
+                     key3: { key31: { key311: 'value311' },
+                             key32: 'value32' } }
 
         expect(Shoryuken::Helpers::HashUtils.deep_symbolize_keys(input)).to eq(expected)
       end
@@ -78,12 +78,14 @@ RSpec.describe 'Helpers Integration' do
 
       symbolized = Shoryuken::Helpers::HashUtils.deep_symbolize_keys(config_data)
 
-      expect(symbolized).to eq({
-        queues: {
-          default: { worker_class: 'Object' },
-          mailers: { worker_class: 'String' }
+      expect(symbolized).to eq(
+        {
+          queues: {
+            default: { worker_class: 'Object' },
+            mailers: { worker_class: 'String' }
+          }
         }
-      })
+      )
 
       # Test constantizing the worker classes
       default_worker = Shoryuken::Helpers::StringUtils.constantize(symbolized[:queues][:default][:worker_class])

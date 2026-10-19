@@ -64,14 +64,16 @@ module Shoryuken
     # @!method message_attributes
     #   Returns custom message attributes set by the sender.
     #   @return [Hash] Custom message attributes with typed values
-    def_delegators(:data,
-                   :message_id,
-                   :receipt_handle,
-                   :md5_of_body,
-                   :body,
-                   :attributes,
-                   :md5_of_message_attributes,
-                   :message_attributes)
+    def_delegators(
+      :data,
+      :message_id,
+      :receipt_handle,
+      :md5_of_body,
+      :body,
+      :attributes,
+      :md5_of_message_attributes,
+      :message_attributes
+    )
 
     # @return [Aws::SQS::Client] The SQS client used for message operations
     attr_accessor :client

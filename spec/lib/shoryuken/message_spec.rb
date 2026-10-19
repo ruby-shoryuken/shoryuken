@@ -6,14 +6,16 @@ RSpec.describe Shoryuken::Message do
   let(:client) { instance_double('Aws::SQS::Client') }
   let(:queue) { instance_double('Shoryuken::Queue', name: 'test-queue', url: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue') }
   let(:data) do
-    instance_double('Aws::SQS::Types::Message',
-                    message_id: 'msg-123',
-                    receipt_handle: 'handle-456',
-                    md5_of_body: 'abcd1234',
-                    body: '{"test": "data"}',
-                    attributes: { 'ApproximateReceiveCount' => '1' },
-                    md5_of_message_attributes: 'efgh5678',
-                    message_attributes: { 'type' => 'test' })
+    instance_double(
+      'Aws::SQS::Types::Message',
+      message_id: 'msg-123',
+      receipt_handle: 'handle-456',
+      md5_of_body: 'abcd1234',
+      body: '{"test": "data"}',
+      attributes: { 'ApproximateReceiveCount' => '1' },
+      md5_of_message_attributes: 'efgh5678',
+      message_attributes: { 'type' => 'test' }
+    )
   end
 
   subject { described_class.new(client, queue, data) }
@@ -72,11 +74,13 @@ RSpec.describe Shoryuken::Message do
     it 'calls change_message_visibility on the client with merged parameters' do
       options = { visibility_timeout: 300 }
 
-      expect(client).to receive(:change_message_visibility).with(hash_including(
-        visibility_timeout: 300,
-        queue_url: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue',
-        receipt_handle: 'handle-456'
-      ))
+      expect(client).to receive(:change_message_visibility).with(
+        hash_including(
+          visibility_timeout: 300,
+          queue_url: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue',
+          receipt_handle: 'handle-456'
+        )
+      )
 
       subject.change_visibility(options)
     end
@@ -84,12 +88,14 @@ RSpec.describe Shoryuken::Message do
     it 'merges queue_url and receipt_handle into provided options' do
       options = { visibility_timeout: 120, custom_param: 'value' }
 
-      expect(client).to receive(:change_message_visibility).with(hash_including(
-        visibility_timeout: 120,
-        custom_param: 'value',
-        queue_url: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue',
-        receipt_handle: 'handle-456'
-      ))
+      expect(client).to receive(:change_message_visibility).with(
+        hash_including(
+          visibility_timeout: 120,
+          custom_param: 'value',
+          queue_url: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue',
+          receipt_handle: 'handle-456'
+        )
+      )
 
       subject.change_visibility(options)
     end

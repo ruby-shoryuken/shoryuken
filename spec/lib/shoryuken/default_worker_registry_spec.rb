@@ -47,10 +47,12 @@ RSpec.describe Shoryuken::DefaultWorkerRegistry do
 
       attributes['shoryuken_class'] = { string_value: explicit_worker.to_s, data_type: 'String' } if explicit_worker
 
-      double(Shoryuken::Message,
-             body: 'test',
-             message_attributes: attributes,
-             message_id: SecureRandom.uuid)
+      double(
+        Shoryuken::Message,
+        body: 'test',
+        message_attributes: attributes,
+        message_id: SecureRandom.uuid
+      )
     end
 
     context 'a batch of messages is being processed' do
