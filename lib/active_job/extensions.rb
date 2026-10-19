@@ -33,10 +33,12 @@ module Shoryuken
       # @option options [String] :message_group_id FIFO message group ID
       # @return [Object] the enqueue result
       def enqueue(options = {})
-        sqs_options = options.extract! :message_attributes,
-                                       :message_system_attributes,
-                                       :message_deduplication_id,
-                                       :message_group_id
+        sqs_options = options.extract!(
+          :message_attributes,
+          :message_system_attributes,
+          :message_deduplication_id,
+          :message_group_id
+        )
         sqs_send_message_parameters.merge! sqs_options
 
         super

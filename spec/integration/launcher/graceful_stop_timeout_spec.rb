@@ -60,10 +60,12 @@ started_at = Time.now
 begin
   Timeout.timeout(20) { launcher.stop }
 rescue Timeout::Error
-  raise IntegrationsHelper::TestFailure,
-        'Launcher#stop blocked past the configured timeout on a hung worker: ' \
-        'a graceful stop must bound executor.wait_for_termination and kill the ' \
-        'executor when exceeded (an unbounded wait hangs USR1/TSTP shutdown forever)'
+  raise(
+    IntegrationsHelper::TestFailure,
+    'Launcher#stop blocked past the configured timeout on a hung worker: ' \
+    'a graceful stop must bound executor.wait_for_termination and kill the ' \
+    'executor when exceeded (an unbounded wait hangs USR1/TSTP shutdown forever)'
+  )
 end
 elapsed = Time.now - started_at
 

@@ -1,3 +1,6 @@
+require:
+  - ./rubocop/cops/multiline_method_call_parentheses
+
 AllCops:
   Exclude:
     - '**/Gemfile'
@@ -7,6 +10,8 @@ Metrics/BlockLength:
   AllowedMethods:
     - describe
     - context
+  CountAsOne:
+    - method_call
 
 Metrics/PerceivedComplexity:
   Enabled: false
@@ -122,3 +127,18 @@ Security/YAMLLoad:
 
 Naming/MemoizedInstanceVariableName:
   Enabled: false
+
+# Multi-line calls start their arguments on a new line, and close the parenthesis on its own line
+# (Layout/MultilineMethodCallBraceLayout, symmetrical by default)
+Layout/FirstMethodArgumentLineBreak:
+  Enabled: true
+
+# Multi-line calls get parentheses, so the two cops above apply to them too
+Shoryuken/MultilineMethodCallParentheses:
+  Enabled: true
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/FirstMethodParameterLineBreak:
+  Enabled: true
