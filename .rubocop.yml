@@ -1,7 +1,13 @@
 require:
   - ./.rubocop/cops/multiline_call_parentheses
 
+inherit_mode:
+  merge:
+    - Include
+
 AllCops:
+  Include:
+    - '.rubocop/**/*.rb'
   Exclude:
     - '**/Gemfile'
   TargetRubyVersion: 3.4

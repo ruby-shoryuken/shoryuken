@@ -150,13 +150,10 @@ RSpec.describe RuboCop::Cop::Shoryuken::MultilineCallParentheses, :config do
     RUBY
   end
 
-  it 'accepts operator and setter calls' do
+  it 'accepts an index setter whose arguments span lines' do
     expect_no_offenses(<<~RUBY)
-      total = a +
-              b
-      self.value = [
-        1, 2
-      ]
+      foo[:a,
+          :b] = 1
     RUBY
   end
 end
