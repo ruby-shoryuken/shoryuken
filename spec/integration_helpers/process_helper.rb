@@ -13,7 +13,17 @@ module ProcessHelper
 
   # Runs `bin/shoryuken start` until it exits on its own, returns [status, output]
   def run_shoryuken_until_exit(*args, timeout: 30)
-    Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
+    run_shoryuken_command_until_exit('start', *args, timeout: timeout)
+  end
+
+  # Runs `bin/shoryuken sqs` against ElasticMQ until it exits, returns [status, output]
+  def run_shoryuken_sqs(*args, timeout: 30)
+    run_shoryuken_command_until_exit('sqs', *args, '-e', SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS'], timeout: timeout)
+  end
+
+  # Runs a `bin/shoryuken` command until it exits on its own, returns [status, output]
+  def run_shoryuken_command_until_exit(command, *args, timeout: 30)
+    Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, command, *args) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 
