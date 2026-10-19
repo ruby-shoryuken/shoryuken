@@ -8,6 +8,31 @@
   - The executor shutdown and the drain together stay within `timeout`; a drain that runs out of time or fails is
     logged and does not break shutdown
 
+- Breaking: Drop support for Ruby 3.2 (EOL March 2026)
+  - Minimum required Ruby version is now 3.3.0
+  - Supported Ruby versions: 3.3, 3.4, 4.0
+  - Users on Ruby 3.2 should upgrade or remain on Shoryuken 7.0.x
+
+- Breaking: `shoryuken_options` rejects unknown worker option keys when the worker class loads
+  - A mistyped key (e.g. `auto_delte`) now raises `Shoryuken::Errors::InvalidConfigurationError` naming the worker
+    and the key, instead of being silently ignored
+  - Workers with any other key, including the formerly documented but unused `sqs`, no longer load
+  - Known keys: `queue`, `delete`, `auto_delete`, `auto_visibility_timeout`, `retry_intervals`, `batch`,
+    `body_parser` and `non_retryable_exceptions`
+
+- Fix: Lifecycle event handlers registered with `Shoryuken.on` no longer leak into `Shoryuken::Options::DEFAULTS`
+  - `options` copied the defaults shallowly, so handlers were appended to the shared nested arrays and fired for
+    every later `Shoryuken::Options` instance; the defaults are now deep-copied
+
+- Enhancement: Global options are validated when the server loads its configuration
+  - Invalid values from the config file, the CLI or Ruby code (e.g. `concurrency: 0`, a `delay` or `timeout` that is
+    not a non-negative number, a malformed `queues` entry or group) now raise
+    `Shoryuken::Errors::InvalidConfigurationError` naming the option, instead of failing later or being ignored
+  - Unknown keys, globally or in a group (e.g. a mistyped `concurency`), log a warning naming the key; they are not
+    rejected, so custom keys kept in the options keep working
+  - Validation runs on `Shoryuken::Contractable`, a copy of the karafka-core contract layer (MIT), with no new
+    dependency
+
 - Fix: `auto_visibility_timeout` now extends a message by the `visibility_timeout` set in
   `sqs_client_receive_message_opts` when there is one
   - It used only the queue's `VisibilityTimeout`, so a shorter receive-time timeout let the message become visible

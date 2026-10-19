@@ -19,7 +19,7 @@ Shoryuken _sho-ryu-ken_ is a super-efficient [Amazon SQS](https://aws.amazon.com
 
 ## Requirements
 
-Ruby 3.2 or greater.
+Ruby 3.3 or greater.
 
 ## Installation
 
@@ -46,6 +46,14 @@ For more information check the [wiki page](https://github.com/ruby-shoryuken/sho
 ## Credits
 
 [Mike Perham](https://github.com/mperham), creator of [Sidekiq](https://github.com/mperham/sidekiq), and [everybody who contributed to it](https://github.com/mperham/sidekiq/graphs/contributors). Shoryuken wouldn't exist as it is without those contributions.
+
+## License
+
+Copyright (c) Pablo Cantero\
+Copyright (c) Maciej Mensfeld\
+Copyright (c) [Shoryuken contributors](https://github.com/ruby-shoryuken/shoryuken/graphs/contributors)
+
+Shoryuken is an Open Source project licensed under the terms of the LGPLv3 license. See [LICENSE](LICENSE) for the license text.
 
 ## Contributing
 
