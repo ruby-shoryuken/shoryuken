@@ -371,7 +371,7 @@ module Shoryuken
           messages << m
         end
 
-        failed_ids = batch_send(find_queue_url(queue_name_target), messages.map(&:to_h)).map(&:id)
+        failed_ids = batch_send(find_queue_url(queue_name_target), messages.map(&:to_h)).to_set(&:id)
         moved = messages.reject { |m| failed_ids.include?(m.message_id) }
         not_deleted = options[:delete] ? batch_delete(url_source, moved) : []
 
