@@ -103,7 +103,8 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
         expect {
           subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
         }.to raise_error(RuntimeError, 'original worker error')
-        expect(log.string).to include("Failed to set backoff visibility timeout for #{sqs_msg.message_id}: interval boom")
+        expect(log.string).to include("retry_intervals raised for #{sqs_msg.message_id}: RuntimeError: interval boom")
+        expect(log.string).not_to include('Failed to set backoff visibility timeout')
       end
     end
 
@@ -230,6 +231,20 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       expect {
         subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
       }.to raise_error(RuntimeError, 'original worker error')
+    end
+
+    it 'logs a failed visibility change as such' do
+      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
+      allow(sqs_msg).to receive(:change_visibility).and_raise(StandardError, 'visibility boom')
+
+      log = StringIO.new
+      allow(subject).to receive(:logger).and_return(Logger.new(log))
+
+      expect {
+        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
+      }.to raise_error(RuntimeError, 'original worker error')
+      expect(log.string).to include("Failed to set backoff visibility timeout for #{sqs_msg.message_id}: visibility boom")
+      expect(log.string).not_to include('retry_intervals raised')
     end
   end
 end
