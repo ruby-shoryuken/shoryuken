@@ -7,3 +7,6 @@ gem 'rubocop'
 
 # Documentation linting
 gem 'yard-lint'
+
+# Specs of the repo's own RuboCop cops (.rubocop/spec)
+gem 'rspec'
