@@ -7,6 +7,8 @@ Metrics/BlockLength:
   AllowedMethods:
     - describe
     - context
+  CountAsOne:
+    - method_call
 
 Metrics/PerceivedComplexity:
   Enabled: false
@@ -122,3 +124,8 @@ Security/YAMLLoad:
 
 Naming/MemoizedInstanceVariableName:
   Enabled: false
+
+# Multi-line calls start their arguments on a new line, and close the parenthesis on its own line
+# (Layout/MultilineMethodCallBraceLayout, symmetrical by default)
+Layout/FirstMethodArgumentLineBreak:
+  Enabled: true

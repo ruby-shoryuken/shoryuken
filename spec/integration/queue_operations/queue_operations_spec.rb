@@ -47,11 +47,13 @@ send_result2 = queue.send_message(message_body: hash_body)
 assert(send_result2.message_id, "Send result should have message_id for hash body")
 
 # Test 7: Batch message sending
-batch_result = queue.send_messages([
-  { message_body: 'batch msg 1' },
-  { message_body: 'batch msg 2' },
-  { message_body: 'batch msg 3' }
-])
+batch_result = queue.send_messages(
+  [
+    { message_body: 'batch msg 1' },
+    { message_body: 'batch msg 2' },
+    { message_body: 'batch msg 3' }
+  ]
+)
 assert_equal(3, batch_result.successful.size, "All 3 batch messages should succeed")
 
 # Test 8: Receive messages
