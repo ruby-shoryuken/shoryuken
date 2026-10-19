@@ -129,3 +129,10 @@ Naming/MemoizedInstanceVariableName:
 # (Layout/MultilineMethodCallBraceLayout, symmetrical by default)
 Layout/FirstMethodArgumentLineBreak:
   Enabled: true
+
+# Continuation arguments of a call without parentheses are indented, not aligned with the first argument
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/FirstMethodParameterLineBreak:
+  Enabled: true

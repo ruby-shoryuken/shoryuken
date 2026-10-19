@@ -55,8 +55,8 @@ begin
     Timeout.timeout(10) { launcher.stop }
   rescue Timeout::Error
     raise IntegrationsHelper::TestFailure,
-          'Second Launcher#stop deadlocked: await_dispatching_in_progress blocked on an empty signal queue ' \
-          '(TSTP -> USR1 leaves the process unkillable except SIGKILL)'
+      'Second Launcher#stop deadlocked: await_dispatching_in_progress blocked on an empty signal queue ' \
+      '(TSTP -> USR1 leaves the process unkillable except SIGKILL)'
   end
 
   assert_equal(['before stop'], DT[:processed].to_a, 'Message sent before shutdown should have been processed')

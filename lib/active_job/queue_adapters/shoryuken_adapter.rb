@@ -110,8 +110,8 @@ module ActiveJob
           queue = Shoryuken::Client.queues(job.queue_name)
           if queue.fifo?
             raise Shoryuken::Errors::FifoDelayNotSupportedError,
-                  "FIFO queue '#{queue.name}' does not support per-message delays. " \
-                  'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
+              "FIFO queue '#{queue.name}' does not support per-message delays. " \
+              'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
           end
         end
 

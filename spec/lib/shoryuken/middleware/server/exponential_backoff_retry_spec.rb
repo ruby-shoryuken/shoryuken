@@ -6,7 +6,7 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
   let(:sqs_queue) { double Shoryuken::Queue }
   let(:sqs_msg)   {
     double Shoryuken::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid,
-                               attributes: { 'ApproximateReceiveCount' => 1 }, message_id: SecureRandom.uuid
+      attributes: { 'ApproximateReceiveCount' => 1 }, message_id: SecureRandom.uuid
   }
 
   before do

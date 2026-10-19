@@ -26,8 +26,8 @@ non_retryable_worker = Class.new do
   include Shoryuken::Worker
 
   shoryuken_options auto_delete: false,
-                    batch: false,
-                    non_retryable_exceptions: [InvalidInputError, RecordNotFoundError]
+    batch: false,
+    non_retryable_exceptions: [InvalidInputError, RecordNotFoundError]
 
   def perform(sqs_msg, body)
     receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i

@@ -6,10 +6,10 @@ RSpec.describe Shoryuken::Middleware::Server::NonRetryableException do
 
   def build_message
     double Shoryuken::Message,
-           queue_url: queue,
-           body: 'test',
-           message_id: SecureRandom.uuid,
-           receipt_handle: SecureRandom.uuid
+      queue_url: queue,
+      body: 'test',
+      message_id: SecureRandom.uuid,
+      receipt_handle: SecureRandom.uuid
   end
 
   let(:sqs_msg) { build_message }

@@ -336,7 +336,7 @@ module Shoryuken
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
       method_option :batch_size, aliases: '-n', type: :numeric, default: 10,
-                                 desc: 'maximum number of messages per batch to send'
+        desc: 'maximum number of messages per batch to send'
       def requeue(queue_name, path)
         fail_task "Path #{path} not found" unless File.exist?(path)
 

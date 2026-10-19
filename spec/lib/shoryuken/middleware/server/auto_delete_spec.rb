@@ -6,9 +6,9 @@ describe Shoryuken::Middleware::Server::AutoDelete do
 
   def build_message
     double Shoryuken::Message,
-           queue_url: queue,
-           body: 'test',
-           receipt_handle: SecureRandom.uuid
+      queue_url: queue,
+      body: 'test',
+      receipt_handle: SecureRandom.uuid
   end
 
   let(:sqs_msg) { build_message }
