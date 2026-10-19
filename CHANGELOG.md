@@ -7,7 +7,6 @@
     (including adapters set on a single job class) after the executor shutdown
   - The executor shutdown and the drain together stay within `timeout`; a drain that runs out of time or fails is
     logged and does not break shutdown
-  - A send is tracked before it starts, so the drain cannot miss a send that starts while shutdown takes its snapshot
 
 - Breaking: Drop support for Ruby 3.2 (EOL March 2026)
   - Minimum required Ruby version is now 3.3.0

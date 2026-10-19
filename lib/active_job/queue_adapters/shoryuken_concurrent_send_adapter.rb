@@ -111,8 +111,8 @@ module ActiveJob
         track_pending_send(future).touch
       end
 
-      # Tracks an in-flight send future so {#wait_for_pending_sends} can await it,
-      # removing it once it resolves to keep the set from growing unbounded.
+      # Tracks a send future before it starts so {#wait_for_pending_sends} can await it, removing it once it resolves to
+      # keep the set from growing unbounded.
       #
       # @param future [Concurrent::Promises::Future] the send future to track
       # @return [Concurrent::Promises::Future] the same future
