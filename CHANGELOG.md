@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+- Fix: Shoryuken now drains in-flight `ShoryukenConcurrentSendAdapter` sends on shutdown (mensfeld)
+  - A job enqueued with the concurrent adapter shortly before the process stopped (e.g. by a worker) was lost: the
+    TERM/USR1 handlers exit right after the launcher stops, which killed the background send
+  - `Launcher#stop`/`#stop!` now call `wait_for_pending_sends` on every loaded ActiveJob adapter that supports it
+    (including adapters set on a single job class) after the executor shutdown
+  - The executor shutdown and the drain together stay within `timeout`; a drain that runs out of time or fails is
+    logged and does not break shutdown
+
 - Breaking: Drop support for Ruby 3.2 (EOL March 2026)
   - Minimum required Ruby version is now 3.3.0
   - Supported Ruby versions: 3.3, 3.4, 4.0
@@ -40,6 +48,13 @@
     rejected the worker post, so it stayed invisible until its visibility timeout expired
   - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
     release is logged and does not break dispatch or shutdown
+
+- Feature: `ShoryukenConcurrentSendAdapter#wait_for_pending_sends` to drain in-flight async sends (mensfeld)
+  - The concurrent send adapter enqueues by scheduling the SQS send on a background future and returning
+    immediately, so jobs enqueued shortly before the process exits could be silently dropped
+  - `wait_for_pending_sends(timeout = nil)` blocks until every in-flight send has finished (returning
+    false if the optional timeout elapses first); call it from your shutdown sequence to flush pending sends
+  - In-flight futures are tracked and removed as they resolve, so the set does not grow unbounded
 
 - Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
   - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the
