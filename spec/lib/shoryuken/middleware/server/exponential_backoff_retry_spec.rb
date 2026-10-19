@@ -222,19 +222,10 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
       expect(subject.send(:next_visibility_timeout, 300, started_at)).to eq(0)
     end
 
-    it 'does not mask the original error when rescheduling fails' do
+    it 'logs the failed visibility change and re-raises the original error' do
       TestWorker.get_shoryuken_options['retry_intervals'] = [300]
 
       # e.g. an expired receipt handle - change_visibility raises
-      allow(sqs_msg).to receive(:change_visibility).and_raise(StandardError, 'visibility boom')
-
-      expect {
-        subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'original worker error' }
-      }.to raise_error(RuntimeError, 'original worker error')
-    end
-
-    it 'logs a failed visibility change as such' do
-      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
       allow(sqs_msg).to receive(:change_visibility).and_raise(StandardError, 'visibility boom')
 
       log = StringIO.new
