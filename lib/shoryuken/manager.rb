@@ -122,12 +122,14 @@ module Shoryuken
 
       fire_event(:dispatch, false, queue_name: queue.name)
 
-      Shoryuken.monitor.publish('manager.dispatch',
-                                group: @group,
-                                queue: queue.name,
-                                ready: ready,
-                                busy: busy,
-                                active_queues: @polling_strategy.active_queues)
+      Shoryuken.monitor.publish(
+        'manager.dispatch',
+        group: @group,
+        queue: queue.name,
+        ready: ready,
+        busy: busy,
+        active_queues: @polling_strategy.active_queues
+      )
 
       batched_queue?(queue) ? dispatch_batch(queue) : dispatch_single_messages(queue)
     rescue => e
@@ -183,10 +185,12 @@ module Shoryuken
         return
       end
 
-      Shoryuken.monitor.publish('manager.processor_assigned',
-                                group: @group,
-                                queue: queue_name,
-                                message_id: sqs_msg.message_id)
+      Shoryuken.monitor.publish(
+        'manager.processor_assigned',
+        group: @group,
+        queue: queue_name,
+        message_id: sqs_msg.message_id
+      )
 
       @busy_processors.increment
       fire_utilization_update_event
@@ -288,12 +292,14 @@ module Shoryuken
       logger.error { "Manager failed: #{ex.message}" }
       logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
 
-      Shoryuken.monitor.publish('manager.failed',
-                                group: @group,
-                                error: ex,
-                                error_message: ex.message,
-                                error_class: ex.class.name,
-                                backtrace: ex.backtrace)
+      Shoryuken.monitor.publish(
+        'manager.failed',
+        group: @group,
+        error: ex,
+        error_message: ex.message,
+        error_class: ex.class.name,
+        backtrace: ex.backtrace
+      )
 
       # Stop this manager first so Launcher#healthy? surfaces the failure to
       # whoever is supervising us (the CLI Runner, or an embedding application).

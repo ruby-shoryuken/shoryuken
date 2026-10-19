@@ -130,7 +130,7 @@ module Shoryuken
         exception_raised = nil
         begin
           result = yield payload if block_given?
-        rescue Exception => e
+        rescue Exception => e # rubocop:disable Lint/RescueException
           exception_raised = e
           payload[:exception] = [e.class.name, e.message]
           payload[:exception_object] = e

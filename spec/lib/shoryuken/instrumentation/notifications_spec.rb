@@ -196,7 +196,7 @@ RSpec.describe Shoryuken::Instrumentation::Notifications do
 
         expect do
           notifications.instrument('message.processed', queue: 'default') do
-            raise RuntimeError, 'something went wrong'
+            raise 'something went wrong'
           end
         end.to raise_error(RuntimeError)
 
@@ -292,8 +292,8 @@ RSpec.describe Shoryuken::Instrumentation::Notifications do
 
   describe '#clear' do
     it 'removes all subscribers' do
-      notifications.subscribe('message.processed') { }
-      notifications.subscribe { }
+      notifications.subscribe('message.processed') {}
+      notifications.subscribe {}
 
       expect(notifications.subscriber_count('message.processed')).to eq(1)
       expect(notifications.subscriber_count).to eq(1)
@@ -307,17 +307,17 @@ RSpec.describe Shoryuken::Instrumentation::Notifications do
 
   describe '#subscriber_count' do
     it 'returns count for specific event' do
-      notifications.subscribe('message.processed') { }
-      notifications.subscribe('message.processed') { }
-      notifications.subscribe('message.failed') { }
+      notifications.subscribe('message.processed') {}
+      notifications.subscribe('message.processed') {}
+      notifications.subscribe('message.failed') {}
 
       expect(notifications.subscriber_count('message.processed')).to eq(2)
       expect(notifications.subscriber_count('message.failed')).to eq(1)
     end
 
     it 'returns count for global subscribers' do
-      notifications.subscribe { }
-      notifications.subscribe { }
+      notifications.subscribe {}
+      notifications.subscribe {}
 
       expect(notifications.subscriber_count).to eq(2)
     end
@@ -332,7 +332,7 @@ RSpec.describe Shoryuken::Instrumentation::Notifications do
       threads = 10.times.map do
         Thread.new do
           10.times do
-            notifications.subscribe('message.processed') { }
+            notifications.subscribe('message.processed') {}
           end
         end
       end

@@ -150,7 +150,7 @@ RSpec.describe Shoryuken::Instrumentation::LoggerListener do
           'manager.failed',
           group: 'default',
           error_message: 'Something went wrong',
-          backtrace: ['line1', 'line2']
+          backtrace: %w[line1 line2]
         )
 
         expect(logger).to receive(:error).twice
@@ -256,7 +256,7 @@ RSpec.describe Shoryuken::Instrumentation::LoggerListener do
 
       it 'logs backtrace when present' do
         error = ArgumentError.new('Invalid argument')
-        error.set_backtrace(['line1', 'line2'])
+        error.set_backtrace(%w[line1 line2])
         event = Shoryuken::Instrumentation::Event.new(
           'error.occurred',
           error: error
