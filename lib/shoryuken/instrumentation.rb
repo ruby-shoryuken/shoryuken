@@ -12,7 +12,6 @@ module Shoryuken
   #   Shoryuken.monitor.subscribe('message.processed') do |event|
   #     StatsD.timing('shoryuken.process_time', event.duration * 1000)
   #   end
-  #
   module Instrumentation
   end
 end

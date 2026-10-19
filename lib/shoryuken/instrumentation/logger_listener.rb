@@ -7,7 +7,6 @@ module Shoryuken
     #
     # @example Subscribing the logger listener
     #   Shoryuken.monitor.subscribe(&LoggerListener.new.method(:call))
-    #
     class LoggerListener
       # Creates a new LoggerListener
       #
@@ -25,7 +24,7 @@ module Shoryuken
 
       # Handles an instrumentation event by logging it appropriately
       #
-      # @param event [Event] the event to handle
+      # @param event [Event] the event; its name selects the `on_*` handler that logs it
       # @return [void]
       def call(event)
         method_name = "on_#{event.name.tr('.', '_')}"

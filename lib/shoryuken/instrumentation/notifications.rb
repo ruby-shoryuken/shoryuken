@@ -19,7 +19,6 @@ module Shoryuken
     #   Shoryuken.monitor.instrument('message.processed', queue: 'default') do
     #     process_message
     #   end
-    #
     class Notifications
       # List of all supported events in the system
       EVENTS = %w[

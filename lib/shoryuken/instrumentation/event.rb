@@ -10,7 +10,6 @@ module Shoryuken
     #   event.name      # => 'message.processed'
     #   event[:queue]   # => 'default'
     #   event.duration  # => 0.5
-    #
     class Event
       # @return [String] the event name (e.g., 'message.processed')
       attr_reader :name
