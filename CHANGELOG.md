@@ -1,9 +1,9 @@
 ## [Unreleased]
 
 - Fix: `shoryuken sqs dump` and `mv` check their input before they receive any message
-  - `dump -p` with a missing or read-only directory received the messages and then raised `Errno::ENOENT`, which left
-    them in flight until their visibility timeout ended; it now fails with `[FAIL] Path ... is not a directory` (or
-    `is not writable`)
+  - `dump -p` with a missing or read-only directory received the messages and then raised `Errno::ENOENT` (missing)
+    or `Errno::EACCES` (read-only), which left them in flight until their visibility timeout ended; it now fails with
+    `[FAIL] Path ... is not a directory` (or `is not writable`)
   - `dump`/`mv -n` below 1 raised `Aws::SQS::Errors::InvalidAttributeValue`; they now fail with
     `[FAIL] Number of messages must be at least 1`
   - `delete` now prints `Queue ... was successfully deleted` (was `delete`)

@@ -309,7 +309,7 @@ module Shoryuken
         # Fails the task unless the number of messages option is at least 1
         #
         # @return [void]
-        def check_number_option
+        def validate_number_option
           fail_task "Number of messages must be at least 1, got #{options[:number]}" if options[:number] < 1
         end
       end
@@ -337,7 +337,7 @@ module Shoryuken
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def dump(queue_name)
-        check_number_option
+        validate_number_option
 
         fail_task "Path #{options[:path]} is not a directory" unless File.directory?(options[:path])
         unless File.writable?(options[:path]) && File.executable?(options[:path])
@@ -404,7 +404,7 @@ module Shoryuken
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to move'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def mv(queue_name_source, queue_name_target)
-        check_number_option
+        validate_number_option
 
         url_source = find_queue_url(queue_name_source)
         messages = []
