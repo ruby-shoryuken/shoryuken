@@ -71,14 +71,11 @@ end
 with_queue_and_dir do |queue, dir|
   Shoryuken::Client.sqs.send_message(queue_url: queue_url(queue), message_body: 'kept')
 
-  pid = Process.spawn(
-    SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'sqs', 'dump', queue, '-p', dir,
-    '-e', SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS'], %i[out err] => File::NULL
-  )
-  Timeout.timeout(15) { sleep 0.05 until Dir[File.join(dir, '*.jsonl')].any? }
-  Process.kill('INT', pid)
-  Process.wait(pid)
+  status, output = run_shoryuken_sqs_until('dump', queue, '-p', dir, signal: 'INT') do
+    Dir[File.join(dir, '*.jsonl')].any?
+  end
 
+  refute(status.success?, "an interrupted dump must exit with a non-zero status, got: #{output}")
   assert_equal([], Dir[File.join(dir, '*')], 'a dump that stops must leave no file')
   assert_equal(1, queue_size(queue), 'a dump that stops must delete no message')
 end
