@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs requeue` no longer drops FIFO messages requeued within 5 minutes of their dump
+  - It sent each message with its original `MessageDeduplicationId`, so SQS accepted but did not deliver it; it now
+    sends a new deduplication id per message (also in `mv`) and keeps the `MessageGroupId`. Requeueing the same dump
+    file twice now delivers its messages twice
+
 - Fix: `shoryuken sqs dump` handles Binary message attributes and leaves no file when it fails
   - A Binary value that is not valid UTF-8 raised `JSON::GeneratorError`; `dump` now stores Binary values as base64,
     marked with `"binary_value_encoding": "base64"`, and `requeue` decodes them. Dump files without the mark still
