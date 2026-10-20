@@ -105,7 +105,8 @@ module Shoryuken
 
             failed.each do |failure|
               say(
-                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, sender_fault: #{failure.sender_fault}",
+                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, " \
+                "sender_fault: #{failure.sender_fault}",
                 :yellow
               )
             end
@@ -377,7 +378,7 @@ module Shoryuken
 
         fail_task "Could not delete #{not_deleted.size} dumped messages from #{queue_name}" unless not_deleted.empty?
       ensure
-        file.close if file
+        file&.close
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
@@ -456,3 +457,4 @@ module Shoryuken
     end
   end
 end
+# rubocop:enable Metrics/BlockLength
