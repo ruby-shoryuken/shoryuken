@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'date'
+require 'securerandom'
 
 # rubocop:disable Metrics/BlockLength
 module Shoryuken
@@ -59,7 +60,8 @@ module Shoryuken
             id: message[:message_id],
             message_body: message[:body],
             message_attributes: message_attributes,
-            message_deduplication_id: attributes[:MessageDeduplicationId],
+            # SQS drops a FIFO message whose deduplication id it saw in the last 5 minutes
+            message_deduplication_id: (SecureRandom.uuid if attributes[:MessageDeduplicationId]),
             message_group_id: attributes[:MessageGroupId]
           }
         end
