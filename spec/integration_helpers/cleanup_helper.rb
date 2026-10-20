@@ -2,11 +2,12 @@
 
 # Resources a single spec creates and cleans up afterwards
 module CleanupHelper
-  # Yields a new queue and a temporary directory, and deletes both afterwards
-  def with_queue_and_dir(attributes: {})
+  # Yields a new queue (with fifo: a FIFO queue with content-based deduplication) and a temporary directory, and
+  # deletes both afterwards
+  def with_queue_and_dir(attributes: {}, fifo: false)
     dir = Dir.mktmpdir
-    queue = DT.uuid
-    create_test_queue(queue, attributes: attributes)
+    queue = fifo ? "#{DT.uuid}.fifo" : DT.uuid
+    fifo ? create_fifo_queue(queue) : create_test_queue(queue, attributes: attributes)
 
     yield queue, dir
   ensure

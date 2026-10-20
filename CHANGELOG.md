@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs dump` handles Binary message attributes and leaves no file when it fails
+  - A Binary value that is not valid UTF-8 raised `JSON::GeneratorError`; `dump` now stores Binary values as base64,
+    marked with `"binary_value_encoding": "base64"`, and `requeue` decodes them. Dump files without the mark still
+    requeue
+  - A dump that failed or stopped while writing left its file, so every later dump of the queue that day failed with
+    `File ... already exists`; it now removes the file
+
+- Fix: `shoryuken sqs mv` and `requeue` no longer lose or miscount messages the target queue rejects
+  - `mv` deleted every received message from the source, also the ones the target rejected (e.g. a FIFO target and
+    messages without a group id); it now deletes only the accepted ones, so the rejected ones stay in the source
+  - `mv` and `requeue` count only the accepted messages, print every rejected entry (also on a failed delete, before
+    only the first of each batch) and exit with status 1 when an entry was rejected; so does `dump` when a delete fails
+
 - Fix: A raising `retry_intervals` lambda is now logged as such
   - `ExponentialBackoffRetry` logged it as `Failed to set backoff visibility timeout`, although no visibility change
     was attempted; it now logs `retry_intervals raised for <message id>: <error class>: <message>`. The original worker
