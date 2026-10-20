@@ -15,15 +15,6 @@
 
 setup_sqs
 
-def with_fifo_queue
-  queue = "#{DT.uuid}.fifo"
-  create_fifo_queue(queue)
-
-  yield queue
-ensure
-  delete_test_queue(queue) if queue
-end
-
 def bodies(queue)
   url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue).queue_url
 
@@ -49,7 +40,7 @@ with_queue_and_dir do |source, _dir|
   grouped.each { |body| Shoryuken::Client.sqs.send_message(queue_url: url, message_body: body, message_group_id: 'g') }
   plain.each { |body| Shoryuken::Client.sqs.send_message(queue_url: url, message_body: body) }
 
-  with_fifo_queue do |target|
+  with_queue_and_dir(fifo: true) do |target, _target_dir|
     status, output = run_shoryuken_sqs('mv', source, target)
 
     refute(status.success?, "mv must exit with a non-zero status, got: #{output}")
@@ -65,26 +56,24 @@ with_queue_and_dir do |source, _dir|
 end
 
 # --- requeue ---
-with_queue_and_dir do |_queue, dir|
-  with_fifo_queue do |target|
-    path = write_dump(dir, 'accepted.jsonl', grouped.map { |body| [body, 'g'] })
-    status, output = run_shoryuken_sqs('requeue', target, path)
+with_queue_and_dir(fifo: true) do |target, dir|
+  path = write_dump(dir, 'accepted.jsonl', grouped.map { |body| [body, 'g'] })
+  status, output = run_shoryuken_sqs('requeue', target, path)
 
-    assert(status.success?, "requeue with no rejected entry must exit with 0, got: #{output}")
-    assert_includes(output, "Requeued 2 messages from #{path} to #{target}", "got: #{output}")
-  end
+  assert(status.success?, "requeue with no rejected entry must exit with 0, got: #{output}")
+  assert_includes(output, "Requeued 2 messages from #{path} to #{target}", "got: #{output}")
+end
 
-  with_fifo_queue do |target|
-    path = write_dump(dir, 'mixed.jsonl', grouped.map { |body| [body, 'g'] } + plain.map { |body| [body, nil] })
-    status, output = run_shoryuken_sqs('requeue', target, path)
+with_queue_and_dir(fifo: true) do |target, dir|
+  path = write_dump(dir, 'mixed.jsonl', grouped.map { |body| [body, 'g'] } + plain.map { |body| [body, nil] })
+  status, output = run_shoryuken_sqs('requeue', target, path)
 
-    refute(status.success?, "requeue must exit with a non-zero status, got: #{output}")
-    assert_equal(
-      3, output.scan(/Could not requeue \S+, code: MissingParameter/).size,
-      "every rejected entry must be printed, got: #{output}"
-    )
-    assert_includes(output, "Requeued 2 messages from #{path} to #{target}", "got: #{output}")
-    assert_includes(output, "[FAIL] Could not requeue 3 messages from #{path} to #{target}", "got: #{output}")
-    assert_equal(2, queue_size(target), 'the target must hold only the accepted messages')
-  end
+  refute(status.success?, "requeue must exit with a non-zero status, got: #{output}")
+  assert_equal(
+    3, output.scan(/Could not requeue \S+, code: MissingParameter/).size,
+    "every rejected entry must be printed, got: #{output}"
+  )
+  assert_includes(output, "Requeued 2 messages from #{path} to #{target}", "got: #{output}")
+  assert_includes(output, "[FAIL] Could not requeue 3 messages from #{path} to #{target}", "got: #{output}")
+  assert_equal(2, queue_size(target), 'the target must hold only the accepted messages')
 end
