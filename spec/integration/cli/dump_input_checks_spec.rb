@@ -2,11 +2,13 @@
 
 # This spec tests how `shoryuken sqs dump`, `mv` and `delete` handle their input and report the result.
 #
-# Expected behavior: `dump` with a missing `-p` directory and `dump`/`mv` with `-n 0` fail with a `[FAIL]` message
-# before they receive any message, so the messages stay available. `delete` reports the deleted queue.
+# Expected behavior: `dump` with a missing or read-only `-p` directory and `dump`/`mv` with `-n 0` fail with a
+# `[FAIL]` message before they receive any message, so the messages stay available. `delete` reports the deleted
+# queue.
 #
-# Regression: `dump -p <missing dir>` received the messages and then raised `Errno::ENOENT`, which left them in
-# flight; `-n 0` raised `Aws::SQS::Errors::InvalidAttributeValue`; `delete` printed "was successfully delete".
+# Regression: `dump -p <missing or read-only dir>` received the messages and then raised `Errno::ENOENT` or
+# `Errno::EACCES`, which left them in flight; `-n 0` raised `Aws::SQS::Errors::InvalidAttributeValue`; `delete`
+# printed "was successfully delete".
 
 setup_sqs
 
@@ -33,6 +35,28 @@ with_queue_and_dir do |queue, dir|
   assert_includes(output, "[FAIL] Path #{missing} is not a directory", "got: #{output}")
   refute(output.include?('Errno::ENOENT'), "dump must not raise, got: #{output}")
   assert_equal(2, available_messages(queue), 'the messages must stay available, not in flight')
+end
+
+# --- dump to a directory it cannot write to (no w, or no x to create a file) ---
+if Process.uid.zero?
+  puts 'Skipping the read-only directory scenario: root can write to any directory'
+else
+  [0o555, 0o600].each do |mode|
+    with_queue_and_dir do |queue, dir|
+      send_messages(queue)
+      File.chmod(mode, dir)
+
+      begin
+        status, output = run_shoryuken_sqs('dump', queue, '-p', dir)
+      ensure
+        File.chmod(0o700, dir)
+      end
+
+      refute(status.success?, "dump must exit with a non-zero status, got: #{output}")
+      assert_includes(output, "[FAIL] Path #{dir} is not writable", "mode #{mode.to_s(8)}, got: #{output}")
+      assert_equal(2, available_messages(queue), "mode #{mode.to_s(8)}: the messages must stay available")
+    end
+  end
 end
 
 # --- dump and mv with -n 0 ---

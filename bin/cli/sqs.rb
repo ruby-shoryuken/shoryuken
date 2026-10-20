@@ -340,7 +340,9 @@ module Shoryuken
         check_number_option
 
         fail_task "Path #{options[:path]} is not a directory" unless File.directory?(options[:path])
-        fail_task "Path #{options[:path]} is not writable" unless File.writable?(options[:path])
+        unless File.writable?(options[:path]) && File.executable?(options[:path])
+          fail_task "Path #{options[:path]} is not writable"
+        end
 
         path = dump_file(options[:path], queue_name)
 
