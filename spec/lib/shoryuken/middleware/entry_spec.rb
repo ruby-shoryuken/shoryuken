@@ -3,6 +3,16 @@
 require 'shoryuken/middleware/entry'
 
 RSpec.describe Shoryuken::Middleware::Entry do
+  let(:test_class) do
+    Class.new do
+      attr_reader :args
+
+      def initialize(*args)
+        @args = args
+      end
+    end
+  end
+
   describe '#initialize' do
     it 'stores the middleware class' do
       entry = described_class.new(String)
@@ -10,22 +20,12 @@ RSpec.describe Shoryuken::Middleware::Entry do
     end
 
     it 'stores initialization arguments' do
-      entry = described_class.new(Array, 2, 'arg')
-      expect(entry.make_new).to eq %w[arg arg]
+      entry = described_class.new(test_class, 'arg1', 'arg2')
+      expect(entry.make_new.args).to eq %w[arg1 arg2]
     end
   end
 
   describe '#make_new' do
-    let(:test_class) do
-      Class.new do
-        attr_reader :args
-
-        def initialize(*args)
-          @args = args
-        end
-      end
-    end
-
     it 'creates a new instance of the stored class without arguments' do
       entry = described_class.new(test_class)
       instance = entry.make_new
