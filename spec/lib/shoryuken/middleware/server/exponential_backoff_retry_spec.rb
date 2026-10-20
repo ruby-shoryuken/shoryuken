@@ -217,9 +217,14 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
     end
 
     it 'never sets a negative visibility timeout for jobs longer than the SQS ceiling' do
-      started_at = Time.now - 43_300 # ran longer than the 12h SQS maximum
+      TestWorker.get_shoryuken_options['retry_intervals'] = [300]
+      started_at = Time.now
+      # the job runs longer than the 12h SQS maximum
+      allow(Time).to receive(:now).and_return(started_at, started_at + 43_300)
 
-      expect(subject.send(:next_visibility_timeout, 300, started_at)).to eq(0)
+      expect(sqs_msg).to receive(:change_visibility).with(visibility_timeout: 0)
+
+      expect { subject.call(TestWorker.new, queue, sqs_msg, sqs_msg.body) { raise 'failed' } }.not_to raise_error
     end
 
     it 'logs the failed visibility change and re-raises the original error' do

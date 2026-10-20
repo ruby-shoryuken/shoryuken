@@ -10,8 +10,8 @@ RSpec.describe Shoryuken::Middleware::Entry do
     end
 
     it 'stores initialization arguments' do
-      entry = described_class.new(String, 'arg1', 'arg2')
-      expect(entry.instance_variable_get(:@args)).to eq ['arg1', 'arg2']
+      entry = described_class.new(Array, 2, 'arg')
+      expect(entry.make_new).to eq %w[arg arg]
     end
   end
 
