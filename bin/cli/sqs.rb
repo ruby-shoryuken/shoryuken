@@ -24,6 +24,21 @@ module Shoryuken
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
       no_commands do
+        # Converts a received message to a hash for the dump file, with Binary attribute values in base64
+        #
+        # @param message [Aws::SQS::Types::Message] the received message
+        # @return [Hash] the message hash
+        def dump_message(message)
+          message.to_h.tap do |hash|
+            hash[:message_attributes]&.each_value do |value|
+              next unless value[:binary_value]
+
+              value[:binary_value] = [value[:binary_value]].pack('m0')
+              value[:binary_value_encoding] = 'base64'
+            end
+          end
+        end
+
         # Normalizes a dump message for requeuing
         #
         # @param message [Hash] the dumped message hash
@@ -36,6 +51,8 @@ module Shoryuken
           # The `string_list_values` and `binary_list_values` are not implemented. Reserved for future use.
           message_attributes = message[:message_attributes].each_with_object({}) do |(k, v), result|
             result[k] = v.slice(:data_type, :string_value, :binary_value)
+            # Dumps written before binary_value_encoding hold the raw value
+            result[k][:binary_value] = v[:binary_value].unpack1('m0') if v[:binary_value_encoding] == 'base64'
           end
 
           {
@@ -322,12 +339,20 @@ module Shoryuken
 
         file = nil
 
-        count = find_all(url, options[:number]) do |m|
-          file ||= File.open(path, 'w')
+        begin
+          count = find_all(url, options[:number]) do |m|
+            file ||= File.open(path, 'w')
 
-          file.puts(JSON.dump(m.to_h))
+            file.puts(JSON.dump(dump_message(m)))
 
-          messages << m if options[:delete]
+            messages << m if options[:delete]
+          end
+        ensure
+          # A file left by a failed dump would block every later dump of the queue that day
+          if file && count.nil?
+            file.close
+            File.delete(path)
+          end
         end
 
         not_deleted = options[:delete] ? batch_delete(url, messages) : []
