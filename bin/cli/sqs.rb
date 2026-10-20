@@ -107,7 +107,8 @@ module Shoryuken
 
             failed.each do |failure|
               say(
-                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, sender_fault: #{failure.sender_fault}",
+                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, " \
+                "sender_fault: #{failure.sender_fault}",
                 :yellow
               )
             end
@@ -306,6 +307,13 @@ module Shoryuken
         def dump_file(path, queue_name)
           File.join(path, "#{queue_name}-#{Date.today}.jsonl")
         end
+
+        # Fails the task unless the number of messages option is at least 1
+        #
+        # @return [void]
+        def validate_number_option
+          fail_task "Number of messages must be at least 1, got #{options[:number]}" if options[:number] < 1
+        end
       end
 
       desc 'ls [QUEUE-NAME-PREFIX]', 'Lists queues'
@@ -331,6 +339,13 @@ module Shoryuken
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def dump(queue_name)
+        validate_number_option
+
+        fail_task "Path #{options[:path]} is not a directory" unless File.directory?(options[:path])
+        unless File.writable?(options[:path]) && File.executable?(options[:path])
+          fail_task "Path #{options[:path]} is not writable"
+        end
+
         path = dump_file(options[:path], queue_name)
 
         fail_task "File #{path} already exists" if File.exist?(path)
@@ -367,7 +382,7 @@ module Shoryuken
 
         fail_task "Could not delete #{not_deleted.size} dumped messages from #{queue_name}" unless not_deleted.empty?
       ensure
-        file.close if file
+        file&.close
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
@@ -391,6 +406,8 @@ module Shoryuken
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to move'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def mv(queue_name_source, queue_name_target)
+        validate_number_option
+
         url_source = find_queue_url(queue_name_source)
         messages = []
 
@@ -439,8 +456,9 @@ module Shoryuken
       def delete(queue_name)
         sqs.delete_queue(queue_url: find_queue_url(queue_name))
 
-        say "Queue #{queue_name} was successfully delete", :green
+        say "Queue #{queue_name} was successfully deleted", :green
       end
     end
   end
 end
+# rubocop:enable Metrics/BlockLength
