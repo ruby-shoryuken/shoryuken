@@ -152,7 +152,9 @@ RSpec.shared_examples 'active_job_adapters' do
         expect(queue).to receive(:send_message) do |hash|
           expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(Shoryuken::ActiveJob::JobWrapper.to_s)
           expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq('String')
-          expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(custom_message_attributes['tracer_id'][:string_value])
+          expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(
+            custom_message_attributes['tracer_id'][:string_value]
+          )
           expect(hash[:message_attributes]['tracer_id'][:data_type]).to eq('String')
         end
         expect(Shoryuken).to receive(:register_worker).with(job.queue_name, Shoryuken::ActiveJob::JobWrapper)

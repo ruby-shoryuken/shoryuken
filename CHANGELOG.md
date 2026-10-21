@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: ActiveJob `set(wait_until:)` with a time in the past now sends the job at once
+  - The adapter sent a negative `DelaySeconds`, which SQS rejects (`Aws::SQS::Errors::InvalidParameterValue`, on FIFO
+    queues too); it now sends `delay_seconds: 0`
+  - Behaviour change: a delay over 15 minutes now raises `Shoryuken::Errors::InvalidDelayError` (as `perform_in` on a
+    worker does), not a `RuntimeError`. It is a `StandardError`, so `rescue RuntimeError` no longer catches it
+
 - Fix: ActiveJob `executions` keeps ActiveJob's count across `retry_on` retries
   - Shoryuken replaced the serialized `executions` with the SQS receive count minus one, so it read 1 on every
     `retry_on` retry (also in ActiveJob's "Retrying ... after N attempts" logs and retry events); it now adds the
