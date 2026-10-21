@@ -14,14 +14,15 @@ module Shoryuken
 
       shoryuken_options body_parser: :json, auto_delete: true
 
-      # Processes an ActiveJob job from an SQS message.
+      # Processes an ActiveJob job from an SQS message. SQS redeliveries of the message count as executions on top
+      # of the serialized ones.
       #
       # @param sqs_msg [Shoryuken::Message] The SQS message containing the job data
       # @param hash [Hash] The parsed job data from the message body
       def perform(sqs_msg, hash)
         receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
         past_receives = receive_count - 1
-        ::ActiveJob::Base.execute hash.merge({ 'executions' => past_receives })
+        ::ActiveJob::Base.execute hash.merge({ 'executions' => hash['executions'].to_i + past_receives })
       end
     end
   end
