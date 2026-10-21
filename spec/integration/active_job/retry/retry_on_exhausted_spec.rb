@@ -4,14 +4,17 @@
 # attempts.
 #
 # Expected behavior: `retry_on StandardError, wait: 0, attempts: 3` sends the
-# job twice more as new messages. On the third attempt ActiveJob re-raises the
-# error:
+# job twice more as new messages, and `executions` reads 1, 2, 3 for the three
+# attempts, as in ActiveJob. On the third attempt ActiveJob re-raises the error:
 # - Without a block, the error reaches Shoryuken's exception handlers and the
 #   message is not deleted. SQS delivers it again after each visibility timeout,
-#   with `executions` equal to its receive count.
+#   and each delivery adds one to `executions`.
 # - With a block, the error does not escape, the message is deleted and does not
 #   come back.
 # - With a redrive policy, the message ends in the dead letter queue.
+#
+# Regression: `executions` read 1 on every `retry_on` attempt, because
+# Shoryuken replaced it with the receive count minus one.
 
 setup_sqs
 setup_active_job
@@ -79,18 +82,18 @@ message_ids, receive_counts = DT[plain_queue].transpose
 assert_equal(1, message_ids.uniq.size, 'the exhausted message must be the one that comes back')
 assert_equal((1..receive_counts.size).to_a, receive_counts, 'the message must come back after each visibility timeout')
 assert_equal(
-  [1, 1, *receive_counts], DT[:plain].first(receive_counts.size + 2),
-  'executions must be 1 for the 3 attempts, then follow the receive count'
+  [1, 2, *receive_counts.map { |count| count + 2 }], DT[:plain].first(receive_counts.size + 2),
+  'executions must be 1, 2, 3 for the 3 attempts, then grow by one per receive'
 )
 
 # --- With a block ---
 assert_equal(['always fails'], DT[:block_called])
-assert_equal([1, 1, 1], DT[:block])
+assert_equal([1, 2, 3], DT[:block])
 assert_equal(0, DT[block_queue].size, 'the error must not reach the exception handlers')
 assert_equal(0, queue_size(block_queue), 'the message must be deleted')
 
 # --- With a redrive policy ---
-assert_equal([1, 1, 1, 2], DT[:redrive])
+assert_equal([1, 2, 3, 4], DT[:redrive])
 assert_equal([1, 2], DT[redrive_queue].map(&:last))
 assert_equal(0, queue_size(redrive_queue), 'the message must leave the queue')
 
