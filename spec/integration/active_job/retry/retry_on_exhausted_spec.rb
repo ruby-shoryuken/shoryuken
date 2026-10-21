@@ -4,16 +4,14 @@
 # attempts.
 #
 # Expected behavior: `retry_on StandardError, wait: 0, attempts: 3` sends the
-# job twice more as new messages. On the third attempt ActiveJob re-raises the
-# error:
+# job twice more as new messages, and `executions` reads 1, 2, 3 for the three
+# attempts, as in ActiveJob. On the third attempt ActiveJob re-raises the error:
 # - Without a block, the error reaches Shoryuken's exception handlers and the
 #   message is not deleted. SQS delivers it again after each visibility timeout,
 #   and each delivery adds one to `executions`.
 # - With a block, the error does not escape, the message is deleted and does not
 #   come back.
 # - With a redrive policy, the message ends in the dead letter queue.
-#
-# `executions` reads 1, 2, 3 for the three attempts, as in ActiveJob.
 #
 # Regression: `executions` read 1 on every `retry_on` attempt, because
 # Shoryuken replaced it with the receive count minus one.

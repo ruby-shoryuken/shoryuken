@@ -5,7 +5,7 @@
     `retry_on` retry (also in ActiveJob's "Retrying ... after N attempts" logs and retry events); it now adds the
     past receives to the serialized value
   - Behaviour change: `executions` is higher for jobs that `retry_on` retried. An SQS redelivery still counts as one
-    more execution, so after one `executions` is one above plain ActiveJob's value
+    more execution, so after a redelivery `executions` is one above plain ActiveJob's value
 
 - Fix: `shoryuken sqs dump` and `mv` check their input before they receive any message
   - `dump -p` with a missing or read-only directory received the messages and then raised `Errno::ENOENT` (missing)
