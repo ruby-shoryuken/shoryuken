@@ -152,7 +152,9 @@ RSpec.shared_examples 'active_job_adapters' do
         expect(queue).to receive(:send_message) do |hash|
           expect(hash[:message_attributes]['shoryuken_class'][:string_value]).to eq(Shoryuken::ActiveJob::JobWrapper.to_s)
           expect(hash[:message_attributes]['shoryuken_class'][:data_type]).to eq('String')
-          expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(custom_message_attributes['tracer_id'][:string_value])
+          expect(hash[:message_attributes]['tracer_id'][:string_value]).to eq(
+            custom_message_attributes['tracer_id'][:string_value]
+          )
           expect(hash[:message_attributes]['tracer_id'][:data_type]).to eq('String')
         end
         expect(Shoryuken).to receive(:register_worker).with(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
@@ -305,6 +307,20 @@ RSpec.shared_examples 'active_job_adapters' do
       subject.enqueue_at(job, nil)
     end
 
+    it 'sends delay_seconds 0 for a timestamp in the past' do
+      expect(queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+      subject.enqueue_at(job, Time.current.to_f - 30)
+    end
+
+    it 'raises InvalidDelayError for a delay over 15 minutes' do
+      expect(queue).not_to receive(:send_message)
+
+      expect { subject.enqueue_at(job, Time.current.to_f + 901) }.to raise_error(
+        Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes'
+      )
+    end
+
     context 'when fifo' do
       let(:fifo) { true }
 
@@ -322,6 +338,12 @@ RSpec.shared_examples 'active_job_adapters' do
         allow(subject).to receive(:calculate_delay).and_return(0)
         expect(queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
         expect { subject.enqueue_at(job, nil) }.not_to raise_error
+      end
+
+      it 'sends delay_seconds 0 for a timestamp in the past' do
+        expect(queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+        subject.enqueue_at(job, Time.current.to_f - 30)
       end
     end
   end
