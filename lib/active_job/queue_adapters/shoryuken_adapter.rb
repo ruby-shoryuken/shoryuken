@@ -98,13 +98,14 @@ module ActiveJob
       # @param timestamp [Float] Unix timestamp when the job should be processed
       # @return [Aws::SQS::Types::SendMessageResult] the send result
       # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if delay is used with a FIFO queue
+      # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def enqueue_at(job, timestamp) # :nodoc:
         delay = calculate_delay(timestamp)
 
         # FIFO queues do not support per-message delays
         # Check early to fail synchronously (before any async wrapping in subclasses)
-        # Note: negative delays (past timestamps) don't need handling here -
-        # SQS treats them as immediate delivery (delay_seconds=0)
+        # Note: past timestamps are sent with delay_seconds=0 (calculate_delay
+        # clamps them, as SQS accepts only 0 to 900 seconds)
         # See https://github.com/ruby-shoryuken/shoryuken/issues/924
         if delay.positive?
           queue = Shoryuken::Client.queues(job.queue_name)
@@ -153,13 +154,13 @@ module ActiveJob
       # Calculates the delay in seconds from a timestamp
       #
       # @param timestamp [Float] Unix timestamp
-      # @return [Integer] delay in seconds
-      # @raise [RuntimeError] if delay exceeds 15 minutes
+      # @return [Integer] delay in seconds, 0 for a timestamp in the past
+      # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def calculate_delay(timestamp)
         delay = (timestamp - Time.current.to_f).round
-        raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
+        raise Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
 
-        delay
+        [delay, 0].max
       end
 
       # Builds the SQS message parameters for a job
