@@ -31,7 +31,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'zeitwerk', '~> 2.6'
 
   spec.add_development_dependency 'dotenv'
-  spec.add_development_dependency 'ostruct'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'warning'
