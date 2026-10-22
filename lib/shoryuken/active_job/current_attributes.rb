@@ -113,7 +113,10 @@ module Shoryuken
         # @param body [Hash] the serialized job
         # @return [String] the deduplication id
         def deduplication_id(body)
-          super(body.except(*CurrentAttributes.cattrs.keys))
+          cattrs = CurrentAttributes.cattrs
+          return super unless cattrs.any? { |key, _| body.key?(key) }
+
+          super(body.except(*cattrs.keys))
         end
       end
 
