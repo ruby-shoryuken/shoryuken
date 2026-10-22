@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: Enqueueing the same ActiveJob job instance again sends its current arguments
+  - The second `enqueue` resent the previous send's body, delay and FIFO deduplication id, so the job ran with its old
+    arguments, or a FIFO queue dropped it as a duplicate. Parameters set on the job (e.g. `set(message_group_id:)`)
+    still apply
+
 - Fix: ActiveJob `set(wait_until:)` with a time in the past now sends the job at once
   - The adapter sent a negative `DelaySeconds`, which SQS rejects (`Aws::SQS::Errors::InvalidParameterValue`, on FIFO
     queues too); it now sends `delay_seconds: 0`
