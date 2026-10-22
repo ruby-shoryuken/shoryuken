@@ -84,7 +84,8 @@ module ActiveJob
       def enqueue(job, options = {}) # :nodoc:
         register_worker!(job)
 
-        job.sqs_send_message_parameters = job_parameters(job).merge(options)
+        job.sqs_send_message_parameters = job_parameters(job)
+        job.sqs_send_message_parameters.merge! options
 
         queue = Shoryuken::Client.queues(job.queue_name)
         send_message_params = message queue, job
@@ -202,20 +203,20 @@ module ActiveJob
         body = params[:message_body]
         return params unless body
 
-        params.except(:message_body, :delay_seconds).tap do |kept|
-          kept.delete(:message_deduplication_id) if generated_deduplication_ids(body).include?(
-            kept[:message_deduplication_id]
-          )
-        end
+        kept = params.except(:message_body, :delay_seconds)
+        id = kept[:message_deduplication_id]
+        kept.delete(:message_deduplication_id) if id && generated_deduplication_id?(body, id)
+        kept
       end
 
-      # Returns the deduplication ids Shoryuken generates for a sent body: the adapter's and the queue's
+      # Checks if a deduplication id is one Shoryuken generated for a sent body: the queue's or the adapter's
       #
       # @param body [Hash, String] the sent message body, a JSON string once the queue has sent it
-      # @return [Array<String>] the generated deduplication ids
-      def generated_deduplication_ids(body)
+      # @param id [String] the deduplication id sent with it
+      # @return [Boolean] true if Shoryuken generated the id
+      def generated_deduplication_id?(body, id)
         json = body.is_a?(String) ? body : JSON.dump(body)
-        [deduplication_id(JSON.parse(json)), Digest::SHA256.hexdigest(json)]
+        id == Digest::SHA256.hexdigest(json) || id == deduplication_id(JSON.parse(json))
       end
 
       # Computes the FIFO deduplication id of a job body, without its job_id and enqueued_at
