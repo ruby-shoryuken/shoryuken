@@ -35,9 +35,7 @@ end
 
 require 'shoryuken'
 require 'json'
-require 'dotenv'
 require 'securerandom'
-Dotenv.load
 
 unless ENV['SIMPLECOV_DISABLED']
   require 'simplecov'
