@@ -14,7 +14,7 @@ module Shoryuken
     end
 
     # Initializes SQS SendMessage parameters on instances of ActiveJob::Base to the empty hash, and populates it whenever
-    # `#enqueue` is called, such as when using ActiveJob::Base.set.
+    # `#enqueue` is called, such as when using ActiveJob::Base.set. After an enqueue they hold the parameters sent.
     module SQSSendMessageParametersSupport
       # Initializes a new ActiveJob instance with empty SQS parameters
       #
@@ -39,7 +39,14 @@ module Shoryuken
           :message_deduplication_id,
           :message_group_id
         )
+        # The adapter replaces the parameters with the ones it sent (they include the message body). A second enqueue
+        # of this instance starts again from the job's own parameters, not from the previous body, delay and
+        # deduplication id.
+        if sqs_send_message_parameters.key?(:message_body)
+          self.sqs_send_message_parameters = (@sqs_job_send_message_parameters || {}).dup
+        end
         sqs_send_message_parameters.merge! sqs_options
+        @sqs_job_send_message_parameters = sqs_send_message_parameters.dup
 
         super
       end

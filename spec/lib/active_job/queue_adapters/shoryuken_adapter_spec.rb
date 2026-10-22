@@ -14,6 +14,54 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenAdapter do
     end
   end
 
+  describe 'enqueueing the same job instance twice' do
+    let(:adapter) { described_class.new }
+    let(:fifo) { false }
+    let(:queue) { double 'Queue', fifo?: fifo }
+    let(:sent) { [] }
+    let(:job) { TestJob.new(1) }
+
+    before do
+      allow(Shoryuken::Client).to receive(:queues).with(job.queue_name).and_return(queue)
+      allow(queue).to receive(:send_message) { |params| sent << params.dup }
+      allow(job).to receive(:queue_adapter).and_return(adapter)
+    end
+
+    it 'sends the current body and no delay when the job is no longer scheduled' do
+      job.enqueue(wait: 60)
+      job.arguments = [2]
+      job.scheduled_at = nil
+      job.enqueue
+
+      expect(sent.last[:message_body]['arguments']).to eq([2])
+      expect(sent.last).not_to have_key(:delay_seconds)
+    end
+
+    it 'keeps the parameters set on the job' do
+      job.enqueue(message_attributes: { 'tracer' => { string_value: 'abc', data_type: 'String' } })
+      job.arguments = [2]
+      job.enqueue
+
+      expect(sent.last[:message_attributes].keys).to contain_exactly('tracer', 'shoryuken_class')
+    end
+
+    context 'when fifo' do
+      let(:fifo) { true }
+
+      it 'sends a deduplication id of the current body and keeps the message group id set on the job' do
+        job.enqueue(message_group_id: 'group')
+        job.arguments = [2]
+        job.enqueue
+
+        expect(sent.last[:message_deduplication_id]).to eq(
+          Digest::SHA256.hexdigest(JSON.dump(sent.last[:message_body].except('job_id', 'enqueued_at')))
+        )
+        expect(sent.last[:message_deduplication_id]).not_to eq(sent.first[:message_deduplication_id])
+        expect(sent.last[:message_group_id]).to eq('group')
+      end
+    end
+  end
+
   describe '.instance' do
     it 'returns the same instance (singleton pattern)' do
       instance1 = described_class.instance
