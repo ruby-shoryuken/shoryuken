@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Enhancement: The gem ships only the files it needs at runtime
+  - `lib/`, `bin/shoryuken`, `bin/cli/`, `config/locales/`, `README.md`, `CHANGELOG.md` and `LICENSE`; specs, dev
+    scripts and repo config are no longer packaged (247 files, 840 KB unpacked, down to 65 files, 317 KB)
+
 - Fix: Enqueueing the same ActiveJob job instance again sends its current arguments
   - The second `enqueue` (or `perform_all_later`) resent the previous send's body, delay and generated FIFO
     deduplication id, so the job ran with its old arguments, or a FIFO queue dropped it as a duplicate. Other
