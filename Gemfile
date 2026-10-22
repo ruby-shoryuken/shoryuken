@@ -6,7 +6,6 @@ gemspec
 group :test do
   gem 'activejob'
   gem 'httparty'
-  gem 'multi_xml'
   gem 'simplecov'
   gem 'warning'
 end
