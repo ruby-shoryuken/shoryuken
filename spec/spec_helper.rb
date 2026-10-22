@@ -42,23 +42,23 @@ Dotenv.load
 unless ENV['SIMPLECOV_DISABLED']
   require 'simplecov'
   SimpleCov.start do
-  skip '/spec/'
-  skip '/test_workers/'
-  skip '/examples/'
-  skip '/vendor/'
-  skip '/.bundle/'
+    skip '/spec/'
+    skip '/test_workers/'
+    skip '/examples/'
+    skip '/vendor/'
+    skip '/.bundle/'
 
-  group 'Library', 'lib/'
-  group 'ActiveJob', 'lib/active_job'
-  group 'Middleware', 'lib/shoryuken/middleware'
-  group 'Polling', 'lib/shoryuken/polling'
-  group 'Workers', 'lib/shoryuken/worker'
-  group 'Helpers', 'lib/shoryuken/helpers'
+    group 'Library', 'lib/'
+    group 'ActiveJob', 'lib/active_job'
+    group 'Middleware', 'lib/shoryuken/middleware'
+    group 'Polling', 'lib/shoryuken/polling'
+    group 'Workers', 'lib/shoryuken/worker'
+    group 'Helpers', 'lib/shoryuken/helpers'
 
-  enable_coverage :branch
+    enable_coverage :branch
 
-  minimum_coverage 89
-  coverage(:line) { minimum 60, per: :file }
+    minimum_coverage 89
+    coverage(:line) { minimum 60, per: :file }
   end
 end
 
@@ -87,7 +87,7 @@ if Signal.list.key?('USR1')
     output = +"\n=== Thread dump (USR1 watchdog) ===\n"
     Thread.list.each do |t|
       output << "--- Thread #{t.object_id} [#{t.status}] ---\n"
-      output << ((t.backtrace || ['(no backtrace)']).join("\n")) << "\n"
+      output << (t.backtrace || ['(no backtrace)']).join("\n") << "\n"
     end
     output << "=== End thread dump ===\n"
     $stderr.write(output)
