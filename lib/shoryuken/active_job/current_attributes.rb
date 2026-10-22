@@ -106,6 +106,15 @@ module Shoryuken
 
           hash
         end
+
+        # Computes the FIFO deduplication id of a job body without the CurrentAttributes keys, which #message adds
+        # after the id is computed: an id generated for a sent body is then recognised when the job is enqueued again
+        #
+        # @param body [Hash] the serialized job
+        # @return [String] the deduplication id
+        def deduplication_id(body)
+          super(body.except(*CurrentAttributes.cattrs.keys))
+        end
       end
 
       # Module prepended to JobWrapper to restore CurrentAttributes on execute.
