@@ -84,7 +84,7 @@ module ActiveJob
       def enqueue(job, options = {}) # :nodoc:
         register_worker!(job)
 
-        job.sqs_send_message_parameters.merge! options
+        job.sqs_send_message_parameters = job_parameters(job).merge(options)
 
         queue = Shoryuken::Client.queues(job.queue_name)
         send_message_params = message queue, job
@@ -133,6 +133,7 @@ module ActiveJob
           queue_jobs.each_slice(10) do |batch|
             entries = batch.map.with_index do |job, idx|
               register_worker!(job)
+              job.sqs_send_message_parameters = job_parameters(job)
               msg = message(queue, job)
               job.sqs_send_message_parameters = msg
               { id: idx.to_s }.merge(msg)
@@ -184,12 +185,45 @@ module ActiveJob
           # https://github.com/ruby-shoryuken/shoryuken/pull/750#issuecomment-1781317929
           # Disable via Shoryuken.active_job_fifo_message_deduplication = false when distinct
           # enqueues of the same job class and arguments must not be silently deduplicated.
-          msg[:message_deduplication_id] = Digest::SHA256.hexdigest(
-            JSON.dump(body.except('job_id', 'enqueued_at'))
-          )
+          msg[:message_deduplication_id] = deduplication_id(body)
         end
 
         msg.merge(job_params.except(:message_attributes))
+      end
+
+      # Returns the job's SQS parameters. After a send they are the parameters sent (see #enqueue), so the values that
+      # send computed (body, delay, generated deduplication id) are left out: enqueueing the same job again sends its
+      # current state, and every other value, including ones changed since, still applies.
+      #
+      # @param job [ActiveJob::Base] the job being enqueued
+      # @return [Hash] the job's SQS parameters
+      def job_parameters(job)
+        params = job.sqs_send_message_parameters
+        body = params[:message_body]
+        return params unless body
+
+        params.except(:message_body, :delay_seconds).tap do |kept|
+          kept.delete(:message_deduplication_id) if generated_deduplication_ids(body).include?(
+            kept[:message_deduplication_id]
+          )
+        end
+      end
+
+      # Returns the deduplication ids Shoryuken generates for a sent body: the adapter's and the queue's
+      #
+      # @param body [Hash, String] the sent message body, a JSON string once the queue has sent it
+      # @return [Array<String>] the generated deduplication ids
+      def generated_deduplication_ids(body)
+        json = body.is_a?(String) ? body : JSON.dump(body)
+        [deduplication_id(JSON.parse(json)), Digest::SHA256.hexdigest(json)]
+      end
+
+      # Computes the FIFO deduplication id of a job body, without its job_id and enqueued_at
+      #
+      # @param body [Hash] the serialized job
+      # @return [String] the deduplication id
+      def deduplication_id(body)
+        Digest::SHA256.hexdigest(JSON.dump(body.except('job_id', 'enqueued_at')))
       end
 
       # Registers the JobWrapper as the worker for the job's queue
