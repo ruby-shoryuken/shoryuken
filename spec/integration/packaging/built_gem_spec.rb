@@ -14,19 +14,16 @@ require 'rubygems/package'
 setup_sqs
 
 ROOT = File.expand_path('../../..', __dir__)
-# Bundler variables (BUNDLER_SETUP among them) would load the repo's shoryuken in place of the installed gem
-CLEAN_ENV = ENV.keys.grep(/\ABUNDLE/).to_h { |key| [key, nil] }.merge('RUBYOPT' => nil, 'RUBYLIB' => nil).freeze
 
 def build_gem(dir)
   gem_file = File.join(dir, 'shoryuken.gem')
-  output, status = Open3.capture2e(CLEAN_ENV, 'gem', 'build', 'shoryuken.gemspec', '-o', gem_file, chdir: ROOT)
+  output, status = Open3.capture2e('gem', 'build', 'shoryuken.gemspec', '-o', gem_file, chdir: ROOT)
   assert(status.success?, "gem build failed: #{output}")
   gem_file
 end
 
 def install_gem(gem_file, gem_home)
   output, status = Open3.capture2e(
-    CLEAN_ENV,
     'gem', 'install', gem_file, '--local', '--ignore-dependencies', '--no-document',
     '--install-dir', gem_home, '--bindir', File.join(gem_home, 'bin')
   )
@@ -58,32 +55,34 @@ def write_worker(dir, queue, marker)
   end
 end
 
-with_queue_and_dir do |queue, dir|
-  gem_file = build_gem(dir)
-  files = Gem::Package.new(gem_file).spec.files
-  assert_equal(expected_files, files.sort)
+Bundler.with_unbundled_env do
+  with_queue_and_dir do |queue, dir|
+    gem_file = build_gem(dir)
+    files = Gem::Package.new(gem_file).spec.files
+    assert_equal(expected_files, files.sort)
 
-  gem_home = File.join(dir, 'gems')
-  bin = install_gem(gem_file, gem_home)
-  env = CLEAN_ENV.merge('GEM_HOME' => gem_home, 'GEM_PATH' => [gem_home, *Gem.path].join(File::PATH_SEPARATOR))
+    gem_home = File.join(dir, 'gems')
+    bin = install_gem(gem_file, gem_home)
+    env = { 'GEM_HOME' => gem_home, 'GEM_PATH' => [gem_home, *Gem.path].join(File::PATH_SEPARATOR) }
 
-  status, output = run_shoryuken_command_until_exit('version', bin: bin, env: env)
-  assert(status.success?, output)
-  assert_includes(output, Shoryuken::VERSION)
+    status, output = run_shoryuken_command_until_exit('version', bin: bin, env: env)
+    assert(status.success?, output)
+    assert_includes(output, Shoryuken::VERSION)
 
-  status, output = run_shoryuken_sqs('ls', queue, bin: bin, env: env)
-  assert(status.success?, output)
-  assert_includes(output, queue)
+    status, output = run_shoryuken_sqs('ls', queue, bin: bin, env: env)
+    assert(status.success?, output)
+    assert_includes(output, queue)
 
-  Shoryuken::Client.queues(queue).send_message(message_body: 'packaged')
-  marker = File.join(dir, 'gem_dir')
-  worker = write_worker(dir, queue, marker)
-  run_shoryuken_until('-q', queue, '-r', worker, '-c', '1', bin: bin, env: env) { File.exist?(marker) }
-  assert(File.read(marker).start_with?(gem_home), File.read(marker))
+    Shoryuken::Client.queues(queue).send_message(message_body: 'packaged')
+    marker = File.join(dir, 'gem_dir')
+    worker = write_worker(dir, queue, marker)
+    run_shoryuken_until('-q', queue, '-r', worker, '-c', '1', bin: bin, env: env) { File.exist?(marker) }
+    assert(File.read(marker).start_with?(gem_home), File.read(marker))
 
-  config = File.join(dir, 'invalid.yml')
-  File.write(config, "concurrency: -1\n")
-  status, output = run_shoryuken_until_exit('-C', config, '-r', worker, bin: bin, env: env)
-  refute(status.success?)
-  assert_includes(output, 'needs to be an Integer greater than 0')
+    config = File.join(dir, 'invalid.yml')
+    File.write(config, "concurrency: -1\n")
+    status, output = run_shoryuken_until_exit('-C', config, '-r', worker, bin: bin, env: env)
+    refute(status.success?)
+    assert_includes(output, 'needs to be an Integer greater than 0')
+  end
 end
