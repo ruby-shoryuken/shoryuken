@@ -34,6 +34,15 @@ def install_gem(gem_file, gem_home)
   File.join(gem_home, 'bin', 'shoryuken')
 end
 
+def expected_files
+  tracked, status = Open3.capture2(
+    'git', 'ls-files', 'lib', 'bin/cli', 'config/locales', 'bin/shoryuken', 'README.md', 'CHANGELOG.md', 'LICENSE',
+    chdir: ROOT
+  )
+  assert(status.success?, 'git ls-files failed')
+  tracked.split("\n").sort
+end
+
 def write_worker(dir, queue, marker)
   File.join(dir, 'worker.rb').tap do |worker|
     File.write(worker, <<~RUBY)
@@ -52,10 +61,7 @@ end
 with_queue_and_dir do |queue, dir|
   gem_file = build_gem(dir)
   files = Gem::Package.new(gem_file).spec.files
-  allowed = %r{\A(lib/|bin/cli/|config/locales/|bin/shoryuken\z|README\.md\z|CHANGELOG\.md\z|LICENSE\z)}
-  assert_equal([], files.grep_v(allowed))
-  assert_includes(files, 'config/locales/errors.yml')
-  assert_includes(files, 'bin/cli/sqs.rb')
+  assert_equal(expected_files, files.sort)
 
   gem_home = File.join(dir, 'gems')
   bin = install_gem(gem_file, gem_home)
