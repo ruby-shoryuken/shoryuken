@@ -17,10 +17,8 @@ dlq_arn = Shoryuken::Client.sqs.get_queue_attributes(
   attribute_names: ['QueueArn']
 ).attributes['QueueArn']
 
-create_test_queue(
+create_fifo_queue(
   queue_name, attributes: {
-    'FifoQueue' => 'true',
-    'ContentBasedDeduplication' => 'true',
     'VisibilityTimeout' => '1',
     'RedrivePolicy' => { maxReceiveCount: 2, deadLetterTargetArn: dlq_arn }.to_json
   }

@@ -51,7 +51,7 @@ module IntegrationsHelper
   class TestFailure < StandardError; end
 
   # Assertions
-  def assert(condition, message = "Assertion failed")
+  def assert(condition, message = 'Assertion failed')
     raise TestFailure, message unless condition
   end
 
@@ -65,7 +65,7 @@ module IntegrationsHelper
     assert(collection.include?(item), message)
   end
 
-  def refute(condition, message = "Refutation failed")
+  def refute(condition, message = 'Refutation failed')
     assert(!condition, message)
   end
 
@@ -111,12 +111,12 @@ module IntegrationsHelper
   rescue Aws::SQS::Errors::NonExistentQueue
   end
 
-  def create_fifo_queue(queue_name)
+  def create_fifo_queue(queue_name, attributes: {})
     create_test_queue(
       queue_name, attributes: {
         'FifoQueue' => 'true',
         'ContentBasedDeduplication' => 'true'
-      }
+      }.merge(attributes)
     )
   end
 
@@ -187,4 +187,4 @@ module IntegrationsHelper
   end
 end
 
-include IntegrationsHelper
+include IntegrationsHelper # rubocop:disable Style/MixinUsage
