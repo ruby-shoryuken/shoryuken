@@ -98,7 +98,6 @@ module Shoryuken
       self.data       = data
       self.queue_url  = queue.url
       self.queue_name = queue.name
-      @queue          = queue
     end
 
     # Tells whether this is the last receive before SQS moves the message to the dead-letter queue.
@@ -117,7 +116,7 @@ module Shoryuken
     #     raise
     #   end
     def last_receive?
-      max = @queue.max_receive_count
+      max = Shoryuken::Client.queues(queue_url).max_receive_count
       count = receive_count
 
       return false unless max && count
