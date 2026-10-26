@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This spec tests that a manager's graceful stop can be awaited more than once instead of deadlocking.
 #
 # Operationally this is a graceful stop requested while another is still waiting on the manager, e.g. an embedded host
