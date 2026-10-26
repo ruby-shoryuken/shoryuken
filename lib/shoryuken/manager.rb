@@ -64,11 +64,13 @@ module Shoryuken
     # @return [void]
     def await_dispatching_in_progress
       # There might still be a dispatching on-going, as the response from SQS could take some time
-      # We don't want to stop the process before processing incoming messages, as they would stay "in-flight" for some time on SQS
-      # We use a queue, as the dispatch_loop is running on another thread, and this is a efficient way of communicating between threads.
+      # We don't want to stop the process before processing incoming messages, as they would stay "in-flight" for some
+      # time on SQS
+      # We use a queue, as the dispatch_loop is running on another thread, and this is a efficient way of communicating
+      # between threads.
       # The dispatch loop closes the queue when it observes the stop flag; pop on a closed queue
       # returns immediately, so this stays safe when stop is requested more than once
-      # (e.g. TSTP followed by USR1, which both trigger a graceful stop).
+      # (e.g. a second Launcher#stop while the first is still waiting).
       @dispatching_release_signal.pop
     end
 
@@ -270,11 +272,11 @@ module Shoryuken
 
     # Handles errors during dispatch
     #
-    # @param ex [Exception] the exception that occurred
+    # @param error [Exception] the exception that occurred
     # @return [void]
-    def handle_dispatch_error(ex)
-      logger.error { "Manager failed: #{ex.message}" }
-      logger.error { ex.backtrace.join("\n") } unless ex.backtrace.nil?
+    def handle_dispatch_error(error)
+      logger.error { "Manager failed: #{error.message}" }
+      logger.error { error.backtrace.join("\n") } unless error.backtrace.nil?
 
       # Stop this manager first so Launcher#healthy? surfaces the failure to
       # whoever is supervising us (the CLI Runner, or an embedding application).

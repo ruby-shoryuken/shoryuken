@@ -222,6 +222,17 @@ RSpec.describe Shoryuken::Launcher do
       expect(first_group_manager).to have_received(:stop_new_dispatching).once
     end
 
+    it 'makes a later stop or stop! do nothing once it has completed' do
+      subject.stop!
+      allow(subject).to receive(:fire_event)
+
+      subject.stop
+      subject.stop!
+
+      expect(subject).not_to have_received(:fire_event)
+      expect(first_group_manager).to have_received(:stop_new_dispatching).once
+    end
+
     it 'stops the managers' do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)
