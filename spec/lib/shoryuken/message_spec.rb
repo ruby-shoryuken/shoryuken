@@ -112,4 +112,50 @@ RSpec.describe Shoryuken::Message do
       subject.visibility_timeout = 600
     end
   end
+
+  describe '#last_receive?' do
+    let(:attributes) { { 'ApproximateReceiveCount' => receive_count } }
+    let(:data) { instance_double('Aws::SQS::Types::Message', attributes: attributes) }
+    let(:receive_count) { '3' }
+
+    before { allow(queue).to receive(:max_receive_count).and_return(max_receive_count) }
+
+    context 'when the receive count is below maxReceiveCount' do
+      let(:max_receive_count) { 4 }
+
+      it { expect(subject.last_receive?).to be(false) }
+    end
+
+    context 'when the receive count equals maxReceiveCount' do
+      let(:max_receive_count) { 3 }
+
+      it { expect(subject.last_receive?).to be(true) }
+    end
+
+    context 'when the receive count is above maxReceiveCount' do
+      let(:max_receive_count) { 2 }
+
+      it { expect(subject.last_receive?).to be(true) }
+    end
+
+    context 'when the queue has no redrive policy' do
+      let(:max_receive_count) { nil }
+
+      it { expect(subject.last_receive?).to be(false) }
+    end
+
+    context 'when the message has no ApproximateReceiveCount' do
+      let(:attributes) { {} }
+      let(:max_receive_count) { 1 }
+
+      it { expect(subject.last_receive?).to be(false) }
+    end
+
+    context 'when the message has no attributes' do
+      let(:attributes) { nil }
+      let(:max_receive_count) { 1 }
+
+      it { expect(subject.last_receive?).to be(false) }
+    end
+  end
 end

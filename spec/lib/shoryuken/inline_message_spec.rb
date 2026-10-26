@@ -193,4 +193,10 @@ RSpec.describe Shoryuken::InlineMessage do
       expect(message1).not_to eq(message3)
     end
   end
+
+  describe '#last_receive?' do
+    it 'returns false' do
+      expect(described_class.new(body: body, queue_name: queue_name).last_receive?).to be(false)
+    end
+  end
 end

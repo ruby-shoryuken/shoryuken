@@ -401,6 +401,54 @@ RSpec.describe Shoryuken::Queue do
     end
   end
 
+  describe '#max_receive_count' do
+    let(:attribute_response) { double 'Aws::SQS::Types::GetQueueAttributesResponse' }
+
+    before do
+      allow(attribute_response).to receive(:attributes).and_return(attributes)
+      allow(sqs).to(
+        receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+      )
+    end
+
+    context 'when the queue has a redrive policy' do
+      let(:attributes) do
+        {
+          'RedrivePolicy' => {
+            deadLetterTargetArn: 'arn:aws:sqs:eu-west-1:0123456789:dlq',
+            maxReceiveCount: '5'
+          }.to_json
+        }
+      end
+
+      specify { expect(subject.max_receive_count).to eq(5) }
+
+      it 'memoizes response' do
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+        ).exactly(1).times
+
+        subject.max_receive_count
+        subject.max_receive_count
+      end
+    end
+
+    context 'when the queue has no redrive policy' do
+      let(:attributes) { { 'VisibilityTimeout' => '30' } }
+
+      specify { expect(subject.max_receive_count).to be_nil }
+
+      it 'memoizes response' do
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+        ).exactly(1).times
+
+        subject.max_receive_count
+        subject.max_receive_count
+      end
+    end
+  end
+
   describe '#visibility_timeout' do
     let(:attribute_response) { double 'Aws::SQS::Types::GetQueueAttributesResponse' }
 

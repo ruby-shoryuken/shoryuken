@@ -15,6 +15,9 @@ module Shoryuken
     # SQS attribute name for visibility timeout
     VISIBILITY_TIMEOUT_ATTR = 'VisibilityTimeout'
 
+    # SQS attribute name for the dead-letter queue redrive policy
+    REDRIVE_POLICY_ATTR     = 'RedrivePolicy'
+
     # @return [String] the queue name
     attr_accessor :name
 
@@ -120,6 +123,19 @@ module Shoryuken
 
       @_fifo = queue_attributes.attributes[FIFO_ATTR] == 'true'
       @_fifo
+    end
+
+    # Returns the number of receives after which SQS moves a message to the dead-letter queue
+    #
+    # The redrive policy is read once per queue instance and cached.
+    #
+    # @return [Integer, nil] the redrive policy maxReceiveCount, or nil when the queue has no redrive policy
+    def max_receive_count
+      return @_max_receive_count if defined?(@_max_receive_count)
+
+      policy = queue_attributes.attributes[REDRIVE_POLICY_ATTR]
+
+      @_max_receive_count = policy && JSON.parse(policy)['maxReceiveCount']&.to_i
     end
 
     private
