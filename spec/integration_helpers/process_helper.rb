@@ -39,8 +39,8 @@ module ProcessHelper
     end
   end
 
-  # Runs `bin/shoryuken start` until the block (given the output so far) returns true, stops it with the signal,
-  # returns [status, output]
+  # Runs `bin/shoryuken start` until the block (given the output so far and the pid) returns true, stops it with the
+  # signal, returns [status, output]
   def run_shoryuken_until(*args, **options, &condition)
     run_shoryuken_command_until('start', *args, **options, &condition)
   end
@@ -52,19 +52,19 @@ module ProcessHelper
   end
 
   # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env) until the block (given the output
-  # so far) returns true, stops it with the signal, returns [status, output]
+  # so far and the pid) returns true, stops it with the signal, returns [status, output]
   def run_shoryuken_command_until(command, *args, signal: 'TERM', timeout: 30, bin: SHORYUKEN_BIN, env: {}, &condition)
     Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 
       begin
-        Timeout.timeout(timeout) { sleep 0.1 until condition.call(output) || !wait.alive? }
+        Timeout.timeout(timeout) { sleep 0.1 until condition.call(output, wait.pid) || !wait.alive? }
       rescue Timeout::Error
         Process.kill('KILL', wait.pid)
       end
 
-      unless condition.call(output)
+      unless condition.call(output, wait.pid)
         reader.join
         raise IntegrationsHelper::TestFailure, "shoryuken stopped or timed out before the condition was met: #{output}"
       end

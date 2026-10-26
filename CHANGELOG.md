@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: TERM, INT or USR1 after a completed TSTP stop no longer fires the lifecycle events again
+  - The second signal ran the whole shutdown sequence again, so `shutdown` and `stopped` handlers (and the
+    `stop_callback`) ran twice
+  - `Launcher#stop` and `Launcher#stop!` now do nothing once a stop has completed; the process still exits
+
 - Enhancement: The gem ships only the files it needs at runtime
   - `lib/`, `bin/shoryuken`, `bin/cli/`, `config/locales/`, `README.md`, `CHANGELOG.md` and `LICENSE`; specs, dev
     scripts and repo config are no longer packaged (247 files, 840 KB unpacked, down to 65 files, 317 KB)
