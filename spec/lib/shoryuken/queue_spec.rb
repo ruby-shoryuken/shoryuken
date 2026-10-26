@@ -158,11 +158,13 @@ RSpec.describe Shoryuken::Queue do
     end
 
     context 'when a client middleware' do
-      class MyClientMiddleware
-        def call(options)
-          options[:message_body] = 'changed'
+      let(:client_middleware) do
+        Class.new do
+          def call(options)
+            options[:message_body] = 'changed'
 
-          yield
+            yield
+          end
         end
       end
 
@@ -170,7 +172,7 @@ RSpec.describe Shoryuken::Queue do
         allow(Shoryuken).to receive(:server?).and_return(false)
         Shoryuken.configure_client do |config|
           config.client_middleware do |chain|
-            chain.add MyClientMiddleware
+            chain.add client_middleware
           end
         end
       end
@@ -178,12 +180,12 @@ RSpec.describe Shoryuken::Queue do
       after do
         Shoryuken.configure_client do |config|
           config.client_middleware do |chain|
-            chain.remove MyClientMiddleware
+            chain.remove client_middleware
           end
         end
       end
 
-      it 'invokes MyClientMiddleware' do
+      it 'invokes the client middleware' do
         expect(sqs).to receive(:send_message).with(hash_including(message_body: 'changed'))
 
         subject.send_message(message_body: 'original')

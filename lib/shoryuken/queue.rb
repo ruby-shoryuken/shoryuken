@@ -62,7 +62,8 @@ module Shoryuken
       # Logger#error happens to return true.
       failed_messages.each do |failure|
         logger.error do
-          "Could not delete #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', sender_fault: #{failure.sender_fault}"
+          "Could not delete #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', " \
+            "sender_fault: #{failure.sender_fault}"
         end
       end
 
@@ -140,11 +141,9 @@ module Shoryuken
 
     private
 
-    # Logs any per-entry failures from a batch send. SQS reports these in
-    # response.failed (throttling, oversize/malformed entries, or a same-batch
-    # duplicate message_deduplication_id) rather than raising, so without this
-    # they are silently swallowed - notably by ShoryukenAdapter#enqueue_all,
-    # which reads only response.successful. Mirrors delete_messages.
+    # Logs any per-entry failures from a batch send. SQS reports these in response.failed (throttling, oversize/malformed
+    # entries, or a same-batch duplicate message_deduplication_id) rather than raising, so without this they are silently
+    # swallowed - notably by ShoryukenAdapter#enqueue_all, which reads only response.successful. Mirrors delete_messages.
     #
     # @param response [Aws::SQS::Types::SendMessageBatchResult] the batch result
     # @return [void]
@@ -153,7 +152,8 @@ module Shoryuken
 
       Array(response.failed).each do |failure|
         logger.error do
-          "Could not send #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', sender_fault: #{failure.sender_fault}"
+          "Could not send #{failure.id}, code: '#{failure.code}', message: '#{failure.message}', " \
+            "sender_fault: #{failure.sender_fault}"
         end
       end
     end
@@ -194,7 +194,9 @@ module Shoryuken
       required = [region, account_id, resource].map(&:to_s)
       valid = required.none?(&:empty?)
 
-      raise Errors::InvalidArnError, "Invalid ARN: #{arn_str}. A valid ARN must include: region, account_id and resource." unless valid
+      unless valid
+        raise Errors::InvalidArnError, "Invalid ARN: #{arn_str}. A valid ARN must include: region, account_id and resource."
+      end
 
       "https://sqs.#{region}.amazonaws.com/#{account_id}/#{resource}"
     end
