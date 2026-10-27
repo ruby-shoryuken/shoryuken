@@ -158,11 +158,13 @@ RSpec.describe Shoryuken::Queue do
     end
 
     context 'when a client middleware' do
-      class MyClientMiddleware
-        def call(options)
-          options[:message_body] = 'changed'
+      let(:client_middleware) do
+        Class.new do
+          def call(options)
+            options[:message_body] = 'changed'
 
-          yield
+            yield
+          end
         end
       end
 
@@ -170,7 +172,7 @@ RSpec.describe Shoryuken::Queue do
         allow(Shoryuken).to receive(:server?).and_return(false)
         Shoryuken.configure_client do |config|
           config.client_middleware do |chain|
-            chain.add MyClientMiddleware
+            chain.add client_middleware
           end
         end
       end
@@ -178,12 +180,12 @@ RSpec.describe Shoryuken::Queue do
       after do
         Shoryuken.configure_client do |config|
           config.client_middleware do |chain|
-            chain.remove MyClientMiddleware
+            chain.remove client_middleware
           end
         end
       end
 
-      it 'invokes MyClientMiddleware' do
+      it 'invokes the client middleware' do
         expect(sqs).to receive(:send_message).with(hash_including(message_body: 'changed'))
 
         subject.send_message(message_body: 'original')
@@ -397,6 +399,54 @@ RSpec.describe Shoryuken::Queue do
 
         subject.fifo?
         subject.fifo?
+      end
+    end
+  end
+
+  describe '#max_receive_count' do
+    let(:attribute_response) { double 'Aws::SQS::Types::GetQueueAttributesResponse' }
+
+    before do
+      allow(attribute_response).to receive(:attributes).and_return(attributes)
+      allow(sqs).to(
+        receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+      )
+    end
+
+    context 'when the queue has a redrive policy' do
+      let(:attributes) do
+        {
+          'RedrivePolicy' => {
+            deadLetterTargetArn: 'arn:aws:sqs:eu-west-1:0123456789:dlq',
+            maxReceiveCount: '5'
+          }.to_json
+        }
+      end
+
+      specify { expect(subject.max_receive_count).to eq(5) }
+
+      it 'memoizes response' do
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+        ).exactly(1).times
+
+        subject.max_receive_count
+        subject.max_receive_count
+      end
+    end
+
+    context 'when the queue has no redrive policy' do
+      let(:attributes) { { 'VisibilityTimeout' => '30' } }
+
+      specify { expect(subject.max_receive_count).to be_nil }
+
+      it 'memoizes response' do
+        expect(sqs).to(
+          receive(:get_queue_attributes).with(queue_url: queue_url, attribute_names: ['All']).and_return(attribute_response)
+        ).exactly(1).times
+
+        subject.max_receive_count
+        subject.max_receive_count
       end
     end
   end

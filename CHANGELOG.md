@@ -1,13 +1,18 @@
 ## [Unreleased]
 
-- Fix: TERM, INT or USR1 after a completed TSTP stop no longer fires the lifecycle events again
-  - The second signal ran the whole shutdown sequence again, so `shutdown` and `stopped` handlers (and the
-    `stop_callback`) ran twice
-  - `Launcher#stop` and `Launcher#stop!` now do nothing once a stop has completed; the process still exits
+- Feature: `Shoryuken::Message#last_receive?` tells whether a message is on its last receive before the dead-letter queue
+  - It compares the message's `ApproximateReceiveCount` with the queue's `RedrivePolicy` `maxReceiveCount`, read
+    once per queue (`Shoryuken::Queue#max_receive_count`) and cached; it returns false when the queue has no redrive
+    policy. On a FIFO queue a worker can use it to alert or stop the group before the next message of the group runs
 
 - Enhancement: The gem ships only the files it needs at runtime
   - `lib/`, `bin/shoryuken`, `bin/cli/`, `config/locales/`, `README.md`, `CHANGELOG.md` and `LICENSE`; specs, dev
     scripts and repo config are no longer packaged (247 files, 840 KB unpacked, down to 65 files, 317 KB)
+
+- Fix: TERM, INT or USR1 after a completed TSTP stop no longer fires the lifecycle events again
+  - The second signal ran the whole shutdown sequence again, so `shutdown` and `stopped` handlers (and the
+    `stop_callback`) ran twice
+  - `Launcher#stop` and `Launcher#stop!` now do nothing once a stop has completed; the process still exits
 
 - Fix: Enqueueing the same ActiveJob job instance again sends its current arguments
   - The second `enqueue` (or `perform_all_later`) resent the previous send's body, delay and generated FIFO
