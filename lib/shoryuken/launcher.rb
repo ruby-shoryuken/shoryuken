@@ -10,6 +10,7 @@ module Shoryuken
     def initialize
       @managers = create_managers
       @stopping = false
+      @stopped = false
     end
 
     # Indicates whether the launcher is in the process of stopping.
@@ -32,10 +33,12 @@ module Shoryuken
       start_managers
     end
 
-    # Forces an immediate stop of all processing
+    # Forces an immediate stop of all processing. Does nothing once a stop has completed.
     #
     # @return [void]
     def stop!
+      return if @stopped
+
       @stopping = true
       initiate_stop
 
@@ -48,12 +51,15 @@ module Shoryuken
       drain_pending_active_job_sends(deadline)
 
       fire_event(:stopped)
+      @stopped = true
     end
 
-    # Gracefully stops all processing, waiting for in-flight messages
+    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has completed.
     #
     # @return [void]
     def stop
+      return if @stopped
+
       @stopping = true
       fire_event(:quiet, true)
 
@@ -68,6 +74,7 @@ module Shoryuken
       drain_pending_active_job_sends(deadline)
 
       fire_event(:stopped)
+      @stopped = true
     end
 
     # Checks if all processing groups are healthy
@@ -76,7 +83,7 @@ module Shoryuken
     def healthy?
       Shoryuken.groups.keys.all? do |group|
         manager = @managers.find { |m| m.group == group }
-        manager && manager.running?
+        manager&.running?
       end
     end
 
