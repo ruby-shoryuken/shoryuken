@@ -9,6 +9,11 @@
   - `lib/`, `bin/shoryuken`, `bin/cli/`, `config/locales/`, `README.md`, `CHANGELOG.md` and `LICENSE`; specs, dev
     scripts and repo config are no longer packaged (247 files, 840 KB unpacked, down to 65 files, 317 KB)
 
+- Fix: TERM, INT or USR1 after a completed TSTP stop no longer fires the lifecycle events again
+  - The second signal ran the whole shutdown sequence again, so `shutdown` and `stopped` handlers (and the
+    `stop_callback`) ran twice
+  - `Launcher#stop` and `Launcher#stop!` now do nothing once a stop has completed; the process still exits
+
 - Fix: Enqueueing the same ActiveJob job instance again sends its current arguments
   - The second `enqueue` (or `perform_all_later`) resent the previous send's body, delay and generated FIFO
     deduplication id, so the job ran with its old arguments, or a FIFO queue dropped it as a duplicate. Other

@@ -17,12 +17,12 @@ module Shoryuken
     # @param reverse [Boolean] whether to call handlers in reverse order
     # @param event_options [Hash] options to pass to event handlers
     # @return [void]
-    def fire_event(event, reverse = false, event_options = {})
+    def fire_event(event, reverse = false, event_options = {}) # rubocop:disable Style/OptionalBooleanParameter
       logger.debug { "Firing '#{event}' lifecycle event" }
       arr = Shoryuken.options[:lifecycle_events][event]
       # reverse (not reverse!) so the stored handler array keeps its original
       # order: events fired more than once with reverse: true (e.g. :shutdown
-      # via stop then stop!) must not alternate their handler order.
+      # via stop! while stop is still running) must not alternate their handler order.
       arr = arr.reverse if reverse
       arr.each do |block|
         block.call(event_options)
