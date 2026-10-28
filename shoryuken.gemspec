@@ -20,9 +20,11 @@ Gem::Specification.new do |spec|
     'rubygems_mfa_required' => 'true'
   }
 
-  spec.files         = `git ls-files -z`.split("\x0")
+  spec.files = `git ls-files -z`.split("\x0").select do |file|
+    file.start_with?('lib/', 'bin/cli/', 'config/locales/') ||
+      %w[bin/shoryuken README.md CHANGELOG.md LICENSE].include?(file)
+  end
   spec.executables   = %w[shoryuken]
-  spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
 
   spec.add_dependency 'aws-sdk-sqs', '>= 1.66.0'
@@ -30,8 +32,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'thor'
   spec.add_dependency 'zeitwerk', '~> 2.6'
 
-  spec.add_development_dependency 'dotenv'
-  spec.add_development_dependency 'ostruct'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'warning'

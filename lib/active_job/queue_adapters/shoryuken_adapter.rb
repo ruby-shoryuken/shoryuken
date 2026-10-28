@@ -84,6 +84,7 @@ module ActiveJob
       def enqueue(job, options = {}) # :nodoc:
         register_worker!(job)
 
+        job.sqs_send_message_parameters = job_parameters(job)
         job.sqs_send_message_parameters.merge! options
 
         queue = Shoryuken::Client.queues(job.queue_name)
@@ -98,13 +99,14 @@ module ActiveJob
       # @param timestamp [Float] Unix timestamp when the job should be processed
       # @return [Aws::SQS::Types::SendMessageResult] the send result
       # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if delay is used with a FIFO queue
+      # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def enqueue_at(job, timestamp) # :nodoc:
         delay = calculate_delay(timestamp)
 
         # FIFO queues do not support per-message delays
         # Check early to fail synchronously (before any async wrapping in subclasses)
-        # Note: negative delays (past timestamps) don't need handling here -
-        # SQS treats them as immediate delivery (delay_seconds=0)
+        # Note: past timestamps are sent with delay_seconds=0 (calculate_delay
+        # clamps them, as SQS accepts only 0 to 900 seconds)
         # See https://github.com/ruby-shoryuken/shoryuken/issues/924
         if delay.positive?
           queue = Shoryuken::Client.queues(job.queue_name)
@@ -132,6 +134,7 @@ module ActiveJob
           queue_jobs.each_slice(10) do |batch|
             entries = batch.map.with_index do |job, idx|
               register_worker!(job)
+              job.sqs_send_message_parameters = job_parameters(job)
               msg = message(queue, job)
               job.sqs_send_message_parameters = msg
               { id: idx.to_s }.merge(msg)
@@ -153,13 +156,13 @@ module ActiveJob
       # Calculates the delay in seconds from a timestamp
       #
       # @param timestamp [Float] Unix timestamp
-      # @return [Integer] delay in seconds
-      # @raise [RuntimeError] if delay exceeds 15 minutes
+      # @return [Integer] delay in seconds, 0 for a timestamp in the past
+      # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def calculate_delay(timestamp)
         delay = (timestamp - Time.current.to_f).round
-        raise 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
+        raise Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > 15.minutes
 
-        delay
+        [delay, 0].max
       end
 
       # Builds the SQS message parameters for a job
@@ -183,12 +186,45 @@ module ActiveJob
           # https://github.com/ruby-shoryuken/shoryuken/pull/750#issuecomment-1781317929
           # Disable via Shoryuken.active_job_fifo_message_deduplication = false when distinct
           # enqueues of the same job class and arguments must not be silently deduplicated.
-          msg[:message_deduplication_id] = Digest::SHA256.hexdigest(
-            JSON.dump(body.except('job_id', 'enqueued_at'))
-          )
+          msg[:message_deduplication_id] = deduplication_id(body)
         end
 
         msg.merge(job_params.except(:message_attributes))
+      end
+
+      # Returns the job's SQS parameters. After a send they are the parameters sent (see #enqueue), so the values that
+      # send computed (body, delay, generated deduplication id) are left out: enqueueing the same job again sends its
+      # current state, and every other value, including ones changed since, still applies.
+      #
+      # @param job [ActiveJob::Base] the job being enqueued
+      # @return [Hash] the job's SQS parameters
+      def job_parameters(job)
+        params = job.sqs_send_message_parameters
+        body = params[:message_body]
+        return params unless body
+
+        kept = params.except(:message_body, :delay_seconds)
+        id = kept[:message_deduplication_id]
+        kept.delete(:message_deduplication_id) if id && generated_deduplication_id?(body, id)
+        kept
+      end
+
+      # Checks if a deduplication id is one Shoryuken generated for a sent body: the queue's or the adapter's
+      #
+      # @param body [Hash, String] the sent message body, a JSON string once the queue has sent it
+      # @param id [String] the deduplication id sent with it
+      # @return [Boolean] true if Shoryuken generated the id
+      def generated_deduplication_id?(body, id)
+        json = body.is_a?(String) ? body : JSON.dump(body)
+        id == Digest::SHA256.hexdigest(json) || id == deduplication_id(JSON.parse(json))
+      end
+
+      # Computes the FIFO deduplication id of a job body, without its job_id and enqueued_at
+      #
+      # @param body [Hash] the serialized job
+      # @return [String] the deduplication id
+      def deduplication_id(body)
+        Digest::SHA256.hexdigest(JSON.dump(body.except('job_id', 'enqueued_at')))
       end
 
       # Registers the JobWrapper as the worker for the job's queue

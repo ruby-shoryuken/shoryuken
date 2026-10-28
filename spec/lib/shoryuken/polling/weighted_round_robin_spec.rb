@@ -67,9 +67,8 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
       queues << queue1
       queues << queue2
 
-      expect(subject).to receive(:pause).with(queue1).and_call_original
       subject.messages_found(queue1, 0)
-      expect(subject.instance_variable_get(:@queues)).to eq([queue2])
+      expect(subject.active_queues).to eq([[queue2, 1]])
     end
 
     it 'increased the weight if message is found' do
@@ -79,9 +78,9 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
       queues << queue1
       queues << queue2
 
-      expect(subject.instance_variable_get(:@queues)).to eq([queue1, queue2])
+      expect(subject.active_queues).to eq([[queue1, 1], [queue2, 1]])
       subject.messages_found(queue1, 1)
-      expect(subject.instance_variable_get(:@queues)).to eq([queue1, queue2, queue1])
+      expect(subject.active_queues).to eq([[queue1, 2], [queue2, 1]])
     end
 
     it 'respects the maximum queue weight' do
@@ -93,7 +92,7 @@ RSpec.describe Shoryuken::Polling::WeightedRoundRobin do
 
       subject.messages_found(queue1, 1)
       subject.messages_found(queue1, 1)
-      expect(subject.instance_variable_get(:@queues)).to eq([queue1, queue2, queue1])
+      expect(subject.active_queues).to eq([[queue1, 2], [queue2, 1]])
     end
   end
 

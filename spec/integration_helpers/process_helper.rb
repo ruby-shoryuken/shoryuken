@@ -12,8 +12,19 @@ module ProcessHelper
   }.freeze
 
   # Runs `bin/shoryuken start` until it exits on its own, returns [status, output]
-  def run_shoryuken_until_exit(*args, timeout: 30)
-    Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
+  def run_shoryuken_until_exit(*args, **options)
+    run_shoryuken_command_until_exit('start', *args, **options)
+  end
+
+  # Runs `bin/shoryuken sqs` against ElasticMQ until it exits, returns [status, output]
+  def run_shoryuken_sqs(*args, **options)
+    run_shoryuken_command_until_exit('sqs', *args, '-e', SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS'], **options)
+  end
+
+  # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env) until it exits on its own,
+  # returns [status, output]
+  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {})
+    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 
@@ -28,19 +39,32 @@ module ProcessHelper
     end
   end
 
-  # Runs `bin/shoryuken start` until the block returns true, stops it with the signal, returns [status, output]
-  def run_shoryuken_until(*args, signal: 'TERM', timeout: 30, &condition)
-    Open3.popen2e(SHORYUKEN_ENV, RbConfig.ruby, SHORYUKEN_BIN, 'start', *args) do |_in, out, wait|
+  # Runs `bin/shoryuken start` until the block (given the output so far and the pid) returns true, stops it with the
+  # signal, returns [status, output]
+  def run_shoryuken_until(*args, **options, &condition)
+    run_shoryuken_command_until('start', *args, **options, &condition)
+  end
+
+  # Runs `bin/shoryuken sqs` against ElasticMQ until the block (given the output so far) returns true, stops it with
+  # the signal, returns [status, output]
+  def run_shoryuken_sqs_until(*args, **options, &condition)
+    run_shoryuken_command_until('sqs', *args, '-e', SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS'], **options, &condition)
+  end
+
+  # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env) until the block (given the output
+  # so far and the pid) returns true, stops it with the signal, returns [status, output]
+  def run_shoryuken_command_until(command, *args, signal: 'TERM', timeout: 30, bin: SHORYUKEN_BIN, env: {}, &condition)
+    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 
       begin
-        Timeout.timeout(timeout) { sleep 0.1 until condition.call || !wait.alive? }
+        Timeout.timeout(timeout) { sleep 0.1 until condition.call(output, wait.pid) || !wait.alive? }
       rescue Timeout::Error
         Process.kill('KILL', wait.pid)
       end
 
-      unless condition.call
+      unless condition.call(output, wait.pid)
         reader.join
         raise IntegrationsHelper::TestFailure, "shoryuken stopped or timed out before the condition was met: #{output}"
       end
