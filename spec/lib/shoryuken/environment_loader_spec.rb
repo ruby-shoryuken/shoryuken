@@ -103,6 +103,14 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       end
     end
 
+    context 'when a queue without a worker is listed more than once' do
+      before { Shoryuken.options[:queues] = ['queue1', 'queue2', ['queue2', 2]] }
+
+      it 'reports the queue once' do
+        expect(subject.check).to eq(['No worker supplied for queue2'])
+      end
+    end
+
     context 'when a queue has no worker but ActiveJob is in use' do
       before do
         Shoryuken.options[:queues] = %w[queue1 queue2]

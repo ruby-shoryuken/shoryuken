@@ -28,6 +28,16 @@ def check_scenarios(with_worker, without_worker, dir)
   assert_equal(0, code, "valid setup must exit 0, got: #{output}")
   assert_includes(output, 'Configuration OK')
 
+  output, code = run_check(
+    '-q', with_worker, '-r', worker_file, '-d', '-L', File.join(dir, 'check.log'), '-P', File.join(dir, 'check.pid')
+  )
+  assert_equal(0, code, "start's daemon options must be accepted, got: #{output}")
+  assert_includes(output, 'Configuration OK')
+
+  output, code = run_check('-q', with_worker, '-r', worker_file, '-d')
+  assert_equal(1, code, "daemonizing without a logfile must exit 1, got: #{output}")
+  assert_includes(output, "[FAIL] You should set a logfile if you're going to daemonize")
+
   output, code = run_check('-q', with_worker, without_worker, '-r', worker_file)
   assert_equal(1, code, "queue without a worker must exit 1, got: #{output}")
   assert_includes(output, "[FAIL] No worker supplied for #{without_worker}")

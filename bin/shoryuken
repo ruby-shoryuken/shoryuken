@@ -25,6 +25,8 @@ module Shoryuken
         method_option :rails,       aliases: '-R', type: :boolean, desc: 'Load Rails'
         method_option :logfile,     aliases: '-L', type: :string,  desc: 'Path to logfile'
         method_option :verbose,     aliases: '-v', type: :boolean, desc: 'Print more verbose output'
+        method_option :daemon,      aliases: '-d', type: :boolean, desc: 'Daemonize process'
+        method_option :pidfile,     aliases: '-P', type: :string,  desc: 'Path to pidfile'
         method_option(
           :delay, aliases: '-D', type: :numeric,
           desc: 'Number of seconds to pause fetching from an empty queue'
@@ -33,12 +35,9 @@ module Shoryuken
 
       desc 'start', 'Starts shoryuken'
       environment_options
-      method_option :daemon,      aliases: '-d', type: :boolean, desc: 'Daemonize process'
-      method_option :pidfile,     aliases: '-P', type: :string,  desc: 'Path to pidfile'
       def start
         opts = normalized_options
-
-        fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
+        validate_daemon_options(opts)
 
         Shoryuken::Runner.instance.run(opts.freeze)
       end
@@ -46,7 +45,10 @@ module Shoryuken
       desc 'check', 'Validates the configuration, queues and workers without starting to process'
       environment_options
       def check
-        problems = Shoryuken::EnvironmentLoader.setup_options(normalized_options.freeze).check
+        opts = normalized_options
+        validate_daemon_options(opts)
+
+        problems = Shoryuken::EnvironmentLoader.setup_options(opts.freeze).check
 
         fail_task problems.join("\n") if problems.any?
 
@@ -68,6 +70,11 @@ module Shoryuken
       end
 
       no_commands do
+        # Fails when the options ask to daemonize without a logfile
+        def validate_daemon_options(opts)
+          fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
+        end
+
         # Normalizes the command line options for {Shoryuken::EnvironmentLoader}
         def normalized_options
           opts = options.to_h.transform_keys(&:to_sym)
