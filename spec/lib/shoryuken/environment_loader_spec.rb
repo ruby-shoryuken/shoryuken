@@ -243,7 +243,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
     context 'when given queues through config and CLI' do
       specify do
-        allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:config_file_options).and_return({ queues: config_queues })
+        allow_any_instance_of(Shoryuken::EnvironmentLoader)
+          .to receive(:config_file_options).and_return({ queues: config_queues })
         Shoryuken::EnvironmentLoader.setup_options(queues: cli_queues)
         expect(Shoryuken.options[:queues]).to eq(cli_queues)
       end
@@ -251,7 +252,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
     context 'when given queues through config only' do
       specify do
-        allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:config_file_options).and_return({ queues: config_queues })
+        allow_any_instance_of(Shoryuken::EnvironmentLoader)
+          .to receive(:config_file_options).and_return({ queues: config_queues })
         Shoryuken::EnvironmentLoader.setup_options({})
         expect(Shoryuken.options[:queues]).to eq(config_queues)
       end

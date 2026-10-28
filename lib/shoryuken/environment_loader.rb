@@ -27,7 +27,7 @@ module Shoryuken
     #
     # @return [void]
     def self.load_for_rails_console
-      instance = setup_options(config_file: (Rails.root + 'config' + 'shoryuken.yml'))
+      instance = setup_options(config_file: Rails.root.join('config', 'shoryuken.yml'))
       instance.load
     end
 
@@ -191,10 +191,8 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.map! do |group, options|
-        if options[:queues]
-          options[:queues].map! do |queue_name, weight|
-            prefix_active_job_queue_name(queue_name, weight)
-          end
+        options[:queues]&.map! do |queue_name, weight|
+          prefix_active_job_queue_name(queue_name, weight)
         end
 
         [group, options]
@@ -224,7 +222,10 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.each do |group, options|
-        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay], polling_strategy: options[:polling_strategy])
+        Shoryuken.add_group(
+          group, options[:concurrency], delay: options[:delay],
+          polling_strategy: options[:polling_strategy]
+        )
 
         options[:queues].to_a.each do |queue, weight|
           parse_queue(queue, weight, group)
