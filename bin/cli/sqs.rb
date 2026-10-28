@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'date'
+require 'securerandom'
 
 # rubocop:disable Metrics/BlockLength
 module Shoryuken
@@ -24,6 +25,21 @@ module Shoryuken
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
       no_commands do
+        # Converts a received message to a hash for the dump file, with Binary attribute values in base64
+        #
+        # @param message [Aws::SQS::Types::Message] the received message
+        # @return [Hash] the message hash
+        def dump_message(message)
+          message.to_h.tap do |hash|
+            hash[:message_attributes]&.each_value do |value|
+              next unless value[:binary_value]
+
+              value[:binary_value] = [value[:binary_value]].pack('m0')
+              value[:binary_value_encoding] = 'base64'
+            end
+          end
+        end
+
         # Normalizes a dump message for requeuing
         #
         # @param message [Hash] the dumped message hash
@@ -36,13 +52,16 @@ module Shoryuken
           # The `string_list_values` and `binary_list_values` are not implemented. Reserved for future use.
           message_attributes = message[:message_attributes].each_with_object({}) do |(k, v), result|
             result[k] = v.slice(:data_type, :string_value, :binary_value)
+            # Dumps written before binary_value_encoding hold the raw value
+            result[k][:binary_value] = v[:binary_value].unpack1('m0') if v[:binary_value_encoding] == 'base64'
           end
 
           {
             id: message[:message_id],
             message_body: message[:body],
             message_attributes: message_attributes,
-            message_deduplication_id: attributes[:MessageDeduplicationId],
+            # SQS drops a FIFO message whose deduplication id it saw in the last 5 minutes
+            message_deduplication_id: (SecureRandom.uuid if attributes[:MessageDeduplicationId]),
             message_group_id: attributes[:MessageGroupId]
           }
         end
@@ -78,15 +97,18 @@ module Shoryuken
         #
         # @param url [String] the queue URL
         # @param messages [Array<Aws::SQS::Types::Message>] the messages to delete
-        # @return [void]
+        # @return [Array<Aws::SQS::Types::BatchResultErrorEntry>] the entries SQS did not delete
         def batch_delete(url, messages)
-          messages.to_a.flatten.each_slice(10) do |batch|
-            sqs.delete_message_batch(
+          messages.to_a.flatten.each_slice(10).flat_map do |batch|
+            failed = sqs.delete_message_batch(
               queue_url: url,
               entries: batch.map { |message| { id: message.message_id, receipt_handle: message.receipt_handle } }
-            ).failed.any? do |failure|
+            ).failed
+
+            failed.each do |failure|
               say(
-                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, sender_fault: #{failure.sender_fault}",
+                "Could not delete #{failure.id}, code: #{failure.code}, message: #{failure.message}, " \
+                "sender_fault: #{failure.sender_fault}",
                 :yellow
               )
             end
@@ -98,7 +120,7 @@ module Shoryuken
         # @param url [String] the queue URL
         # @param messages [Array<Hash>] the messages to send
         # @param max_batch_size [Integer] maximum messages per batch
-        # @return [void]
+        # @return [Array<Aws::SQS::Types::BatchResultErrorEntry>] the entries SQS did not accept
         def batch_send(url, messages, max_batch_size = 10)
           messages = messages.to_a.flatten.map(&method(:normalize_dump_message))
           batch_send_normalized_messages url, messages, max_batch_size
@@ -109,8 +131,10 @@ module Shoryuken
         # @param url [String] the queue URL
         # @param messages [Array<Hash>] the normalized messages
         # @param max_batch_size [Integer] maximum messages per batch
-        # @return [void]
+        # @return [Array<Aws::SQS::Types::BatchResultErrorEntry>] the entries SQS did not accept
         def batch_send_normalized_messages(url, messages, max_batch_size)
+          failed = []
+
           # Repeatedly take the longest prefix of messages such that
           # 1. The number of messages is less than or equal to max_batch_size
           # 2. The total message payload size is less than or equal to the
@@ -125,13 +149,16 @@ module Shoryuken
                 next
               end
 
-              sqs.send_message_batch(queue_url: url, entries: batch).failed.any? do |failure|
+              sqs.send_message_batch(queue_url: url, entries: batch).failed.each do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
+                failed << failure
               end
               messages = messages.drop batch.size
               break
             end
           end
+
+          failed
         end
 
         # Calculates the total payload size of a batch
@@ -280,6 +307,13 @@ module Shoryuken
         def dump_file(path, queue_name)
           File.join(path, "#{queue_name}-#{Date.today}.jsonl")
         end
+
+        # Fails the task unless the number of messages option is at least 1
+        #
+        # @return [void]
+        def validate_number_option
+          fail_task "Number of messages must be at least 1, got #{options[:number]}" if options[:number] < 1
+        end
       end
 
       desc 'ls [QUEUE-NAME-PREFIX]', 'Lists queues'
@@ -305,6 +339,13 @@ module Shoryuken
       method_option :path,   aliases: '-p', type: :string,  default: './',            desc: 'path to save the dump file'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def dump(queue_name)
+        validate_number_option
+
+        fail_task "Path #{options[:path]} is not a directory" unless File.directory?(options[:path])
+        unless File.writable?(options[:path]) && File.executable?(options[:path])
+          fail_task "Path #{options[:path]} is not writable"
+        end
+
         path = dump_file(options[:path], queue_name)
 
         fail_task "File #{path} already exists" if File.exist?(path)
@@ -315,23 +356,33 @@ module Shoryuken
 
         file = nil
 
-        count = find_all(url, options[:number]) do |m|
-          file ||= File.open(path, 'w')
+        begin
+          count = find_all(url, options[:number]) do |m|
+            file ||= File.open(path, 'w')
 
-          file.puts(JSON.dump(m.to_h))
+            file.puts(JSON.dump(dump_message(m)))
 
-          messages << m if options[:delete]
+            messages << m if options[:delete]
+          end
+        ensure
+          # A file left by a failed dump would block every later dump of the queue that day
+          if file && count.nil?
+            file.close
+            File.delete(path)
+          end
         end
 
-        batch_delete(url, messages) if options[:delete]
+        not_deleted = options[:delete] ? batch_delete(url, messages) : []
 
         if count.zero?
           say "Queue #{queue_name} is empty", :yellow
         else
           say "Dump saved in #{path} with #{count} messages", :green
         end
+
+        fail_task "Could not delete #{not_deleted.size} dumped messages from #{queue_name}" unless not_deleted.empty?
       ensure
-        file.close if file
+        file&.close
       end
 
       desc 'requeue QUEUE-NAME PATH', 'Requeues messages from a dump file'
@@ -344,15 +395,19 @@ module Shoryuken
 
         messages = File.readlines(path).map { |line| JSON.parse(line, symbolize_names: true) }
 
-        batch_send(find_queue_url(queue_name), messages, options[:batch_size])
+        failed = batch_send(find_queue_url(queue_name), messages, options[:batch_size])
 
-        say "Requeued #{messages.size} messages from #{path} to #{queue_name}", :green
+        say "Requeued #{messages.size - failed.size} messages from #{path} to #{queue_name}", :green
+
+        fail_task "Could not requeue #{failed.size} messages from #{path} to #{queue_name}" unless failed.empty?
       end
 
       desc 'mv QUEUE-NAME-SOURCE QUEUE-NAME-TARGET', 'Moves messages from one queue (source) to another (target)'
       method_option :number, aliases: '-n', type: :numeric, default: Float::INFINITY, desc: 'number of messages to move'
       method_option :delete, aliases: '-d', type: :boolean, default: true,            desc: 'delete from the queue'
       def mv(queue_name_source, queue_name_target)
+        validate_number_option
+
         url_source = find_queue_url(queue_name_source)
         messages = []
 
@@ -360,14 +415,23 @@ module Shoryuken
           messages << m
         end
 
-        batch_send(find_queue_url(queue_name_target), messages.map(&:to_h))
-        batch_delete(url_source, messages) if options[:delete]
+        failed_ids = batch_send(find_queue_url(queue_name_target), messages.map(&:to_h)).to_set(&:id)
+        moved = messages.reject { |m| failed_ids.include?(m.message_id) }
+        not_deleted = options[:delete] ? batch_delete(url_source, moved) : []
 
         if count.zero?
           say "Queue #{queue_name_source} is empty", :yellow
         else
-          say "Moved #{count} messages from #{queue_name_source} to #{queue_name_target}", :green
+          say "Moved #{moved.size} messages from #{queue_name_source} to #{queue_name_target}", :green
         end
+
+        unless failed_ids.empty?
+          fail_task "Could not move #{failed_ids.size} messages, they stay in #{queue_name_source}", false
+        end
+        unless not_deleted.empty?
+          fail_task "Could not delete #{not_deleted.size} moved messages from #{queue_name_source}", false
+        end
+        exit(1) unless failed_ids.empty? && not_deleted.empty?
       end
 
       desc 'purge QUEUE-NAME', 'Deletes the messages in a queue'
@@ -392,8 +456,9 @@ module Shoryuken
       def delete(queue_name)
         sqs.delete_queue(queue_url: find_queue_url(queue_name))
 
-        say "Queue #{queue_name} was successfully delete", :green
+        say "Queue #{queue_name} was successfully deleted", :green
       end
     end
   end
 end
+# rubocop:enable Metrics/BlockLength

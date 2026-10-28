@@ -1,5 +1,79 @@
 ## [Unreleased]
 
+- Feature: `Shoryuken::Message#last_receive?` tells whether a message is on its last receive before the dead-letter queue
+  - It compares the message's `ApproximateReceiveCount` with the queue's `RedrivePolicy` `maxReceiveCount`, read
+    once per queue (`Shoryuken::Queue#max_receive_count`) and cached; it returns false when the queue has no redrive
+    policy. On a FIFO queue a worker can use it to alert or stop the group before the next message of the group runs
+
+- Enhancement: The gem ships only the files it needs at runtime
+  - `lib/`, `bin/shoryuken`, `bin/cli/`, `config/locales/`, `README.md`, `CHANGELOG.md` and `LICENSE`; specs, dev
+    scripts and repo config are no longer packaged (247 files, 840 KB unpacked, down to 65 files, 317 KB)
+
+- Fix: TERM, INT or USR1 after a completed TSTP stop no longer fires the lifecycle events again
+  - The second signal ran the whole shutdown sequence again, so `shutdown` and `stopped` handlers (and the
+    `stop_callback`) ran twice
+  - `Launcher#stop` and `Launcher#stop!` now do nothing once a stop has completed; the process still exits
+
+- Fix: Enqueueing the same ActiveJob job instance again sends its current arguments
+  - The second `enqueue` (or `perform_all_later`) resent the previous send's body, delay and generated FIFO
+    deduplication id, so the job ran with its old arguments, or a FIFO queue dropped it as a duplicate. Other
+    `sqs_send_message_parameters` (e.g. `set(message_group_id:)`, also when changed after the send) still apply
+
+- Fix: ActiveJob `set(wait_until:)` with a time in the past now sends the job at once
+  - The adapter sent a negative `DelaySeconds`, which SQS rejects (`Aws::SQS::Errors::InvalidParameterValue`, on FIFO
+    queues too); it now sends `delay_seconds: 0`
+
+- Breaking: ActiveJob `set(wait:)`/`set(wait_until:)` over 15 minutes raises `Shoryuken::Errors::InvalidDelayError`
+  - It raised a bare `RuntimeError` with the same message; it now raises the error `perform_in` on a worker raises
+  - `rescue RuntimeError` no longer catches it; rescue `Shoryuken::Errors::InvalidDelayError` or
+    `Shoryuken::Errors::BaseError`
+
+- Fix: ActiveJob `executions` keeps ActiveJob's count across `retry_on` retries
+  - Shoryuken replaced the serialized `executions` with the SQS receive count minus one, so it read 1 on every
+    `retry_on` retry (also in ActiveJob's "Retrying ... after N attempts" logs and retry events); it now adds the
+    past receives to the serialized value
+  - Behaviour change: `executions` is higher for jobs that `retry_on` retried. An SQS redelivery still counts as one
+    more execution, so after a redelivery `executions` is one above plain ActiveJob's value
+
+- Fix: `shoryuken sqs dump` and `mv` check their input before they receive any message
+  - `dump -p` with a missing or read-only directory received the messages and then raised `Errno::ENOENT` (missing)
+    or `Errno::EACCES` (read-only), which left them in flight until their visibility timeout ended; it now fails with
+    `[FAIL] Path ... is not a directory` (or `is not writable`)
+  - `dump`/`mv -n` below 1 raised `Aws::SQS::Errors::InvalidAttributeValue`; they now fail with
+    `[FAIL] Number of messages must be at least 1`
+  - `delete` now prints `Queue ... was successfully deleted` (was `delete`)
+
+- Fix: `shoryuken sqs requeue` no longer drops FIFO messages requeued within 5 minutes of their dump
+  - It sent each message with its original `MessageDeduplicationId`, so SQS accepted but did not deliver it; it now
+    sends a new deduplication id per message (also in `mv`) and keeps the `MessageGroupId`. Requeueing the same dump
+    file twice now delivers its messages twice
+
+- Fix: `shoryuken sqs dump` handles Binary message attributes and leaves no file when it fails
+  - A Binary value that is not valid UTF-8 raised `JSON::GeneratorError`; `dump` now stores Binary values as base64,
+    marked with `"binary_value_encoding": "base64"`, and `requeue` decodes them. Dump files without the mark still
+    requeue
+  - A dump that failed or stopped while writing left its file, so every later dump of the queue that day failed with
+    `File ... already exists`; it now removes the file
+
+- Fix: `shoryuken sqs mv` and `requeue` no longer lose or miscount messages the target queue rejects
+  - `mv` deleted every received message from the source, also the ones the target rejected (e.g. a FIFO target and
+    messages without a group id); it now deletes only the accepted ones, so the rejected ones stay in the source
+  - `mv` and `requeue` count only the accepted messages, print every rejected entry (also on a failed delete, before
+    only the first of each batch) and exit with status 1 when an entry was rejected; so does `dump` when a delete fails
+
+- Fix: A raising `retry_intervals` lambda is now logged as such
+  - `ExponentialBackoffRetry` logged it as `Failed to set backoff visibility timeout`, although no visibility change
+    was attempted; it now logs `retry_intervals raised for <message id>: <error class>: <message>`. The original worker
+    error is still re-raised
+
+- Fix: Shoryuken now drains in-flight `ShoryukenConcurrentSendAdapter` sends on shutdown (mensfeld)
+  - A job enqueued with the concurrent adapter shortly before the process stopped (e.g. by a worker) was lost: the
+    TERM/USR1 handlers exit right after the launcher stops, which killed the background send
+  - `Launcher#stop`/`#stop!` now call `wait_for_pending_sends` on every loaded ActiveJob adapter that supports it
+    (including adapters set on a single job class) after the executor shutdown
+  - The executor shutdown and the drain together stay within `timeout`; a drain that runs out of time or fails is
+    logged and does not break shutdown
+
 - Breaking: Drop support for Ruby 3.2 (EOL March 2026)
   - Minimum required Ruby version is now 3.3.0
   - Supported Ruby versions: 3.3, 3.4, 4.0
@@ -40,6 +114,13 @@
     rejected the worker post, so it stayed invisible until its visibility timeout expired
   - Such messages now get a visibility timeout of 0, so another consumer can receive them right away; a failed
     release is logged and does not break dispatch or shutdown
+
+- Feature: `ShoryukenConcurrentSendAdapter#wait_for_pending_sends` to drain in-flight async sends (mensfeld)
+  - The concurrent send adapter enqueues by scheduling the SQS send on a background future and returning
+    immediately, so jobs enqueued shortly before the process exits could be silently dropped
+  - `wait_for_pending_sends(timeout = nil)` blocks until every in-flight send has finished (returning
+    false if the optional timeout elapses first); call it from your shutdown sequence to flush pending sends
+  - In-flight futures are tracked and removed as they resolve, so the set does not grow unbounded
 
 - Fix: A failing shutdown step no longer skips the rest of `Launcher#stop`/`#stop!`
   - An error raised by `stop_callback`, a manager's `stop_new_dispatching`/`await_dispatching_in_progress` or the

@@ -84,7 +84,7 @@ describe 'Shoryuken::Util' do
       ]
 
       # e.g. :shutdown is fired with reverse: true and can fire more than once
-      # (stop then stop!); every firing must use the same reversed order.
+      # (stop! while stop is still running); every firing must use the same reversed order.
       subject.fire_event(:some_event, true)
       subject.fire_event(:some_event, true)
 

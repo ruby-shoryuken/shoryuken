@@ -100,6 +100,30 @@ module Shoryuken
       self.queue_name = queue.name
     end
 
+    # Tells whether this is the last receive before SQS moves the message to the dead-letter queue.
+    # If the worker does not delete the message now, the next receive moves it to the dead-letter queue.
+    # On a FIFO queue the next message of the same group then runs, so this is the point to alert or
+    # to stop the group. The queue redrive policy is read on the first call per queue and cached.
+    #
+    # @return [Boolean] true when the receive count has reached the redrive policy maxReceiveCount,
+    #   false when the queue has no redrive policy or the receive count is unknown
+    #
+    # @example Alert before a FIFO message moves to the dead-letter queue
+    #   def perform(sqs_msg, body)
+    #     process(body)
+    #   rescue StandardError
+    #     notify_ops(sqs_msg.message_id) if sqs_msg.last_receive?
+    #     raise
+    #   end
+    def last_receive?
+      max = Shoryuken::Client.queues(queue_url).max_receive_count
+      count = receive_count
+
+      return false unless max && count
+
+      count >= max
+    end
+
     # Deletes this message from the SQS queue.
     # Once deleted, the message will not be redelivered and cannot be retrieved again.
     # This is typically called after successful message processing when auto_delete is disabled.
@@ -155,6 +179,15 @@ module Shoryuken
         receipt_handle: data.receipt_handle,
         visibility_timeout: timeout
       )
+    end
+
+    private
+
+    # Returns how many times SQS has delivered this message, this delivery included.
+    #
+    # @return [Integer, nil] the ApproximateReceiveCount attribute, or nil when it was not received
+    def receive_count
+      attributes&.[]('ApproximateReceiveCount')&.to_i
     end
   end
 end

@@ -17,5 +17,12 @@ module Shoryuken
     :delete,
     :queue_name,
     keyword_init: true
-  )
+  ) do
+    # Inline execution runs a message once and has no dead-letter queue.
+    #
+    # @return [Boolean] always false
+    def last_receive?
+      false
+    end
+  end
 end

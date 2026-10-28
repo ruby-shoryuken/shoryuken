@@ -73,6 +73,16 @@ RSpec.describe Shoryuken::Launcher do
       expect(subject).to have_received(:fire_event).with(:stopped)
     end
 
+    it 'does nothing once a stop has completed' do
+      subject.stop
+      allow(subject).to receive(:fire_event)
+
+      subject.stop
+
+      expect(subject).not_to have_received(:fire_event)
+      expect(first_group_manager).to have_received(:stop_new_dispatching).once
+    end
+
     it 'stops the managers' do
       subject.stop
       expect(first_group_manager).to have_received(:stop_new_dispatching)
@@ -202,6 +212,27 @@ RSpec.describe Shoryuken::Launcher do
       expect(subject).to have_received(:fire_event).with(:stopped)
     end
 
+    it 'does nothing once a graceful stop has completed' do
+      subject.stop
+      allow(subject).to receive(:fire_event)
+
+      subject.stop!
+
+      expect(subject).not_to have_received(:fire_event)
+      expect(first_group_manager).to have_received(:stop_new_dispatching).once
+    end
+
+    it 'makes a later stop or stop! do nothing once it has completed' do
+      subject.stop!
+      allow(subject).to receive(:fire_event)
+
+      subject.stop
+      subject.stop!
+
+      expect(subject).not_to have_received(:fire_event)
+      expect(first_group_manager).to have_received(:stop_new_dispatching).once
+    end
+
     it 'stops the managers' do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)
@@ -238,6 +269,108 @@ RSpec.describe Shoryuken::Launcher do
         expect(second_group_manager).to have_received(:stop_new_dispatching)
         expect(executor).to be_shutdown
       end
+    end
+  end
+
+  describe 'draining in-flight ActiveJob sends on shutdown' do
+    let(:adapter) { double('queue_adapter') }
+
+    before do
+      allow(first_group_manager).to receive(:stop_new_dispatching)
+      allow(first_group_manager).to receive(:await_dispatching_in_progress)
+      allow(second_group_manager).to receive(:stop_new_dispatching)
+      allow(second_group_manager).to receive(:await_dispatching_in_progress)
+
+      # Make ActiveJob present and point its adapter at our double, regardless of
+      # whether active_job happens to be loaded by another spec.
+      stub_const('ActiveJob::Base', Class.new)
+      allow(ActiveJob::Base).to receive(:queue_adapter).and_return(adapter)
+      allow(ActiveJob::Base).to receive(:descendants).and_return([])
+    end
+
+    let(:remaining_timeout) { a_value_within(1).of(Shoryuken.options[:timeout]) }
+
+    it 'drains pending sends on graceful stop when the adapter supports it' do
+      expect(adapter).to receive(:wait_for_pending_sends).with(remaining_timeout).and_return(true)
+
+      subject.stop
+    end
+
+    it 'drains pending sends on immediate stop! when the adapter supports it' do
+      expect(adapter).to receive(:wait_for_pending_sends).with(remaining_timeout).and_return(true)
+
+      subject.stop!
+    end
+
+    it 'drains an adapter set on a single job class' do
+      job_adapter = double('job_queue_adapter')
+      job_class = Class.new(ActiveJob::Base)
+      allow(job_class).to receive(:queue_adapter).and_return(job_adapter)
+      allow(ActiveJob::Base).to receive(:descendants).and_return([job_class])
+
+      expect(job_adapter).to receive(:wait_for_pending_sends).with(remaining_timeout).and_return(true)
+
+      subject.stop
+    end
+
+    it 'drains a shared adapter once' do
+      job_class = Class.new(ActiveJob::Base)
+      allow(job_class).to receive(:queue_adapter).and_return(adapter)
+      allow(ActiveJob::Base).to receive(:descendants).and_return([job_class])
+
+      expect(adapter).to receive(:wait_for_pending_sends).once.and_return(true)
+
+      subject.stop
+    end
+
+    it 'gives the drain only the part of the timeout the executor shutdown left' do
+      Shoryuken.options[:timeout] = 1
+      executor.post { sleep 3 }
+
+      expect(adapter).to receive(:wait_for_pending_sends).with(0).and_return(false)
+
+      subject.stop!
+    end
+
+    context 'when the timeout is nil' do
+      before { Shoryuken.options[:timeout] = nil }
+
+      it 'drains without a deadline on graceful stop' do
+        allow(subject).to receive(:fire_event)
+        expect(adapter).to receive(:wait_for_pending_sends).with(nil).and_return(true)
+
+        subject.stop
+
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+
+      it 'drains without a deadline on immediate stop!' do
+        allow(subject).to receive(:fire_event)
+        expect(adapter).to receive(:wait_for_pending_sends).with(nil).and_return(true)
+
+        subject.stop!
+
+        expect(executor).to be_shutdown
+        expect(subject).to have_received(:fire_event).with(:stopped)
+      end
+    end
+
+    it 'is a no-op when the adapter does not support draining' do
+      # adapter is a plain double, so it does not respond to wait_for_pending_sends
+      expect { subject.stop }.not_to raise_error
+    end
+
+    it 'does not break shutdown when draining raises' do
+      allow(adapter).to receive(:wait_for_pending_sends).and_raise('drain boom')
+
+      expect { subject.stop }.not_to raise_error
+    end
+
+    it 'completes shutdown even if draining times out' do
+      allow(adapter).to receive(:wait_for_pending_sends).and_return(false)
+
+      expect { subject.stop }.not_to raise_error
     end
   end
 
