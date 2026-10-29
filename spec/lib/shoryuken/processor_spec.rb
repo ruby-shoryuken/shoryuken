@@ -37,7 +37,7 @@ RSpec.describe Shoryuken::Processor do
     context 'when custom middleware' do
       let(:queue) { 'worker_called_middleware' }
 
-      class WorkerCalledMiddleware
+      class WorkerCalledMiddleware # rubocop:disable Lint/ConstantDefinitionInBlock
         def call(worker, queue, sqs_msg, _body)
           # called is defined with `allow(...).to receive(...)`
           worker.called(sqs_msg, queue)
@@ -46,7 +46,7 @@ RSpec.describe Shoryuken::Processor do
       end
 
       before do
-        class WorkerCalledMiddlewareWorker
+        class WorkerCalledMiddlewareWorker # rubocop:disable Lint/ConstantDefinitionInBlock
           include Shoryuken::Worker
 
           shoryuken_options queue: 'worker_called_middleware'
