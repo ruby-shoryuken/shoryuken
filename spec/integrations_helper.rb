@@ -44,11 +44,13 @@ require_relative 'integration_helpers/data_collector'
 require_relative 'integration_helpers/cleanup_helper'
 require_relative 'integration_helpers/dead_letter_queue_helper'
 require_relative 'integration_helpers/process_helper'
+require_relative 'integration_helpers/queue_state_helper'
 
 module IntegrationsHelper
   include CleanupHelper
   include DeadLetterQueueHelper
   include ProcessHelper
+  include QueueStateHelper
 
   class TestFailure < StandardError; end
 
@@ -120,18 +122,6 @@ module IntegrationsHelper
         'ContentBasedDeduplication' => 'true'
       }.merge(attributes)
     )
-  end
-
-  # Messages in a queue, visible and in flight, plus delayed ones with delayed: true
-  def queue_size(queue_name, delayed: false)
-    queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
-    attribute_names = %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
-    attribute_names << 'ApproximateNumberOfMessagesDelayed' if delayed
-
-    Shoryuken::Client.sqs.get_queue_attributes(
-      queue_url: queue_url,
-      attribute_names: attribute_names
-    ).attributes.values.sum(&:to_i)
   end
 
   # Poll until condition met
