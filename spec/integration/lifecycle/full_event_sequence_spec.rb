@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
 # This spec tests the full sequence of lifecycle events that `shoryuken start` fires while it processes a message and
-# then stops on USR1.
+# stops on USR1 with that message still in flight.
 #
 # Expected behavior: startup fires once, first. The group then reports its utilization (busy 0), dispatches from the
-# queue (the payload names it), reports busy 1 while the message is processed and busy 0 when it is done. USR1 then
-# fires quiet, shutdown and stopped, once each and in that order, and stopped is the last event.
+# queue (the payload names it) and reports busy 1 for the message. USR1 then fires quiet and shutdown; the group
+# reports busy 0 when the in-flight message is done, and stopped fires after it, as the last event. Each of quiet,
+# shutdown and stopped fires once.
+
+def parse_events(log)
+  log.scan(/lifecycle event: (\w+) (\{.*\})$/).map { |event, payload| [event, JSON.parse(payload)] }
+end
 
 setup_sqs
 
@@ -19,7 +24,9 @@ with_queue_and_dir do |queue, dir|
 
       shoryuken_options queue: '#{queue}', auto_delete: true
 
-      def perform(_sqs_msg, _body); end
+      def perform(_sqs_msg, _body)
+        sleep 2
+      end
     end
 
     %i[startup dispatch utilization_update quiet shutdown stopped].each do |event|
@@ -29,21 +36,17 @@ with_queue_and_dir do |queue, dir|
 
   Shoryuken::Client.queues(queue).send_message(message_body: 'lifecycle')
 
-  parse_events = lambda do |log|
-    log.scan(/lifecycle event: (\w+) (\{.*\})$/).map { |event, payload| [event, JSON.parse(payload)] }
-  end
-
   idle = { 'group' => 'default', 'max_processors' => 2, 'busy_processors' => 0 }
   busy = idle.merge('busy_processors' => 1)
 
   status, output = run_shoryuken_until('-q', queue, '-c', '2', '-r', boot_file, signal: 'USR1') do |log|
-    parse_events.call(log).count { |event, payload| event == 'utilization_update' && payload == idle } >= 2
+    parse_events(log).include?(['utilization_update', busy])
   end
 
   assert(status.success?, "the process must exit with status 0, got #{status.inspect}: #{output}")
   assert_includes(output, 'Received USR1, will soft shutdown', "got: #{output}")
 
-  events = parse_events.call(output)
+  events = parse_events(output)
   dispatches, others = events.partition { |event, _payload| event == 'dispatch' }
 
   assert_equal(
@@ -51,9 +54,9 @@ with_queue_and_dir do |queue, dir|
       ['startup', {}],
       ['utilization_update', idle],
       ['utilization_update', busy],
-      ['utilization_update', idle],
       ['quiet', {}],
       ['shutdown', {}],
+      ['utilization_update', idle],
       ['stopped', {}]
     ],
     others,
