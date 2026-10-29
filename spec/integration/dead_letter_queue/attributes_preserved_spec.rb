@@ -11,7 +11,7 @@ setup_sqs
 queue_name = DT.queues[0]
 dlq_name = DT.queues[1]
 
-create_queue_with_dlq(queue_name, dlq_name, attributes: { 'VisibilityTimeout' => '1' })
+create_queue_with_dlq(queue_name, dlq_name, max_receive_count: 2, attributes: { 'VisibilityTimeout' => '1' })
 
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')

@@ -9,7 +9,7 @@ setup_sqs
 queue_name = "#{DT.uuid}.fifo"
 dlq_name = "#{DT.uuid}.fifo"
 
-create_queue_with_dlq(queue_name, dlq_name, attributes: { 'VisibilityTimeout' => '1' }, fifo: true)
+create_queue_with_dlq(queue_name, dlq_name, max_receive_count: 2, attributes: { 'VisibilityTimeout' => '1' }, fifo: true)
 
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')

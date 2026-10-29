@@ -22,7 +22,7 @@ setup_active_job
 plain_queue, block_queue, redrive_queue, dlq = DT.uuids(4)
 create_test_queue(plain_queue, attributes: { 'VisibilityTimeout' => '2' })
 create_test_queue(block_queue, attributes: { 'VisibilityTimeout' => '2' })
-create_queue_with_dlq(redrive_queue, dlq, attributes: { 'VisibilityTimeout' => '2' })
+create_queue_with_dlq(redrive_queue, dlq, max_receive_count: 2, attributes: { 'VisibilityTimeout' => '2' })
 
 Shoryuken.exception_handlers = [
   ->(_error, queue, sqs_msg) { DT[queue] << [sqs_msg.message_id, sqs_msg.attributes['ApproximateReceiveCount'].to_i] }

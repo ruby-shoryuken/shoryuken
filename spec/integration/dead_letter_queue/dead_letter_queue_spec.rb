@@ -10,8 +10,7 @@ setup_sqs
 main_queue_name = DT.queues[0]
 dlq_name = DT.queues[1]
 
-# Move to DLQ after 2 receives
-create_queue_with_dlq(main_queue_name, dlq_name, attributes: { 'VisibilityTimeout' => '1' })
+create_queue_with_dlq(main_queue_name, dlq_name, max_receive_count: 2, attributes: { 'VisibilityTimeout' => '1' })
 
 dlq_url = Shoryuken::Client.sqs.get_queue_url(queue_name: dlq_name).queue_url
 main_queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: main_queue_name).queue_url
