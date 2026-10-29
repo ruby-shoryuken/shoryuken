@@ -27,7 +27,7 @@ module Shoryuken
     #
     # @return [void]
     def self.load_for_rails_console
-      instance = setup_options(config_file: (Rails.root + 'config' + 'shoryuken.yml'))
+      instance = setup_options(config_file: Rails.root.join('config', 'shoryuken.yml'))
       instance.load
     end
 
@@ -59,14 +59,36 @@ module Shoryuken
     # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
     def load
       Contracts::Options.new.validate!(Shoryuken.options)
-      prefix_active_job_queue_names
-      parse_queues
-      require_workers
+      load_queues_and_workers
       validate_queues
       validate_workers
     end
 
+    # Loads and validates the environment like {#load}, without starting to process, and returns as problems what
+    # {#load} only logs as warnings: no queues at all, and queues without a worker
+    #
+    # @return [Array<String>] the problems found, empty when the configuration is valid
+    # @raise [Shoryuken::Errors::BaseError] when an option has an invalid value or a queue does not exist
+    def check
+      Contracts::Options.new.validate!(Shoryuken.options)
+      load_queues_and_workers
+
+      return ['No queues supplied'] if Shoryuken.ungrouped_queues.empty?
+
+      validate_queues
+      queues_without_workers.map { |queue| "No worker supplied for #{queue}" }
+    end
+
     private
+
+    # Sets up the queues and requires the workers, the part of {#load} that comes before validation
+    #
+    # @return [void]
+    def load_queues_and_workers
+      prefix_active_job_queue_names
+      parse_queues
+      require_workers
+    end
 
     # Merges configuration file options with runtime options
     #
@@ -169,10 +191,8 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.map! do |group, options|
-        if options[:queues]
-          options[:queues].map! do |queue_name, weight|
-            prefix_active_job_queue_name(queue_name, weight)
-          end
+        options[:queues]&.map! do |queue_name, weight|
+          prefix_active_job_queue_name(queue_name, weight)
         end
 
         [group, options]
@@ -202,7 +222,10 @@ module Shoryuken
       end
 
       Shoryuken.options[:groups].to_a.each do |group, options|
-        Shoryuken.add_group(group, options[:concurrency], delay: options[:delay], polling_strategy: options[:polling_strategy])
+        Shoryuken.add_group(
+          group, options[:concurrency], delay: options[:delay],
+          polling_strategy: options[:polling_strategy]
+        )
 
         options[:queues].to_a.each do |queue, weight|
           parse_queue(queue, weight, group)
@@ -236,7 +259,7 @@ module Shoryuken
 
       Shoryuken.ungrouped_queues.uniq.each do |queue|
         Shoryuken::Client.queues(queue)
-      rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
+      rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
         non_existent_queues << queue
       end
 
@@ -257,14 +280,18 @@ module Shoryuken
     #
     # @return [void]
     def validate_workers
-      return if Shoryuken.active_job?
-
-      all_queues = Shoryuken.ungrouped_queues
-      queues_with_workers = Shoryuken.worker_registry.queues
-
-      (all_queues - queues_with_workers).each do |queue|
+      queues_without_workers.each do |queue|
         Shoryuken.logger.warn { "No worker supplied for #{queue}" }
       end
+    end
+
+    # Returns the configured queues that have no registered worker
+    #
+    # @return [Array<String>] queue names without a worker, always empty when ActiveJob is in use
+    def queues_without_workers
+      return [] if Shoryuken.active_job?
+
+      (Shoryuken.ungrouped_queues - Shoryuken.worker_registry.queues).uniq
     end
   end
 end
