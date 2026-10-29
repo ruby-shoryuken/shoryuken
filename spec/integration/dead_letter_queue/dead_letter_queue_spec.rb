@@ -10,24 +10,10 @@ setup_sqs
 main_queue_name = DT.queues[0]
 dlq_name = DT.queues[1]
 
-# Create the dead letter queue first
-create_test_queue(dlq_name)
+# Move to DLQ after 2 receives
+create_queue_with_dlq(main_queue_name, dlq_name, attributes: { 'VisibilityTimeout' => '1' })
 
 dlq_url = Shoryuken::Client.sqs.get_queue_url(queue_name: dlq_name).queue_url
-dlq_arn = Shoryuken::Client.sqs.get_queue_attributes(
-  queue_url: dlq_url,
-  attribute_names: ['QueueArn']
-).attributes['QueueArn']
-
-# Create main queue with redrive policy - move to DLQ after 2 receives
-redrive_policy = { maxReceiveCount: 2, deadLetterTargetArn: dlq_arn }.to_json
-create_test_queue(
-  main_queue_name, attributes: {
-    'VisibilityTimeout' => '1',
-    'RedrivePolicy' => redrive_policy
-  }
-)
-
 main_queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: main_queue_name).queue_url
 
 # Send a message

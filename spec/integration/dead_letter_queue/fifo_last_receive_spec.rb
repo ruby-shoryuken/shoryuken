@@ -9,20 +9,7 @@ setup_sqs
 queue_name = "#{DT.uuid}.fifo"
 dlq_name = "#{DT.uuid}.fifo"
 
-create_fifo_queue(dlq_name)
-
-dlq_url = Shoryuken::Client.sqs.get_queue_url(queue_name: dlq_name).queue_url
-dlq_arn = Shoryuken::Client.sqs.get_queue_attributes(
-  queue_url: dlq_url,
-  attribute_names: ['QueueArn']
-).attributes['QueueArn']
-
-create_fifo_queue(
-  queue_name, attributes: {
-    'VisibilityTimeout' => '1',
-    'RedrivePolicy' => { maxReceiveCount: 2, deadLetterTargetArn: dlq_arn }.to_json
-  }
-)
+create_queue_with_dlq(queue_name, dlq_name, attributes: { 'VisibilityTimeout' => '1' }, fifo: true)
 
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
