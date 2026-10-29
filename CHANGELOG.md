@@ -10,6 +10,13 @@
 - Fix: A missing queue reported by SQS as `QueueDoesNotExist` (the error the current SQS JSON protocol raises) now
   gets the same "queue(s) do not exist" error on startup as `NonExistentQueue`, instead of the raw SQS error
 
+- Breaking: `shoryuken` exits with status 1 on an unknown command, an unknown option or an extra argument
+  - Thor printed the error and exited with status 0, for `start`, `version` and the `sqs` subcommands, so scripts and
+    process managers took a command that did nothing for a success
+  - An unknown option now fails with `Unknown switches`; `sqs ls --bogus` took it as the queue name prefix
+  - An argument after `--` that starts with `-` fails with `Unknown switches` too, so `sqs purge -- -queue` no
+    longer reaches a queue whose name starts with `-`
+
 - Feature: `Shoryuken::Message#last_receive?` tells whether a message is on its last receive before the dead-letter queue
   - It compares the message's `ApproximateReceiveCount` with the queue's `RedrivePolicy` `maxReceiveCount`, read
     once per queue (`Shoryuken::Queue#max_receive_count`) and cached; it returns false when the queue has no redrive

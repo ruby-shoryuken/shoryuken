@@ -42,10 +42,12 @@ require 'singleton'
 
 require_relative 'integration_helpers/data_collector'
 require_relative 'integration_helpers/cleanup_helper'
+require_relative 'integration_helpers/dead_letter_queue_helper'
 require_relative 'integration_helpers/process_helper'
 
 module IntegrationsHelper
   include CleanupHelper
+  include DeadLetterQueueHelper
   include ProcessHelper
 
   class TestFailure < StandardError; end
