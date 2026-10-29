@@ -122,13 +122,15 @@ module IntegrationsHelper
     )
   end
 
-  # Messages in a queue, visible and in flight
-  def queue_size(queue_name)
+  # Messages in a queue, visible and in flight, plus delayed ones with delayed: true
+  def queue_size(queue_name, delayed: false)
     queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
+    attribute_names = %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
+    attribute_names << 'ApproximateNumberOfMessagesDelayed' if delayed
 
     Shoryuken::Client.sqs.get_queue_attributes(
       queue_url: queue_url,
-      attribute_names: %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
+      attribute_names: attribute_names
     ).attributes.values.sum(&:to_i)
   end
 

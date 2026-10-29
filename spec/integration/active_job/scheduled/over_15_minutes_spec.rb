@@ -40,12 +40,6 @@ assert(worker_error, 'perform_in(16 * 60) should raise InvalidDelayError')
 assert_equal('The maximum allowed delay is 15 minutes', job_error.message)
 assert_equal('The maximum allowed delay is 15 minutes', worker_error.message)
 
-queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
-attributes = Shoryuken::Client.sqs.get_queue_attributes(
-  queue_url: queue_url,
-  attribute_names: %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible ApproximateNumberOfMessagesDelayed]
-).attributes
-
-assert_equal(0, attributes.values.sum(&:to_i), "Nothing should be sent, got #{attributes}")
+assert_equal(0, queue_size(queue_name, delayed: true), 'Nothing should be sent')
 
 delete_test_queue(queue_name)
