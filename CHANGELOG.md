@@ -4,6 +4,8 @@
   - Thor printed the error and exited with status 0, for `start`, `version` and the `sqs` subcommands, so scripts and
     process managers took a command that did nothing for a success
   - An unknown option now fails with `Unknown switches`; `sqs ls --bogus` took it as the queue name prefix
+  - An argument after `--` that starts with `-` fails with `Unknown switches` too, so `sqs purge -- -queue` no
+    longer reaches a queue whose name starts with `-`
 
 - Feature: `Shoryuken::Message#last_receive?` tells whether a message is on its last receive before the dead-letter queue
   - It compares the message's `ApproximateReceiveCount` with the queue's `RedrivePolicy` `maxReceiveCount`, read

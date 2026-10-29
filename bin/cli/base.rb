@@ -6,11 +6,13 @@ module Shoryuken
     class Base < Thor
       check_unknown_options!
 
-      # Makes Thor exit with status 1 on an unknown command, an unknown option or a wrong number of arguments
-      #
-      # @return [Boolean] true
-      def self.exit_on_failure?
-        true
+      class << self
+        # Makes Thor exit with status 1 on an unknown command, an unknown option or a wrong number of arguments
+        #
+        # @return [Boolean] true
+        def exit_on_failure?
+          true
+        end
       end
 
       no_commands do
