@@ -22,13 +22,7 @@ setup_active_job
 plain_queue, block_queue, redrive_queue, dlq = DT.uuids(4)
 create_test_queue(plain_queue, attributes: { 'VisibilityTimeout' => '2' })
 create_test_queue(block_queue, attributes: { 'VisibilityTimeout' => '2' })
-create_test_queue(dlq)
-dlq_arn = Shoryuken::Client.sqs.get_queue_attributes(
-  queue_url: Shoryuken::Client.queues(dlq).url,
-  attribute_names: ['QueueArn']
-).attributes['QueueArn']
-redrive_policy = { maxReceiveCount: 2, deadLetterTargetArn: dlq_arn }.to_json
-create_test_queue(redrive_queue, attributes: { 'VisibilityTimeout' => '2', 'RedrivePolicy' => redrive_policy })
+create_queue_with_dlq(redrive_queue, dlq, max_receive_count: 2, attributes: { 'VisibilityTimeout' => '2' })
 
 Shoryuken.exception_handlers = [
   ->(_error, queue, sqs_msg) { DT[queue] << [sqs_msg.message_id, sqs_msg.attributes['ApproximateReceiveCount'].to_i] }
