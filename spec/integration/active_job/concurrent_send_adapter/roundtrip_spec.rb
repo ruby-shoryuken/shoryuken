@@ -81,13 +81,16 @@ def thread_ids(output, label)
   output.scan(/^#{label} thread: (\d+)$/).flatten
 end
 
+class TriggerJob < ActiveJob::Base
+  def perform; end
+end
+
 with_queue_and_dir do |queue, dir|
   write_rails_app(dir)
   missing_queue = "missing-#{DT.uuid}"
 
-  trigger = Class.new(ActiveJob::Base) { def self.name = 'TriggerJob' }
-  trigger.queue_as(queue)
-  trigger.perform_later
+  TriggerJob.queue_as(queue)
+  TriggerJob.perform_later
 
   env = {
     'RUBYOPT' => '-rbundler/setup',
