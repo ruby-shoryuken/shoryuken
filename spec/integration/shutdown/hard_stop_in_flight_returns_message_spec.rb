@@ -30,7 +30,7 @@ busy_worker = Class.new do
   shoryuken_options auto_delete: true
 
   def perform(_sqs_msg, _body)
-    DT[:started] << true
+    DT[:started] << Thread.current
     sleep 60
     DT[:finished] << true
   end
@@ -53,6 +53,7 @@ Timeout.timeout(20) { launcher.stop! }
 elapsed = Time.now - started_at
 
 assert(elapsed < 7, "stop! must return within the timeout, took #{elapsed.round(1)}s")
+assert(DT[:started].first.join(1), 'the busy worker thread must be killed, not left running')
 assert(DT[:finished].empty?, 'the busy worker must be killed, not awaited')
 assert_equal(1, queue_size(queue_name), 'the killed worker\'s message must not be deleted')
 
