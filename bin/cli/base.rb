@@ -4,6 +4,17 @@ module Shoryuken
   module CLI
     # Base class for CLI commands providing common helper methods.
     class Base < Thor
+      check_unknown_options!
+
+      class << self
+        # Makes Thor exit with status 1 on an unknown command, an unknown option or a wrong number of arguments
+        #
+        # @return [Boolean] true
+        def exit_on_failure?
+          true
+        end
+      end
+
       no_commands do
         # Prints entries as a formatted table
         #
@@ -49,7 +60,7 @@ module Shoryuken
         # @param msg [String] the failure message
         # @param quit [Boolean] whether to exit the program
         # @return [void]
-        def fail_task(msg, quit = true)
+        def fail_task(msg, quit: true)
           say "[FAIL] #{msg}", :red
           exit(1) if quit
         end
