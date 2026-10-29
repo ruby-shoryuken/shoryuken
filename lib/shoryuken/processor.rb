@@ -77,7 +77,9 @@ module Shoryuken
     #
     # @return [Object, Array<Object>] the parsed body or array of bodies
     def body
-      @_body ||= sqs_msg.is_a?(Array) ? sqs_msg.map(&method(:parse_body)) : parse_body(sqs_msg)
+      return @_body if defined?(@_body)
+
+      @_body = sqs_msg.is_a?(Array) ? sqs_msg.map(&method(:parse_body)) : parse_body(sqs_msg)
     end
 
     # Parses a single message body
