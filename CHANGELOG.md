@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- Removed: `shoryuken` no longer requires `optparse`; nothing in Shoryuken used `OptionParser`
+  - Code loaded with `-r` that uses `OptionParser` must `require 'optparse'` itself
+
 - Feature: `shoryuken check` validates the configuration without starting to process
   - Takes the same options as `start` (`-C`, `-r`, `-q`, `-R`, ...), loads the config and the workers and validates
     the queues and workers, then exits 0 with `Configuration OK`
