@@ -426,10 +426,10 @@ module Shoryuken
         end
 
         unless failed_ids.empty?
-          fail_task "Could not move #{failed_ids.size} messages, they stay in #{queue_name_source}", false
+          fail_task "Could not move #{failed_ids.size} messages, they stay in #{queue_name_source}", quit: false
         end
         unless not_deleted.empty?
-          fail_task "Could not delete #{not_deleted.size} moved messages from #{queue_name_source}", false
+          fail_task "Could not delete #{not_deleted.size} moved messages from #{queue_name_source}", quit: false
         end
         exit(1) unless failed_ids.empty? && not_deleted.empty?
       end

@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Breaking: `shoryuken` exits with status 1 on an unknown command, an unknown option or an extra argument
+  - Thor printed the error and exited with status 0, for `start`, `version` and the `sqs` subcommands, so scripts and
+    process managers took a command that did nothing for a success
+  - An unknown option now fails with `Unknown switches`; `sqs ls --bogus` took it as the queue name prefix
+
 - Feature: `Shoryuken::Message#last_receive?` tells whether a message is on its last receive before the dead-letter queue
   - It compares the message's `ApproximateReceiveCount` with the queue's `RedrivePolicy` `maxReceiveCount`, read
     once per queue (`Shoryuken::Queue#max_receive_count`) and cached; it returns false when the queue has no redrive
