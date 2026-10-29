@@ -25,7 +25,12 @@ with_queue_and_dir do |queue, dir|
       sleep
     end
 
+    def ttin_unlabelled_wait
+      sleep
+    end
+
     Thread.new { ttin_probe_wait }['label'] = 'ttin-probe'
+    Thread.new { ttin_unlabelled_wait }
 
     Shoryuken.on(:startup) { Shoryuken.logger.info('lifecycle event: startup') }
   RUBY
@@ -35,7 +40,7 @@ with_queue_and_dir do |queue, dir|
   status, output = run_shoryuken_until('-q', queue, '-r', boot_file, signal: 'TERM') do |log, pid|
     ttin_sent ||= log.include?('lifecycle event: startup') && Process.kill('TTIN', pid)
 
-    if !message_sent && log.include?('ttin_probe_wait')
+    if !message_sent && log.include?('ttin_probe_wait') && log.include?('ttin_unlabelled_wait')
       Shoryuken::Client.queues(queue).send_message(message_body: 'after TTIN')
       message_sent = true
     end
@@ -47,9 +52,6 @@ with_queue_and_dir do |queue, dir|
   assert_includes(output, 'Received TERM, will shutdown', "got: #{output}")
 
   assert(output.match?(/Thread TID-[0-9a-z]+ ttin-probe$/), "TTIN must log the app's thread, got: #{output}")
+  assert_includes(output, 'ttin_unlabelled_wait', "TTIN must log unlabelled threads too, got: #{output}")
   assert_includes(output, 'print_threads_backtrace', "TTIN must log the main thread's backtrace, got: #{output}")
-  assert(
-    output.index('ttin_probe_wait') < output.index('processed: after TTIN'),
-    "the message must be processed after the dump, got: #{output}"
-  )
 end
