@@ -35,6 +35,10 @@
   - `lib/`, `bin/shoryuken`, `bin/cli/`, `config/locales/`, `README.md`, `CHANGELOG.md` and `LICENSE`; specs, dev
     scripts and repo config are no longer packaged (247 files, 840 KB unpacked, down to 65 files, 317 KB)
 
+- Fix: A message body that the body parser turns into `nil` or `false` is parsed once per message
+  - The falsy result was not cached, so the parser ran three times per message (log context, server middleware and
+    `perform`); a parser with side effects (metrics, decryption, a payload fetch) repeated them
+
 - Fix: TERM, INT or USR1 after a completed TSTP stop no longer fires the lifecycle events again
   - The second signal ran the whole shutdown sequence again, so `shutdown` and `stopped` handlers (and the
     `stop_callback`) ran twice

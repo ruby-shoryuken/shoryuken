@@ -92,6 +92,15 @@ Lint/SuppressedException:
 Lint/AssignmentInCondition:
   Enabled: false
 
+# The processor re-raises everything after running the exception handlers
+Lint/RescueException:
+  Exclude:
+    - 'lib/shoryuken/processor.rb'
+
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - 'spec/lib/shoryuken/processor_spec.rb'
+
 Style/DoubleNegation:
   Enabled: false
 

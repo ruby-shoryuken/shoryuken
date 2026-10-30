@@ -160,6 +160,24 @@ RSpec.describe Shoryuken::Processor do
       end
     end
 
+    context 'when the body parser returns a value' do
+      [nil, false, 'parsed'].each do |parsed|
+        it "parses the body once when it is #{parsed.inspect}" do
+          calls = 0
+          TestWorker.get_shoryuken_options['body_parser'] = proc do
+            calls += 1
+            parsed
+          end
+
+          expect_any_instance_of(TestWorker).to receive(:perform).with(sqs_msg, parsed)
+
+          subject.process
+
+          expect(calls).to eq(1)
+        end
+      end
+    end
+
     context 'when specifying a reloader' do
       before do
         Shoryuken.reloader = proc do |_|
