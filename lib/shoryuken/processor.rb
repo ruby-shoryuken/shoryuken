@@ -51,7 +51,7 @@ module Shoryuken
       else
         worker_perform.call
       end
-    rescue Exception => e # rubocop:disable Lint/RescueException
+    rescue Exception => e
       Array(Shoryuken.exception_handlers).each { |handler| handler.call(e, queue, sqs_msg) }
 
       raise
