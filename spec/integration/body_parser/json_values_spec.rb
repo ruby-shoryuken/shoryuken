@@ -13,19 +13,15 @@ create_test_queue(queue_name)
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 
-worker_class = Class.new do
+Class.new do
   include Shoryuken::Worker
+
+  shoryuken_options queue: queue_name, auto_delete: true, body_parser: :json
 
   def perform(sqs_msg, body)
     DT[:received] << [sqs_msg.body, body]
   end
 end
-
-worker_class.shoryuken_options(
-  queue: queue_name,
-  auto_delete: true,
-  body_parser: :json
-)
 
 non_ascii = { 'pl' => 'zażółć gęślą jaźń', 'emoji' => "\u{1F600}\u{1F680}", 'ja' => '日本語' }
 

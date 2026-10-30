@@ -21,8 +21,10 @@ class BodyRecordingMiddleware
   end
 end
 
-worker_class = Class.new do
+Class.new do
   include Shoryuken::Worker
+
+  shoryuken_options queue: queue_name, auto_delete: true, body_parser: :json
 
   server_middleware do |chain|
     chain.add BodyRecordingMiddleware
@@ -32,12 +34,6 @@ worker_class = Class.new do
     DT[:perform] << [sqs_msg.message_id, sqs_msg.body, body]
   end
 end
-
-worker_class.shoryuken_options(
-  queue: queue_name,
-  auto_delete: true,
-  body_parser: :json
-)
 
 bodies = [
   JSON.dump('name' => 'test', 'nested' => { 'key' => 'val' }),

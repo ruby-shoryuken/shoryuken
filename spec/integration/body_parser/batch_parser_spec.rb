@@ -17,21 +17,16 @@ Shoryuken.add_queue(json_queue, 1, 'default')
 Shoryuken.add_queue(proc_queue, 1, 'default')
 
 def batch_worker(queue_name, body_parser)
-  worker_class = Class.new do
+  Class.new do
     include Shoryuken::Worker
+
+    shoryuken_options queue: queue_name, auto_delete: true, batch: true, body_parser: body_parser
 
     def perform(sqs_msgs, bodies)
       DT[:batch_sizes] << sqs_msgs.size
       sqs_msgs.zip(bodies).each { |sqs_msg, body| DT[:received] << [sqs_msg.message_id, sqs_msg.body, body] }
     end
   end
-
-  worker_class.shoryuken_options(
-    queue: queue_name,
-    auto_delete: true,
-    batch: true,
-    body_parser: body_parser
-  )
 end
 
 batch_worker(json_queue, :json)
