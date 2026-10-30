@@ -3,6 +3,12 @@
 - Removed: `shoryuken` no longer requires `optparse`; nothing in Shoryuken used `OptionParser`
   - Code loaded with `-r` that uses `OptionParser` must `require 'optparse'` itself
 
+- Breaking: An unsupported worker `body_parser` raises `Shoryuken::Errors::InvalidConfigurationError` when the worker
+  class loads
+  - A value other than `:json`, `:text`, `nil`, a Proc or an object responding to `parse` or `load` (e.g. `:JSON`,
+    `'json'`, `JSON.method(:parse)`) was accepted and every message got a `nil` body; with `auto_delete` the message
+    was then deleted. A worker with such a value now fails at boot. A value from `default_worker_options` is checked too
+
 - Feature: `shoryuken check` validates the configuration without starting to process
   - Takes the same options as `start` (`-C`, `-r`, `-q`, `-R`, ...), loads the config and the workers and validates
     the queues and workers, then exits 0 with `Configuration OK`
