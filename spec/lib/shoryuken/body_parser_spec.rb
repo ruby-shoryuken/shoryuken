@@ -62,12 +62,14 @@ RSpec.describe Shoryuken::BodyParser do
 
     it 'prefers `.parse` over `.load`' do
       TestWorker.get_shoryuken_options['body_parser'] = Class.new do
-        def self.parse(body)
-          "parse: #{body}"
-        end
+        class << self
+          def parse(body)
+            "parse: #{body}"
+          end
 
-        def self.load(body)
-          "load: #{body}"
+          def load(body)
+            "load: #{body}"
+          end
         end
       end
 
