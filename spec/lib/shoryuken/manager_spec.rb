@@ -364,6 +364,7 @@ RSpec.describe Shoryuken::Manager do
         subject.send(:handle_dispatch_error, error)
 
         expect(subject.running?).to be false
+        expect(subject.failed?).to be true
       end
     end
 
@@ -376,7 +377,17 @@ RSpec.describe Shoryuken::Manager do
         subject.send(:handle_dispatch_error, error)
 
         expect(subject.running?).to be false
+        expect(subject.failed?).to be true
       end
+    end
+  end
+
+  describe '#failed?' do
+    it 'returns false when the manager is stopped without a dispatch error' do
+      allow(executor).to receive(:running?).and_return(false)
+      subject.stop_new_dispatching
+
+      expect(subject.failed?).to be false
     end
   end
 

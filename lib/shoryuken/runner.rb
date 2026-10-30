@@ -122,14 +122,15 @@ module Shoryuken
       File.open(path, 'w') { |f| f.puts(Process.pid) }
     end
 
-    # Executes a soft shutdown on USR1 signal
+    # Executes a soft shutdown on USR1 signal. Exits with status 1 when a fatal dispatch error sent the signal, so a
+    # process supervisor sees a crash.
     #
     # @return [void]
     def execute_soft_shutdown
       logger.info { 'Received USR1, will soft shutdown' }
 
       @launcher.stop
-      exit 0
+      exit(@launcher.failed? ? 1 : 0)
     end
 
     # Executes a terminal stop on TSTP signal

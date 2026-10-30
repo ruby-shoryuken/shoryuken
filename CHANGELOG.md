@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Breaking: `shoryuken start` exits with status 1 when a fatal dispatch error stops it
+  - When SQS still failed after the fetch retries, the process soft-shut down and exited with status 0, so a
+    supervisor (systemd `Restart=on-failure`, Kubernetes, ...) took the crash for a clean stop and did not restart it
+  - A USR1 sent by an operator and a TERM or INT shutdown still exit with status 0
+
 - Removed: `shoryuken` no longer requires `optparse`; nothing in Shoryuken used `OptionParser`
   - Code loaded with `-r` that uses `OptionParser` must `require 'optparse'` itself
 

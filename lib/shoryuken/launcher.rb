@@ -87,6 +87,13 @@ module Shoryuken
       end
     end
 
+    # Checks if any processing group stopped because of a fatal dispatch error
+    #
+    # @return [Boolean] true if a fatal dispatch error stopped any manager
+    def failed?
+      @managers.any?(&:failed?)
+    end
+
     private
 
     # Stops all managers from dispatching new messages
