@@ -24,6 +24,38 @@ RSpec.describe Shoryuken::Contracts::Worker do
     )
   end
 
+  describe 'body_parser' do
+    it 'accepts every handled form' do
+      parse_only = Class.new do
+        class << self
+          def parse(body)
+            body
+          end
+        end
+      end
+
+      load_only = Class.new do
+        class << self
+          def load(body)
+            body
+          end
+        end
+      end
+
+      [nil, :json, :text, proc { |msg| msg }, ->(msg) { msg }, JSON, parse_only, load_only].each do |parser|
+        expect(errors('body_parser' => parser)).to be_empty, "expected #{parser.inspect} to be accepted"
+      end
+    end
+
+    it 'reports each unsupported value' do
+      message = 'needs to be nil, :json, :text, a Proc or an object that responds to parse or load'
+
+      [:JSON, 'json', :yaml, JSON.method(:parse), Object.new, 123].each do |parser|
+        expect(errors('body_parser' => parser)).to eq({ body_parser: message }), "expected #{parser.inspect} to be rejected"
+      end
+    end
+  end
+
   it 'prefixes the keys with the scope' do
     expect { described_class.new.validate!({ 'batchh' => true }, scope: ['MyWorker']) }
       .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /MyWorker\.batchh/)

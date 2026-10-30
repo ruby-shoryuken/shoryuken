@@ -125,8 +125,11 @@ module Shoryuken
       # @option opts [Array<Integer>] :retry_intervals Exponential backoff retry intervals in seconds
       # @option opts [Array<Class>, Proc] :non_retryable_exceptions Exception classes or lambda that should
       #   skip retries and delete message immediately
-      # @option opts [Symbol, Class, Proc] :body_parser (:text) How the message body is parsed before #perform
-      # @raise [Shoryuken::Errors::InvalidConfigurationError] when an option is not a known worker option
+      # @option opts [Symbol, Proc, #parse, #load] :body_parser (:text) How the message body is parsed before #perform:
+      #   `:json`, `:text`, a Proc called with the {Shoryuken::Message}, or an object whose `parse` (preferred) or
+      #   `load` is called with the body String
+      # @raise [Shoryuken::Errors::InvalidConfigurationError] when an option is not a known worker option or the
+      #   body_parser is not one of the forms above
       #
       # @example Basic worker configuration
       #   class MyWorker
@@ -204,9 +207,11 @@ module Shoryuken
       #   end
       def shoryuken_options(opts = {})
         opts = stringify_keys(opts || {})
-        Contracts::Worker.new.validate!(opts, scope: [name].compact)
+        options = get_shoryuken_options.merge(opts)
+        # body_parser is checked on the merged options, so an invalid default_worker_options value fails here too
+        Contracts::Worker.new.validate!(opts.merge('body_parser' => options['body_parser']), scope: [name].compact)
 
-        self.shoryuken_options_hash = get_shoryuken_options.merge(opts)
+        self.shoryuken_options_hash = options
         normalize_worker_queue!
       end
 
