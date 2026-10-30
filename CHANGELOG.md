@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- Removed: `shoryuken` no longer requires `optparse`; nothing in Shoryuken used `OptionParser`
+  - Code loaded with `-r` that uses `OptionParser` must `require 'optparse'` itself
+
 - Breaking: An unsupported worker `body_parser` raises `Shoryuken::Errors::InvalidConfigurationError` when the worker
   class loads
   - A value other than `:json`, `:text`, `nil`, a Proc or an object responding to `parse` or `load` (e.g. `:JSON`,

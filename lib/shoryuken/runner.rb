@@ -3,7 +3,6 @@
 $stdout.sync = true
 
 require 'singleton'
-require 'optparse'
 require 'erb'
 
 require 'shoryuken'
@@ -65,7 +64,7 @@ module Shoryuken
     #
     # @return [Boolean] true if the launcher is running and healthy
     def healthy?
-      (@launcher && @launcher.healthy?) || false
+      @launcher&.healthy? || false
     end
 
     private
@@ -100,7 +99,7 @@ module Shoryuken
       files_to_reopen.each do |file|
         file.reopen file.path, 'a+'
         file.sync = true
-      rescue ::Exception
+      rescue ::Exception # rubocop:disable Lint/RescueException
       end
 
       [$stdout, $stderr].each do |io|
