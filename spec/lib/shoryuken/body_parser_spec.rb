@@ -60,6 +60,22 @@ RSpec.describe Shoryuken::BodyParser do
       expect(described_class.parse(TestWorker, sqs_msg)).to eq(body)
     end
 
+    it 'prefers `.parse` over `.load`' do
+      TestWorker.get_shoryuken_options['body_parser'] = Class.new do
+        def self.parse(body)
+          "parse: #{body}"
+        end
+
+        def self.load(body)
+          "load: #{body}"
+        end
+      end
+
+      allow(sqs_msg).to receive(:body).and_return('test')
+
+      expect(described_class.parse(TestWorker, sqs_msg)).to eq('parse: test')
+    end
+
     context 'when parse errors' do
       before do
         TestWorker.get_shoryuken_options['body_parser'] = :json

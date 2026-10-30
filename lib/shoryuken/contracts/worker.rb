@@ -19,7 +19,28 @@ module Shoryuken
         non_retryable_exceptions
       ].freeze
 
-      private_constant :KNOWN_KEYS
+      # Symbols BodyParser handles; nil means no parsing, like :text
+      BODY_PARSER_SYMBOLS = [nil, :json, :text].freeze
+
+      private_constant :KNOWN_KEYS, :BODY_PARSER_SYMBOLS
+
+      class << self
+        private
+
+        # Checks for a body parser BodyParser can use, so a typo fails when the worker loads instead of every message
+        # getting a nil body
+        #
+        # @param value [Object] the body_parser option
+        # @return [Boolean] true if the value is nil, :json, :text, a Proc or responds to parse or load
+        def valid_body_parser?(value)
+          BODY_PARSER_SYMBOLS.include?(value) ||
+            value.is_a?(Proc) ||
+            value.respond_to?(:parse) ||
+            value.respond_to?(:load)
+        end
+      end
+
+      optional('body_parser') { |value| valid_body_parser?(value) }
 
       virtual do |data|
         (data.keys.map(&:to_s) - KNOWN_KEYS).map { |key| [[key], :unknown] }

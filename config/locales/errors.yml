@@ -31,3 +31,4 @@ en:
 
     worker:
       unknown: is not a known worker option
+      body_parser_format: needs to be :json, :text, nil, a Proc or an object that responds to parse or load

@@ -128,6 +128,24 @@ RSpec.describe Shoryuken::Worker do
 
       expect(Shoryuken.worker_registry.workers('typo_queue')).to be_empty
     end
+
+    it 'raises on an unsupported body_parser, naming the worker' do
+      worker = stub_const('ParserTestWorker', Class.new { include Shoryuken::Worker })
+
+      expect { worker.shoryuken_options(queue: 'parser_queue', body_parser: :JSON) }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /ParserTestWorker\.body_parser/)
+
+      expect(Shoryuken.worker_registry.workers('parser_queue')).to be_empty
+    end
+
+    it 'raises on an unsupported body_parser from the default worker options' do
+      allow(Shoryuken).to receive(:default_worker_options)
+        .and_return('queue' => 'default', 'body_parser' => 'json')
+      worker = stub_const('DefaultParserTestWorker', Class.new { include Shoryuken::Worker })
+
+      expect { worker.shoryuken_options(queue: 'default_parser_queue') }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /DefaultParserTestWorker\.body_parser/)
+    end
   end
 
   describe '.server_middleware' do
