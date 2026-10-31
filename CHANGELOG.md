@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Breaking: `shoryuken sqs` exits with status 1 when `-e`/`--endpoint` comes before the command
+  - `sqs -e URL ls` printed the help of `ls` and exited with status 0 without running it; it now fails with
+    "Options must follow the command" and shows the command with the options after it (`sqs ls -e URL`)
+  - `sqs -e URL` with no command still prints the command list and exits with status 0
+
 - Breaking: `shoryuken start` exits with status 1 when a fatal dispatch error stops it
   - When SQS still failed after the fetch retries, the process soft-shut down and exited with status 0, so a
     supervisor (systemd `Restart=on-failure`, Kubernetes, ...) took the crash for a clean stop and did not restart it
