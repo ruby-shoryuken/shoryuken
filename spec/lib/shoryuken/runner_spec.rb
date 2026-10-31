@@ -40,6 +40,30 @@ RSpec.describe Shoryuken::Runner do
       expect(pidfile).to receive(:puts).with(Process.pid)
       cli.run(pidfile: '/dev/null')
     end
+
+    context 'when USR1 arrives' do
+      before do
+        allow(launcher).to receive(:start) { Process.kill('USR1', Process.pid) }
+        allow(launcher).to receive(:stop)
+        allow(cli).to receive(:exit).and_raise(SystemExit)
+      end
+
+      it 'exits with status 0 after a soft shutdown' do
+        allow(launcher).to receive(:failed?).and_return(false)
+
+        expect { cli.run({}) }.to raise_error(SystemExit)
+        expect(launcher).to have_received(:stop)
+        expect(cli).to have_received(:exit).with(0)
+      end
+
+      it 'exits with status 1 when a fatal dispatch error caused the shutdown' do
+        allow(launcher).to receive(:failed?).and_return(true)
+
+        expect { cli.run({}) }.to raise_error(SystemExit)
+        expect(launcher).to have_received(:stop)
+        expect(cli).to have_received(:exit).with(1)
+      end
+    end
   end
 
   describe '#daemonize' do

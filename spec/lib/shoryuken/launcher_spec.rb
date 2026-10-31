@@ -57,6 +57,23 @@ RSpec.describe Shoryuken::Launcher do
     end
   end
 
+  describe '#failed?' do
+    before do
+      allow(first_group_manager).to receive(:failed?).and_return(false)
+      allow(second_group_manager).to receive(:failed?).and_return(false)
+    end
+
+    it 'returns false when no manager failed' do
+      expect(subject.failed?).to be false
+    end
+
+    it 'returns true when a manager failed' do
+      allow(second_group_manager).to receive(:failed?).and_return(true)
+
+      expect(subject.failed?).to be true
+    end
+  end
+
   describe '#stop' do
     before do
       allow(first_group_manager).to receive(:stop_new_dispatching)

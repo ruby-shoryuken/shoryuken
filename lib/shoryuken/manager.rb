@@ -81,6 +81,13 @@ module Shoryuken
       @running.true? && @executor.running?
     end
 
+    # Checks if the manager stopped because of a fatal dispatch error
+    #
+    # @return [Boolean] true if a fatal dispatch error stopped the manager
+    def failed?
+      @running.false?
+    end
+
     private
 
     # The main dispatch loop
@@ -283,7 +290,8 @@ module Shoryuken
       @running.make_false
 
       # In server (CLI) mode the Runner traps USR1 and turns it into a graceful
-      # shutdown of the whole process, so a process supervisor can restart us.
+      # shutdown of the whole process. Launcher#failed? makes it exit non-zero,
+      # so a process supervisor restarts us.
       # When embedded (no Runner), USR1 keeps its default disposition and would
       # terminate the host process - and any in-flight workers - so we must not
       # send it. The stopped manager above is enough for Launcher#healthy? to
