@@ -13,10 +13,6 @@ setup_sqs
 
 LONG_SUFFIX = "-#{'long-queue-name' * 2}".freeze
 
-def queue_url(queue)
-  Shoryuken::Client.sqs.get_queue_url(queue_name: queue).queue_url
-end
-
 def queue_attribute(queue, name)
   Shoryuken::Client.sqs.get_queue_attributes(queue_url: queue_url(queue), attribute_names: [name]).attributes[name]
 end
