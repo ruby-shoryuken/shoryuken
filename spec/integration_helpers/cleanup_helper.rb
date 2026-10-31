@@ -14,4 +14,14 @@ module CleanupHelper
     delete_test_queue(queue) if queue
     FileUtils.remove_entry(dir) if dir
   end
+
+  # Yields a new queue name (with suffix appended) without creating the queue, and deletes the queue afterwards if
+  # something created it
+  def with_queue_name(suffix: '')
+    queue = "#{DT.uuid}#{suffix}"
+
+    yield queue
+  ensure
+    delete_test_queue(queue) if queue
+  end
 end

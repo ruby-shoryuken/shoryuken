@@ -112,7 +112,7 @@ module IntegrationsHelper
   def delete_test_queue(queue_name)
     queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
     Shoryuken::Client.sqs.delete_queue(queue_url: queue_url)
-  rescue Aws::SQS::Errors::NonExistentQueue
+  rescue Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
   end
 
   def create_fifo_queue(queue_name, attributes: {})
