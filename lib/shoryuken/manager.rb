@@ -22,7 +22,7 @@ module Shoryuken
     # @param fetcher [Shoryuken::Fetcher] the message fetcher
     # @param polling_strategy [Shoryuken::Polling::BaseStrategy] the polling strategy
     # @param concurrency [Integer] the maximum number of concurrent processors
-    # @param executor [Concurrent::ExecutorService] the executor for async operations
+    # @param executor [#post, #running?] the executor for async operations (see {Shoryuken::Options#launcher_executor})
     def initialize(group, fetcher, polling_strategy, concurrency, executor)
       @group                      = group
       @fetcher                    = fetcher
@@ -179,8 +179,7 @@ module Shoryuken
     #
     # @param queue_name [String] the queue name
     # @param sqs_msg [Aws::SQS::Types::Message, Array<Aws::SQS::Types::Message>] the message or batch
-    # @return [Concurrent::Promise, nil] the processing promise, or nil if the manager
-    #   is not running or the executor rejects the worker post (the message is then released)
+    # @return [void]
     def assign(queue_name, sqs_msg)
       unless running?
         release(sqs_msg)
@@ -197,21 +196,24 @@ module Shoryuken
       # .rescue { processor_done }` chain ran completion twice when
       # processor_done itself raised, double decrementing the busy counter
       # and silently breaking the concurrency limit
-      Concurrent::Promise
-        .execute(executor: @executor) do
-          original_priority = Thread.current.priority
-          begin
-            Thread.current.priority = Shoryuken.thread_priority
-            Processor.process(queue_name, sqs_msg)
-          ensure
-            Thread.current.priority = original_priority
-            processor_done(queue_name)
-          end
+      @executor.post do
+        original_priority = Thread.current.priority
+        begin
+          Thread.current.priority = Shoryuken.thread_priority
+          Processor.process(queue_name, sqs_msg)
+        ensure
+          Thread.current.priority = original_priority
+          processor_done(queue_name)
         end
+      rescue Exception # rubocop:disable Lint/RescueException
+        # Processor.process already passed the error to the exception handlers. A custom
+        # launcher_executor may not guard its threads against it
+        nil
+      end
     rescue Concurrent::RejectedExecutionError
       # The executor was shut down (or a bounded custom launcher_executor is
-      # saturated) between the running? check above and the post. The promise
-      # body - and therefore processor_done - never ran, so roll back the
+      # saturated) between the running? check above and the post. The posted
+      # block - and therefore processor_done - never ran, so roll back the
       # increment here. Leaking it would permanently shrink `ready`
       # (@max_processors - busy) until dispatch stalls and the group stops
       # processing. The message was never processed, so we must not run the
