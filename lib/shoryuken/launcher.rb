@@ -187,7 +187,7 @@ module Shoryuken
     # this executor, and destroying the process-global pool would break anything else relying on it (including Shoryuken's
     # own ShoryukenConcurrentSendAdapter) and prevent a fresh launcher from starting in the same process.
     #
-    # @return [Concurrent::ExecutorService] the executor service
+    # @return [#post, #running?, #shutdown, #wait_for_termination, #kill] the executor (see {Options#launcher_executor})
     def executor
       @_executor ||= Shoryuken.launcher_executor || Concurrent::CachedThreadPool.new(auto_terminate: true)
     end
