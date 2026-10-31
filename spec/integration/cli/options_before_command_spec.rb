@@ -46,6 +46,10 @@ status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, '-h', '
 assert(status.success?, "sqs -e URL -h ls must exit with status 0, got: #{output}")
 assert_includes(output, 'shoryuken sqs ls [QUEUE-NAME-PREFIX]')
 
+status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, '-?', 'ls')
+assert(status.success?, "sqs -e URL -? ls must exit with status 0, got: #{output}")
+assert_includes(output, 'shoryuken sqs ls [QUEUE-NAME-PREFIX]')
+
 # --- class option before an unknown option ---
 status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, '--bogus', 'ls')
 assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
