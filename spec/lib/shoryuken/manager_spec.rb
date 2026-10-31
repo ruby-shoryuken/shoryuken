@@ -329,7 +329,7 @@ RSpec.describe Shoryuken::Manager do
       end
 
       it 'rolls back the busy counter and does not leak it' do
-        # The promise body never runs, so completion must not run either
+        # The posted block never runs, so completion must not run either
         # (decrement directly, and no FIFO message_processed callback).
         expect(subject).not_to receive(:processor_done)
 

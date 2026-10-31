@@ -21,10 +21,10 @@ setup_sqs
 DT.clear
 
 # Accepts the dispatch loop's posts but rejects every worker post (those come
-# from Concurrent::Promise), so each fetched message hits the rejection path.
+# from Manager#assign), so each fetched message hits the rejection path.
 rejecting_executor_class = Class.new(Concurrent::CachedThreadPool) do
   def post(*args, &block)
-    if caller.any? { |line| line.include?('concurrent/promise') }
+    if caller.any? { |line| line.include?('Manager#assign') }
       DT[:rejected] << true
       raise Concurrent::RejectedExecutionError
     end
