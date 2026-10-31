@@ -25,7 +25,6 @@ module Shoryuken
     # @return [Boolean] whether to enable ActiveJob queue name prefixing
     # @return [Boolean] whether to cache SQS visibility timeout
     # @return [Hash{String => Hash}] the configured processing groups
-    # @return [Object] the executor used to launch workers
     # @return [Proc] the code reloader proc for development environments
     # @return [Boolean] whether code reloading is enabled
     # @return [Proc, nil] callback to execute when server starts
@@ -37,10 +36,25 @@ module Shoryuken
       :active_job_queue_name_prefixing, :active_job_fifo_message_deduplication,
       :fifo_message_deduplication,
       :cache_visibility_timeout,
-      :groups, :launcher_executor, :reloader, :enable_reloading,
+      :groups, :reloader, :enable_reloading,
       :start_callback, :stop_callback, :worker_executor, :worker_registry,
       :exception_handlers
     )
+
+    # Executor the launcher runs the dispatch loops and the workers on. When nil, the launcher uses its own
+    # `Concurrent::CachedThreadPool`. It does not have to be a concurrent-ruby executor: any object with these
+    # methods works:
+    # - `post { ... }` runs the block on another thread and returns without waiting for it, or raises
+    #   `Concurrent::RejectedExecutionError` when it rejects it. The dispatch loop posts its next cycle from inside the
+    #   block, so an executor that runs it in the calling thread overflows the stack
+    # - `running?` returns false once the executor is shut down
+    # - `shutdown` stops accepting new blocks and lets the posted ones finish
+    # - `wait_for_termination(timeout)` waits up to `timeout` seconds (nil: no limit) for the posted blocks to
+    #   finish and returns true when they did
+    # - `kill` stops the posted blocks that did not finish in time
+    #
+    # @return [#post, #running?, #shutdown, #wait_for_termination, #kill, nil] the executor used to launch workers
+    attr_accessor :launcher_executor
 
     # @return [Hash] the default options for workers
     # @return [Aws::SQS::Client] the SQS client instance
@@ -329,22 +343,17 @@ module Shoryuken
       @active_job_fifo_message_deduplication
     end
 
-    # Checks whether Shoryuken auto-generates a content-based
-    # message_deduplication_id for raw FIFO sends (Worker.perform_async,
-    # Queue#send_message / #send_messages). When disabled, distinct sends of an
-    # identical body are no longer silently deduplicated by SQS - you must then
-    # provide a message_deduplication_id yourself or enable
+    # Checks whether Shoryuken auto-generates a content-based message_deduplication_id for raw FIFO sends
+    # (Worker.perform_async, Queue#send_message / #send_messages). When disabled, distinct sends of an identical body are no
+    # longer silently deduplicated by SQS - you must then provide a message_deduplication_id yourself or enable
     # ContentBasedDeduplication on the queue.
     #
-    # ActiveJob enqueues are primarily controlled by
-    # #active_job_fifo_message_deduplication?. When that is enabled the adapter
-    # sets a content-based message_deduplication_id itself (from the body minus
-    # job_id/enqueued_at) before the raw send, so this flag is a no-op for them.
-    # When it is disabled the adapter omits the id and this flag governs the
-    # fallback: left enabled (the default) each enqueue still gets a hash of the
-    # full serialized body - which includes the per-enqueue job_id, so distinct
-    # enqueues are NOT deduplicated - while disabling it drops the id entirely
-    # (then requiring an explicit id or the queue's ContentBasedDeduplication).
+    # ActiveJob enqueues are primarily controlled by #active_job_fifo_message_deduplication?. When that is enabled the
+    # adapter sets a content-based message_deduplication_id itself (from the body minus job_id/enqueued_at) before the raw
+    # send, so this flag is a no-op for them. When it is disabled the adapter omits the id and this flag governs the
+    # fallback: left enabled (the default) each enqueue still gets a hash of the full serialized body - which includes the
+    # per-enqueue job_id, so distinct enqueues are NOT deduplicated - while disabling it drops the id entirely (then
+    # requiring an explicit id or the queue's ContentBasedDeduplication).
     #
     # @return [Boolean] true if FIFO deduplication id generation is enabled
     def fifo_message_deduplication?

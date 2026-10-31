@@ -201,6 +201,50 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  context 'with an executor that is not a concurrent-ruby one' do
+    let(:executor) do
+      Class.new do
+        attr_reader :posted
+
+        def initialize
+          @posted = []
+        end
+
+        def post(&block)
+          @posted << block
+          true
+        end
+
+        def running?
+          true
+        end
+      end.new
+    end
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+
+    before do
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(double(Shoryuken::Queue, fifo?: false))
+      allow(Shoryuken::Processor).to receive(:process)
+
+      subject.start
+      # Runs the posted dispatch, which posts the processing of the fetched message first
+      executor.posted.shift.call
+    end
+
+    it 'processes the fetched message on it' do
+      executor.posted.shift.call
+
+      expect(Shoryuken::Processor).to have_received(:process).with(queue, sqs_msg)
+    end
+
+    it 'does not raise a processing error into it' do
+      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
+
+      expect { executor.posted.shift.call }.not_to raise_error
+    end
+  end
+
   describe '#assign' do
     let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil) }
     let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
@@ -276,20 +320,16 @@ RSpec.describe Shoryuken::Manager do
     end
 
     context 'when the executor rejects the worker post' do
-      # A real ExecutorService instance (Concurrent::Promise validates the
-      # executor type), with running? stubbed true so #assign proceeds past its
-      # guard and post rejecting - exactly the shutdown race / saturated
-      # bounded launcher_executor case. ImmediateExecutor spawns no background
-      # thread, so nothing lingers at teardown.
+      # running? true so #assign proceeds past its guard and post rejecting -
+      # exactly the shutdown race / saturated bounded launcher_executor case
       let(:executor) do
-        Concurrent::ImmediateExecutor.new.tap do |rejecting_executor|
-          allow(rejecting_executor).to receive(:running?).and_return(true)
+        double('executor', running?: true).tap do |rejecting_executor|
           allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
         end
       end
 
       it 'rolls back the busy counter and does not leak it' do
-        # The promise body never runs, so completion must not run either
+        # The posted block never runs, so completion must not run either
         # (decrement directly, and no FIFO message_processed callback).
         expect(subject).not_to receive(:processor_done)
 
