@@ -45,15 +45,16 @@ def create_queues(long, fifo)
   assert_equal('true', queue_attribute(fifo, 'FifoQueue'), 'create must make a .fifo queue a FIFO queue')
 end
 
-def list_queues(long, fifo)
+def list_queues(base, long, fifo)
   3.times { |i| Shoryuken::Client.sqs.send_message(queue_url: queue_url(long), message_body: "message #{i}") }
 
-  output = ls(long.delete_suffix(LONG_SUFFIX))
+  output = ls(base)
   assert(output.match?(/^#{Regexp.escape(long)}\s+3\s+0\s/), "ls must list #{long} in full with 3 messages: #{output}")
-  refute(output.include?(fifo), "ls must list only the queues with the prefix, got: #{output}")
-
-  output = ls(fifo.delete_suffix('.fifo'))
   assert(output.match?(/^#{Regexp.escape(fifo)}\s+0\s+0\s/), "ls must list #{fifo} with 0 messages: #{output}")
+
+  output = ls("#{base}-")
+  assert_includes(output, long)
+  refute(output.include?(fifo), "ls must list only the queues with the prefix, got: #{output}")
 end
 
 def purge_queue(long)
@@ -74,12 +75,14 @@ def delete_queues(long, fifo)
   end
 end
 
-with_queue_name(suffix: LONG_SUFFIX) do |long|
-  with_queue_name(suffix: '.fifo') do |fifo|
+base = DT.uuid
+
+with_queue_name(base: base, suffix: LONG_SUFFIX) do |long|
+  with_queue_name(base: base, suffix: '.fifo') do |fifo|
     assert(long.size > 40, 'the long queue name must be longer than the 40 characters ls used to print')
 
     create_queues(long, fifo)
-    list_queues(long, fifo)
+    list_queues(base, long, fifo)
     purge_queue(long)
     delete_queues(long, fifo)
   end
