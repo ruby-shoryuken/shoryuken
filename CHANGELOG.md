@@ -2,6 +2,7 @@
 
 - Enhancement: `launcher_executor` accepts any object that responds to `post`, `running?`, `shutdown`,
   `wait_for_termination` and `kill`, not only a concurrent-ruby executor
+  - `post` must run the block on another thread and return without waiting for it
   - A plain executor used to process no message: each one failed with `executor not recognized`
 
 - Breaking: `shoryuken start` exits with status 1 when a fatal dispatch error stops it
