@@ -5,7 +5,8 @@
 #
 # Expected behavior: the process exits on its own with a non-zero status before it starts. The QueueNotFoundError
 # is printed once and names every missing queue, but not the existing one, with a hint to create them. The process
-# never polls, so the log has no fetch errors, and the message waiting in the existing queue is not processed.
+# never polls, so the log has no manager failure from a poll, and the message waiting in the existing queue is not
+# processed.
 #
 # Regression: #172 (shoryuken started anyway and spammed the log with a fetch error per poll), #150 (the raw
 # NonExistentQueue error did not say which queue was missing).
@@ -13,7 +14,7 @@
 setup_sqs
 
 def expect_missing_queues_rejected(queue, missing, *args)
-  status, output = run_shoryuken_until_exit(*args)
+  status, output = run_shoryuken_until_exit(*args, timeout: 10)
 
   refute(status.success?, "the process must fail to start, got: #{output}")
   assert_includes(output, 'Shoryuken::Errors::QueueNotFoundError', "got: #{output}")
@@ -22,7 +23,8 @@ def expect_missing_queues_rejected(queue, missing, *args)
   assert_equal(1, output.scan('do not exist').size, "the error must be printed once, got: #{output}")
   refute(output.include?("#{queue} do not exist"), "the existing queue must not be named, got: #{output}")
   refute(output.include?('Starting'), "the process must not start, got: #{output}")
-  refute(output.include?('Error fetching message'), "the process must not poll, got: #{output}")
+  refute(output.include?('Manager failed'), "the process must not poll, got: #{output}")
+  refute(output.include?('The specified queue does not exist'), "the process must not poll, got: #{output}")
 end
 
 with_queue_and_dir do |queue, dir|
