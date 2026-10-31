@@ -27,6 +27,15 @@ status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, 'help',
 assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
 assert_includes(output, "Options must follow the command: shoryuken sqs help ls -e #{endpoint}")
 
+# --- class option before an abbreviated command ---
+status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, 'pur', 'queue')
+assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
+assert_includes(output, "Options must follow the command: shoryuken sqs pur queue -e #{endpoint}")
+
+status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, 'd')
+assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
+assert_includes(output, 'Ambiguous command d matches [delete, dump]')
+
 # --- class option before an unknown command ---
 status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, 'bogus')
 assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")

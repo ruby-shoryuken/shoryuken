@@ -41,7 +41,7 @@ module Shoryuken
             parser.parse(given_opts)
             rest = parser.remaining
 
-            if rest.any? && all_commands.key?(rest.first)
+            if rest.any? && !rest.first.start_with?('-') && find_command_possibilities(rest.first).one?
               leading = given_opts.first(given_opts.size - rest.size)
 
               raise Thor::Error, "Options must follow the command: shoryuken sqs #{(rest + leading).join(' ')}"
