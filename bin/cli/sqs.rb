@@ -24,6 +24,34 @@ module Shoryuken
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
 
+      class << self
+        protected
+
+        # Fails when class options come before the command (`sqs -e URL ls`), which Thor would take for `help`
+        #
+        # @param meth [String, nil] the command name Thor found
+        # @param given_args [Array<String>] the arguments before the first option
+        # @param given_opts [Array<String>, nil] the options and everything after them
+        # @param config [Hash] the Thor config
+        # @return [void]
+        # @raise [Thor::Error] when a command follows the leading class options
+        def dispatch(meth, given_args, given_opts, config)
+          if meth.nil? && given_args.empty? && given_opts&.any?
+            parser = Thor::Options.new(class_options, {}, true, true)
+            parser.parse(given_opts)
+            rest = parser.remaining
+
+            if rest.any? && !rest.first.start_with?('-')
+              leading = given_opts.first(given_opts.size - rest.size)
+
+              raise Thor::Error, "Options must follow the command: shoryuken sqs #{(rest + leading).join(' ')}"
+            end
+          end
+
+          super
+        end
+      end
+
       no_commands do
         # Converts a received message to a hash for the dump file, with Binary attribute values in base64
         #
