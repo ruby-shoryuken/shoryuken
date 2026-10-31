@@ -24,7 +24,7 @@ DT.clear
 # from Manager#assign), so each fetched message hits the rejection path.
 rejecting_executor_class = Class.new(Concurrent::CachedThreadPool) do
   def post(*args, &block)
-    if caller.any? { |line| line.include?('Manager#assign') }
+    if caller_locations.any? { |l| l.base_label == 'assign' && l.path.end_with?('shoryuken/manager.rb') }
       DT[:rejected] << true
       raise Concurrent::RejectedExecutionError
     end
