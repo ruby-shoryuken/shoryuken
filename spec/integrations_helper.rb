@@ -43,12 +43,14 @@ require 'singleton'
 require_relative 'integration_helpers/data_collector'
 require_relative 'integration_helpers/cleanup_helper'
 require_relative 'integration_helpers/dead_letter_queue_helper'
+require_relative 'integration_helpers/error_helper'
 require_relative 'integration_helpers/process_helper'
 require_relative 'integration_helpers/queue_state_helper'
 
 module IntegrationsHelper
   include CleanupHelper
   include DeadLetterQueueHelper
+  include ErrorHelper
   include ProcessHelper
   include QueueStateHelper
 

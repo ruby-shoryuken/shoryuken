@@ -25,15 +25,12 @@ end
 OverFifteenMinutesWorker.get_shoryuken_options['queue'] = queue_name
 Shoryuken.register_worker(queue_name, OverFifteenMinutesWorker)
 
-def delay_error(&block)
-  block.call
-  nil
-rescue Shoryuken::Errors::InvalidDelayError => e
-  e
+job_error = raised_error(Shoryuken::Errors::InvalidDelayError) do
+  OverFifteenMinutesJob.set(queue: queue_name, wait: 16.minutes).perform_later
 end
-
-job_error = delay_error { OverFifteenMinutesJob.set(queue: queue_name, wait: 16.minutes).perform_later }
-worker_error = delay_error { OverFifteenMinutesWorker.perform_in(16 * 60, 'body') }
+worker_error = raised_error(Shoryuken::Errors::InvalidDelayError) do
+  OverFifteenMinutesWorker.perform_in(16 * 60, 'body')
+end
 
 assert(job_error, 'set(wait: 16.minutes) should raise InvalidDelayError')
 assert(worker_error, 'perform_in(16 * 60) should raise InvalidDelayError')

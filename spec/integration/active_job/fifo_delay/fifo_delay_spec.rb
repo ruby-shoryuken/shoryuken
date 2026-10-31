@@ -39,15 +39,12 @@ Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 Shoryuken.register_worker(queue_name, Shoryuken::ActiveJob::JobWrapper)
 
-def fifo_delay_error(&block)
-  block.call
-  nil
-rescue Shoryuken::Errors::FifoDelayNotSupportedError => e
-  e
+wait_error = raised_error(Shoryuken::Errors::FifoDelayNotSupportedError) do
+  FifoDelayJob.set(wait: 5.seconds).perform_later
 end
-
-wait_error = fifo_delay_error { FifoDelayJob.set(wait: 5.seconds).perform_later }
-wait_until_error = fifo_delay_error { FifoDelayJob.set(wait_until: 1.minute.from_now).perform_later }
+wait_until_error = raised_error(Shoryuken::Errors::FifoDelayNotSupportedError) do
+  FifoDelayJob.set(wait_until: 1.minute.from_now).perform_later
+end
 
 assert(wait_error, 'set(wait:) should raise FifoDelayNotSupportedError')
 assert(wait_until_error, 'set(wait_until:) should raise FifoDelayNotSupportedError')
