@@ -24,6 +24,20 @@ with_queue_and_dir do |queue, _dir|
   assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
   assert_includes(output, "Options must follow the command: shoryuken sqs purge #{queue} --endpoint=#{endpoint}")
 
+  status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, 'help', 'ls')
+  assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
+  assert_includes(output, "Options must follow the command: shoryuken sqs help ls -e #{endpoint}")
+
+  # --- class option before an unknown command ---
+  status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, 'bogus')
+  assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
+  assert_includes(output, 'Could not find command "bogus"')
+
+  # --- class option before a help switch ---
+  status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, '-h', 'ls')
+  assert(status.success?, "sqs -e URL -h ls must exit with status 0, got: #{output}")
+  assert_includes(output, 'shoryuken sqs ls [QUEUE-NAME-PREFIX]')
+
   # --- class option before an unknown option ---
   status, output = run_shoryuken_command_until_exit('sqs', '-e', endpoint, '--bogus', 'ls')
   assert_equal(1, status.exitstatus, "must exit with status 1, got: #{output}")
@@ -36,6 +50,10 @@ with_queue_and_dir do |queue, _dir|
 
   # --- class option after the command ---
   status, output = run_shoryuken_sqs('ls', queue)
-  assert(status.success?, "sqs ls -e URL must exit with status 0, got: #{output}")
+  assert(status.success?, "sqs ls QUEUE -e URL must exit with status 0, got: #{output}")
+  assert_includes(output, queue)
+
+  status, output = run_shoryuken_command_until_exit('sqs', 'ls', '-e', endpoint, queue)
+  assert(status.success?, "sqs ls -e URL QUEUE must exit with status 0, got: #{output}")
   assert_includes(output, queue)
 end

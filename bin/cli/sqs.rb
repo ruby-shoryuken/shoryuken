@@ -34,14 +34,14 @@ module Shoryuken
         # @param given_opts [Array<String>, nil] the options and everything after them
         # @param config [Hash] the Thor config
         # @return [void]
-        # @raise [Thor::Error] when a command follows the leading class options
+        # @raise [Thor::Error] when a known command follows the leading class options
         def dispatch(meth, given_args, given_opts, config)
           if meth.nil? && given_args.empty? && given_opts&.any?
             parser = Thor::Options.new(class_options, {}, true, true)
             parser.parse(given_opts)
             rest = parser.remaining
 
-            if rest.any? && !rest.first.start_with?('-')
+            if rest.any? && all_commands.key?(rest.first)
               leading = given_opts.first(given_opts.size - rest.size)
 
               raise Thor::Error, "Options must follow the command: shoryuken sqs #{(rest + leading).join(' ')}"
