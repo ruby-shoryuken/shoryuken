@@ -173,15 +173,17 @@ RSpec.describe Shoryuken::Options do
       subject.register_worker('default', TestWorker)
       expect(subject.worker_registry.workers('default')).to eq([TestWorker])
 
-      class Test2Worker
-        include Shoryuken::Worker
+      test2_worker = stub_const(
+        'Test2Worker',
+        Class.new do
+          include Shoryuken::Worker
 
-        shoryuken_options queue: 'default'
+          def perform(sqs_msg, body); end
+        end
+      )
+      test2_worker.shoryuken_options queue: 'default'
 
-        def perform(sqs_msg, body); end
-      end
-
-      expect(subject.worker_registry.workers('default')).to eq([Test2Worker])
+      expect(subject.worker_registry.workers('default')).to eq([test2_worker])
     end
 
     it 'raises an exception when mixing batchable with non batchable' do
@@ -189,18 +191,59 @@ RSpec.describe Shoryuken::Options do
       TestWorker.get_shoryuken_options['batch'] = true
       subject.register_worker('default', TestWorker)
 
-      expect {
-        class BatchableWorker
+      batchable_worker = stub_const(
+        'BatchableWorker',
+        Class.new do
           include Shoryuken::Worker
-
-          shoryuken_options queue: 'default', batch: true
 
           def perform(sqs_msg, body); end
         end
-      }.to raise_error(
+      )
+
+      expect { batchable_worker.shoryuken_options queue: 'default', batch: true }.to raise_error(
         'Could not register BatchableWorker for default, because TestWorker is already registered for this queue, ' \
         "and Shoryuken doesn't support a batchable worker for a queue with multiple workers"
       )
+    end
+
+    it 'registers a batchable worker again for the same queue' do
+      subject.worker_registry.clear
+      TestWorker.get_shoryuken_options['batch'] = true
+      subject.register_worker('default', TestWorker)
+      subject.register_worker('default', TestWorker)
+
+      expect(subject.worker_registry.workers('default')).to eq([TestWorker])
+    end
+
+    it 'registers a reloaded batchable worker with the same name again for the same queue' do
+      subject.worker_registry.clear
+      TestWorker.get_shoryuken_options['batch'] = true
+      subject.register_worker('default', TestWorker)
+
+      reloaded_worker = stub_const(
+        'TestWorker',
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(sqs_msgs, bodies); end
+        end
+      )
+      reloaded_worker.shoryuken_options queue: 'default', batch: true
+
+      expect(subject.worker_registry.workers('default')).to eq([reloaded_worker])
+    end
+
+    it 'raises when an anonymous worker is registered on a queue with an anonymous batchable worker' do
+      subject.worker_registry.clear
+      Class.new do
+        include Shoryuken::Worker
+
+        shoryuken_options queue: 'default', batch: true
+      end
+
+      expect {
+        subject.register_worker('default', Class.new { include Shoryuken::Worker })
+      }.to raise_error(Shoryuken::Errors::InvalidWorkerRegistrationError)
     end
   end
 
@@ -265,8 +308,8 @@ RSpec.describe Shoryuken::Options do
 
     context 'when set to a class' do
       before do
-        class Foo < Shoryuken::Polling::BaseStrategy; end
-        class Bar < Shoryuken::Polling::BaseStrategy; end
+        stub_const('Foo', Class.new(Shoryuken::Polling::BaseStrategy))
+        stub_const('Bar', Class.new(Shoryuken::Polling::BaseStrategy))
 
         Shoryuken.options[:polling_strategy] = Foo
 
@@ -285,7 +328,7 @@ RSpec.describe Shoryuken::Options do
 
     context 'when set via add_group' do
       before do
-        class Baz < Shoryuken::Polling::BaseStrategy; end
+        stub_const('Baz', Class.new(Shoryuken::Polling::BaseStrategy))
 
         Shoryuken.groups.clear
         Shoryuken.add_group('custom_group', 25, polling_strategy: Baz)
