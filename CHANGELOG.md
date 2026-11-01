@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: A batch worker registered again for its queue (e.g. a second `Rails.application.eager_load!`) no longer raises
+  `Shoryuken::Errors::InvalidWorkerRegistrationError` (#623)
+  - A different worker on a queue with a batch worker still raises
+
 - Breaking: `shoryuken sqs` exits with status 1 when `-e`/`--endpoint` comes before the command
   - `sqs -e URL ls` printed the help of `ls` and exited with status 0 without running it; it now fails with
     "Options must follow the command" and shows the command with the options after it (`sqs ls -e URL`)

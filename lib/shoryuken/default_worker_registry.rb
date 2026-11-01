@@ -6,6 +6,7 @@ module Shoryuken
   class DefaultWorkerRegistry < WorkerRegistry
     # Initializes a new DefaultWorkerRegistry with an empty workers hash
     def initialize
+      super
       @workers = Shoryuken::Helpers::AtomicHash.new
     end
 
@@ -41,7 +42,7 @@ module Shoryuken
         @workers[queue]
       end
 
-      worker_class.new if worker_class
+      worker_class&.new
     end
 
     # Returns all registered queue names
@@ -56,9 +57,12 @@ module Shoryuken
     # @param queue [String] the queue name
     # @param clazz [Class] the worker class to register
     # @return [Class] the registered worker class
-    # @raise [Errors::InvalidWorkerRegistrationError] if a batchable worker is already registered for the queue
+    # @raise [Errors::InvalidWorkerRegistrationError] if another worker is registered for the queue and either is
+    #   batchable
     def register_worker(queue, clazz)
-      if (worker_class = @workers[queue]) && (worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true)
+      if (worker_class = @workers[queue]) &&
+         worker_class != clazz &&
+         (worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true)
         raise(
           Errors::InvalidWorkerRegistrationError,
           "Could not register #{clazz} for #{queue}, "\
