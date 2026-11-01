@@ -6,10 +6,12 @@
 #
 # Expected behavior: every extension timer thread ends with its perform, so
 # after a warm-up of 100 messages the thread count does not grow and RSS stays
-# within a small bound.
+# within a small bound. After the run no timer or message of it is still
+# alive.
 #
-# Regression: #266, #88, #324, #401, #482 (an extender and its thread were kept
-# for every processed message, so threads and memory grew without limit)
+# Regression: #266 (an extender and its timer thread were kept for every
+# processed message), #401 (the dispatch loop held a reference to every
+# processor thread)
 
 setup_sqs
 
@@ -80,5 +82,11 @@ assert(
   late_rss - warm_rss < 15_000,
   "RSS must stay flat after warm-up, grew from #{warm_rss / 1024}MB to #{late_rss / 1024}MB"
 )
+
+GC.start
+live_timers = ObjectSpace.each_object(Shoryuken::Helpers::TimerTask).count
+live_messages = ObjectSpace.each_object(Shoryuken::Message).count
+assert_equal(0, live_timers, 'no extension timer of the run may stay alive')
+assert_equal(0, live_messages, 'no message of the run may stay alive')
 
 delete_test_queue(queue_name)
