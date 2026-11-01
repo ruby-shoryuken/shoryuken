@@ -55,8 +55,10 @@ def write_greeting(dir, text)
 
   File.write(path, <<~RUBY)
     class Greeting
-      def self.text
-        '#{text}'
+      class << self
+        def text
+          '#{text}'
+        end
       end
     end
   RUBY
