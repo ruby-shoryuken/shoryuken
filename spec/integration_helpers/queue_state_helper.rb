@@ -10,12 +10,11 @@ module QueueStateHelper
   # Visible and in-flight message counts of a queue, as { visible:, in_flight: },
   # plus :delayed with delayed: true
   def queue_counts(queue_name, delayed: false)
-    queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
     attribute_names = %w[ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible]
     attribute_names << 'ApproximateNumberOfMessagesDelayed' if delayed
 
     attributes = Shoryuken::Client.sqs.get_queue_attributes(
-      queue_url: queue_url,
+      queue_url: queue_url(queue_name),
       attribute_names: attribute_names
     ).attributes
 
@@ -25,5 +24,10 @@ module QueueStateHelper
     }
     counts[:delayed] = attributes['ApproximateNumberOfMessagesDelayed'].to_i if delayed
     counts
+  end
+
+  # URL of a queue
+  def queue_url(queue_name)
+    Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
   end
 end
