@@ -8,7 +8,7 @@
 # extension point) - any of these can raise, e.g. on a transient network
 # error or a bug in a custom strategy.
 #
-# Expected behavior: processor_done runs exactly once per processed message
+# `processor_done` runs exactly once per processed message
 # and busy_processors never goes negative, even when processor_done raises.
 #
 # Regression: Manager#assign chained `.then { processor_done }` with

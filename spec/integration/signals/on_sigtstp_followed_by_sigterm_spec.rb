@@ -3,7 +3,7 @@
 # This spec tests that TERM after TSTP exits `shoryuken start` cleanly, and that the second signal does not run the
 # shutdown sequence again.
 #
-# Expected behavior: TSTP stops the process gracefully (firing quiet, shutdown and stopped) but keeps it running. The
+# TSTP stops the process gracefully (firing quiet, shutdown and stopped) but keeps it running. The
 # TERM that follows exits it with status 0, and every lifecycle event has fired exactly once.
 
 setup_sqs

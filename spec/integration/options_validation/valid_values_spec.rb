@@ -3,7 +3,7 @@
 # This spec tests that `shoryuken start` accepts valid configurations, including
 # values that are coerced where they are used, and processes messages with them.
 #
-# Expected behavior: with the defaults, with numeric Strings and fractional
+# With the defaults, with numeric Strings and fractional
 # weights (config file `delay: '5'`, `[queue, 1.5]`, CLI `-q queue,2.5`), with
 # an unset timeout and with a processing group, the process starts, processes
 # the message, logs no validation error or warning and exits cleanly on TERM.

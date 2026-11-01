@@ -2,7 +2,7 @@
 
 # This spec tests that TSTP stops `shoryuken start` gracefully and keeps the process running until TERM.
 #
-# Expected behavior: after TSTP the busy worker finishes its message (which is then deleted), no new message is
+# After TSTP the busy worker finishes its message (which is then deleted), no new message is
 # fetched, and the process stays up. Only the TERM that follows exits it, with status 0.
 
 setup_sqs

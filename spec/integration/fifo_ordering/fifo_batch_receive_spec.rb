@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # This spec tests batch receive on a FIFO queue.
-# Expected behavior: a worker with batch: true receives up to 10 messages per
+# A worker with batch: true receives up to 10 messages per
 # receive (the one-message FIFO cap applies only to non-batch workers), and the
 # messages of each message group arrive in send order across all batches.
 

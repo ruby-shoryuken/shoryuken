@@ -4,7 +4,7 @@
 # `body_parser` is not a form Shoryuken can parse with, and boots one whose
 # parser is an object responding to `parse`.
 #
-# Expected behavior: an unsupported value (`:JSON`) raises
+# An unsupported value (`:JSON`) raises
 # InvalidConfigurationError naming the worker and `body_parser` when the worker
 # class loads, so the process exits with a non-zero status and the message stays
 # in the queue. A worker with `body_parser: JSON` starts and gets the parsed body.

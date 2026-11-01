@@ -3,7 +3,7 @@
 # This spec tests that `shoryuken start` warns about unknown option keys
 # instead of rejecting them.
 #
-# Expected behavior: a mistyped key, globally (`concurency`) or in a group
+# A mistyped key, globally (`concurency`) or in a group
 # (`groups.custom.dealy`), logs a warning naming the key, and the process still
 # starts and processes messages. Custom keys kept in the options keep working.
 #

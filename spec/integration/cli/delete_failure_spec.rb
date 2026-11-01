@@ -4,7 +4,7 @@
 # rejects the deletes from the source queue (here the queue is purged while
 # the messages are in flight, so their receipt handles are no longer valid).
 #
-# Expected behavior: both commands print every rejected delete and exit with
+# Both commands print every rejected delete and exit with
 # a non-zero status.
 #
 # Regression: both commands printed only the first rejected delete of a batch

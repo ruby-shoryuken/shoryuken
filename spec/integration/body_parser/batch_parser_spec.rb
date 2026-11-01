@@ -2,7 +2,6 @@
 
 # This spec tests the body_parser option with batch workers (:json and a Proc).
 #
-# Expected behavior:
 # - Each message in a batch gets its own parsed body
 # - bodies[i] matches sqs_msgs[i]
 

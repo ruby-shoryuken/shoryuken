@@ -2,7 +2,7 @@
 
 # This spec tests `shoryuken sqs create`, `ls`, `purge` and `delete` against ElasticMQ.
 #
-# Expected behavior: `create` creates the queue with the given attributes, and as a FIFO queue when its name ends
+# `create` creates the queue with the given attributes, and as a FIFO queue when its name ends
 # with `.fifo`. `ls PREFIX` lists only the queues whose name starts with the prefix, each with its full name (also
 # one longer than 40 characters) and its available and in-flight message counts. `purge` deletes the messages of a
 # queue and keeps it, and `delete` deletes the queue.

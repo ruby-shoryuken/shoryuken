@@ -2,7 +2,7 @@
 
 # This spec tests which libraries `shoryuken` loads before it requires user code.
 #
-# Expected behavior: `optparse` is not loaded, so `OptionParser` is not defined
+# `optparse` is not loaded, so `OptionParser` is not defined
 # in a file passed with `-r`.
 
 setup_sqs

@@ -4,7 +4,7 @@
 # options: `-C` (YAML with ERB and `logfile`), `-q` (queue order and weights),
 # `-r` (a directory), `-P` (pidfile) and `-L` (logfile).
 #
-# Expected behavior: ERB in the config file is evaluated; the config file
+# ERB in the config file is evaluated; the config file
 # `logfile` gets the log instead of stdout; `-L` gets the log instead of the
 # config file `logfile`; `-q` replaces the config file queues and keeps their
 # order and weights, so StrictPriority polls the first of two equally weighted

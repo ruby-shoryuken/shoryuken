@@ -8,7 +8,7 @@
 # while the worker runs for 3s. Then the worker raises and the backoff sets the
 # visibility timeout to 12s.
 #
-# Expected behavior: the extension timer stops when perform ends, so the
+# The extension timer stops when perform ends, so the
 # backoff is the last visibility change. The message comes back after the 12s
 # backoff, not after the queue's 6s VisibilityTimeout.
 

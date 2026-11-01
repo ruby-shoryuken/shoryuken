@@ -3,7 +3,7 @@
 # This spec tests ActiveJob delays on a FIFO queue: `set(wait:)`,
 # `set(wait_until:)` in the future and `retry_on wait: 0`.
 #
-# Expected behavior: `set(wait:)` and `set(wait_until:)` raise
+# `set(wait:)` and `set(wait_until:)` raise
 # `Shoryuken::Errors::FifoDelayNotSupportedError` before anything is sent.
 # `retry_on wait: 0` re-enqueues the failed job without a delay, so it runs
 # again until it succeeds.

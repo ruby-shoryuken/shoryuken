@@ -3,7 +3,7 @@
 # This spec tests `shoryuken sqs dump` and `shoryuken sqs requeue` with Binary
 # message attributes, and a dump that stops while it writes its file.
 #
-# Expected behavior: dump stores Binary attribute values as base64 and marks
+# `dump` stores Binary attribute values as base64 and marks
 # them with `binary_value_encoding`, so a value that is not valid UTF-8
 # survives dump and requeue byte for byte. A dump file without the mark (raw
 # values) still requeues. A dump that stops before it finishes leaves no file

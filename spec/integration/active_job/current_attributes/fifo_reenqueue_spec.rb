@@ -3,7 +3,7 @@
 # This spec tests enqueueing the same ActiveJob job instance twice, with new
 # arguments, on a FIFO queue while CurrentAttributes are persisted.
 #
-# Expected behavior: the second enqueue sends a deduplication id of the current
+# The second enqueue sends a deduplication id of the current
 # body, so both runs happen with their own arguments and current attributes.
 
 setup_sqs

@@ -2,7 +2,7 @@
 
 # This spec tests `shoryuken start` with a configured queue that has no worker.
 #
-# Expected behavior: at start the process logs `No worker supplied for <queue>`
+# At start the process logs `No worker supplied for <queue>`
 # and keeps running. A message on that queue logs `No worker found for
 # <queue>` (it does not reach the exception handlers) and is not deleted, so it
 # comes back after the visibility timeout, while the other queue's worker keeps

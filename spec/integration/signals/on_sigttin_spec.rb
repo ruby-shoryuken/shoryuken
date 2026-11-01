@@ -2,7 +2,7 @@
 
 # This spec tests that TTIN makes `shoryuken start` log the backtraces of all its threads without stopping it.
 #
-# Expected behavior: on TTIN the process logs a `Thread TID-<id> <label>` line for every thread, each followed by its
+# On TTIN the process logs a `Thread TID-<id> <label>` line for every thread, each followed by its
 # backtrace, including threads the app started itself. The process keeps working afterwards: it still processes a
 # message sent after the dump, and TERM then exits it with status 0.
 

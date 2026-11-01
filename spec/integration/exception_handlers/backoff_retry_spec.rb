@@ -3,7 +3,7 @@
 # This spec tests which worker failures reach the exception handlers when the
 # exponential backoff middleware is in play.
 #
-# Expected behavior: a failure that `retry_intervals` schedules for a retry is
+# A failure that `retry_intervals` schedules for a retry is
 # rescued by the middleware, so the exception handlers are not called and the
 # message comes back after the interval, not after the queue's visibility
 # timeout. A failure without `retry_intervals`, or one whose interval lambda

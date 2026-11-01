@@ -8,7 +8,7 @@
 # unpredictable time, and a persistent failure kept the manager retrying for up
 # to 15s before it stopped.
 #
-# Expected behavior: a transient failure is retried after 1s, then 2s, and the
+# A transient failure is retried after 1s, then 2s, and the
 # message is then processed; a persistent failure stops the manager after three
 # retries (1s + 2s + 3s), so Launcher#healthy? reports it.
 #

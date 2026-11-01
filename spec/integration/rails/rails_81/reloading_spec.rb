@@ -3,7 +3,7 @@
 # This spec tests `Shoryuken.enable_reloading` in a Rails 8.1 app started with
 # `shoryuken start -R`, where the app has `config.enable_reloading = true`.
 #
-# Expected behavior: each message a plain Shoryuken worker processes runs
+# Each message a plain Shoryuken worker processes runs
 # inside the Rails reloader, so inside the app's executor too. When an
 # autoloaded file changes between two messages, the second one sees the new
 # code without a restart.

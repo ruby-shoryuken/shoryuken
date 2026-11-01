@@ -4,7 +4,7 @@
 # so large that a batch of 10 is over the SQS batch payload limit
 # (`MAX_BATCH_SIZE`, 1 MiB).
 #
-# Expected behavior: both commands split the messages into batches under the
+# Both commands split the messages into batches under the
 # limit, so every message reaches the target and the command exits with 0.
 #
 # Regression: #663. The commands sent up to 10 messages per batch whatever

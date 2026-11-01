@@ -3,7 +3,7 @@
 # This spec tests ActiveJob `set(wait:)` and `Shoryuken::Worker.perform_in`
 # with a delay over the 15 minute SQS maximum.
 #
-# Expected behavior: both raise `Shoryuken::Errors::InvalidDelayError` before
+# Both raise `Shoryuken::Errors::InvalidDelayError` before
 # anything is sent, so the queue stays empty.
 
 setup_sqs

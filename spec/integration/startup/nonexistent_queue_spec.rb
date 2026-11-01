@@ -3,7 +3,7 @@
 # This spec tests that `shoryuken start` refuses to run when a configured queue does not exist, with the queues
 # given on the CLI or in a config file group.
 #
-# Expected behavior: the process exits on its own with a non-zero status before it starts. The QueueNotFoundError
+# The process exits on its own with a non-zero status before it starts. The QueueNotFoundError
 # is printed once and names every missing queue, but not the existing one, with a hint to create them. The process
 # never polls, so the log has no manager failure from a poll, and the message waiting in the existing queue is not
 # processed.

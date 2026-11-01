@@ -9,7 +9,7 @@
 # invisible on SQS for the whole queue visibility timeout before any other
 # consumer could receive it.
 #
-# Expected behavior: the skipped message is made visible again at once, and it
+# The skipped message is made visible again at once, and it
 # is never processed by the stopping launcher.
 #
 # Regression: the message stayed in flight for the full visibility timeout.

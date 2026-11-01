@@ -7,7 +7,7 @@
 # The queue's VisibilityTimeout is 20s, but messages are received with a
 # visibility_timeout of 6s, and the worker runs for 10s.
 #
-# Expected behavior: the message is extended before its 6s visibility expires,
+# The message is extended before its 6s visibility expires,
 # so it is performed once and deleted.
 #
 # Regression: the extension was scheduled from the queue attribute (first one

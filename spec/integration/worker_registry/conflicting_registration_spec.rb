@@ -3,7 +3,7 @@
 # This spec tests `shoryuken start` with workers registered for the same queue
 # more than once.
 #
-# Expected behavior: a batch worker and a second worker on one queue, in either
+# A batch worker and a second worker on one queue, in either
 # order, stop the process before it starts with an
 # InvalidWorkerRegistrationError naming both workers, and the waiting message
 # is not processed. A non-batch worker whose file is loaded twice (an eager

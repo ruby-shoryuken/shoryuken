@@ -2,7 +2,7 @@
 
 # This spec tests `shoryuken sqs` called with a class option (`-e`/`--endpoint`) before the command.
 #
-# Expected behavior: `sqs -e URL <command>` fails with "Options must follow the command", shows the command with the
+# `sqs -e URL <command>` fails with "Options must follow the command", shows the command with the
 # options after it and exits with status 1. `sqs -e URL` with no command still prints the command list and exits with
 # status 0, and the options after the command still work.
 #

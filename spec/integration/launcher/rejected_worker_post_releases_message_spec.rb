@@ -9,7 +9,7 @@
 # It used to just drop the message, so it stayed invisible on SQS for the whole
 # queue visibility timeout before any consumer could receive it.
 #
-# Expected behavior: the rejected message is made visible again at once, and it
+# The rejected message is made visible again at once, and it
 # is never processed.
 #
 # Regression: the message stayed in flight for the full visibility timeout.

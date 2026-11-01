@@ -3,7 +3,6 @@
 # This spec tests what server middleware receives as the body when the worker
 # has a body_parser.
 #
-# Expected behavior:
 # - Middleware gets the same parsed object that perform gets (equal?)
 # - sqs_msg.body stays the raw String
 

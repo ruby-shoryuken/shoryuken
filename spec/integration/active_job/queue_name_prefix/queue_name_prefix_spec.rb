@@ -4,7 +4,7 @@
 # loader applies ActiveJob's queue_name_prefix to queue names, but not to
 # queues given as a URL or an ARN, both in `queues` and in `groups`.
 #
-# Expected behavior: a queue name `<name>` is polled as `<prefix>_<name>`, the
+# A queue name `<name>` is polled as `<prefix>_<name>`, the
 # queue ActiveJob sends the job to, so the job is performed. Queues given as an
 # https URL or an ARN are polled as given, and their workers process their
 # messages.

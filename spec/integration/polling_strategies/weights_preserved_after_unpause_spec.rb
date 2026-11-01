@@ -3,7 +3,6 @@
 # This spec tests that WeightedRoundRobin keeps the grown weights of active
 # queues when a paused FIFO queue is unpaused by a processed message.
 #
-# Expected behavior:
 # - A busy standard queue grows to its configured weight (3)
 # - A FIFO queue pauses while its only message group is in flight
 # - When that message is processed, the FIFO queue is unpaused and the busy

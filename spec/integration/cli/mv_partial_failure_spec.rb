@@ -4,7 +4,7 @@
 # target queue rejects some entries of a batch (here a FIFO queue that rejects
 # messages without a MessageGroupId).
 #
-# Expected behavior: mv deletes from the source only the messages the target
+# `mv` deletes from the source only the messages the target
 # accepted, so the rejected ones stay in the source. Both commands print every
 # rejected entry, count only the accepted messages in their success line, and
 # exit with a non-zero status. A requeue with no rejected entry exits with 0.

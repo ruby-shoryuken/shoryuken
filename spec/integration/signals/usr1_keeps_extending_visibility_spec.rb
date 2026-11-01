@@ -3,7 +3,7 @@
 # This spec tests that a USR1 soft shutdown of `shoryuken start` keeps extending the visibility of a long job that runs
 # with `auto_visibility_timeout`.
 #
-# Expected behavior: the soft shutdown waits for the job, which runs longer than the queue's visibility timeout. While
+# The soft shutdown waits for the job, which runs longer than the queue's visibility timeout. While
 # it waits, the message stays invisible to other consumers, so it is processed exactly once and then deleted.
 #
 # Regression: #636 - USR1 and TSTP shut down the executor that ran the visibility timers, so the message became

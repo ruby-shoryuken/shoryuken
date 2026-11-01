@@ -8,7 +8,7 @@
 # the executor was never shut down and the :shutdown/:stopped events never
 # fired - the process could not shut down cleanly.
 #
-# Expected behavior: the error is logged, and the remaining steps still run for
+# The error is logged, and the remaining steps still run for
 # both the graceful and the hard stop.
 #
 # Regression: a raising on_stop callback skipped the whole shutdown.

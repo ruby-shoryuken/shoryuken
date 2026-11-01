@@ -8,7 +8,7 @@
 # release signal, so awaiting it blocks on Queue#pop forever, and a rescue
 # around the wait cannot unblock it.
 #
-# Expected behavior: the error is logged, the failed manager is not awaited,
+# The error is logged, the failed manager is not awaited,
 # the other manager is still stopped and awaited, the executor is shut down and
 # :stopped fires.
 #

@@ -2,7 +2,7 @@
 
 # This spec tests how `shoryuken sqs dump`, `mv` and `delete` handle their input and report the result.
 #
-# Expected behavior: `dump` with a missing or read-only `-p` directory and `dump`/`mv` with `-n 0` fail with a
+# `dump` with a missing or read-only `-p` directory and `dump`/`mv` with `-n 0` fail with a
 # `[FAIL]` message before they receive any message, so the messages stay available. `delete` reports the deleted
 # queue.
 #

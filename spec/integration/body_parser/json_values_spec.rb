@@ -2,7 +2,6 @@
 
 # This spec tests the body_parser option with :json beyond a single Hash.
 #
-# Expected behavior:
 # - Arrays and scalars parse to their Ruby values (null -> nil)
 # - Non-ASCII text and emoji stay intact in UTF-8
 

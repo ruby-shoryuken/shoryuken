@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # This spec tests Message#last_receive? on a FIFO queue with a redrive policy.
-# Expected behavior: a failing message reports false on its first receive and true on the
+# A failing message reports false on its first receive and true on the
 # maxReceiveCount-th receive, then moves to the DLQ and the next message of its group runs.
 
 setup_sqs

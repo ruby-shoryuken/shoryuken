@@ -8,7 +8,7 @@
 # ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter`: the CLI requires
 # shoryuken before Rails loads ActiveJob, so the adapter was never required.
 #
-# Expected behavior: the process boots with the adapter resolved by its
+# The process boots with the adapter resolved by its
 # symbol. A job it runs enqueues a follow-up job, which is sent on another
 # thread than the enqueuing one and then runs. A send to a missing queue
 # reaches the adapter's error handler, which logs it.

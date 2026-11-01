@@ -4,7 +4,7 @@
 # `shoryuken_options` has an unknown key, and boots one that uses every known
 # worker option.
 #
-# Expected behavior: a mistyped key (`auto_delte`) raises
+# A mistyped key (`auto_delte`) raises
 # InvalidConfigurationError naming the worker and the key when the worker
 # class loads, so the process exits with a non-zero status and processes
 # nothing. A worker with only known options starts and processes the message.

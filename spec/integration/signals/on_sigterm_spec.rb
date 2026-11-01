@@ -3,7 +3,7 @@
 # This spec tests that TERM hard-shuts `shoryuken start` down within `timeout`
 # while a worker is still busy, and that the in-flight message is kept.
 #
-# Expected behavior: after TERM the process exits with status 0 within the
+# After TERM the process exits with status 0 within the
 # configured `timeout` (plus a margin), without waiting for the busy worker to
 # finish. The killed worker's message is not deleted (auto_delete runs only
 # after `perform` returns), so it becomes visible again after the queue's

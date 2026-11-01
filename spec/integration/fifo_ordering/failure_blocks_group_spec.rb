@@ -2,7 +2,7 @@
 
 # This spec tests a failing message on a FIFO queue with two message groups.
 #
-# Expected behavior: the failing message stays in flight until the visibility timeout and holds its group, so no
+# The failing message stays in flight until the visibility timeout and holds its group, so no
 # later message of that group runs before the retry. The other group keeps processing while the first one waits.
 # After the retry succeeds, the held group runs in send order.
 
