@@ -61,7 +61,7 @@ module Shoryuken
     #   batchable
     def register_worker(queue, clazz)
       if (worker_class = @workers[queue]) &&
-         worker_class != clazz &&
+         !same_worker?(worker_class, clazz) &&
          (worker_class.get_shoryuken_options['batch'] == true || clazz.get_shoryuken_options['batch'] == true)
         raise(
           Errors::InvalidWorkerRegistrationError,
@@ -80,6 +80,17 @@ module Shoryuken
     # @return [Array<Class>] the registered worker classes
     def workers(queue)
       [@workers.fetch(queue, [])].flatten
+    end
+
+    private
+
+    # Checks if two worker classes are the same worker, also when a code reload redefined it as a new class
+    #
+    # @param worker_class [Class] the registered worker class
+    # @param clazz [Class] the worker class to register
+    # @return [Boolean] true if both are the same class or named classes with the same name
+    def same_worker?(worker_class, clazz)
+      worker_class == clazz || (!clazz.name.nil? && worker_class.name == clazz.name)
     end
   end
 end

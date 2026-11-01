@@ -1,8 +1,9 @@
 ## [Unreleased]
 
-- Fix: A batch worker registered again for its queue (e.g. a second `Rails.application.eager_load!`) no longer raises
-  `Shoryuken::Errors::InvalidWorkerRegistrationError` (#623)
-  - A different worker on a queue with a batch worker still raises
+- Fix: A batch worker registered again for its queue no longer raises `Shoryuken::Errors::InvalidWorkerRegistrationError`
+  (#623)
+  - Covers a worker file loaded twice and a Rails code reload that defines the worker class again
+  - A worker with a different class name on a queue with a batch worker still raises
 
 - Breaking: `shoryuken sqs` exits with status 1 when `-e`/`--endpoint` comes before the command
   - `sqs -e URL ls` printed the help of `ls` and exited with status 0 without running it; it now fails with

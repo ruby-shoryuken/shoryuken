@@ -214,6 +214,37 @@ RSpec.describe Shoryuken::Options do
 
       expect(subject.worker_registry.workers('default')).to eq([TestWorker])
     end
+
+    it 'registers a reloaded batchable worker with the same name again for the same queue' do
+      subject.worker_registry.clear
+      TestWorker.get_shoryuken_options['batch'] = true
+      subject.register_worker('default', TestWorker)
+
+      reloaded_worker = stub_const(
+        'TestWorker',
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(sqs_msgs, bodies); end
+        end
+      )
+      reloaded_worker.shoryuken_options queue: 'default', batch: true
+
+      expect(subject.worker_registry.workers('default')).to eq([reloaded_worker])
+    end
+
+    it 'raises when an anonymous worker is registered on a queue with an anonymous batchable worker' do
+      subject.worker_registry.clear
+      Class.new do
+        include Shoryuken::Worker
+
+        shoryuken_options queue: 'default', batch: true
+      end
+
+      expect {
+        subject.register_worker('default', Class.new { include Shoryuken::Worker })
+      }.to raise_error(Shoryuken::Errors::InvalidWorkerRegistrationError)
+    end
   end
 
   describe '.polling_strategy' do
