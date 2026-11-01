@@ -5,8 +5,8 @@
 # deduplication window of SQS: a dump requeued into the same queue, and a move
 # back to the queue the messages came from (e.g. a FIFO DLQ redrive).
 #
-# Both commands send each message with a new deduplication
-# id, so every message is delivered again, in order, with its message group id.
+# Both commands send each message with a new deduplication id, so every message
+# is delivered again, in order, with its message group id.
 #
 # Regression: both commands sent the original deduplication ids, so SQS
 # accepted the messages but did not deliver them: the commands reported

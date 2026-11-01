@@ -11,9 +11,9 @@
 # last run sets no timeout (a config key with no value, e.g. an unset ERB env
 # variable), which means no shutdown deadline.
 #
-# The launcher waits for the pending send, so the job
-# enqueued by the worker reaches SQS, the drain is logged and the process exits
-# cleanly. Without a timeout the drain waits with no deadline.
+# The launcher waits for the pending send, so the job enqueued by the worker
+# reaches SQS, the drain is logged and the process exits cleanly. Without a
+# timeout the drain waits with no deadline.
 #
 # Regression: the launcher never drained the adapter, so exit killed the send
 # thread and the job was silently lost.

@@ -2,9 +2,9 @@
 
 # This spec tests the log line when a retry_intervals lambda raises.
 #
-# The middleware logs that retry_intervals raised, with the error class and message, and not
-# "Failed to set backoff visibility timeout" (no visibility change was attempted). The original worker error is
-# re-raised, so it reaches the exception handlers and the message comes back after the queue's visibility timeout.
+# The middleware logs that retry_intervals raised, with the error class and message, and not "Failed to set
+# backoff visibility timeout" (no visibility change was attempted). The original worker error is re-raised, so it
+# reaches the exception handlers and the message comes back after the queue's visibility timeout.
 
 setup_sqs
 

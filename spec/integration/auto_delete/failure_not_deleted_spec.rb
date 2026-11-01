@@ -3,10 +3,10 @@
 # This spec tests that auto_delete does not delete a message whose worker
 # raises, for single and batch workers.
 #
-# A worker with `auto_delete: true` that raises leaves its
-# message on the queue, so it comes back after the visibility timeout and is
-# deleted only once a later perform succeeds. A batch worker that raises keeps
-# the whole batch: every message of that batch comes back.
+# A worker with `auto_delete: true` that raises leaves its message on the
+# queue, so it comes back after the visibility timeout and is deleted only
+# once a later perform succeeds. A batch worker that raises keeps the whole
+# batch: every message of that batch comes back.
 #
 # Regression: #135 - data loss when exceptions are raised while using auto
 # delete.

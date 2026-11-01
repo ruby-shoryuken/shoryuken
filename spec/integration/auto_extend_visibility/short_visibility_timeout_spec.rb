@@ -9,8 +9,8 @@
 # ArgumentError *before* the worker runs - so every receive fails and the
 # message is reprocessed (and re-fails) until it hits a DLQ.
 #
-# A short visibility timeout no longer breaks processing; the
-# extension interval is clamped to a positive value and the worker runs normally.
+# A short visibility timeout no longer breaks processing; the extension interval
+# is clamped to a positive value and the worker runs normally.
 #
 # Regression: auto_visibility_timeout + a <= 5s queue visibility timeout broke
 # processing entirely.

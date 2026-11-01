@@ -3,11 +3,11 @@
 # This spec tests that `shoryuken start -d -P <pidfile> -L <logfile>` runs as a
 # daemon.
 #
-# The launching process exits with status 0 and prints no
-# log; the daemon keeps running in its own session and processes messages; the
-# pidfile holds the daemon pid; a thread the required files start keeps
-# running, as the process daemonizes before it loads them; the log and the
-# worker's stdout go to the logfile; TERM stops the daemon.
+# The launching process exits with status 0 and prints no log; the daemon
+# keeps running in its own session and processes messages; the pidfile holds
+# the daemon pid; a thread the required files start keeps running, as the
+# process daemonizes before it loads them; the log and the worker's stdout go
+# to the logfile; TERM stops the daemon.
 #
 # Regression: `-d` crashed with `undefined local variable or method
 # 'initialize_logger'` (#74).

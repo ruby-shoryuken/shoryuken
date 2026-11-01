@@ -3,9 +3,9 @@
 # This spec tests what happens to an ActiveJob job whose `retry_on` runs out of
 # attempts.
 #
-# `retry_on StandardError, wait: 0, attempts: 3` sends the
-# job twice more as new messages, and `executions` reads 1, 2, 3 for the three
-# attempts, as in ActiveJob. On the third attempt ActiveJob re-raises the error:
+# `retry_on StandardError, wait: 0, attempts: 3` sends the job twice more as new
+# messages, and `executions` reads 1, 2, 3 for the three attempts, as in
+# ActiveJob. On the third attempt ActiveJob re-raises the error:
 # - Without a block, the error reaches Shoryuken's exception handlers and the
 #   message is not deleted. SQS delivers it again after each visibility timeout,
 #   and each delivery adds one to `executions`.

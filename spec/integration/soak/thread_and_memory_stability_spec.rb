@@ -4,10 +4,9 @@
 # leak threads or memory. 500 messages are processed by 25 processors, and each
 # perform runs past one visibility extension.
 #
-# Every extension timer thread ends with its perform, so
-# after a warm-up of 100 messages the thread count does not grow and RSS stays
-# within a small bound. After the run no timer or message of it is still
-# alive.
+# Every extension timer thread ends with its perform, so after a warm-up of
+# 100 messages the thread count does not grow and RSS stays within a small
+# bound. After the run no timer or message of it is still alive.
 #
 # Regression: #266 (an extender and its timer thread were kept for every
 # processed message), #401 (the dispatch loop held a reference to every

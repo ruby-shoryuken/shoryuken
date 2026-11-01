@@ -4,12 +4,12 @@
 # options: `-C` (YAML with ERB and `logfile`), `-q` (queue order and weights),
 # `-r` (a directory), `-P` (pidfile) and `-L` (logfile).
 #
-# ERB in the config file is evaluated; the config file
-# `logfile` gets the log instead of stdout; `-L` gets the log instead of the
-# config file `logfile`; `-q` replaces the config file queues and keeps their
-# order and weights, so StrictPriority polls the first of two equally weighted
-# CLI queues first; `-r` with a directory loads every `.rb` file under it,
-# nested ones too; `-P` writes the process pid.
+# ERB in the config file is evaluated; the config file `logfile` gets the log
+# instead of stdout; `-L` gets the log instead of the config file `logfile`;
+# `-q` replaces the config file queues and keeps their order and weights, so
+# StrictPriority polls the first of two equally weighted CLI queues first;
+# `-r` with a directory loads every `.rb` file under it, nested ones too; `-P`
+# writes the process pid.
 #
 # Regression: the `logfile` from the config file was ignored, the log went to
 # stdout (#296).

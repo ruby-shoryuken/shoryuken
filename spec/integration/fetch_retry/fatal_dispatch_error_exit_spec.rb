@@ -3,8 +3,8 @@
 # This spec tests the exit status of `shoryuken start` when a fatal dispatch error stops it: every SQS receive keeps
 # failing, so the fetcher gives up after its retries and the manager stops the process.
 #
-# The process logs the failure, soft-shuts down and exits with status 1, so a process supervisor
-# (systemd `Restart=on-failure`, Kubernetes) restarts it. A USR1 or TERM sent by an operator still exits with status 0
+# The process logs the failure, soft-shuts down and exits with status 1, so a process supervisor (systemd
+# `Restart=on-failure`, Kubernetes) restarts it. A USR1 or TERM sent by an operator still exits with status 0
 # (signals/on_sigusr1_spec.rb, signals/on_sigterm_spec.rb).
 #
 # Regression: the process exited with status 0, so `Restart=on-failure` never restarted it.

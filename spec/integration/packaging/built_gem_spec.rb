@@ -3,10 +3,10 @@
 # This spec tests the gem as users install it: built from the gemspec,
 # installed into an empty gem home and run from there, not from the repo.
 #
-# The gem ships only lib/, bin/shoryuken, bin/cli/,
-# config/locales/, README.md, CHANGELOG.md and LICENSE, and the installed
-# gem still runs: `shoryuken version`, `shoryuken sqs`, `shoryuken start`
-# processing a message, and a config error message read from
+# The gem ships only lib/, bin/shoryuken, bin/cli/, config/locales/,
+# README.md, CHANGELOG.md and LICENSE, and the installed gem still runs:
+# `shoryuken version`, `shoryuken sqs`, `shoryuken start` processing a
+# message, and a config error message read from
 # config/locales/errors.yml.
 
 require 'rubygems/package'

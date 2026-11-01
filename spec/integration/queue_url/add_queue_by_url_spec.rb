@@ -3,9 +3,9 @@
 # This spec tests `shoryuken start` with a queue configured by its URL instead
 # of its name, in the config file and on the CLI.
 #
-# A worker whose `queue` option is the same URL receives the
-# message with its body, and with `auto_delete: true` the message is deleted
-# from the queue after processing. No `No worker` error is logged.
+# A worker whose `queue` option is the same URL receives the message with
+# its body, and with `auto_delete: true` the message is deleted from the
+# queue after processing. No `No worker` error is logged.
 
 setup_sqs
 

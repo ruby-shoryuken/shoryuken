@@ -3,8 +3,8 @@
 # This spec tests that `shoryuken start` refuses to run with an invalid option
 # value, from the config file or from the CLI, globally or in a group.
 #
-# The process exits with a non-zero status before it starts.
-# The InvalidConfigurationError names every invalid option by its key path
+# The process exits with a non-zero status before it starts. The
+# InvalidConfigurationError names every invalid option by its key path
 # (`groups.<name>.<key>` inside a group) with its message, and the message
 # waiting in the queue is not processed.
 #

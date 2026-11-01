@@ -3,9 +3,8 @@
 # This spec tests that lifecycle event handlers registered on the global
 # options do not leak into the defaults of new Shoryuken::Options instances.
 #
-# A launcher processing a message fires each handler once,
-# and a new Shoryuken::Options instance, like Options::DEFAULTS, has no
-# handlers.
+# A launcher processing a message fires each handler once, and a new
+# Shoryuken::Options instance, like Options::DEFAULTS, has no handlers.
 #
 # Regression: Options#options copied DEFAULTS shallowly, so `on` appended
 # handlers to the nested arrays of DEFAULTS, and every later instance fired

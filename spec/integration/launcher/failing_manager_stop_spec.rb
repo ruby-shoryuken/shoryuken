@@ -8,9 +8,8 @@
 # release signal, so awaiting it blocks on Queue#pop forever, and a rescue
 # around the wait cannot unblock it.
 #
-# The error is logged, the failed manager is not awaited,
-# the other manager is still stopped and awaited, the executor is shut down and
-# :stopped fires.
+# The error is logged, the failed manager is not awaited, the other manager is
+# still stopped and awaited, the executor is shut down and :stopped fires.
 #
 # Regression: the graceful stop hung while awaiting the failed manager.
 

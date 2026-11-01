@@ -4,10 +4,10 @@
 # `shoryuken_options` has an unknown key, and boots one that uses every known
 # worker option.
 #
-# A mistyped key (`auto_delte`) raises
-# InvalidConfigurationError naming the worker and the key when the worker
-# class loads, so the process exits with a non-zero status and processes
-# nothing. A worker with only known options starts and processes the message.
+# A mistyped key (`auto_delte`) raises InvalidConfigurationError naming the
+# worker and the key when the worker class loads, so the process exits with a
+# non-zero status and processes nothing. A worker with only known options
+# starts and processes the message.
 #
 # Regression: any key was merged into the worker options without a check, so a
 # typo was silently ignored (e.g. messages were never deleted).
