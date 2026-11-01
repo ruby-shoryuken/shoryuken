@@ -3,7 +3,7 @@
 # This spec tests a worker that deletes its message and then raises, with retry_intervals set.
 # It used to let the error from rescheduling the deleted message escape the middleware and mask the original error.
 #
-# Expected behavior: the visibility change on the stale receipt handle fails and is logged, the original worker error
+# The visibility change on the stale receipt handle fails and is logged, the original worker error
 # is re-raised and reaches the exception handlers, and the message stays deleted.
 #
 # Regression: #328 (fixed in #1030)

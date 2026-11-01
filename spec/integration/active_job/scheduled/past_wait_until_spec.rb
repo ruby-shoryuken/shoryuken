@@ -3,7 +3,7 @@
 # This spec tests ActiveJob `set(wait_until:)` with a time in the past, on a
 # standard and on a FIFO queue.
 #
-# Expected behavior: the job is sent with `delay_seconds: 0` and runs at once.
+# The job is sent with `delay_seconds: 0` and runs at once.
 #
 # Regression: the adapter sent a negative `DelaySeconds`, which SQS rejects, so
 # `perform_later` raised `Aws::SQS::Errors::InvalidParameterValue`.

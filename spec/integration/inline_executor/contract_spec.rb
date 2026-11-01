@@ -2,7 +2,6 @@
 
 # This spec tests the documented contract of Shoryuken::Worker::InlineExecutor.
 #
-# Expected behavior:
 # - perform_async calls perform right away and returns its result
 # - Neither global nor worker server middleware runs
 # - perform_in runs the job right away, ignoring the delay

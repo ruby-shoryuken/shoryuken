@@ -12,9 +12,9 @@ require 'digest'
 # but it is a "skipped message" trap for users who legitimately enqueue the same
 # work twice.
 #
-# Expected behavior: setting Shoryuken.active_job_fifo_message_deduplication = false
-# stops the adapter from generating the id, so those enqueues are no longer
-# silently deduplicated. The default (true) preserves the existing behavior.
+# Setting Shoryuken.active_job_fifo_message_deduplication = false stops the
+# adapter from generating the id, so those enqueues are no longer silently
+# deduplicated. The default (true) preserves the existing behavior.
 #
 # Regression: there was no way to disable the auto-generated deduplication id.
 

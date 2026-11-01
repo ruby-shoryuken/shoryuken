@@ -3,7 +3,6 @@
 # This spec tests that a custom polling strategy class named in a YAML config
 # file (`-C`) is the one `shoryuken start` uses to pick the queues it fetches.
 #
-# Expected behavior:
 # - With `polling_strategy: <Class>` at the top level and with it inside a
 #   `groups:` entry, the process boots and the custom strategy is asked for the
 #   next queue

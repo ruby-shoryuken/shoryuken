@@ -4,9 +4,9 @@
 # retry_intervals (exponential backoff) when both are configured on the
 # same worker.
 #
-# Expected behavior: non_retryable_exceptions takes precedence - a message
-# raising a non-retryable exception must be deleted immediately and never
-# retried, while other exceptions still go through the backoff schedule.
+# `non_retryable_exceptions` takes precedence - a message raising a
+# non-retryable exception must be deleted immediately and never retried,
+# while other exceptions still go through the backoff schedule.
 #
 # Regression: ExponentialBackoffRetry sits inside NonRetryableException in
 # the default middleware chain and used to swallow every exception after

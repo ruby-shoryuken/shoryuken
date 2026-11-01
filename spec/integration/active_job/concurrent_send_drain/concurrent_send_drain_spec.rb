@@ -8,11 +8,11 @@
 # jobs enqueued shortly before the process exits can be silently dropped - the
 # send never runs.
 #
-# Expected behavior: #wait_for_pending_sends blocks until every in-flight send
-# has finished (so the job actually reaches SQS). With a timeout it returns
-# false while a send is still running, and a failed send (reported to the error
-# handler) counts as finished. A child forked while a send is in flight does not
-# wait for the parent's send, which only the parent can complete.
+# #wait_for_pending_sends blocks until every in-flight send has finished (so the
+# job actually reaches SQS). With a timeout it returns false while a send is
+# still running, and a failed send (reported to the error handler) counts as
+# finished. A child forked while a send is in flight does not wait for the
+# parent's send, which only the parent can complete.
 #
 # Regression: the adapter offered no drain, so in-flight sends could be lost.
 

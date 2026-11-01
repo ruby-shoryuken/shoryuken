@@ -3,10 +3,10 @@
 # This spec tests the full sequence of lifecycle events that `shoryuken start` fires while it processes a message and
 # stops on USR1 with that message still in flight.
 #
-# Expected behavior: startup fires once, first. The group then reports its utilization (busy 0), dispatches from the
-# queue (the payload names it) and reports busy 1 for the message. USR1 then fires quiet and shutdown; the group
-# reports busy 0 when the in-flight message is done, and stopped fires after it, as the last event. Each of quiet,
-# shutdown and stopped fires once.
+# `startup` fires once, first. The group then reports its utilization (busy 0), dispatches from the queue (the
+# payload names it) and reports busy 1 for the message. USR1 then fires quiet and shutdown; the group reports busy
+# 0 when the in-flight message is done, and stopped fires after it, as the last event. Each of quiet, shutdown and
+# stopped fires once.
 
 def parse_events(log)
   log.scan(/lifecycle event: (\w+) (\{.*\})$/).map { |event, payload| [event, JSON.parse(payload)] }

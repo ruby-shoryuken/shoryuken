@@ -11,8 +11,8 @@
 # USR1's default disposition, which terminates the whole process - killing any
 # in-flight workers.
 #
-# Expected behavior when embedded: the failing manager stops itself and
-# Launcher#healthy? reports the failure; no process-killing signal is sent.
+# When embedded, the failing manager stops itself and Launcher#healthy?
+# reports the failure; no process-killing signal is sent.
 #
 # Regression: embedded mode received an untrapped USR1 and the process died.
 

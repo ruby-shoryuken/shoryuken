@@ -3,10 +3,9 @@
 # This spec tests that `shoryuken start` refuses to run when a configured queue does not exist, with the queues
 # given on the CLI or in a config file group.
 #
-# Expected behavior: the process exits on its own with a non-zero status before it starts. The QueueNotFoundError
-# is printed once and names every missing queue, but not the existing one, with a hint to create them. The process
-# never polls, so the log has no manager failure from a poll, and the message waiting in the existing queue is not
-# processed.
+# The process exits on its own with a non-zero status before it starts. The QueueNotFoundError is printed once and
+# names every missing queue, but not the existing one, with a hint to create them. The process never polls, so the
+# log has no manager failure from a poll, and the message waiting in the existing queue is not processed.
 #
 # Regression: #172 (shoryuken started anyway and spammed the log with a fetch error per poll), #150 (the raw
 # NonExistentQueue error did not say which queue was missing).

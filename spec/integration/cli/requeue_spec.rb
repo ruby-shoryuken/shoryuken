@@ -3,9 +3,9 @@
 # This spec tests `shoryuken sqs dump` followed by `shoryuken sqs requeue` of
 # the dump file into the queue, on a standard queue and on a FIFO queue.
 #
-# Expected behavior: requeue sends every dumped message back with its body and
-# its String and Number message attributes. On a FIFO queue it also keeps each
-# message's group id and the order within each group.
+# `requeue` sends every dumped message back with its body and its String and
+# Number message attributes. On a FIFO queue it also keeps each message's
+# group id and the order within each group.
 #
 # Regression: #470 - requeue did not pass MessageGroupId, so SQS rejected the
 # send to a FIFO queue and requeue failed.

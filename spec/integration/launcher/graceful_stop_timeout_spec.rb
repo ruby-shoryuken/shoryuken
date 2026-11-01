@@ -9,9 +9,9 @@
 # single hung worker would block the shutdown forever (and, because the signal
 # loop is stuck, leave the process killable only with SIGKILL).
 #
-# Expected behavior: workers get up to Shoryuken.options[:timeout] seconds to
-# finish, after which the executor is killed and stop returns. Launcher#stop!
-# already did this; Launcher#stop should too.
+# Workers get up to Shoryuken.options[:timeout] seconds to finish, after
+# which the executor is killed and stop returns. Launcher#stop! already did
+# this; Launcher#stop should too.
 #
 # Regression: a hung worker hung Launcher#stop indefinitely.
 

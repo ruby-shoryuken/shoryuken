@@ -3,11 +3,11 @@
 # This spec tests ActiveJob `executions` when a job is retried by `retry_on`
 # and also redelivered by SQS.
 #
-# Expected behavior: the job fails with a `retry_on` error twice, then with an
-# error `retry_on` does not handle (SQS delivers the same message again), then
-# with a `retry_on` error once more, then succeeds. `executions` keeps
-# ActiveJob's count across `retry_on` retries and the redelivery adds one:
-# 1, 2, 3, 4, 5. `exception_executions` counts only the `retry_on` errors.
+# The job fails with a `retry_on` error twice, then with an error `retry_on`
+# does not handle (SQS delivers the same message again), then with a
+# `retry_on` error once more, then succeeds. `executions` keeps ActiveJob's
+# count across `retry_on` retries and the redelivery adds one: 1, 2, 3, 4, 5.
+# `exception_executions` counts only the `retry_on` errors.
 #
 # Regression: `executions` was replaced by the receive count minus one, so it
 # read 1, 1, 1, 2, 1.

@@ -3,10 +3,10 @@
 # This spec tests that Launcher#stop! kills a worker still busy past `timeout`
 # and keeps its message, so SQS delivers it again.
 #
-# Expected behavior: stop! returns within the configured `timeout` (plus a
-# margin) without waiting for the busy worker to finish. The killed worker's
-# message is not deleted (auto_delete runs only after `perform` returns), so it
-# becomes visible again after the queue's visibility timeout.
+# `stop!` returns within the configured `timeout` (plus a margin) without
+# waiting for the busy worker to finish. The killed worker's message is not
+# deleted (auto_delete runs only after `perform` returns), so it becomes
+# visible again after the queue's visibility timeout.
 #
 # Regression: #215 - a hard shutdown hung while some workers were busy
 # (CHANGELOG v2.0.7, "Fix hard shutdown if there are some busy workers").

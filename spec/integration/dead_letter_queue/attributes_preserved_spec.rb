@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # This spec tests that message attributes survive a redrive to the dead letter queue.
-# Expected behavior: a perform_async job that fails maxReceiveCount times moves to the DLQ with its
-# shoryuken_class and custom attributes intact, so Shoryuken polling the DLQ runs the original worker,
-# not the worker registered for the DLQ.
+# A perform_async job that fails maxReceiveCount times moves to the DLQ with its shoryuken_class and
+# custom attributes intact, so Shoryuken polling the DLQ runs the original worker, not the worker
+# registered for the DLQ.
 # Regression: #659
 
 setup_sqs

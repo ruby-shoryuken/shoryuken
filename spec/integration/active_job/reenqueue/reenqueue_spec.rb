@@ -3,9 +3,9 @@
 # This spec tests enqueueing the same ActiveJob job instance twice, with new
 # arguments, on a standard and on a FIFO queue.
 #
-# Expected behavior: the second enqueue sends the current arguments, and on the
-# FIFO queue a deduplication id of the current body, so both runs happen with
-# their own arguments.
+# The second enqueue sends the current arguments, and on the FIFO queue a
+# deduplication id of the current body, so both runs happen with their own
+# arguments.
 #
 # Regression: the second enqueue resent the first send's body and deduplication
 # id, so the standard queue ran the old arguments twice and the FIFO queue

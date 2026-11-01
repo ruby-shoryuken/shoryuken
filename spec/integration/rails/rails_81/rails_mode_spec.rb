@@ -7,10 +7,10 @@
 # values set by the app (`Rails.configuration`, dotenv) raised
 # `uninitialized constant Rails` or found nothing.
 #
-# Expected behavior: Rails boots and runs its initializers first, then the
-# config file is parsed with access to them. The app eager loads
-# `app/workers`, so the worker is registered for the queue the config names,
-# processes a message and deletes it.
+# Rails boots and runs its initializers first, then the config file is
+# parsed with access to them. The app eager loads `app/workers`, so the
+# worker is registered for the queue the config names, processes a message
+# and deletes it.
 #
 # Regression: #422
 

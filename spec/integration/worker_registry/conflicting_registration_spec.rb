@@ -3,12 +3,11 @@
 # This spec tests `shoryuken start` with workers registered for the same queue
 # more than once.
 #
-# Expected behavior: a batch worker and a second worker on one queue, in either
-# order, stop the process before it starts with an
-# InvalidWorkerRegistrationError naming both workers, and the waiting message
-# is not processed. A non-batch worker whose file is loaded twice (an eager
-# load run twice) registers again without an error, and the process starts and
-# processes the message with it.
+# A batch worker and a second worker on one queue, in either order, stop the
+# process before it starts with an InvalidWorkerRegistrationError naming both
+# workers, and the waiting message is not processed. A non-batch worker whose
+# file is loaded twice (an eager load run twice) registers again without an
+# error, and the process starts and processes the message with it.
 
 def write_workers(dir, queue, marker, batch_first:)
   batch_worker = <<~RUBY

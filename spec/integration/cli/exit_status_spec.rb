@@ -2,8 +2,8 @@
 
 # This spec tests the exit status of `shoryuken` commands called with input Thor rejects.
 #
-# Expected behavior: an unknown command, an unknown option or an extra argument prints the error and exits with
-# status 1, for `start`, `version` and the `sqs` subcommands. Valid calls still exit with status 0.
+# An unknown command, an unknown option or an extra argument prints the error and exits with status
+# 1, for `start`, `version` and the `sqs` subcommands. Valid calls still exit with status 0.
 #
 # Regression: Thor printed the error and a deprecation warning and exited with status 0; an unknown option of a
 # command with an optional argument (`sqs ls --bogus`) was taken as that argument.

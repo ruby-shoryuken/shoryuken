@@ -3,9 +3,9 @@
 # This spec tests that USR1 soft-shuts `shoryuken start` down: it stops fetching, finishes every message it already
 # fetched and exits.
 #
-# Expected behavior: after USR1 the process fires the quiet, shutdown and stopped events in this order and exits with
-# status 0. It fetches no new messages, so part of the queue stays unprocessed and visible, and no fetched message is
-# left in flight. A message returned by a receive that was in flight when USR1 came is processed too.
+# After USR1 the process fires the quiet, shutdown and stopped events in this order and exits with status 0. It
+# fetches no new messages, so part of the queue stays unprocessed and visible, and no fetched message is left in
+# flight. A message returned by a receive that was in flight when USR1 came is processed too.
 #
 # Regression: #677 - a soft shutdown did not wait for an in-flight receive, so the messages it returned stayed in
 # flight unprocessed (#539, fixed in v5.3.1 by #676).

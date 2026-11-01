@@ -10,7 +10,7 @@
 # ShoryukenConcurrentSendAdapter), so shutting it down breaks unrelated work and
 # prevents a fresh launcher from being started in the same process.
 #
-# Expected behavior: the launcher owns a dedicated executor, so stopping it
+# The launcher owns a dedicated executor, so stopping it
 # leaves the global IO executor untouched.
 #
 # Regression: stopping the launcher shut down/killed the global IO executor.

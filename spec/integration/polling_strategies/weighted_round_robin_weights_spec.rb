@@ -3,7 +3,6 @@
 # This spec tests that WeightedRoundRobin, with all queues full, fetches from the
 # queues in the order their weights (8, 4 and 1) give.
 #
-# Expected behavior:
 # - Every queue starts at weight 1, so the first round fetches each queue once
 # - Each fetch that returns messages raises that queue's weight by one, up to
 #   its configured weight
