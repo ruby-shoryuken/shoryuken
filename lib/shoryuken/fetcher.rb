@@ -25,12 +25,16 @@ module Shoryuken
       fetch_with_auto_retry(3) do
         started_at = Time.now
 
-        logger.debug { "Looking for new messages in #{queue}" }
+        Shoryuken.monitor.publish('fetcher.started', queue: queue.name, limit: limit)
 
         sqs_msgs = Array(receive_messages(queue, limit))
 
-        logger.debug { "Found #{sqs_msgs.size} messages for #{queue.name}" } unless sqs_msgs.empty?
-        logger.debug { "Fetcher for #{queue} completed in #{elapsed(started_at)} ms" }
+        Shoryuken.monitor.publish(
+          'fetcher.completed',
+          queue: queue.name,
+          message_count: sqs_msgs.size,
+          duration_ms: elapsed(started_at)
+        )
 
         sqs_msgs
       end
@@ -57,7 +61,13 @@ module Shoryuken
 
         attempts += 1
 
-        logger.debug { "Retrying fetch attempt #{attempts}/#{max_attempts} after error: #{e.message}" }
+        Shoryuken.monitor.publish(
+          'fetcher.retry',
+          attempt: attempts,
+          max_attempts: max_attempts,
+          error_message: e.message,
+          error_class: e.class.name
+        )
 
         sleep(backoff_interval(attempts))
 
