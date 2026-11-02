@@ -205,7 +205,7 @@ module Shoryuken
           Thread.current.priority = original_priority
           processor_done(queue_name)
         end
-      rescue Exception # rubocop:disable Lint/RescueException
+      rescue Exception
         # Processor.process already passed the error to the exception handlers. A custom
         # launcher_executor may not guard its threads against it
         nil

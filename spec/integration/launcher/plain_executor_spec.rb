@@ -8,8 +8,8 @@
 # the executor, and Concurrent::Promise accepts only a Concurrent::ExecutorService,
 # so every assign raised "executor not recognized" and no message was processed.
 #
-# Expected behavior: the launcher processes and deletes the messages on the
-# plain executor and shuts it down on stop.
+# The launcher processes and deletes the messages on the plain executor and
+# shuts it down on stop.
 
 require 'timeout'
 
