@@ -7,7 +7,10 @@
 # process before it starts with an InvalidWorkerRegistrationError naming both
 # workers, and the waiting message is not processed. A non-batch worker whose
 # file is loaded twice (an eager load run twice) registers again without an
-# error, and the process starts and processes the message with it.
+# error, and the process starts and processes the message with it. A batch
+# worker whose file is loaded twice does the same.
+#
+# Regression: #623
 
 def write_workers(dir, queue, marker, batch_first:)
   batch_worker = <<~RUBY
@@ -39,21 +42,21 @@ def write_workers(dir, queue, marker, batch_first:)
   boot_file
 end
 
-def write_reloaded_worker(dir, queue, marker)
-  worker_file = File.join(dir, 'reloaded_worker.rb')
+def write_reloaded_worker(dir, queue, marker, batch:)
+  worker_file = File.join(dir, "reloaded_worker_#{batch}.rb")
   File.write(worker_file, <<~RUBY)
-    class ReloadedWorker
+    class ReloadedWorker#{batch ? 'Batch' : 'Single'}
       include Shoryuken::Worker
 
-      shoryuken_options queue: '#{queue}', auto_delete: true
+      shoryuken_options queue: '#{queue}', auto_delete: true, batch: #{batch}
 
       def perform(_sqs_msg, body)
-        File.write('#{marker}', body)
+        File.write('#{marker}', Array(body).join)
       end
     end
   RUBY
 
-  boot_file = File.join(dir, 'reload.rb')
+  boot_file = File.join(dir, "reload_#{batch}.rb")
   File.write(boot_file, "load '#{worker_file}'\nload '#{worker_file}'\n")
   boot_file
 end
@@ -86,16 +89,18 @@ with_queue_and_dir do |queue, dir|
   assert_equal(1, queue_size(queue), 'the message must not be deleted')
 end
 
-with_queue_and_dir do |queue, dir|
-  marker = File.join(dir, 'processed')
-  boot_file = write_reloaded_worker(dir, queue, marker)
+[false, true].each do |batch|
+  with_queue_and_dir do |queue, dir|
+    marker = File.join(dir, 'processed')
+    boot_file = write_reloaded_worker(dir, queue, marker, batch: batch)
 
-  Shoryuken::Client.queues(queue).send_message(message_body: 'reloaded')
+    Shoryuken::Client.queues(queue).send_message(message_body: 'reloaded')
 
-  status, output = run_shoryuken_until('-q', queue, '-r', boot_file) { File.exist?(marker) }
+    status, output = run_shoryuken_until('-q', queue, '-r', boot_file) { File.exist?(marker) }
 
-  assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
-  refute(output.include?('InvalidWorkerRegistrationError'), "got: #{output}")
-  assert_equal('reloaded', File.read(marker))
-  assert_equal(0, queue_size(queue), 'the message must be processed and deleted')
+    assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
+    refute(output.include?('InvalidWorkerRegistrationError'), "got: #{output}")
+    assert_equal('reloaded', File.read(marker))
+    assert_equal(0, queue_size(queue), 'the message must be processed and deleted')
+  end
 end
