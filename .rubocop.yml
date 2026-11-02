@@ -92,9 +92,11 @@ Lint/SuppressedException:
 Lint/AssignmentInCondition:
   Enabled: false
 
-# The processor re-raises everything after running the exception handlers
+# The processor re-raises everything after running the exception handlers; the manager
+# keeps it from reaching a custom launcher_executor's threads
 Lint/RescueException:
   Exclude:
+    - 'lib/shoryuken/manager.rb'
     - 'lib/shoryuken/processor.rb'
 
 Lint/ConstantDefinitionInBlock:
