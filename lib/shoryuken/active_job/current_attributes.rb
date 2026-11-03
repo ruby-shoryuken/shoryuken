@@ -109,21 +109,23 @@ module Shoryuken
 
         # Copies the registered CurrentAttributes of the current thread
         #
-        # @return [Hash{String => Hash}, nil] class names mapped to their attributes
+        # @return [Hash{String => Hash}] class names mapped to their attributes
         def current_attributes_snapshot
-          CurrentAttributes.cattrs&.to_h { |_key, klass_name| [klass_name, klass_name.constantize.attributes.dup] }
+          CurrentAttributes.cattrs.to_h { |_key, klass_name| [klass_name, klass_name.constantize.attributes.dup] }
         end
 
         # Sets the CurrentAttributes of a snapshot around the block, restoring the previous values after it
         #
-        # @param snapshot [Hash{String => Hash}, nil] attributes from {#current_attributes_snapshot}
+        # @param snapshot [Hash{String => Hash}, nil] attributes from {#current_attributes_snapshot}, nil when the job
+        #   was enqueued before {CurrentAttributes.persist} was called
         # @yield the send
         # @return [Object] the block result
         def with_current_attributes(snapshot, &block)
-          return yield if snapshot.nil? || snapshot.empty?
+          return yield unless snapshot
 
+          # A proc, not a lambda: CurrentAttributes.set yields the instance to the block
           snapshot
-            .reduce(block) { |inner, (klass_name, attrs)| -> { klass_name.constantize.set(attrs, &inner) } }
+            .reduce(block) { |inner, (klass_name, attrs)| proc { klass_name.constantize.set(attrs, &inner) } }
             .call
         end
 
