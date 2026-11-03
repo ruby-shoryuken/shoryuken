@@ -8,19 +8,19 @@ require 'async'
 
 setup_sqs
 
+worker = Class.new do
+  include Shoryuken::Worker
+
+  shoryuken_options auto_delete: true
+
+  def perform(_sqs_msg, body)
+    DT[:bodies] << body
+  end
+end
+
 with_queue_and_dir do |queue, _dir|
   Shoryuken.add_group('default', 2)
   Shoryuken.add_queue(queue, 1, 'default')
-
-  worker = Class.new do
-    include Shoryuken::Worker
-
-    shoryuken_options auto_delete: true
-
-    def perform(_sqs_msg, body)
-      DT[:bodies] << body
-    end
-  end
 
   worker.get_shoryuken_options['queue'] = queue
   Shoryuken.register_worker(queue, worker)

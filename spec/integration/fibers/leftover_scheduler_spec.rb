@@ -16,25 +16,25 @@ Shoryuken.logger = Logger.new(log)
 executor = Concurrent::FixedThreadPool.new(1)
 Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
+worker = Class.new do
+  include Shoryuken::Worker
+
+  shoryuken_options auto_delete: true
+
+  def perform(_sqs_msg, body)
+    if body == 'leave'
+      Fiber.set_scheduler(Async::Scheduler.new)
+    else
+      Sync { sleep(0.05) }
+    end
+
+    DT[:jobs] << { body: body, thread: Thread.current.object_id }
+  end
+end
+
 with_queue_and_dir(fifo: true) do |queue, _dir|
   Shoryuken.add_group('default', 1)
   Shoryuken.add_queue(queue, 1, 'default')
-
-  worker = Class.new do
-    include Shoryuken::Worker
-
-    shoryuken_options auto_delete: true
-
-    def perform(_sqs_msg, body)
-      if body == 'leave'
-        Fiber.set_scheduler(Async::Scheduler.new)
-      else
-        Sync { sleep(0.05) }
-      end
-
-      DT[:jobs] << { body: body, thread: Thread.current.object_id }
-    end
-  end
 
   worker.get_shoryuken_options['queue'] = queue
   Shoryuken.register_worker(queue, worker)

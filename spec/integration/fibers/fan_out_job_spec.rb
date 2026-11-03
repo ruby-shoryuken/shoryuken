@@ -11,36 +11,36 @@ setup_sqs
 log = StringIO.new
 Shoryuken.logger = Logger.new(log)
 
+worker = Class.new do
+  include Shoryuken::Worker
+
+  shoryuken_options auto_delete: true
+
+  def perform(_sqs_msg, body)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    results = Sync do |task|
+      tasks = Array.new(5) do |i|
+        task.async do
+          sleep(0.2)
+          "#{body}-#{i}"
+        end
+      end
+
+      tasks.map(&:wait)
+    end
+
+    DT[:jobs] << {
+      results: results,
+      elapsed: Process.clock_gettime(Process::CLOCK_MONOTONIC) - started,
+      scheduler: Fiber.scheduler
+    }
+  end
+end
+
 with_queue_and_dir do |queue, _dir|
   Shoryuken.add_group('default', 2)
   Shoryuken.add_queue(queue, 1, 'default')
-
-  worker = Class.new do
-    include Shoryuken::Worker
-
-    shoryuken_options auto_delete: true
-
-    def perform(_sqs_msg, body)
-      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-      results = Sync do |task|
-        tasks = Array.new(5) do |i|
-          task.async do
-            sleep(0.2)
-            "#{body}-#{i}"
-          end
-        end
-
-        tasks.map(&:wait)
-      end
-
-      DT[:jobs] << {
-        results: results,
-        elapsed: Process.clock_gettime(Process::CLOCK_MONOTONIC) - started,
-        scheduler: Fiber.scheduler
-      }
-    end
-  end
 
   worker.get_shoryuken_options['queue'] = queue
   Shoryuken.register_worker(queue, worker)
