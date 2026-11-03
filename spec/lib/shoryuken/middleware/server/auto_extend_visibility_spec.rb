@@ -1,5 +1,20 @@
 # frozen_string_literal: true
 
+# We need to run our worker inside actor context.
+class Runner
+  def run_and_sleep(worker, queue, sqs_msg, interval)
+    Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
+      sleep interval
+    end
+  end
+
+  def run_and_raise(worker, queue, sqs_msg)
+    Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
+      raise
+    end
+  end
+end
+
 RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
   let(:queue) { 'default' }
   let(:visibility_timeout) { 3 }
@@ -8,21 +23,6 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
 
   def build_message
     double Shoryuken::Message, queue_url: queue, body: 'test', receipt_handle: SecureRandom.uuid
-  end
-
-  # We need to run our worker inside actor context.
-  class Runner
-    def run_and_sleep(worker, queue, sqs_msg, interval)
-      Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
-        sleep interval
-      end
-    end
-
-    def run_and_raise(worker, queue, sqs_msg)
-      Shoryuken::Middleware::Server::AutoExtendVisibility.new.call(worker, queue, sqs_msg, sqs_msg.body) do
-        raise
-      end
-    end
   end
 
   let(:sqs_msg) { build_message }
@@ -66,14 +66,61 @@ RSpec.describe Shoryuken::Middleware::Server::AutoExtendVisibility do
   end
 
   context 'when batch worker with auto_visibility_timeout' do
-    it 'warns and does not extend visibility for batch workers' do
-      TestWorker.get_shoryuken_options['auto_visibility_timeout'] = true
+    let(:batch_worker_class) do
+      Class.new do
+        include Shoryuken::Worker
 
-      expect(Shoryuken.logger).to receive(:warn) do |&block|
-        expect(block.call).to include("Auto extend visibility isn't supported for batch workers")
+        shoryuken_options queue: 'batch', batch: true, auto_visibility_timeout: true
+
+        def perform(sqs_msgs, bodies); end
+      end
+    end
+
+    it 'warns once per worker class and does not extend visibility for the batches' do
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+      expect(Shoryuken::Helpers::TimerTask).not_to receive(:new)
+
+      2.times do
+        expect { |b| subject.call(batch_worker_class.new, queue, [sqs_msg], nil, &b) }.to yield_control
       end
 
-      expect { |b| subject.call(TestWorker.new, queue, [sqs_msg], nil, &b) }.to yield_control
+      expect(warnings).to eq(
+        ["Auto extend visibility isn't supported for batch workers, skipping it for #{batch_worker_class}"]
+      )
+    end
+
+    it 'warns again for another worker class' do
+      other_worker_class = Class.new(batch_worker_class)
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+
+      subject.call(batch_worker_class.new, queue, [sqs_msg], nil) {}
+      subject.call(other_worker_class.new, queue, [sqs_msg], nil) {}
+
+      expect(warnings.size).to eq(2)
+    end
+
+    it 'warns once for a worker class defined again under the same name' do
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+
+      %w[batch-1 batch-2].each do |batch_queue|
+        stub_const(
+          'BatchAutoExtendReloadedWorker',
+          Class.new do
+            include Shoryuken::Worker
+
+            shoryuken_options queue: batch_queue, batch: true, auto_visibility_timeout: true
+
+            def perform(sqs_msgs, bodies); end
+          end
+        )
+
+        subject.call(BatchAutoExtendReloadedWorker.new, queue, [sqs_msg], nil) {}
+      end
+
+      expect(warnings.size).to eq(1)
     end
   end
 

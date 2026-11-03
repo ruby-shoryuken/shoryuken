@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: A batch worker with `retry_intervals` or `auto_visibility_timeout` logs the "isn't supported for batch workers"
+  warning once per worker class, not on every batch
+  - The warning names the worker class; both options stay skipped for batches
+
 - Fix: `Shoryuken::Worker::InlineExecutor` runs a worker that never calls `shoryuken_options`
   - It raised `NoMethodError`; the worker now uses `Shoryuken.default_worker_options`, so `batch` set only there
     gives the batch call shape
