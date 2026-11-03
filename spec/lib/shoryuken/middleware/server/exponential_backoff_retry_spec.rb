@@ -73,6 +73,28 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
 
       expect(warnings.size).to eq(2)
     end
+
+    it 'warns once for a worker class defined again under the same name' do
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+
+      %w[batch-1 batch-2].each do |batch_queue|
+        stub_const(
+          'BatchBackoffReloadedWorker',
+          Class.new do
+            include Shoryuken::Worker
+
+            shoryuken_options queue: batch_queue, batch: true, retry_intervals: [300]
+
+            def perform(sqs_msgs, bodies); end
+          end
+        )
+
+        subject.call(BatchBackoffReloadedWorker.new, queue, [sqs_msg], nil) {}
+      end
+
+      expect(warnings.size).to eq(1)
+    end
   end
 
   context 'when no exception' do

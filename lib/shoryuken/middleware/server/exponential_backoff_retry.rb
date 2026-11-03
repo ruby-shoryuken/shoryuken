@@ -65,9 +65,11 @@ module Shoryuken
         # @param worker_class [Class] the batch worker class
         # @return [void]
         def warn_batch_unsupported(worker_class)
-          return if BATCH_WARNED[worker_class]
+          # Keyed by name: a code reload defines a new class object for the same worker
+          key = worker_class.name || worker_class
+          return if BATCH_WARNED[key]
 
-          BATCH_WARNED[worker_class] = true
+          BATCH_WARNED[key] = true
           logger.warn { "Exponential backoff isn't supported for batch workers, skipping it for #{worker_class}" }
         end
 
