@@ -65,7 +65,7 @@ module Shoryuken
         # @return [Object] the result of the worker's perform method
         def call(worker_class, sqs_msg)
           parsed_body = BodyParser.parse(worker_class, sqs_msg)
-          batch = worker_class.shoryuken_options_hash['batch']
+          batch = worker_class.get_shoryuken_options['batch']
           args = batch ? [[sqs_msg], [parsed_body]] : [sqs_msg, parsed_body]
           worker_class.new.perform(*args)
         end

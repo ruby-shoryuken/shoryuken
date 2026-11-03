@@ -37,6 +37,33 @@ RSpec.describe Shoryuken::Worker::InlineExecutor do
       # hash routes later jobs correctly instead of falling back to the default.
       expect(options).to eq(queue: 'a_queue', message_attributes: { 'custom' => { string_value: 'v', data_type: 'String' } })
     end
+
+    context 'when the worker has no shoryuken_options' do
+      let(:worker_class) do
+        stub_const(
+          'NoOptionsWorker',
+          Class.new do
+            include Shoryuken::Worker
+
+            def perform(sqs_msg, body); end
+          end
+        )
+      end
+
+      it 'uses the default worker options' do
+        expect_any_instance_of(worker_class).to receive(:perform).with(kind_of(Shoryuken::InlineMessage), 'test')
+
+        worker_class.perform_async('test')
+      end
+
+      it 'passes a batch when the default worker options enable batch' do
+        allow(Shoryuken).to receive(:default_worker_options).and_return('queue' => 'default', 'batch' => true)
+
+        expect_any_instance_of(worker_class).to receive(:perform).with([kind_of(Shoryuken::InlineMessage)], ['test'])
+
+        worker_class.perform_async('test')
+      end
+    end
   end
 
   describe '.perform_in' do

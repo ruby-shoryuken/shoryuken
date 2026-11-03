@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: `Shoryuken::Worker::InlineExecutor` runs a worker that never calls `shoryuken_options`
+  - It raised `NoMethodError`; the worker now uses `Shoryuken.default_worker_options`, so `batch` set only there
+    gives the batch call shape
+
 - Fix: A batch worker registered again for its queue no longer raises `Shoryuken::Errors::InvalidWorkerRegistrationError`
   (#623)
   - Covers a worker file loaded twice and a Rails code reload that defines the worker class again
