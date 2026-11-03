@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+- Fix: `ShoryukenConcurrentSendAdapter` keeps the CurrentAttributes registered with
+  `Shoryuken::ActiveJob::CurrentAttributes.persist`
+  - The message was built on the executor thread, so every job was sent without them
+
+- Fix: A job that leaves a Fiber scheduler set (`Fiber.set_scheduler`) no longer breaks later jobs on its thread
+  - Shoryuken sets the scheduler of the thread back to the one before the job and logs a warning
+  - A later job using Async's `Sync` with a blocking call waited forever on the scheduler left behind
+
 - Fix: A batch worker with `retry_intervals` or `auto_visibility_timeout` logs the "isn't supported for batch workers"
   warning once per worker class, not on every batch
   - The warning names the worker class; both options stay skipped for batches

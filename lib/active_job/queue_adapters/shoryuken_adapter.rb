@@ -227,6 +227,23 @@ module ActiveJob
         Digest::SHA256.hexdigest(JSON.dump(body.except('job_id', 'enqueued_at')))
       end
 
+      # Captures the CurrentAttributes of the caller for a send that runs on another thread. None without
+      # Shoryuken::ActiveJob::CurrentAttributes.persist, which overrides it.
+      #
+      # @return [Hash, nil] the captured attributes
+      def current_attributes_snapshot
+        nil
+      end
+
+      # Runs a send with captured CurrentAttributes set
+      #
+      # @param _snapshot [Hash, nil] attributes from {#current_attributes_snapshot}
+      # @yield the send
+      # @return [Object] the block result
+      def with_current_attributes(_snapshot)
+        yield
+      end
+
       # Registers the JobWrapper as the worker for the job's queue
       #
       # @param job [ActiveJob::Base] the job being enqueued

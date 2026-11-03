@@ -107,6 +107,26 @@ module Shoryuken
           hash
         end
 
+        # Copies the registered CurrentAttributes of the current thread
+        #
+        # @return [Hash{String => Hash}, nil] class names mapped to their attributes
+        def current_attributes_snapshot
+          CurrentAttributes.cattrs&.to_h { |_key, klass_name| [klass_name, klass_name.constantize.attributes.dup] }
+        end
+
+        # Sets the CurrentAttributes of a snapshot around the block, restoring the previous values after it
+        #
+        # @param snapshot [Hash{String => Hash}, nil] attributes from {#current_attributes_snapshot}
+        # @yield the send
+        # @return [Object] the block result
+        def with_current_attributes(snapshot, &block)
+          return yield if snapshot.nil? || snapshot.empty?
+
+          snapshot
+            .reduce(block) { |inner, (klass_name, attrs)| -> { klass_name.constantize.set(attrs, &inner) } }
+            .call
+        end
+
         # Computes the FIFO deduplication id of a job body without the CurrentAttributes keys, which #message adds
         # after the id is computed: an id generated for a sent body is then recognised when the job is enqueued again
         #
