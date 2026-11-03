@@ -122,38 +122,42 @@ RSpec.describe Shoryuken::Processor do
       subject.process
     end
 
-    let(:scheduler) do
-      Class.new do
-        def block(*); end
-        def unblock(*); end
-        def kernel_sleep(*); end
-        def io_wait(*); end
-        def close; end
-      end.new
-    end
-
-    it 'sets back a Fiber scheduler the worker left set and logs a warning' do
-      allow_any_instance_of(TestWorker).to receive(:perform) { Fiber.set_scheduler(scheduler) }
-      allow(sqs_queue).to receive(:delete_messages)
-
-      expect(Shoryuken.logger).to receive(:warn) do |&block|
-        expect(block.call).to eq("A job on #{queue} left a Fiber scheduler set; Shoryuken removed it after the job")
+    context 'when the worker leaves a Fiber scheduler set' do
+      let(:scheduler) do
+        Class.new do
+          def block(*); end
+          def unblock(*); end
+          def kernel_sleep(*); end
+          def io_wait(*); end
+          def close; end
+        end.new
       end
 
-      subject.process
+      it 'sets back the previous scheduler and logs a warning' do
+        allow_any_instance_of(TestWorker).to receive(:perform) { Fiber.set_scheduler(scheduler) }
+        allow(sqs_queue).to receive(:delete_messages)
 
-      expect(Fiber.scheduler).to be_nil
-    end
+        expect(Shoryuken.logger).to receive(:warn) do |&block|
+          expect(block.call).to eq(
+            "A job on #{queue} left a Fiber scheduler set; Shoryuken set back the previous one after the job"
+          )
+        end
 
-    it 'sets back a Fiber scheduler the worker left set when the worker raises' do
-      allow_any_instance_of(TestWorker).to receive(:perform) do
-        Fiber.set_scheduler(scheduler)
-        raise 'failed'
+        subject.process
+
+        expect(Fiber.scheduler).to be_nil
       end
-      allow(Shoryuken.logger).to receive(:warn)
 
-      expect { subject.process }.to raise_error('failed')
-      expect(Fiber.scheduler).to be_nil
+      it 'sets back the previous scheduler when the worker raises' do
+        allow_any_instance_of(TestWorker).to receive(:perform) do
+          Fiber.set_scheduler(scheduler)
+          raise 'failed'
+        end
+        allow(Shoryuken.logger).to receive(:warn)
+
+        expect { subject.process }.to raise_error('failed')
+        expect(Fiber.scheduler).to be_nil
+      end
     end
 
     it 'does not warn when the worker leaves no Fiber scheduler set' do

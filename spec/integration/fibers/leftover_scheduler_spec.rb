@@ -47,6 +47,9 @@ with_queue_and_dir(fifo: true) do |queue, _dir|
 
   assert_equal(%w[leave sync-1 sync-2], DT[:jobs].map { |job| job[:body] })
   assert_equal(1, DT[:jobs].map { |job| job[:thread] }.uniq.size, 'all jobs must run on one thread')
-  assert_includes(log.string, "A job on #{queue} left a Fiber scheduler set; Shoryuken removed it after the job")
+  assert_includes(
+    log.string,
+    "A job on #{queue} left a Fiber scheduler set; Shoryuken set back the previous one after the job"
+  )
   assert_equal(0, queue_size(queue))
 end

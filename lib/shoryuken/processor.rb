@@ -71,7 +71,7 @@ module Shoryuken
     def restore_fiber_scheduler(scheduler)
       return if Fiber.scheduler.equal?(scheduler)
 
-      logger.warn { "A job on #{queue} left a Fiber scheduler set; Shoryuken removed it after the job" }
+      logger.warn { "A job on #{queue} left a Fiber scheduler set; Shoryuken set back the previous one after the job" }
       Fiber.set_scheduler(scheduler)
     end
 
