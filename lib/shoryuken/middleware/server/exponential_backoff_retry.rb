@@ -8,6 +8,10 @@ module Shoryuken
       class ExponentialBackoffRetry
         include Util
 
+        # Batch worker classes already warned that exponential backoff is skipped for them
+        BATCH_WARNED = Helpers::AtomicHash.new
+        private_constant :BATCH_WARNED
+
         # Processes a message with exponential backoff retry on failure
         #
         # @param worker [Object] the worker instance
@@ -22,7 +26,7 @@ module Shoryuken
           return yield unless worker.class.exponential_backoff?
 
           if sqs_msg.is_a?(Array)
-            logger.warn { "Exponential backoff isn't supported for batch workers" }
+            warn_batch_unsupported(worker.class)
             return yield
           end
 
@@ -55,6 +59,17 @@ module Shoryuken
         end
 
         private
+
+        # Logs once per worker class that its batches are not backoff retried
+        #
+        # @param worker_class [Class] the batch worker class
+        # @return [void]
+        def warn_batch_unsupported(worker_class)
+          return if BATCH_WARNED[worker_class]
+
+          BATCH_WARNED[worker_class] = true
+          logger.warn { "Exponential backoff isn't supported for batch workers, skipping it for #{worker_class}" }
+        end
 
         # Gets the retry interval for a given attempt number
         #

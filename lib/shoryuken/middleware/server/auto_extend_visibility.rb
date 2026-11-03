@@ -11,6 +11,10 @@ module Shoryuken
         # Number of seconds before timeout to extend visibility
         EXTEND_UPFRONT_SECONDS = 5
 
+        # Batch worker classes already warned that visibility auto extension is skipped for them
+        BATCH_WARNED = Helpers::AtomicHash.new
+        private_constant :BATCH_WARNED
+
         # Processes a message with automatic visibility timeout extension
         #
         # @param worker [Object] the worker instance
@@ -23,14 +27,14 @@ module Shoryuken
           return yield unless worker.class.auto_visibility_timeout?
 
           if sqs_msg.is_a?(Array)
-            logger.warn { "Auto extend visibility isn't supported for batch workers" }
+            warn_batch_unsupported(worker.class)
             return yield
           end
 
           timer = auto_visibility_timer(worker, queue, sqs_msg, body)
           yield
         ensure
-          timer.kill if timer
+          timer&.kill
         end
 
         private
@@ -105,6 +109,17 @@ module Shoryuken
             interval = visibility_timeout / 2.0 if interval <= 0
             interval
           end
+        end
+
+        # Logs once per worker class that its batches do not get their visibility auto extended
+        #
+        # @param worker_class [Class] the batch worker class
+        # @return [void]
+        def warn_batch_unsupported(worker_class)
+          return if BATCH_WARNED[worker_class]
+
+          BATCH_WARNED[worker_class] = true
+          logger.warn { "Auto extend visibility isn't supported for batch workers, skipping it for #{worker_class}" }
         end
 
         # Creates and starts a visibility extension timer

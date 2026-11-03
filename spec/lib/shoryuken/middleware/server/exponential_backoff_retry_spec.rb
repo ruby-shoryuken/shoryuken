@@ -36,6 +36,45 @@ RSpec.describe Shoryuken::Middleware::Server::ExponentialBackoffRetry do
     end
   end
 
+  context 'when batch worker with retry_intervals' do
+    let(:batch_worker_class) do
+      Class.new do
+        include Shoryuken::Worker
+
+        shoryuken_options queue: 'batch', batch: true, retry_intervals: [300]
+
+        def perform(sqs_msgs, bodies); end
+      end
+    end
+
+    it 'warns once per worker class and does not retry the batches' do
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+      expect(sqs_msg).not_to receive(:change_visibility)
+
+      2.times do
+        expect {
+          subject.call(batch_worker_class.new, queue, [sqs_msg], nil) { raise 'batch error' }
+        }.to raise_error(RuntimeError, 'batch error')
+      end
+
+      expect(warnings).to eq(
+        ["Exponential backoff isn't supported for batch workers, skipping it for #{batch_worker_class}"]
+      )
+    end
+
+    it 'warns again for another worker class' do
+      other_worker_class = Class.new(batch_worker_class)
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+
+      subject.call(batch_worker_class.new, queue, [sqs_msg], nil) {}
+      subject.call(other_worker_class.new, queue, [sqs_msg], nil) {}
+
+      expect(warnings.size).to eq(2)
+    end
+  end
+
   context 'when no exception' do
     it 'does not retry' do
       TestWorker.get_shoryuken_options['retry_intervals'] = [300, 1800]
