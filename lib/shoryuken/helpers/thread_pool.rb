@@ -31,7 +31,7 @@ module Shoryuken
         # Started outside the mutex: under a burst of posts, holding it here keeps finished threads from becoming idle,
         # so every post starts yet another thread
         begin
-          thread = Thread.new(block) { |task| work(task) }
+          thread = start_thread([block])
         ensure
           @mutex.synchronize do
             @threads << thread if thread
@@ -120,14 +120,23 @@ module Shoryuken
         end
       end
 
+      # Starts a pool thread. The block is passed in an Array the thread empties, and from a method without other
+      # locals, so an idle thread keeps no reference to a block it already ran (or to what that block captured)
+      #
+      # @param pending [Array<Proc>] the first block to run
+      # @return [Thread] the started thread
+      def start_thread(pending)
+        Thread.new(pending) { |tasks| work(tasks) }
+      end
+
       # Runs blocks on the current pool thread until the pool shuts down or the thread stays idle for too long
       #
-      # @param task [Proc] the first block to run
+      # @param pending [Array<Proc>] the next block to run
       # @return [void]
-      def work(task)
-        while task
-          run(task)
-          task = next_task
+      def work(pending)
+        until pending.empty?
+          run(pending.shift)
+          next_task(pending)
         end
       end
 
@@ -142,16 +151,18 @@ module Shoryuken
         Shoryuken.logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
       end
 
-      # Waits for the next posted block. The mutex is held only with interrupts deferred: a thread killed while it
-      # waits for a Mutex can consume the unlock wakeup and leave the other waiters asleep forever.
+      # Waits for the next posted block and adds it to pending; leaves pending empty when the thread must exit. The mutex
+      # is held only with interrupts deferred: a thread killed while it waits for a Mutex can consume the unlock wakeup
+      # and leave the other waiters asleep forever.
       #
-      # @return [Proc, nil] the next block, or nil when the thread must exit
-      def next_task
+      # @param pending [Array<Proc>] receives the next block
+      # @return [void]
+      def next_task(pending)
         Thread.handle_interrupt(Object => :never) { @mutex.synchronize { @idle += 1 } }
 
         loop do
           task = @queue.pop(timeout: IDLE_TIMEOUT)
-          return task if task
+          return pending << task if task
           return if @queue.closed?
           return if Thread.handle_interrupt(Object => :never) { @mutex.synchronize { retire_idle_thread } }
         end
