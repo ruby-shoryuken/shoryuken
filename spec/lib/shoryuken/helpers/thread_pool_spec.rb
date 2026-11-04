@@ -15,7 +15,12 @@ RSpec.describe Shoryuken::Helpers::ThreadPool do
       ran_on = Queue.new
       release = Queue.new
 
-      expect(pool.post { ran_on << Thread.current and release.pop }).to be true
+      accepted = pool.post do
+        ran_on << Thread.current
+        release.pop
+      end
+
+      expect(accepted).to be true
 
       expect(ran_on.pop(timeout: 5)).not_to eq(Thread.current)
       release << true
@@ -25,7 +30,12 @@ RSpec.describe Shoryuken::Helpers::ThreadPool do
       release = Queue.new
       threads = Queue.new
 
-      2.times { pool.post { threads << Thread.current and release.pop } }
+      2.times do
+        pool.post do
+          threads << Thread.current
+          release.pop
+        end
+      end
 
       expect([threads.pop(timeout: 5), threads.pop(timeout: 5)].uniq.size).to eq(2)
       2.times { release << true }
@@ -56,6 +66,15 @@ RSpec.describe Shoryuken::Helpers::ThreadPool do
 
       expect(threads.pop(timeout: 5)).to eq(first)
       expect(Shoryuken.logger).to have_received(:error)
+    end
+
+    it 'raises the error of a thread that cannot start and still shuts down' do
+      allow(Thread).to receive(:new).and_raise(ThreadError, "can't create Thread")
+
+      expect { pool.post {} }.to raise_error(ThreadError)
+
+      pool.shutdown
+      expect(pool.wait_for_termination(1)).to be true
     end
 
     it 'raises RejectedExecutionError once shut down' do

@@ -15,6 +15,7 @@ module Shoryuken
         @queue = ::Queue.new
         @threads = Set.new
         @idle = 0
+        @starting = 0
         @running = true
       end
 
@@ -25,14 +26,16 @@ module Shoryuken
       # @return [true] once the block is accepted
       # @raise [Shoryuken::Errors::RejectedExecutionError] when the pool is shut down
       def post(&block)
-        @mutex.synchronize do
-          raise Errors::RejectedExecutionError, 'The thread pool is shut down' unless @running
+        return true unless needs_thread?(block)
 
-          if @idle.positive?
-            @idle -= 1
-            @queue << block
-          else
-            @threads << Thread.new(block) { |task| work(task) }
+        # Started outside the mutex: under a burst of posts, holding it here keeps finished threads from becoming idle,
+        # so every post starts yet another thread
+        begin
+          thread = Thread.new(block) { |task| work(task) }
+        ensure
+          @mutex.synchronize do
+            @threads << thread if thread
+            @starting -= 1
           end
         end
 
@@ -62,7 +65,6 @@ module Shoryuken
       # @return [Boolean] true if all threads finished, false if the timeout elapsed first
       def wait_for_termination(timeout = nil)
         deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout if timeout
-        threads = @mutex.synchronize { @threads.to_a }
 
         threads.all? do |thread|
           remaining = [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
@@ -74,11 +76,10 @@ module Shoryuken
       #
       # @return [void]
       def kill
-        threads = @mutex.synchronize do
+        @mutex.synchronize do
           @running = false
           @queue.close
           @queue.clear
-          @threads.to_a
         end
 
         # Killed outside the mutex: Thread#kill can hand the GVL to the killed thread before it returns
@@ -86,6 +87,38 @@ module Shoryuken
       end
 
       private
+
+      # Hands the block to an idle thread, or reserves the start of a new thread for it
+      #
+      # @param block [Proc] the posted block
+      # @return [Boolean] true if the caller must start a new thread for the block
+      # @raise [Shoryuken::Errors::RejectedExecutionError] when the pool is shut down
+      def needs_thread?(block)
+        @mutex.synchronize do
+          raise Errors::RejectedExecutionError, 'The thread pool is shut down' unless @running
+
+          if @idle.positive?
+            @idle -= 1
+            @queue << block
+            false
+          else
+            @starting += 1
+            true
+          end
+        end
+      end
+
+      # Returns the pool threads, including the ones a post accepted before a shutdown is still starting
+      #
+      # @return [Array<Thread>] the pool threads
+      def threads
+        loop do
+          threads = @mutex.synchronize { @threads.to_a if @starting.zero? }
+          return threads if threads
+
+          Thread.pass
+        end
+      end
 
       # Runs blocks on the current pool thread until the pool shuts down or the thread stays idle for too long
       #
