@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+- Breaking: Shoryuken no longer depends on `concurrent-ruby` and no longer requires it
+  - Code that uses concurrent-ruby without depending on it itself must add `gem 'concurrent-ruby'` and
+    `require 'concurrent'`
+  - The default `launcher_executor` is `Shoryuken::Helpers::ThreadPool` instead of `Concurrent::CachedThreadPool`
+  - `ShoryukenConcurrentSendAdapter#enqueue` returns a `Shoryuken::Helpers::Future` (`wait`, `value`, `reason`,
+    `resolved?`, `fulfilled?`, `rejected?`) instead of a `Concurrent::Promises::Future`; its sends run on a thread
+    pool of the adapter instead of `Concurrent.global_io_executor`
+  - A custom `launcher_executor` signals a rejected `post` with `Shoryuken::Errors::RejectedExecutionError`;
+    `Concurrent::RejectedExecutionError` still counts when concurrent-ruby is loaded
+  - `shoryuken start` no longer sends concurrent-ruby's log (`Concurrent.global_logger`) to the Shoryuken logger
+
 - Fix: `ShoryukenConcurrentSendAdapter` keeps the CurrentAttributes registered with
   `Shoryuken::ActiveJob::CurrentAttributes.persist`
   - The message was built on the executor thread, so every job was sent without them

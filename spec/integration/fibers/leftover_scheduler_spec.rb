@@ -9,11 +9,47 @@
 
 require 'async'
 
+# Runs every posted block on one thread, in order
+class SingleThreadExecutor
+  def initialize
+    @tasks = Queue.new
+    @thread = Thread.new do
+      while (task = @tasks.pop)
+        task.call
+      end
+    end
+  end
+
+  def post(&block)
+    raise Shoryuken::Errors::RejectedExecutionError if @tasks.closed?
+
+    @tasks << block
+    true
+  end
+
+  def running?
+    !@tasks.closed?
+  end
+
+  def shutdown
+    @tasks.close
+  end
+
+  def wait_for_termination(timeout = nil)
+    !@thread.join(timeout).nil?
+  end
+
+  def kill
+    shutdown
+    @thread.kill
+  end
+end
+
 setup_sqs
 
 log = StringIO.new
 Shoryuken.logger = Logger.new(log)
-executor = Concurrent::FixedThreadPool.new(1)
+executor = SingleThreadExecutor.new
 Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
 worker = Class.new do

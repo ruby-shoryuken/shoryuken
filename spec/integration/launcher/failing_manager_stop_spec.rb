@@ -49,7 +49,7 @@ end
   Shoryuken.register_worker(queue_name, worker)
 end
 
-executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+executor = Shoryuken::Helpers::ThreadPool.new
 Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
 launcher = Shoryuken::Launcher.new

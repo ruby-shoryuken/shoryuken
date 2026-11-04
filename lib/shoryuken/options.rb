@@ -42,11 +42,11 @@ module Shoryuken
     )
 
     # Executor the launcher runs the dispatch loops and the workers on. When nil, the launcher uses its own
-    # `Concurrent::CachedThreadPool`. It does not have to be a concurrent-ruby executor: any object with these
-    # methods works:
+    # {Shoryuken::Helpers::ThreadPool}. Any object with these methods works, a concurrent-ruby executor too:
     # - `post { ... }` runs the block on another thread and returns without waiting for it, or raises
-    #   `Concurrent::RejectedExecutionError` when it rejects it. The dispatch loop posts its next cycle from inside the
-    #   block, so an executor that runs it in the calling thread overflows the stack
+    #   {Shoryuken::Errors::RejectedExecutionError} (or `Concurrent::RejectedExecutionError`) when it rejects it. The
+    #   dispatch loop posts its next cycle from inside the block, so an executor that runs it in the calling thread
+    #   overflows the stack
     # - `running?` returns false once the executor is shut down
     # - `shutdown` stops accepting new blocks and lets the posted ones finish
     # - `wait_for_termination(timeout)` waits up to `timeout` seconds (nil: no limit) for the posted blocks to

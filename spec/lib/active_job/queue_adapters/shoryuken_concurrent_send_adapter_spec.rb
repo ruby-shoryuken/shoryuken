@@ -12,7 +12,10 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
   let(:success_handler) { -> {} }
 
   before do
-    allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
+    allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post) do |_pool, &block|
+      block.call
+      true
+    end
   end
 
   subject { described_class.new(success_handler, error_handler) }
@@ -39,20 +42,14 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
   end
 
   describe '#wait_for_pending_sends' do
-    # Use a real async executor (instead of the ImmediateExecutor stubbed above)
+    # Run sends on real threads (instead of in the caller, as stubbed above)
     # so sends are genuinely in-flight and the drain has something to wait for.
-    let(:pool) { Concurrent::FixedThreadPool.new(2) }
     let(:success_handler) { ->(_response, _job, _options) {} }
     let(:error_handler) { ->(_error, _job, _options) {} }
 
     before do
-      allow(Concurrent).to receive(:global_io_executor).and_return(pool)
+      allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post).and_call_original
       allow(Shoryuken).to receive(:register_worker)
-    end
-
-    after do
-      pool.shutdown
-      pool.wait_for_termination(5)
     end
 
     it 'returns true when there are no pending sends' do
@@ -60,7 +57,7 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
     end
 
     it 'blocks until an in-flight send completes' do
-      completed = Concurrent::AtomicBoolean.new(false)
+      completed = Shoryuken::Helpers::AtomicBoolean.new(false)
       allow(queue).to receive(:send_message) do
         sleep 0.3
         completed.make_true
@@ -73,28 +70,28 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(subject.wait_for_pending_sends(5)).to be true
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
-      expect(completed.value).to be true
+      expect(completed.true?).to be true
       expect(elapsed).to be >= 0.2
     end
 
     it 'does not start a send before it is tracked, so a drain cannot miss it' do
-      started = Concurrent::Event.new
+      started = Shoryuken::Helpers::AtomicBoolean.new(false)
       allow(queue).to receive(:send_message) do
-        started.set
+        started.make_true
         true
       end
 
-      started_untracked = nil
-      allow(subject).to receive(:track_pending_send).and_wrap_original do |original, future|
-        started_untracked = started.wait(0.5)
-        original.call(future)
+      tracked_before_post = nil
+      allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post).and_wrap_original do |original, &block|
+        tracked_before_post = !subject.wait_for_pending_sends(0)
+        original.call(&block)
       end
 
       subject.enqueue(job, options)
 
-      expect(started_untracked).to be false
+      expect(tracked_before_post).to be true
       expect(subject.wait_for_pending_sends(5)).to be true
-      expect(started).to be_set
+      expect(started.true?).to be true
     end
 
     it 'returns false when sends do not finish within the timeout' do

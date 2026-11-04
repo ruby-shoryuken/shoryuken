@@ -43,8 +43,6 @@ module Shoryuken
 
       loader.load
 
-      initialize_concurrent_logger
-
       @launcher = Shoryuken::Launcher.new
 
       begin
@@ -68,17 +66,6 @@ module Shoryuken
     end
 
     private
-
-    # Initializes the Concurrent Ruby logger
-    #
-    # @return [void]
-    def initialize_concurrent_logger
-      return unless Shoryuken.logger
-
-      Concurrent.global_logger = lambda do |level, progname, msg = nil, &block|
-        Shoryuken.logger.log(level, msg, progname, &block)
-      end
-    end
 
     # Daemonizes the process
     #

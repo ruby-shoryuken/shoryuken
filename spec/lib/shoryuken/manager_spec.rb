@@ -12,7 +12,14 @@ RSpec.describe Shoryuken::Manager do
   let(:polling_strategy) { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
   let(:fetcher) { double Shoryuken::Fetcher }
   let(:concurrency) { 1 }
-  let(:executor) { Concurrent::ImmediateExecutor.new }
+  let(:executor) do
+    double('executor', running?: true).tap do |immediate_executor|
+      allow(immediate_executor).to receive(:post) do |&block|
+        block.call
+        true
+      end
+    end
+  end
 
   subject { Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor) }
 
@@ -62,7 +69,7 @@ RSpec.describe Shoryuken::Manager do
     context 'when the executor rejects the dispatch post' do
       let(:executor) do
         double('executor', running?: true).tap do |rejecting_executor|
-          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+          allow(rejecting_executor).to receive(:post).and_raise(Shoryuken::Errors::RejectedExecutionError)
         end
       end
 
@@ -324,7 +331,7 @@ RSpec.describe Shoryuken::Manager do
       # exactly the shutdown race / saturated bounded launcher_executor case
       let(:executor) do
         double('executor', running?: true).tap do |rejecting_executor|
-          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+          allow(rejecting_executor).to receive(:post).and_raise(Shoryuken::Errors::RejectedExecutionError)
         end
       end
 
@@ -364,6 +371,36 @@ RSpec.describe Shoryuken::Manager do
         expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
 
         expect(subject.send(:busy)).to eq(0)
+      end
+    end
+
+    context 'when a concurrent-ruby executor rejects the worker post' do
+      let(:concurrent_rejection) { Class.new(StandardError) }
+      let(:executor) do
+        double('executor', running?: true).tap do |rejecting_executor|
+          allow(rejecting_executor).to receive(:post).and_raise(concurrent_rejection)
+        end
+      end
+
+      before { stub_const('Concurrent::RejectedExecutionError', concurrent_rejection) }
+
+      it 'rolls back the busy counter and releases the message' do
+        expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
+
+        expect(subject.send(:busy)).to eq(0)
+        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+      end
+    end
+
+    context 'when the executor post fails with another error' do
+      let(:executor) do
+        double('executor', running?: true).tap do |failing_executor|
+          allow(failing_executor).to receive(:post).and_raise(ThreadError, "can't create Thread")
+        end
+      end
+
+      it 'raises it' do
+        expect { subject.send(:assign, queue, sqs_msg) }.to raise_error(ThreadError)
       end
     end
   end

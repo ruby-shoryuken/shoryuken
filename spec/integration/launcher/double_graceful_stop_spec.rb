@@ -38,7 +38,7 @@ Shoryuken.register_worker(queue_name, stop_worker)
 
 queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue_name).queue_url
 
-executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+executor = Shoryuken::Helpers::ThreadPool.new
 manager = Shoryuken::Manager.new(
   'default',
   Shoryuken::Fetcher.new('default'),
@@ -46,7 +46,7 @@ manager = Shoryuken::Manager.new(
   1,
   executor
 )
-Concurrent::Future.execute { manager.start }
+Thread.new { manager.start }
 
 begin
   # Prove the manager is fully up and dispatching before stopping it
