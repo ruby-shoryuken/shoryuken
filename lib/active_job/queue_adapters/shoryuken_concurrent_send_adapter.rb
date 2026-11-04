@@ -134,7 +134,7 @@ module ActiveJob
       # @return [Object] the result of the handler that ran
       def deliver(job, options)
         success_handler.call(yield(job, options), job, options)
-      rescue => e
+      rescue Exception => e
         error_handler.call(e, job, options)
       end
 

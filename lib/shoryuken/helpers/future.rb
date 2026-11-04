@@ -22,7 +22,7 @@ module Shoryuken
         value = yield
         resolve(value, nil)
         self
-      rescue => e
+      rescue Exception => e
         resolve(nil, e)
         self
       end
@@ -79,7 +79,7 @@ module Shoryuken
       # Waits for the Future to resolve and returns the block's error
       #
       # @param timeout [Numeric, nil] maximum seconds to wait; nil waits indefinitely
-      # @return [StandardError, nil] the error the block raised, or nil if it did not raise or the timeout elapsed first
+      # @return [Exception, nil] the error the block raised, or nil if it did not raise or the timeout elapsed first
       def reason(timeout = nil)
         wait(timeout)
         @reason
@@ -90,7 +90,7 @@ module Shoryuken
       # Stores the result and wakes the waiting threads
       #
       # @param value [Object, nil] the block's result
-      # @param reason [StandardError, nil] the block's error
+      # @param reason [Exception, nil] the block's error
       # @return [void]
       def resolve(value, reason)
         @mutex.synchronize do

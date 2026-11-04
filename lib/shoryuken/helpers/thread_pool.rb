@@ -146,7 +146,7 @@ module Shoryuken
       # @return [void]
       def run(task)
         task.call
-      rescue => e
+      rescue Exception => e
         Shoryuken.logger.error { "Thread pool block failed: #{e.class.name}: #{e.message}" }
         Shoryuken.logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
       end
