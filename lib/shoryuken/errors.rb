@@ -30,5 +30,8 @@ module Shoryuken
 
     # Raised when an ARN format is invalid
     InvalidArnError = Class.new(BaseError)
+
+    # Raised by an executor that does not accept a posted block (e.g. once it is shut down)
+    RejectedExecutionError = Class.new(BaseError)
   end
 end

@@ -3,8 +3,6 @@
 # This spec tests multiple worker groups with different concurrency settings.
 # Each group can have its own queues and concurrency level.
 
-require 'concurrent'
-
 setup_sqs
 
 queue_group1 = DT.queues[0]
@@ -20,10 +18,8 @@ Shoryuken.add_queue(queue_group1, 1, 'group1')
 Shoryuken.add_queue(queue_group2, 1, 'group2')
 
 # Track concurrent processing per group
-group1_concurrent = Concurrent::AtomicFixnum.new(0)
-group1_max = Concurrent::AtomicFixnum.new(0)
-group2_concurrent = Concurrent::AtomicFixnum.new(0)
-group2_max = Concurrent::AtomicFixnum.new(0)
+group1_concurrent = Shoryuken::Helpers::AtomicCounter.new(0)
+group2_concurrent = Shoryuken::Helpers::AtomicCounter.new(0)
 
 worker_class = Class.new do
   include Shoryuken::Worker
@@ -34,15 +30,11 @@ worker_class = Class.new do
     queue = sqs_msg.queue_url.split('/').last
 
     if queue == queue_group1
-      group1_concurrent.increment
-      current = group1_concurrent.value
-      group1_max.update { |max| [max, current].max }
+      DT[:group1_concurrency] << group1_concurrent.increment
       sleep 0.5  # Longer sleep to increase chance of concurrent execution
       group1_concurrent.decrement
     else
-      group2_concurrent.increment
-      current = group2_concurrent.value
-      group2_max.update { |max| [max, current].max }
+      DT[:group2_concurrency] << group2_concurrent.increment
       sleep 0.3
       group2_concurrent.decrement
     end
@@ -75,5 +67,8 @@ assert_equal(5, group2_messages.size, 'All group2 messages should be processed')
 
 # Verify concurrency was used - group1 with concurrency 3 should process concurrently
 # group2 with concurrency 1 should process sequentially (max = 1)
-assert(group1_max.value >= 1, "Group1 should have processed messages (max concurrent: #{group1_max.value})")
-assert_equal(1, group2_max.value, 'Group2 with concurrency 1 should process sequentially')
+assert(
+  DT[:group1_concurrency].max >= 1,
+  "Group1 should have processed messages (max concurrent: #{DT[:group1_concurrency].max})"
+)
+assert_equal(1, DT[:group2_concurrency].max, 'Group2 with concurrency 1 should process sequentially')

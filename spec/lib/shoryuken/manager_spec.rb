@@ -12,7 +12,14 @@ RSpec.describe Shoryuken::Manager do
   let(:polling_strategy) { Shoryuken::Polling::WeightedRoundRobin.new(queues) }
   let(:fetcher) { double Shoryuken::Fetcher }
   let(:concurrency) { 1 }
-  let(:executor) { Concurrent::ImmediateExecutor.new }
+  let(:executor) do
+    double('executor', running?: true).tap do |immediate_executor|
+      allow(immediate_executor).to receive(:post) do |&block|
+        block.call
+        true
+      end
+    end
+  end
 
   subject { Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor) }
 
@@ -62,7 +69,7 @@ RSpec.describe Shoryuken::Manager do
     context 'when the executor rejects the dispatch post' do
       let(:executor) do
         double('executor', running?: true).tap do |rejecting_executor|
-          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+          allow(rejecting_executor).to receive(:post).and_raise(Shoryuken::Errors::RejectedExecutionError)
         end
       end
 
@@ -324,7 +331,7 @@ RSpec.describe Shoryuken::Manager do
       # exactly the shutdown race / saturated bounded launcher_executor case
       let(:executor) do
         double('executor', running?: true).tap do |rejecting_executor|
-          allow(rejecting_executor).to receive(:post).and_raise(Concurrent::RejectedExecutionError)
+          allow(rejecting_executor).to receive(:post).and_raise(Shoryuken::Errors::RejectedExecutionError)
         end
       end
 
@@ -364,6 +371,55 @@ RSpec.describe Shoryuken::Manager do
         expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
 
         expect(subject.send(:busy)).to eq(0)
+      end
+    end
+
+    context 'when the worker post fails' do
+      let(:post_error) { Class.new(StandardError) }
+      let(:busy_counts) { [] }
+      let(:utilization_handler) { ->(event) { busy_counts << event[:busy_processors] } }
+      # Runs the first post (a dispatch cycle) and fails the second (the worker post). The next
+      # dispatch cycle is accepted but not run, which ends the dispatch loop
+      let(:executor) do
+        posts = 0
+        double('executor', running?: true).tap do |failing_executor|
+          allow(failing_executor).to receive(:post) do |&block|
+            posts += 1
+            raise post_error if posts == 2
+
+            block.call if posts == 1
+            true
+          end
+        end
+      end
+
+      before do
+        allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+        allow(Shoryuken.logger).to receive(:error)
+        Shoryuken.on(:utilization_update, &utilization_handler)
+      end
+
+      after { Shoryuken.options[:lifecycle_events][:utilization_update].delete(utilization_handler) }
+
+      context 'with concurrent-ruby\'s rejection error' do
+        before { stub_const('Concurrent::RejectedExecutionError', post_error) }
+
+        it 'rolls back the busy counter and releases the message' do
+          subject.start
+
+          expect(busy_counts).to eq([0, 1, 0])
+          expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+          expect(subject).not_to be_failed
+        end
+      end
+
+      context 'with another error' do
+        it 'stops the manager as a dispatch failure and keeps the message in flight' do
+          subject.start
+
+          expect(subject).to be_failed
+          expect(sqs_msg).not_to have_received(:visibility_timeout=)
+        end
       end
     end
   end

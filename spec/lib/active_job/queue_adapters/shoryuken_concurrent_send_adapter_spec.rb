@@ -12,7 +12,10 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
   let(:success_handler) { -> {} }
 
   before do
-    allow(Concurrent).to receive(:global_io_executor).and_return(Concurrent::ImmediateExecutor.new)
+    allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post) do |_pool, &block|
+      block.call
+      true
+    end
   end
 
   subject { described_class.new(success_handler, error_handler) }
@@ -39,20 +42,14 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
   end
 
   describe '#wait_for_pending_sends' do
-    # Use a real async executor (instead of the ImmediateExecutor stubbed above)
+    # Run sends on real threads (instead of in the caller, as stubbed above)
     # so sends are genuinely in-flight and the drain has something to wait for.
-    let(:pool) { Concurrent::FixedThreadPool.new(2) }
     let(:success_handler) { ->(_response, _job, _options) {} }
     let(:error_handler) { ->(_error, _job, _options) {} }
 
     before do
-      allow(Concurrent).to receive(:global_io_executor).and_return(pool)
+      allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post).and_call_original
       allow(Shoryuken).to receive(:register_worker)
-    end
-
-    after do
-      pool.shutdown
-      pool.wait_for_termination(5)
     end
 
     it 'returns true when there are no pending sends' do
@@ -60,7 +57,7 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
     end
 
     it 'blocks until an in-flight send completes' do
-      completed = Concurrent::AtomicBoolean.new(false)
+      completed = Shoryuken::Helpers::AtomicBoolean.new(false)
       allow(queue).to receive(:send_message) do
         sleep 0.3
         completed.make_true
@@ -73,28 +70,28 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(subject.wait_for_pending_sends(5)).to be true
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
-      expect(completed.value).to be true
+      expect(completed.true?).to be true
       expect(elapsed).to be >= 0.2
     end
 
     it 'does not start a send before it is tracked, so a drain cannot miss it' do
-      started = Concurrent::Event.new
+      started = Shoryuken::Helpers::AtomicBoolean.new(false)
       allow(queue).to receive(:send_message) do
-        started.set
+        started.make_true
         true
       end
 
-      started_untracked = nil
-      allow(subject).to receive(:track_pending_send).and_wrap_original do |original, future|
-        started_untracked = started.wait(0.5)
-        original.call(future)
+      tracked_before_post = nil
+      allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post).and_wrap_original do |original, &block|
+        tracked_before_post = !subject.wait_for_pending_sends(0)
+        original.call(&block)
       end
 
       subject.enqueue(job, options)
 
-      expect(started_untracked).to be false
+      expect(tracked_before_post).to be true
       expect(subject.wait_for_pending_sends(5)).to be true
-      expect(started).to be_set
+      expect(started.true?).to be true
     end
 
     it 'returns false when sends do not finish within the timeout' do
@@ -152,6 +149,48 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(drained).to eq('true')
       expect(elapsed.to_f).to be < 1
       expect(subject.wait_for_pending_sends(5)).to be true
+    end
+
+    it 'sends from a forked child after the parent pool has an idle thread' do
+      skip 'fork is not supported on this platform' unless Process.respond_to?(:fork)
+
+      allow(queue).to receive(:send_message).and_return(true)
+
+      subject.enqueue(job, options)
+      expect(subject.wait_for_pending_sends(5)).to be true
+      # Lets the parent's pool thread become idle, so a pool shared with the child would hand it the send
+      sleep 0.1
+
+      reader, writer = IO.pipe
+      pid = fork do
+        reader.close
+        writer.write(subject.enqueue(job, options).wait(5).to_s)
+        writer.close
+        exit!(0)
+      end
+      writer.close
+      resolved = reader.read
+      Process.wait(pid)
+
+      expect(resolved).to eq('true')
+    end
+
+    it 'resolves the send and calls the error handler when the send raises any Exception' do
+      error = NotImplementedError.new('send failed')
+      allow(queue).to receive(:send_message).and_raise(error)
+      allow(error_handler).to receive(:call)
+
+      future = subject.enqueue(job, options)
+
+      expect(future.wait(5)).to be true
+      expect(error_handler).to have_received(:call).with(error, job, options)
+    end
+
+    it 'stops tracking a send whose post fails' do
+      allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post).and_raise(ThreadError, "can't create Thread")
+
+      expect { subject.enqueue(job, options) }.to raise_error(ThreadError)
+      expect(subject.wait_for_pending_sends(0)).to be true
     end
 
     it 'tracks sends for a subclass whose initialize does not call super' do

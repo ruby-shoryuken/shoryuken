@@ -49,7 +49,7 @@ end
   Shoryuken.register_worker(queue_name, worker)
 end
 
-executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+executor = Shoryuken::Helpers::ThreadPool.new
 Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
 launcher = Shoryuken::Launcher.new
@@ -62,5 +62,5 @@ rescue Timeout::Error
   raise IntegrationsHelper::TestFailure, 'Launcher#stop hung awaiting the manager whose stop_new_dispatching raised'
 end
 
-assert(executor.shutdown?, 'Launcher#stop must shut the executor down when a manager fails to stop')
+refute(executor.running?, 'Launcher#stop must shut the executor down when a manager fails to stop')
 assert_equal(1, DT[:stopped].size, 'Launcher#stop must still fire :stopped when a manager fails to stop')

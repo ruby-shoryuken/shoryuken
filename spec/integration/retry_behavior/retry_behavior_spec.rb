@@ -3,8 +3,6 @@
 # This spec tests retry behavior including ApproximateReceiveCount tracking
 # across message redeliveries.
 
-require 'concurrent'
-
 setup_sqs
 
 queue_name = DT.queue
@@ -13,20 +11,20 @@ Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue_name, 1, 'default')
 
 # Atomic counter for fail tracking
-fail_counter = Concurrent::AtomicFixnum.new(2)
+fail_counter = Shoryuken::Helpers::AtomicCounter.new(2)
 
 worker_class = Class.new do
   include Shoryuken::Worker
 
   shoryuken_options auto_delete: false, batch: false
 
-  define_method(:perform) do |sqs_msg, body|
+  define_method(:perform) do |sqs_msg, _body|
     receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
     DT[:receive_counts] << receive_count
 
     if fail_counter.value > 0
       fail_counter.decrement
-      raise "Simulated failure"
+      raise 'Simulated failure'
     else
       sqs_msg.delete
     end
@@ -41,5 +39,5 @@ Shoryuken::Client.queues(queue_name).send_message(message_body: 'retry-count-tes
 poll_queues_until(timeout: 20) { DT[:receive_counts].size >= 3 }
 
 assert(DT[:receive_counts].size >= 3)
-assert_equal(DT[:receive_counts], DT[:receive_counts].sort, "Receive counts should be increasing")
+assert_equal(DT[:receive_counts], DT[:receive_counts].sort, 'Receive counts should be increasing')
 assert_equal(1, DT[:receive_counts].first)

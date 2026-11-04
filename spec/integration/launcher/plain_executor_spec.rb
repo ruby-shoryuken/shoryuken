@@ -23,7 +23,7 @@ class PlainExecutor
 
   def post(&block)
     @mutex.synchronize do
-      raise Concurrent::RejectedExecutionError unless @running
+      raise Shoryuken::Errors::RejectedExecutionError unless @running
 
       @threads << Thread.new(&block)
     end

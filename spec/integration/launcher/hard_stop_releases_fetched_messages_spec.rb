@@ -20,7 +20,7 @@ setup_sqs
 
 DT.clear
 
-executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+executor = Shoryuken::Helpers::ThreadPool.new
 Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
 queue_name = DT.queue

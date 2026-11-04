@@ -50,10 +50,6 @@ def enqueue_and_wait(adapter, label)
   assert(adapter.wait_for_pending_sends(10), "the #{label} send must finish")
 end
 
-# Sends run on Concurrent.global_io_executor; one thread makes a value kept from an earlier send visible
-send_executor = Concurrent::FixedThreadPool.new(1)
-Concurrent.define_singleton_method(:global_io_executor) { send_executor }
-
 adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new
 ActiveJob::Base.queue_adapter = adapter
 

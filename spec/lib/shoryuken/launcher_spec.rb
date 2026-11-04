@@ -1,14 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe Shoryuken::Launcher do
-  let(:executor) do
-    # We can't use Concurrent.global_io_executor in these tests since once you
-    # shut down a thread pool, you can't start it back up. Instead, we create
-    # one new thread pool executor for each spec. We use a new
-    # CachedThreadPool, since that most closely resembles
-    # Concurrent.global_io_executor
-    Concurrent::CachedThreadPool.new auto_terminate: true
-  end
+  # A shut down thread pool cannot start again, so each spec gets its own
+  let(:executor) { Shoryuken::Helpers::ThreadPool.new }
 
   let(:first_group_manager) { double(:first_group_manager, group: 'first_group') }
   let(:second_group_manager) { double(:second_group_manager, group: 'second_group') }
@@ -135,7 +129,7 @@ RSpec.describe Shoryuken::Launcher do
 
         expect(first_group_manager).to have_received(:stop_new_dispatching)
         expect(second_group_manager).to have_received(:await_dispatching_in_progress)
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
         expect(subject).to have_received(:fire_event).with(:shutdown, true)
         expect(subject).to have_received(:fire_event).with(:stopped)
       end
@@ -159,7 +153,7 @@ RSpec.describe Shoryuken::Launcher do
         expect { subject.stop }.not_to raise_error
 
         expect(second_group_manager).to have_received(:stop_new_dispatching)
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
       end
 
       it 'does not await the manager that failed to stop dispatching' do
@@ -177,7 +171,7 @@ RSpec.describe Shoryuken::Launcher do
         stopper = Thread.new { subject.stop }
 
         expect(stopper.join(2)).to eq(stopper)
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
         expect(subject).to have_received(:fire_event).with(:stopped)
       ensure
         stopper&.kill
@@ -194,7 +188,7 @@ RSpec.describe Shoryuken::Launcher do
         expect { subject.stop }.not_to raise_error
 
         expect(second_group_manager).to have_received(:await_dispatching_in_progress)
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
       end
     end
 
@@ -269,7 +263,7 @@ RSpec.describe Shoryuken::Launcher do
 
         expect(first_group_manager).to have_received(:stop_new_dispatching)
         expect(second_group_manager).to have_received(:stop_new_dispatching)
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
         expect(subject).to have_received(:fire_event).with(:stopped)
       end
     end
@@ -284,7 +278,7 @@ RSpec.describe Shoryuken::Launcher do
         expect { subject.stop! }.not_to raise_error
 
         expect(second_group_manager).to have_received(:stop_new_dispatching)
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
       end
     end
   end
@@ -358,7 +352,7 @@ RSpec.describe Shoryuken::Launcher do
 
         subject.stop
 
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
         expect(subject).to have_received(:fire_event).with(:stopped)
       end
 
@@ -368,7 +362,7 @@ RSpec.describe Shoryuken::Launcher do
 
         subject.stop!
 
-        expect(executor).to be_shutdown
+        expect(executor).not_to be_running
         expect(subject).to have_received(:fire_event).with(:stopped)
       end
     end
@@ -395,20 +389,22 @@ RSpec.describe Shoryuken::Launcher do
     context 'when no launcher_executor is configured' do
       before { allow(Shoryuken).to receive(:launcher_executor).and_return(nil) }
 
-      it 'uses a dedicated executor rather than the process-global IO executor' do
-        expect(subject.send(:executor)).not_to be(Concurrent.global_io_executor)
-      end
-
-      it 'does not shut down or kill the global IO executor on stop!' do
+      it 'gives each launcher its own thread pool and shuts down only its own on stop!' do
+        pools = []
+        allow(Shoryuken::Helpers::ThreadPool).to receive(:new).and_wrap_original do |original|
+          original.call.tap { |pool| pools << pool }
+        end
         allow(first_group_manager).to receive(:stop_new_dispatching)
         allow(second_group_manager).to receive(:stop_new_dispatching)
+        launcher = described_class.new
+        other = described_class.new
 
-        subject.stop!
+        launcher.stop!
 
-        # Verify by inspecting state after the call rather than mocking methods
-        # on the process-global singleton: RSpec proxies on a singleton used by
-        # background concurrent-ruby threads can deadlock on Ruby 3.2.
-        expect(Concurrent.global_io_executor).to be_running
+        expect(pools.size).to eq(2)
+        expect(pools.first).not_to be_running
+        expect(pools.last).to be_running
+        other.stop!
       end
     end
   end

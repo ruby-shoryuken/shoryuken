@@ -107,16 +107,13 @@ module Shoryuken
       end
 
       @executor.post { dispatch }
-    rescue Concurrent::RejectedExecutionError
-      # The executor was shut down between the running? check and the post
-      # (e.g. a hard stop racing the dispatch loop); release any waiters as
-      # the dispatch chain ends here
+    rescue StandardError => e
+      # The dispatch chain ends here, so release waiters. A rejected post means
+      # the executor was shut down between the running? check and the post
+      # (e.g. a hard stop racing the dispatch loop); anything else (e.g.
+      # ThreadError if the OS thread limit is hit) is unexpected and re-raised
       @dispatching_release_signal.close
-    rescue StandardError
-      # Unexpected error from post (e.g. ThreadError if the OS thread limit is
-      # hit); the dispatch chain ends here so release waiters before re-raising
-      @dispatching_release_signal.close
-      raise
+      raise unless rejected_execution?(e)
     end
 
     # Dispatches messages from a queue
@@ -210,7 +207,9 @@ module Shoryuken
         # launcher_executor may not guard its threads against it
         nil
       end
-    rescue Concurrent::RejectedExecutionError
+    rescue StandardError => e
+      raise unless rejected_execution?(e)
+
       # The executor was shut down (or a bounded custom launcher_executor is
       # saturated) between the running? check above and the post. The posted
       # block - and therefore processor_done - never ran, so roll back the
@@ -222,6 +221,17 @@ module Shoryuken
       fire_utilization_update_event
       release(sqs_msg)
       nil
+    end
+
+    # Checks if an error raised by the executor's post means it rejected the block. Besides Shoryuken's own error, accepts
+    # concurrent-ruby's when that gem is loaded, so its executors still work as a launcher_executor
+    #
+    # @param error [StandardError] the error raised by post
+    # @return [Boolean] true if the executor rejected the block
+    def rejected_execution?(error)
+      return true if error.is_a?(Shoryuken::Errors::RejectedExecutionError)
+
+      defined?(::Concurrent::RejectedExecutionError) ? error.is_a?(::Concurrent::RejectedExecutionError) : false
     end
 
     # Makes fetched but never started messages visible again, so another consumer can receive them at once instead of

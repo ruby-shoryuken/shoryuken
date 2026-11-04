@@ -45,7 +45,7 @@ def start_launcher(queue_name, worker)
   worker.get_shoryuken_options['queue'] = queue_name
   Shoryuken.register_worker(queue_name, worker)
 
-  executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+  executor = Shoryuken::Helpers::ThreadPool.new
   Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
   launcher = Shoryuken::Launcher.new

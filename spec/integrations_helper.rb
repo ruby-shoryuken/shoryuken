@@ -99,7 +99,7 @@ module IntegrationsHelper
     Shoryuken.options[:delay] = 0
     Shoryuken.options[:timeout] = 8
 
-    executor = Concurrent::CachedThreadPool.new(auto_terminate: true)
+    executor = Shoryuken::Helpers::ThreadPool.new
     Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
     Shoryuken.configure_client { |config| config.sqs_client = sqs_client }

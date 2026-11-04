@@ -93,9 +93,15 @@ Lint/AssignmentInCondition:
   Enabled: false
 
 # The processor re-raises everything after running the exception handlers; the manager
-# keeps it from reaching a custom launcher_executor's threads
+# keeps it from reaching a custom launcher_executor's threads. The thread pool, the future
+# and the concurrent send adapter run blocks on other threads: an error they let through
+# (e.g. SystemStackError from a cyclic job argument) would kill the pool thread and leave
+# the send unresolved, with no handler called
 Lint/RescueException:
   Exclude:
+    - 'lib/active_job/queue_adapters/shoryuken_concurrent_send_adapter.rb'
+    - 'lib/shoryuken/helpers/future.rb'
+    - 'lib/shoryuken/helpers/thread_pool.rb'
     - 'lib/shoryuken/manager.rb'
     - 'lib/shoryuken/processor.rb'
 

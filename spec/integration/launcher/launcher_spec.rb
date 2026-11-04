@@ -3,12 +3,10 @@
 # This spec tests the Launcher's ability to consume messages from SQS queues,
 # including single message consumption, batch consumption, and command workers.
 
-require 'concurrent'
-
 setup_sqs
 
 # Use atomic counter for thread-safe message counting
-message_counter = Concurrent::AtomicFixnum.new(0)
+message_counter = Shoryuken::Helpers::AtomicCounter.new(0)
 
 worker_class = Class.new do
   include Shoryuken::Worker
@@ -16,7 +14,7 @@ worker_class = Class.new do
   shoryuken_options auto_delete: true
 
   define_method(:perform) do |sqs_msg, _body|
-    message_counter.increment(Array(sqs_msg).size)
+    Array(sqs_msg).size.times { message_counter.increment }
   end
 end
 
