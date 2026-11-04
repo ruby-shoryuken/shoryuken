@@ -5,8 +5,6 @@ require 'spec_helper'
 RSpec.describe Shoryuken::Helpers::ThreadPool do
   subject(:pool) { described_class.new }
 
-  let(:pool_thread_pops) { [] }
-
   after do
     pool.kill
     pool.wait_for_termination(5)

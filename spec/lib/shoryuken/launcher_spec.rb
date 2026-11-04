@@ -389,18 +389,22 @@ RSpec.describe Shoryuken::Launcher do
     context 'when no launcher_executor is configured' do
       before { allow(Shoryuken).to receive(:launcher_executor).and_return(nil) }
 
-      it 'uses a dedicated Shoryuken thread pool' do
-        expect(subject.send(:executor)).to be_a(Shoryuken::Helpers::ThreadPool)
-      end
-
-      it 'does not shut down the executor of another launcher on stop!' do
+      it 'gives each launcher its own thread pool and shuts down only its own on stop!' do
+        pools = []
+        allow(Shoryuken::Helpers::ThreadPool).to receive(:new).and_wrap_original do |original|
+          original.call.tap { |pool| pools << pool }
+        end
         allow(first_group_manager).to receive(:stop_new_dispatching)
         allow(second_group_manager).to receive(:stop_new_dispatching)
+        launcher = described_class.new
         other = described_class.new
 
-        subject.stop!
+        launcher.stop!
 
-        expect(other.send(:executor)).to be_running
+        expect(pools.size).to eq(2)
+        expect(pools.first).not_to be_running
+        expect(pools.last).to be_running
+        other.stop!
       end
     end
   end

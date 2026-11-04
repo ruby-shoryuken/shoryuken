@@ -2,8 +2,8 @@
 
 module Shoryuken
   module Helpers
-    # The result of a block run on another thread. Replaces the Concurrent::Promises::Future that
-    # ShoryukenConcurrentSendAdapter used to return, without external dependencies.
+    # The result of a block run on another thread.
+    # Replacement for Concurrent::Promises::Future without external dependencies.
     class Future
       # Initializes a new unresolved Future
       def initialize

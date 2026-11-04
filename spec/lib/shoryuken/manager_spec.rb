@@ -374,33 +374,52 @@ RSpec.describe Shoryuken::Manager do
       end
     end
 
-    context 'when a concurrent-ruby executor rejects the worker post' do
-      let(:concurrent_rejection) { Class.new(StandardError) }
+    context 'when the worker post fails' do
+      let(:post_error) { Class.new(StandardError) }
+      let(:busy_counts) { [] }
+      let(:utilization_handler) { ->(event) { busy_counts << event[:busy_processors] } }
+      # Runs the first post (a dispatch cycle) and fails the second (the worker post). The next
+      # dispatch cycle is accepted but not run, which ends the dispatch loop
       let(:executor) do
-        double('executor', running?: true).tap do |rejecting_executor|
-          allow(rejecting_executor).to receive(:post).and_raise(concurrent_rejection)
-        end
-      end
-
-      before { stub_const('Concurrent::RejectedExecutionError', concurrent_rejection) }
-
-      it 'rolls back the busy counter and releases the message' do
-        expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
-
-        expect(subject.send(:busy)).to eq(0)
-        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
-      end
-    end
-
-    context 'when the executor post fails with another error' do
-      let(:executor) do
+        posts = 0
         double('executor', running?: true).tap do |failing_executor|
-          allow(failing_executor).to receive(:post).and_raise(ThreadError, "can't create Thread")
+          allow(failing_executor).to receive(:post) do |&block|
+            posts += 1
+            raise post_error if posts == 2
+
+            block.call if posts == 1
+            true
+          end
         end
       end
 
-      it 'raises it' do
-        expect { subject.send(:assign, queue, sqs_msg) }.to raise_error(ThreadError)
+      before do
+        allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+        allow(Shoryuken.logger).to receive(:error)
+        Shoryuken.on(:utilization_update, &utilization_handler)
+      end
+
+      after { Shoryuken.options[:lifecycle_events][:utilization_update].delete(utilization_handler) }
+
+      context 'with concurrent-ruby\'s rejection error' do
+        before { stub_const('Concurrent::RejectedExecutionError', post_error) }
+
+        it 'rolls back the busy counter and releases the message' do
+          subject.start
+
+          expect(busy_counts).to eq([0, 1, 0])
+          expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+          expect(subject).not_to be_failed
+        end
+      end
+
+      context 'with another error' do
+        it 'stops the manager as a dispatch failure and keeps the message in flight' do
+          subject.start
+
+          expect(subject).to be_failed
+          expect(sqs_msg).not_to have_received(:visibility_timeout=)
+        end
       end
     end
   end

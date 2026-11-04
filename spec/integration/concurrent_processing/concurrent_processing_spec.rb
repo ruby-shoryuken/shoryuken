@@ -9,7 +9,7 @@ create_test_queue(queue_name)
 Shoryuken.add_group('concurrent', 5) # 5 concurrent processors
 Shoryuken.add_queue(queue_name, 1, 'concurrent')
 
-# Atomic counters for tracking concurrency
+# Atomic counter for tracking concurrency
 concurrent_count = Shoryuken::Helpers::AtomicCounter.new(0)
 
 worker_class = Class.new do
