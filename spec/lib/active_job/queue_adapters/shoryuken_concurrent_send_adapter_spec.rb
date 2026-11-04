@@ -151,6 +151,48 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
       expect(subject.wait_for_pending_sends(5)).to be true
     end
 
+    it 'sends from a forked child after the parent pool has an idle thread' do
+      skip 'fork is not supported on this platform' unless Process.respond_to?(:fork)
+
+      allow(queue).to receive(:send_message).and_return(true)
+
+      subject.enqueue(job, options)
+      expect(subject.wait_for_pending_sends(5)).to be true
+      # Lets the parent's pool thread become idle, so a pool shared with the child would hand it the send
+      sleep 0.1
+
+      reader, writer = IO.pipe
+      pid = fork do
+        reader.close
+        writer.write(subject.enqueue(job, options).wait(5).to_s)
+        writer.close
+        exit!(0)
+      end
+      writer.close
+      resolved = reader.read
+      Process.wait(pid)
+
+      expect(resolved).to eq('true')
+    end
+
+    it 'resolves the send and calls the error handler when the send raises any Exception' do
+      error = NotImplementedError.new('send failed')
+      allow(queue).to receive(:send_message).and_raise(error)
+      allow(error_handler).to receive(:call)
+
+      future = subject.enqueue(job, options)
+
+      expect(future.wait(5)).to be true
+      expect(error_handler).to have_received(:call).with(error, job, options)
+    end
+
+    it 'stops tracking a send whose post fails' do
+      allow_any_instance_of(Shoryuken::Helpers::ThreadPool).to receive(:post).and_raise(ThreadError, "can't create Thread")
+
+      expect { subject.enqueue(job, options) }.to raise_error(ThreadError)
+      expect(subject.wait_for_pending_sends(0)).to be true
+    end
+
     it 'tracks sends for a subclass whose initialize does not call super' do
       subclass = Class.new(described_class) do
         def initialize; end # rubocop:disable Lint/MissingSuper

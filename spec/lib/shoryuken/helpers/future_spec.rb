@@ -32,6 +32,15 @@ RSpec.describe Shoryuken::Helpers::Future do
       expect(future.value).to be_nil
       expect(future.reason).to be(error)
     end
+
+    it 'resolves with an error that is not a StandardError' do
+      error = SystemStackError.new('stack level too deep')
+
+      future.execute { raise error }
+
+      expect(future).to be_rejected
+      expect(future.reason).to be(error)
+    end
   end
 
   describe '#wait' do
