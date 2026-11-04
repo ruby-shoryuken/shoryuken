@@ -2,11 +2,8 @@
 
 require 'timeout'
 
-def expect_rejected_worker_post_released(executor_class, rejection)
+def expect_rejected_worker_post_released
   DT.clear
-
-  executor = rejecting_executor(executor_class, rejection)
-  Shoryuken.define_singleton_method(:launcher_executor) { executor }
 
   queue_name = DT.queue
   # Far longer than the spec runs, so the message can only reappear if released.

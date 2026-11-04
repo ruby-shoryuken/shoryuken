@@ -13,4 +13,7 @@ require_relative '../rejected_worker_post'
 
 setup_sqs
 
-expect_rejected_worker_post_released(Concurrent::CachedThreadPool, Concurrent::RejectedExecutionError)
+executor = rejecting_executor(Concurrent::CachedThreadPool, Concurrent::RejectedExecutionError)
+Shoryuken.define_singleton_method(:launcher_executor) { executor }
+
+expect_rejected_worker_post_released

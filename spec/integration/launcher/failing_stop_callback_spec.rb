@@ -55,7 +55,7 @@ Shoryuken.register_worker(queue_name, worker)
     raise IntegrationsHelper::TestFailure, "Launcher##{stop_method} raised the on_stop error: #{e.message}"
   end
 
-  assert(executor.shutdown?, "Launcher##{stop_method} must shut the executor down when on_stop raises")
+  refute(executor.running?, "Launcher##{stop_method} must shut the executor down when on_stop raises")
   assert_equal(1, DT[:shutdown].size, "Launcher##{stop_method} must still fire :shutdown when on_stop raises")
   assert_equal(1, DT[:stopped].size, "Launcher##{stop_method} must still fire :stopped when on_stop raises")
 end

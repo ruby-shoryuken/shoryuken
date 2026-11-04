@@ -18,4 +18,7 @@ require_relative 'rejected_worker_post'
 
 setup_sqs
 
-expect_rejected_worker_post_released(Shoryuken::Helpers::ThreadPool, Shoryuken::Errors::RejectedExecutionError)
+executor = rejecting_executor(Shoryuken::Helpers::ThreadPool, Shoryuken::Errors::RejectedExecutionError)
+Shoryuken.define_singleton_method(:launcher_executor) { executor }
+
+expect_rejected_worker_post_released
