@@ -44,7 +44,11 @@ module ActiveJob
       # @option options [String] :message_deduplication_id FIFO queue deduplication ID
       # @return [Concurrent::Promises::Future] the future representing the async operation
       def enqueue(job, options = {})
-        send_concurrently(job, options) { |f_job, f_options| super(f_job, f_options) }
+        snapshot = current_attributes_snapshot
+
+        send_concurrently(job, options) do |f_job, f_options|
+          with_current_attributes(snapshot) { super(f_job, f_options) }
+        end
       end
 
       # Blocks until all in-flight asynchronous sends have completed.

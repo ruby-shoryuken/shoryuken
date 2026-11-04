@@ -34,6 +34,8 @@ module Shoryuken
     #
     # @return [Object] the result of the worker's perform method
     def process
+      scheduler = Fiber.scheduler
+
       worker_perform = proc do
         return logger.error { "No worker found for #{queue}" } unless worker
 
@@ -55,9 +57,23 @@ module Shoryuken
       Array(Shoryuken.exception_handlers).each { |handler| handler.call(e, queue, sqs_msg) }
 
       raise
+    ensure
+      restore_fiber_scheduler(scheduler)
     end
 
     private
+
+    # Sets back the Fiber scheduler of the thread when the job left another one set: the next job on this pooled thread
+    # would run under it, and Async's `Sync` would wait on a scheduler that never runs
+    #
+    # @param scheduler [Object, nil] the scheduler set before the job
+    # @return [void]
+    def restore_fiber_scheduler(scheduler)
+      return if Fiber.scheduler.equal?(scheduler)
+
+      logger.warn { "A job on #{queue} left a Fiber scheduler set; Shoryuken set back the previous one after the job" }
+      Fiber.set_scheduler(scheduler)
+    end
 
     # Fetches the worker instance for processing
     #
