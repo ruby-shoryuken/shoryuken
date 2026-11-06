@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: Shoryuken loads when `lib/shoryuken.rb` is a symlink to a file elsewhere, as in a Bazel sandbox, which links
+  each file of a gem
+  - `loader.ignore("#{__dir__}/active_job")` named the resolved directory, outside the root `Zeitwerk::Loader.for_gem`
+    takes from the path Shoryuken was loaded by, so the loader managed `lib/active_job`. Loading raised
+    `Zeitwerk::NameError` for `ActiveJob::Extensions`, or a `NameError` when Active Job wasn't loaded
+
 - Fix: `ShoryukenConcurrentSendAdapter` keeps the CurrentAttributes registered with
   `Shoryuken::ActiveJob::CurrentAttributes.persist`
   - The message was built on the executor thread, so every job was sent without them
