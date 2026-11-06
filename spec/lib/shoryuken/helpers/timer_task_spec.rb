@@ -21,8 +21,9 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'requires a positive execution_interval' do
-      expect { described_class.new(execution_interval: 0) {} }.to raise_error(ArgumentError, 'execution_interval must be positive')
-      expect { described_class.new(execution_interval: -1) {} }.to raise_error(ArgumentError, 'execution_interval must be positive')
+      message = 'execution_interval must be positive'
+      expect { described_class.new(execution_interval: 0) {} }.to raise_error(ArgumentError, message)
+      expect { described_class.new(execution_interval: -1) {} }.to raise_error(ArgumentError, message)
     end
 
     it 'accepts string numbers as execution_interval' do
@@ -68,27 +69,40 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       timer_task.kill
     end
 
-    it 'creates a new thread' do
-      timer_task.execute
-      thread = timer_task.instance_variable_get(:@thread)
-      expect(thread).to be_a(Thread)
-      timer_task.kill
+    it 'runs the task in a new thread' do
+      task_threads = []
+      timer = described_class.new(execution_interval: 0.01) { task_threads << Thread.current }
+      timer.execute
+      sleep(0.05)
+      timer.kill
+
+      expect(task_threads).not_to be_empty
+      expect(task_threads).not_to include(Thread.current)
     end
 
     it 'does not start multiple times' do
-      timer_task.execute
-      first_thread = timer_task.instance_variable_get(:@thread)
-      timer_task.execute
-      second_thread = timer_task.instance_variable_get(:@thread)
-      expect(first_thread).to eq(second_thread)
-      timer_task.kill
+      task_threads = []
+      timer = described_class.new(execution_interval: 0.01) { task_threads << Thread.current }
+      timer.execute
+      timer.execute
+      sleep(0.05)
+      timer.kill
+
+      expect(task_threads.uniq.size).to eq(1)
     end
 
     it 'does not execute if already killed' do
-      timer_task.instance_variable_set(:@killed, true)
-      result = timer_task.execute
-      expect(result).to eq(timer_task)
-      expect(timer_task.instance_variable_get(:@thread)).to be_nil
+      task_called = false
+      timer = described_class.new(execution_interval: 0.01) { task_called = true }
+      timer.kill
+      threads_before = Thread.list
+      result = timer.execute
+      new_threads = Thread.list - threads_before
+      sleep(0.05)
+
+      expect(result).to eq(timer)
+      expect(new_threads).to be_empty
+      expect(task_called).to be false
     end
   end
 
@@ -117,9 +131,14 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'kills the thread if alive' do
-      timer_task.execute
-      thread = timer_task.instance_variable_get(:@thread)
-      timer_task.kill
+      thread = nil
+      timer = described_class.new(execution_interval: 0.01) do
+        thread = Thread.current
+        sleep
+      end
+      timer.execute
+      sleep(0.05)
+      timer.kill
       sleep(0.01) # Give time for thread to be killed
       expect(thread.alive?).to be false
     end
@@ -260,7 +279,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
 
       threads.each(&:join)
       # Timer should be stopped after all threads complete
-      expect(timer.instance_variable_get(:@killed)).to be true
+      expect(timer.kill).to be false
     end
 
     it 'handles concurrent execute calls safely' do
