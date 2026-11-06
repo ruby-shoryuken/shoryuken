@@ -21,8 +21,9 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'requires a positive execution_interval' do
-      expect { described_class.new(execution_interval: 0) {} }.to raise_error(ArgumentError, 'execution_interval must be positive')
-      expect { described_class.new(execution_interval: -1) {} }.to raise_error(ArgumentError, 'execution_interval must be positive')
+      message = 'execution_interval must be positive'
+      expect { described_class.new(execution_interval: 0) {} }.to raise_error(ArgumentError, message)
+      expect { described_class.new(execution_interval: -1) {} }.to raise_error(ArgumentError, message)
     end
 
     it 'accepts string numbers as execution_interval' do
