@@ -11,7 +11,8 @@ require 'yaml'
 
 # Set up Zeitwerk loader
 loader = Zeitwerk::Loader.for_gem
-loader.ignore("#{__dir__}/active_job")
+# for_gem roots the loader at the path this file was loaded by; __dir__ resolves symlinks.
+loader.ignore("#{File.dirname(__FILE__)}/active_job")
 loader.setup
 
 # Shoryuken is a super efficient AWS SQS thread based message processor.
