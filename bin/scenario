@@ -31,7 +31,7 @@ class ScenarioRunner
 
     exit EXIT_SUCCESS
   rescue => e
-    puts "FAILED: #{File.basename(test_file)} - #{e.message}" if ENV['VERBOSE']
+    puts "FAILED: #{File.basename(test_file)} - #{e.class}: #{e.message}"
     puts e.backtrace.first(5).join("\n") if ENV['VERBOSE']
     exit EXIT_FAILURE
   end
