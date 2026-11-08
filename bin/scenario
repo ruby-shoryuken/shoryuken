@@ -42,9 +42,8 @@ class ScenarioRunner
     # Each test handles its own specific requirements
     require 'bundler/setup'
 
-    puts "Setting up isolated test environment" if ENV['VERBOSE']
+    puts 'Setting up isolated test environment' if ENV['VERBOSE']
   end
-
 
   def load_and_run_test
     # Test file might be relative to current directory
@@ -59,17 +58,15 @@ class ScenarioRunner
     puts "Current directory: #{Dir.pwd}" if ENV['VERBOSE']
     puts "Loading test file: #{absolute_test_path}" if ENV['VERBOSE']
 
-    unless File.exist?(absolute_test_path)
-      raise "Test file not found: #{absolute_test_path}"
-    end
+    raise "Test file not found: #{absolute_test_path}" unless File.exist?(absolute_test_path)
 
     # Check if this is an RSpec file (contains RSpec.describe or describe)
     file_content = File.read(absolute_test_path, encoding: 'UTF-8')
     if file_content.match?(/\b(?:RSpec\.describe|describe)\b/)
-      puts "Running as RSpec test" if ENV['VERBOSE']
+      puts 'Running as RSpec test' if ENV['VERBOSE']
       run_rspec_test(absolute_test_path)
     else
-      puts "Running as plain Ruby test" if ENV['VERBOSE']
+      puts 'Running as plain Ruby test' if ENV['VERBOSE']
       # Load integrations_helper for plain Ruby integration tests
       if absolute_test_path.include?('spec/integration')
         project_root = File.expand_path('..', __dir__)
@@ -104,15 +101,11 @@ class ScenarioRunner
       require 'rspec/core'
 
       # Load integration spec_helper for integration tests
-      if relative_test_path.include?('spec/integration/')
-        require_relative '../spec/integration/spec_helper'
-      end
+      require_relative '../spec/integration/spec_helper' if relative_test_path.include?('spec/integration/')
 
       result = RSpec::Core::Runner.run([relative_test_path], $stderr, $stdout)
 
-      if result != 0
-        raise "RSpec failed with exit code #{result}"
-      end
+      raise "RSpec failed with exit code #{result}" if result != 0
     ensure
       # Clean up environment
       ENV.delete('SIMPLECOV_DISABLED')
@@ -126,19 +119,17 @@ class ScenarioRunner
   end
 
   def rails_available?
-    begin
-      require 'rails'
-      true
-    rescue LoadError
-      false
-    end
+    require 'rails'
+    true
+  rescue LoadError
+    false
   end
 end
 
 # Validate arguments
 if ARGV.empty?
-  puts "Usage: bin/scenario <test_file>"
-  puts "Example: bin/scenario spec/integration/rails_integration_spec.rb"
+  puts 'Usage: bin/scenario <test_file>'
+  puts 'Example: bin/scenario spec/integration/rails_integration_spec.rb'
   exit EXIT_SETUP_ERROR
 end
 
@@ -148,7 +139,6 @@ unless File.exist?(test_file)
   puts "Test file not found: #{test_file}"
   exit EXIT_SETUP_ERROR
 end
-
 
 # Run the scenario
 ScenarioRunner.new(test_file).run
