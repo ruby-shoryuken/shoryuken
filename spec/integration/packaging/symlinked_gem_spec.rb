@@ -81,7 +81,6 @@ Bundler.with_unbundled_env do
 
     marker = File.join(dir, 'job_marker')
     SymlinkedGemJob.set(queue: queue).perform_later(marker)
-    # Loads Active Job before bin/shoryuken requires Shoryuken
     env = env.merge('RUBYOPT' => '-ractive_job')
     loaded, active_job = run_until_processed(queue, write_job(dir), marker, bin: bin, env: env)
     assert_equal(File.join(gem_dir, 'lib', 'shoryuken.rb'), loaded)
