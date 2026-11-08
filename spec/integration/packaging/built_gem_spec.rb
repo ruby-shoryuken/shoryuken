@@ -13,28 +13,10 @@ require 'rubygems/package'
 
 setup_sqs
 
-ROOT = File.expand_path('../../..', __dir__)
-
-def build_gem(dir)
-  gem_file = File.join(dir, 'shoryuken.gem')
-  output, status = Open3.capture2e('gem', 'build', 'shoryuken.gemspec', '-o', gem_file, chdir: ROOT)
-  assert(status.success?, "gem build failed: #{output}")
-  gem_file
-end
-
-def install_gem(gem_file, gem_home)
-  output, status = Open3.capture2e(
-    'gem', 'install', gem_file, '--local', '--ignore-dependencies', '--no-document',
-    '--install-dir', gem_home, '--bindir', File.join(gem_home, 'bin')
-  )
-  assert(status.success?, "gem install failed: #{output}")
-  File.join(gem_home, 'bin', 'shoryuken')
-end
-
 def expected_files
   tracked, status = Open3.capture2(
     'git', 'ls-files', 'lib', 'bin/cli', 'config/locales', 'bin/shoryuken', 'README.md', 'CHANGELOG.md', 'LICENSE',
-    chdir: ROOT
+    chdir: REPO_ROOT
   )
   assert(status.success?, 'git ls-files failed')
   tracked.split("\n").sort
@@ -63,7 +45,7 @@ Bundler.with_unbundled_env do
 
     gem_home = File.join(dir, 'gems')
     bin = install_gem(gem_file, gem_home)
-    env = { 'GEM_HOME' => gem_home, 'GEM_PATH' => [gem_home, *Gem.path].join(File::PATH_SEPARATOR) }
+    env = installed_gem_env(gem_home)
 
     status, output = run_shoryuken_command_until_exit('version', bin: bin, env: env)
     assert(status.success?, output)
