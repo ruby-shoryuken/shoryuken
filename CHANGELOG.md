@@ -393,6 +393,7 @@
   - Implements `stopping?` method in ActiveJob adapters to signal graceful shutdown
   - Enables jobs to checkpoint progress and resume after interruption
   - Handles past timestamps correctly (SQS treats negative delays as immediate delivery)
+  - Tracks shutdown state via the `Launcher#stopping?` flag
   - See Rails PR #55127 for more details on ActiveJob Continuations
 
 - Enhancement: Add CurrentAttributes persistence support
@@ -437,6 +438,7 @@
   - Introduces Shoryuken::Helpers::HashUtils.deep_symbolize_keys for configuration processing
   - Introduces Shoryuken::Helpers::StringUtils.constantize for dynamic class loading
   - Eliminates unnecessary ActiveSupport dependencies
+  - Completely removes lib/shoryuken/core_ext.rb file
 
 - Enhancement: Implement Zeitwerk autoloading
   - Replaces manual require statements with Zeitwerk-based autoloading
