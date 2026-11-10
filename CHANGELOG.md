@@ -247,7 +247,7 @@
 
 - Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
   - When the executor rejected a worker with `Concurrent::RejectedExecutionError` (a hard stop racing the
-    `running?` check, or a saturated bounded custom `launcher_executor`), the busy count was never released
+    `running?` check, or a saturated bounded custom `launcher_executor`), the rejected worker stayed counted as busy
   - With a bounded executor, dispatch stalled and the group silently stopped processing (#1029)
 
 ## [7.0.3] - 2026-07-10
@@ -331,7 +331,7 @@
   - Rename `setup_localstack` to `setup_sqs` and `bin/clean_localstack` to `bin/clean_sqs`
 
 - Fix: Allow custom polling strategy to be configured per-group via `add_group` (mensfeld)
-  - `add_group` now accepts a `polling_strategy:` keyword argument; YAML group config passes it through too
+  - `add_group` now accepts a `polling_strategy:` keyword argument; a group in the YAML config can set `polling_strategy` too
   - [#925](https://github.com/ruby-shoryuken/shoryuken/issues/925)
 
 ## [7.0.1] - 2026-02-07
