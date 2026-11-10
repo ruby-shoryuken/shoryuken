@@ -212,173 +212,116 @@
 ## [7.0.4] - 2026-09-23
 
 - Fix: `shoryuken sqs dump`/`mv` no longer stop early on real SQS (mensfeld)
-  - `find_all` used short polling and broke on the first empty `receive_message` response. Real
-    (distributed) SQS routinely returns an empty batch while the queue still has messages, so dump/mv
-    quietly processed only a fraction of the queue (invisible on single-node ElasticMQ/LocalStack)
-  - It now long-polls and only stops after several consecutive empty batches, so the queue is actually drained
-  - Because a longer drain can outlast the queue's visibility timeout (dump/mv delete only after `find_all`
-    returns), re-read messages are now deduplicated by message id, so they are not dumped/moved or counted
-    twice, and the newest receipt handle is kept so the deferred delete still succeeds
-  - Deletion stays deferred (a failed dump/mv deletes nothing), so a queue larger than SQS's in-flight limit
-    (~120k standard / ~20k FIFO) drains over multiple runs rather than one - no message is lost
+  - Real (distributed) SQS often returns an empty batch while the queue still has messages, so dump/mv
+    processed only part of the queue. They now long-poll and stop only after several empty batches in a row
+  - Messages received again after the visibility timeout expires are no longer dumped, moved or counted twice
+  - Messages are still deleted only after the dump/mv, so a failed run deletes nothing and a queue larger than
+    the SQS in-flight limit (~120k standard / ~20k FIFO) drains over several runs - no message is lost
 
 - Fix: Graceful stop no longer deadlocks when a manager's dispatch loop never started (mensfeld)
-  - `await_dispatching_in_progress` blocks on a `Queue` that is only closed from inside `dispatch_loop` when it
-    observes the stop flag. If the loop never runs - a graceful stop arriving before the start `Future` is
-    scheduled, or an embedded host whose executor pool is saturated so `manager.start` never runs - the signal
-    was never closed and `Launcher#stop` deadlocked
-  - `stop_new_dispatching` now closes the release signal itself when the loop hasn't started (tracked via a new
-    flag); `Queue#close` is idempotent, so a loop that does start later and closes it again is harmless
+  - `Launcher#stop` deadlocked when the stop arrived before the dispatch loop started, or when an embedded
+    host's executor pool was saturated so `manager.start` never ran
 
 - Feature: `Shoryuken.fifo_message_deduplication` to opt out of content-based dedup id generation for raw sends (mensfeld)
-  - `Queue#add_fifo_attributes!` always set `message_deduplication_id` to a SHA256 of the body when none was
-    given, so two raw sends of an identical body within SQS's 5-minute window (`Worker.perform_async`,
-    `Queue#send_message`/`#send_messages`) were silently deduplicated - the second dropped. ActiveJob got an
-    opt-out in #1017 but the raw path had none
-  - Set `Shoryuken.fifo_message_deduplication = false` to stop auto-generating that id, so identical bodies are
-    no longer silently dropped (provide a `message_deduplication_id` yourself or enable
-    `ContentBasedDeduplication` on the queue)
+  - On FIFO queues, raw sends (`Worker.perform_async`, `Queue#send_message`/`#send_messages`) without a
+    `message_deduplication_id` got a SHA256 of the body as that id, so a second identical body within SQS's
+    5-minute window was silently dropped. ActiveJob got an opt-out in #1017
+  - Set `Shoryuken.fifo_message_deduplication = false` to stop generating that id (provide a
+    `message_deduplication_id` yourself or enable `ContentBasedDeduplication` on the queue)
   - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
 
 - Fix: Harden `ExponentialBackoffRetry` visibility handling (mensfeld)
-  - `next_visibility_timeout` could return a negative value when a job ran past the 12h SQS ceiling (its
-    `max_timeout` goes below zero), and `change_message_visibility` rejects a negative timeout; it now clamps
-    to 0 so the message is retried as soon as possible
-  - `handle_failure` called `change_visibility` unguarded, so a failure there (e.g. an expired receipt handle)
-    escaped the `rescue` in `#call` and masked the original worker error from exception handlers/notifiers; it
-    now rescues, logs, and reports "not retried" so the original error is re-raised and the message falls back
-    to the queue's default visibility timeout
-  - The failure `rescue` in `#call` is now scoped to the single-message `yield` only, so a batch worker's error
-    no longer routes the message Array into `handle_failure` (raising a `NoMethodError` that masked the original)
+  - A job that ran past the 12h SQS ceiling no longer gets a negative visibility timeout, which SQS rejects;
+    it is clamped to 0, so the message is retried as soon as possible
+  - A failed visibility change (e.g. an expired receipt handle) is now logged and no longer masks the original
+    worker error from exception handlers/notifiers; the message falls back to the queue's default visibility timeout
+  - A batch worker's error no longer raises a `NoMethodError` that masked the original error
 
 - Fix: `perform_async` no longer mutates the caller-supplied options hash (mensfeld)
-  - `DefaultExecutor#perform_async` and `InlineExecutor#perform_async` deleted `:queue`, injected
-    `:message_body`, and wrote `shoryuken_class` into the nested `:message_attributes` in place, so a caller
-    reusing one options hash across enqueues had `:queue` stripped after the first call - silently routing later
-    jobs to the worker's default queue
-  - Both now operate on a `dup` and rebuild `:message_attributes` with `merge`, leaving the caller's hash untouched
+  - In `DefaultExecutor` and `InlineExecutor`, a caller reusing one options hash across enqueues had `:queue`
+    stripped after the first call, so later jobs silently went to the worker's default queue
 
 - Fix: `Shoryuken::Client.queues` no longer builds the same queue more than once under concurrency (mensfeld)
-  - The cache used an unsynchronized `@@queues[name] ||= Shoryuken::Queue.new(...)`. Building a queue makes
-    SQS API calls, and that I/O releases the GVL, so concurrent first-access (dispatch, processor-completion
-    and worker threads all call it) built the queue multiple times - redundant API calls, and a corrupt cache
-    on JRuby/TruffleRuby
-  - Access to the cache is now guarded by a mutex
+  - Concurrent first access built the queue several times: redundant SQS API calls, and a corrupt cache on
+    JRuby/TruffleRuby. Access to the cache is now guarded by a mutex
 
 - Fix: Busy-processor counter no longer leaks when the executor rejects a worker post (mensfeld)
-  - `Manager#assign` increments `@busy_processors` before posting the worker `Concurrent::Promise`, but the
-    matching decrement (`processor_done`) runs inside the promise body. When the post is rejected with
-    `Concurrent::RejectedExecutionError` - a hard stop racing the `running?` check, or a saturated bounded custom
-    `launcher_executor` - the body never runs and the counter leaks
-  - With a bounded executor the leak is permanent: `ready` (`@max_processors - busy`) keeps shrinking until
-    dispatch stalls and the group silently stops processing
-  - The increment is now rolled back on `RejectedExecutionError` by decrementing directly (the message was never
-    processed, so the FIFO `message_processed` callback must not run) (#1029)
+  - When the executor rejected a worker with `Concurrent::RejectedExecutionError` (a hard stop racing the
+    `running?` check, or a saturated bounded custom `launcher_executor`), the busy count was never released
+  - With a bounded executor, dispatch stalled and the group silently stopped processing (#1029)
 
 ## [7.0.3] - 2026-07-10
 
 - Feature: `Shoryuken.active_job_fifo_message_deduplication` to opt out of FIFO dedup id generation (mensfeld)
   - For FIFO queues the ActiveJob adapter derives a content-based `message_deduplication_id` from the
     serialized job minus `job_id`/`enqueued_at` (#457 / #750), so two distinct enqueues of the same job
-    class and arguments within SQS's 5-minute window silently collapse into one - a "skipped message" trap
-  - Set `Shoryuken.active_job_fifo_message_deduplication = false` to stop generating that id, so identical
-    jobs are no longer silently dropped (rely on the queue's content-based deduplication or explicit ids)
+    class and arguments within SQS's 5-minute window silently collapse into one
+  - Set `Shoryuken.active_job_fifo_message_deduplication = false` to stop generating that id (rely on the
+    queue's content-based deduplication or explicit ids)
   - Defaults to `true`, preserving the existing behavior; an explicit `message_deduplication_id` is still honored
 
 - Fix: Polling strategies are now thread-safe, and WeightedRoundRobin unpauses processed queues reliably (mensfeld)
-  - `message_processed` runs on processor-completion threads (for FIFO queues) while `next_queue`/`messages_found`
-    run on the dispatch thread; they mutate the same state with no synchronization, which is benign on MRI (GVL)
-    but corrupts state on JRuby/TruffleRuby. Both `WeightedRoundRobin` and `StrictPriority` now serialize access
-    with a mutex
-  - `WeightedRoundRobin#unpause_queues` only checked the head of the paused list, so a queue marked ready by
-    `message_processed` could stay stuck behind an earlier-paused queue; it now unpauses the first expired entry
-    anywhere in the list
+  - For FIFO queues, processor-completion threads and the dispatch thread changed the strategy state without
+    synchronization: benign on MRI (GVL), but it corrupts state on JRuby/TruffleRuby. Both `WeightedRoundRobin`
+    and `StrictPriority` now guard it with a mutex
+  - `WeightedRoundRobin` no longer leaves a queue marked ready stuck behind an earlier-paused queue
 
 - Fix: `TimerTask#kill` no longer deadlocks on Ruby 3.2 under concurrent callers (mensfeld)
-  - `kill` called `@thread.kill` while holding `@mutex`; the timer loop's `ensure` block calls
-    `@mutex.synchronize` to clear `@running`, so on Ruby 3.2 (where `Thread#kill` yields the GVL
-    to the killed thread for cleanup before returning) both threads waited on each other forever
-  - The thread is now killed after the mutex is released, so the ensure block can always acquire it
 
 - Fix: Stopping the launcher no longer destroys the process-global IO executor (mensfeld)
-  - With no `launcher_executor` configured, `Launcher#executor` fell back to `Concurrent.global_io_executor`,
-    and `Launcher#stop`/`#stop!` call `shutdown` (and `kill`) on it
-  - Shutting down that process-wide pool broke anything else relying on concurrent-ruby's `:io` pool
-    (including Shoryuken's own `ShoryukenConcurrentSendAdapter`) and prevented starting a fresh launcher
-    in the same process
-  - The launcher now owns a dedicated `Concurrent::CachedThreadPool`, so stopping it leaves the global
-    IO executor untouched
+  - With no `launcher_executor` configured, stopping the launcher shut down concurrent-ruby's global `:io`
+    pool. This broke anything else using it (including Shoryuken's own `ShoryukenConcurrentSendAdapter`)
+    and prevented starting a new launcher in the same process
+  - The launcher now owns a dedicated `Concurrent::CachedThreadPool`
 
 - Fix: `Queue#delete_messages` now logs every batch-delete failure and returns a robust boolean (mensfeld)
-  - It used `failed.any? { |f| logger.error ... }`, which short-circuited after the first failure - so when
-    a batch had multiple failures only the first was logged - and only returned truthy because `Logger#error`
-    happens to return true (a custom logger returning falsey would have hidden the failure from callers)
-  - It now logs each failure and returns `failed.any?`, so `NonRetryableException`/`AutoDelete` reliably see
-    that some messages may remain and need reprocessing
+  - Only the first failure of a batch was logged, and the return value depended on what the logger returned
+  - It now returns whether any delete failed, so `NonRetryableException`/`AutoDelete` reliably see that some
+    messages may remain and need reprocessing
 
 - Fix: Lifecycle events fired in reverse no longer alternate handler order (mensfeld)
-  - `Util#fire_event` reversed the stored handler array in place with `reverse!`, so an event fired more
-    than once with `reverse: true` (e.g. `:shutdown` via `stop` then `stop!`) flipped order each time
-  - It now reverses a copy, leaving the stored handler order untouched
+  - An event fired more than once with `reverse: true` (e.g. `:shutdown` via `stop` then `stop!`) flipped
+    its handler order each time
 
 - Fix: A fatal dispatch error no longer hard-kills an embedded host process (mensfeld)
-  - `Manager#handle_dispatch_error` sent `Process.kill('USR1', Process.pid)` unconditionally after a
-    dispatch error (e.g. SQS still failing once the fetcher exhausted its retries)
-  - The CLI Runner traps USR1 and turns it into a graceful shutdown, but a host embedding
-    `Shoryuken::Launcher` directly has USR1's default disposition, so the whole process - and its
-    in-flight workers - was terminated
-  - When embedded (no CLI Runner), the failing manager now just stops itself and `Launcher#healthy?`
-    reports the failure; the USR1 signal is only sent in server (CLI) mode, preserving the
-    supervisor-restart behavior there
+  - After a dispatch error (e.g. SQS still failing once the fetcher exhausted its retries) Shoryuken sent USR1
+    to its own process. A host embedding `Shoryuken::Launcher` does not trap USR1, so the whole process - and
+    its in-flight workers - was terminated
+  - When embedded, the failing manager now stops itself and `Launcher#healthy?` reports the failure; in server
+    (CLI) mode USR1 is still sent, preserving the supervisor-restart behavior
 
 - Fix: Graceful stop is now bounded by the configured timeout (mensfeld)
-  - `Launcher#stop` (the soft shutdown behind USR1/TSTP) called `executor.wait_for_termination` with no
-    argument - an unbounded wait - so a single hung worker blocked shutdown forever
-  - Both `Launcher#stop` and `Launcher#stop!` now share a `shutdown_executor` helper that waits up to
-    `Shoryuken.options[:timeout]` seconds for in-flight workers, then force-kills the executor so the
-    process can exit; the graceful stop still waits for workers, just no longer indefinitely
+  - A graceful stop (USR1/TSTP) waited without limit, so a single hung worker blocked shutdown forever
+  - `Launcher#stop` and `Launcher#stop!` now wait up to `Shoryuken.options[:timeout]` seconds for in-flight
+    workers, then force-kill the executor so the process can exit
 
 - Docs: Correct the `retry_intervals` exponential backoff documentation (mensfeld)
-  - The `exponential_backoff?` docstring claimed retries stop ("before giving up") after the last configured
-    interval. They do not: once the intervals are exhausted, the last interval is reused for every later
-    attempt, and SQS's redrive policy (maxReceiveCount) is what ultimately moves a message to a dead-letter queue
-  - Added a spec pinning that far-later attempts keep reusing the last interval
+  - Retries do not stop after the last configured interval: that interval is reused for every later attempt,
+    and SQS's redrive policy (maxReceiveCount) is what moves a message to a dead-letter queue
 
 - Fix: `CurrentAttributes.persist` no longer drops a class when called once per class (mensfeld)
-  - The storage key was derived from the per-call index, so registering classes across separate `persist`
-    calls made the third call reuse `cattr_0` and silently overwrite the second class - its attributes were
-    then never serialized or restored
-  - The key now uses the running registry size, so incremental and single-call registration both yield
-    distinct, stable keys (single-call `persist(A, B, C)` keys are unchanged)
+  - Registering classes across separate `persist` calls made the third call silently overwrite the second
+    class, so its attributes were never serialized or restored. Single-call `persist(A, B, C)` is unchanged
 
 - Fix: Busy-processor accounting no longer breaks when processor completion raises (mensfeld)
-  - `Manager#assign` chained `.then { processor_done }.rescue { processor_done }`, so an exception inside
-    `processor_done` (SQS lookups or a polling strategy's `message_processed` callback) ran completion twice
-  - The busy counter was decremented twice for one message and drifted negative, inflating `ready` and
-    silently breaking the configured concurrency limit for the life of the process
-  - Completion now runs in an `ensure` around processing (exactly once), and `processor_done` logs
-    instead of leaking exceptions from the FIFO bookkeeping
+  - An exception in completion (SQS lookups or a polling strategy's `message_processed` callback) decremented
+    the busy counter twice for one message, silently breaking the configured concurrency limit for the life
+    of the process
+  - Completion now runs exactly once, and errors from the FIFO bookkeeping are logged instead of raised
 
 - Fix: Repeated graceful stop no longer deadlocks the process (mensfeld)
-  - `Manager#await_dispatching_in_progress` popped a signal queue that received exactly one token,
-    so a second `Launcher#stop` blocked forever on an empty queue
-  - Operationally this was the TSTP -> USR1 sequence: both signals trigger a graceful stop, leaving
-    the process stuck in the signal loop where even TERM/INT were no longer handled (only SIGKILL worked)
-  - The dispatch loop now closes the signal queue instead of pushing a token, releasing every pending
-    and future waiter; the dispatch chain also releases waiters if the executor rejects a post during
-    a racing hard shutdown
+  - A second `Launcher#stop` (e.g. TSTP then USR1) blocked forever, leaving the process stuck where even
+    TERM/INT were no longer handled (only SIGKILL worked)
 
 - Fix: `non_retryable_exceptions` is no longer ignored when `retry_intervals` is also configured (mensfeld)
-  - `ExponentialBackoffRetry` swallowed every exception after scheduling a retry, so `NonRetryableException`
-    (which sits outside it in the default middleware chain) never saw non-retryable errors - poison messages
-    were retried indefinitely (with the last interval repeated) instead of being deleted immediately
-  - `ExponentialBackoffRetry` now re-raises exceptions classified as non-retryable so the message gets deleted
-  - Exception classification is extracted to `NonRetryableException.non_retryable?` and shared by both middlewares
+  - `ExponentialBackoffRetry` swallowed every exception after scheduling a retry, so poison messages were
+    retried indefinitely (with the last interval repeated) instead of being deleted immediately
+  - It now re-raises non-retryable exceptions so the message gets deleted. The classification is shared by
+    both middlewares via `NonRetryableException.non_retryable?`
 
 - Enhancement: Use dynamic Ruby warning category opt-in in test helpers (mensfeld)
-  - Replace version-gated `Warning[:performance]` with `Warning.categories`-based auto-enablement
-  - Automatically enables all non-deprecated, non-experimental warning categories for forward compatibility
-  - Applied to both `spec/spec_helper.rb` and `spec/integrations_helper.rb`
+  - Test helpers enable all non-deprecated, non-experimental warning categories via `Warning.categories`
+    instead of a version-gated `Warning[:performance]`
 
 ## [7.0.2] - 2026-04-16
 
@@ -388,9 +331,7 @@
   - Rename `setup_localstack` to `setup_sqs` and `bin/clean_localstack` to `bin/clean_sqs`
 
 - Fix: Allow custom polling strategy to be configured per-group via `add_group` (mensfeld)
-  - `add_group` now accepts `polling_strategy:` keyword argument
-  - `polling_strategy()` reads from the groups hash populated by `add_group`, with fallback to raw options
-  - `EnvironmentLoader` passes `polling_strategy` through when parsing YAML group config
+  - `add_group` now accepts a `polling_strategy:` keyword argument; YAML group config passes it through too
   - [#925](https://github.com/ruby-shoryuken/shoryuken/issues/925)
 
 ## [7.0.1] - 2026-02-07
@@ -399,8 +340,7 @@
   - [#958](https://github.com/ruby-shoryuken/shoryuken/pull/958)
 
 - Fix: ActiveJob keyword arguments support (mensfeld)
-  - Jobs with keyword arguments were broken due to improper argument forwarding in `SQSSendMessageParametersSupport#initialize`
-  - Use Ruby's argument forwarding (`...`) to properly pass all arguments including keyword arguments
+  - Jobs with keyword arguments were broken by incorrect argument forwarding
   - [#962](https://github.com/ruby-shoryuken/shoryuken/pull/962)
 
 - Fix: Replace `ArgumentError` with custom `FifoDelayNotSupportedError` for FIFO delay errors
@@ -453,8 +393,6 @@
   - Implements `stopping?` method in ActiveJob adapters to signal graceful shutdown
   - Enables jobs to checkpoint progress and resume after interruption
   - Handles past timestamps correctly (SQS treats negative delays as immediate delivery)
-  - Tracks shutdown state in Launcher via `stopping?` flag
-  - Leverages existing Shoryuken shutdown lifecycle (stop/stop! methods)
   - See Rails PR #55127 for more details on ActiveJob Continuations
 
 - Enhancement: Add CurrentAttributes persistence support
@@ -499,16 +437,11 @@
   - Introduces Shoryuken::Helpers::HashUtils.deep_symbolize_keys for configuration processing
   - Introduces Shoryuken::Helpers::StringUtils.constantize for dynamic class loading
   - Eliminates unnecessary ActiveSupport dependencies
-  - Completely removes lib/shoryuken/core_ext.rb file
-  - Maintains all existing functionality while following Ruby best practices
-  - Improves code maintainability and reduces global namespace pollution
 
 - Enhancement: Implement Zeitwerk autoloading
   - Replaces manual require statements with Zeitwerk-based autoloading
   - Adds zeitwerk dependency for modern Ruby module loading
   - Splits polling classes into properly named files (BaseStrategy, QueueConfiguration)
-  - Reduces startup overhead and improves code organization
-  - Maintains backward compatibility while modernizing the codebase
 
 - Enhancement: Increase `SendMessageBatch` to 1MB to align with AWS
   - [#864](https://github.com/ruby-shoryuken/shoryuken/pull/864)
@@ -603,7 +536,8 @@
 
 - Breaking changes: Initialize Rails before parsing config file
   - [#686](https://github.com/ruby-shoryuken/shoryuken/pull/686)
-  - Previously, Shoryuken read its configuration from an optional YAML file, then allowed CLI arguments to override those, then initialized the Rails application (provided that `--rails` or `-R` was specified). This behavior meant that the config file did not have access to things like environment variables that were initialized by Rails (such as when using `dotenv`). With this change, Rails is initialized much earlier in the process. After Rails is initialized, the YAML configuration file is interpreted, and CLI arguments are finally interpreted last. Most applications will not need to undergo changes in order to upgrade, but the new load order could technically result in different behavior depending on the application's YAML configuration file or Rails initializers.
+  - With `--rails`/`-R`, Rails is now initialized first, then the YAML config file is read, then CLI arguments. Before, Rails came last, so the config file could not use environment variables set by Rails (e.g. with `dotenv`)
+  - Most applications need no changes, but the new load order can change behavior depending on the YAML config file or Rails initializers
 
 ## [v5.3.2] - 2022-01-19
 
