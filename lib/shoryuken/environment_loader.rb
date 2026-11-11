@@ -168,7 +168,7 @@ module Shoryuken
     # @param weight [Integer] the queue weight
     # @return [Array<String, Integer>] the prefixed queue name and weight
     def prefix_active_job_queue_name(queue_name, weight)
-      return [queue_name, weight] if queue_name.start_with?('http://', 'https://', 'arn:')
+      return [queue_name, weight] if queue_name.include?('://') || queue_name.start_with?('arn:')
 
       queue_name_prefix = ::ActiveJob::Base.queue_name_prefix
       queue_name_delimiter = ::ActiveJob::Base.queue_name_delimiter
