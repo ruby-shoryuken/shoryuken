@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs` prints `[FAIL] The specified queue <name> does not exist` when SQS reports a missing queue as
+  `QueueDoesNotExist`, as ElasticMQ does
+  - `purge`, `delete`, `dump`, `requeue` and `mv` printed a backtrace
+
 - Fix: Shoryuken loads when `lib/shoryuken.rb` is a symlink to a file elsewhere, as in a Bazel sandbox, which links
   each file of a gem
   - `loader.ignore("#{__dir__}/active_job")` named the resolved directory, outside the root `Zeitwerk::Loader.for_gem`

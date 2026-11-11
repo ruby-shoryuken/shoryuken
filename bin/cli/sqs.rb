@@ -117,7 +117,7 @@ module Shoryuken
         # @return [String] the queue URL
         def find_queue_url(queue_name)
           sqs.get_queue_url(queue_name: queue_name).queue_url
-        rescue Aws::SQS::Errors::NonExistentQueue
+        rescue Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
           fail_task "The specified queue #{queue_name} does not exist"
         end
 
