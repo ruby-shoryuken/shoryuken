@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: `active_job_queue_name_prefixing` no longer puts ActiveJob's `queue_name_prefix` in front of queues configured
+  as an `http://` URL, as ElasticMQ and LocalStack return
+  - Only `https://` URLs and ARNs were skipped, so the prefixed URL pointed to no queue
+
 - Fix: Shoryuken loads when `lib/shoryuken.rb` is a symlink to a file elsewhere, as in a Bazel sandbox, which links
   each file of a gem
   - `loader.ignore("#{__dir__}/active_job")` named the resolved directory, outside the root `Zeitwerk::Loader.for_gem`
