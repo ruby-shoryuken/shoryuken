@@ -234,6 +234,24 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       expect(Shoryuken.groups['group1'][:queues]).to(eq(['https://example.com/test_group1_queue1']))
     end
 
+    it 'does not prefix http url-based queues' do
+      Shoryuken.options[:queues] = ['http://localhost:9324/000000000000/test_queue1']
+      Shoryuken.options[:groups] = { 'group1' => { queues: ['http://localhost:9324/000000000000/test_group1_queue1'] } }
+
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to(eq(['http://localhost:9324/000000000000/test_queue1']))
+      expect(Shoryuken.groups['group1'][:queues]).to(eq(['http://localhost:9324/000000000000/test_group1_queue1']))
+    end
+
+    it 'does not prefix url-based queues with an upper-case scheme' do
+      Shoryuken.options[:queues] = ['HTTP://localhost:9324/000000000000/test_queue1']
+
+      subject.load
+
+      expect(Shoryuken.groups['default'][:queues]).to(eq(['HTTP://localhost:9324/000000000000/test_queue1']))
+    end
+
     it 'does not prefix arn-based queues' do
       Shoryuken.options[:queues] = ['arn:aws:sqs:fake-region-1:1234:test_queue1']
       Shoryuken.options[:groups] = { 'group1' => { queues: ['arn:aws:sqs:fake-region-1:1234:test_group1_queue1'] } }

@@ -437,13 +437,14 @@ module Shoryuken
         validate_number_option
 
         url_source = find_queue_url(queue_name_source)
+        url_target = find_queue_url(queue_name_target)
         messages = []
 
         count = find_all(url_source, options[:number]) do |m|
           messages << m
         end
 
-        failed_ids = batch_send(find_queue_url(queue_name_target), messages.map(&:to_h)).to_set(&:id)
+        failed_ids = batch_send(url_target, messages.map(&:to_h)).to_set(&:id)
         moved = messages.reject { |m| failed_ids.include?(m.message_id) }
         not_deleted = options[:delete] ? batch_delete(url_source, moved) : []
 
