@@ -3,11 +3,13 @@
 # This spec tests how `shoryuken sqs dump`, `mv` and `delete` handle their input and report the result.
 #
 # `dump` with a missing or read-only `-p` directory and `dump`/`mv` with `-n 0` fail with a `[FAIL]` message
-# before they receive any message, so the messages stay available. `delete` reports the deleted queue.
+# before they receive any message, so the messages stay available. `mv` to a missing target queue fails before
+# it receives any message too. `delete` reports the deleted queue.
 #
 # Regression: `dump -p <missing or read-only dir>` received the messages and then raised `Errno::ENOENT` or
 # `Errno::EACCES`, which left them in flight; `-n 0` raised `Aws::SQS::Errors::InvalidAttributeValue`; `delete`
-# printed "was successfully delete".
+# printed "was successfully delete"; `mv` to a missing target received all messages of the source first, which left
+# them in flight for the source's visibility timeout.
 
 setup_sqs
 
@@ -75,6 +77,16 @@ with_queue_and_dir do |queue, dir|
     assert_equal(0, queue_size(target), 'mv must move nothing')
     assert_equal([], Dir.children(dir), 'dump must write no file')
   end
+end
+
+# --- mv to a missing target queue ---
+with_queue_and_dir(attributes: { 'VisibilityTimeout' => '600' }) do |queue, _dir|
+  send_messages(queue)
+
+  status, output = run_shoryuken_sqs('mv', queue, "#{queue}-missing")
+
+  refute(status.success?, "mv must exit with a non-zero status, got: #{output}")
+  assert_equal(2, available_messages(queue), 'the messages must stay available, not in flight')
 end
 
 # --- delete ---
