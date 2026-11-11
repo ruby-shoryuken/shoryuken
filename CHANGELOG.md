@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs mv` looks up the target queue before it receives from the source
+  - With a missing target, all source messages stayed in flight for the source's visibility timeout
+
 - Fix: Shoryuken loads when `lib/shoryuken.rb` is a symlink to a file elsewhere, as in a Bazel sandbox, which links
   each file of a gem
   - `loader.ignore("#{__dir__}/active_job")` named the resolved directory, outside the root `Zeitwerk::Loader.for_gem`
