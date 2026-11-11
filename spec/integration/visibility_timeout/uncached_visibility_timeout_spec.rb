@@ -4,8 +4,7 @@
 # SQS for every message, so a change on the queue applies to the next job without a restart.
 #
 # Each job runs 2.5s with auto_visibility_timeout. AutoExtendVisibility reads it when a job starts and Timing after it
-# ends. A job that runs past the visibility
-# timeout logs an "exceeded the queue visibility timeout" warning.
+# ends. A job that runs past the visibility timeout logs an "exceeded the queue visibility timeout" warning.
 
 require_relative 'cache_visibility_timeout'
 
