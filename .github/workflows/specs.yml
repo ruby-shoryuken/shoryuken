@@ -5,8 +5,14 @@ on:
 permissions:
   contents: read
 jobs:
+  # Docs-only changes skip the jobs below; CI Success still reports success
+  changes:
+    uses: ./.github/workflows/ci_changes.yml
+
   specs:
     name: Specs
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       matrix:
         ruby: ['3.3', '3.4', '4.0']
@@ -49,6 +55,8 @@ jobs:
 
   integrations:
     name: Integrations
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       matrix:
         ruby: ['3.3', '3.4', '4.0']
@@ -85,13 +93,16 @@ jobs:
     timeout-minutes: 5
     if: always()
     needs:
+      - changes
       - specs
       - integrations
     steps:
+      # Skipped jobs are fine only when the change is docs-only
       - name: Check all jobs passed
         if: |
+          needs.changes.result != 'success' ||
           contains(needs.*.result, 'failure') ||
           contains(needs.*.result, 'cancelled') ||
-          contains(needs.*.result, 'skipped')
+          (needs.changes.outputs.code != 'false' && contains(needs.*.result, 'skipped'))
         run: exit 1
       - run: echo "All CI checks passed!"
