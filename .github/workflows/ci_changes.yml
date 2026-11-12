@@ -1,0 +1,94 @@
+# Decides whether a pull request or a push touches anything but docs. Called as the `changes`
+# job by specs.yml: docs-only changes skip the heavy jobs, while the CI Success job still runs
+# and reports success. README.md, CHANGELOG.md and LICENSE ship in the gem and
+# built_gem_spec.rb checks that they exist, so only a modification of them counts as docs
+
+name: CI Changes
+
+on:
+  workflow_call:
+    outputs:
+      code:
+        description: "'false' when the heavy jobs can be skipped, 'true' otherwise"
+        value: ${{ jobs.detect.outputs.code }}
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # A push compares against its `before` commit, which needs the history
+          fetch-depth: ${{ github.event_name == 'push' && 0 || 2 }}
+
+      - name: Detect code changes
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # code=true runs everything; anything unexpected (a git error too) gives code=true
+          set -uo pipefail
+          out() {
+            echo "code=$1 ($2)"
+            echo "code=$1" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          case "$EVENT_NAME" in
+            pull_request)
+              # HEAD is the PR merge commit, so HEAD^1..HEAD is what the PR changes in main
+              base="HEAD^1"
+              ;;
+            push)
+              # A new branch has no `before`; a force push may not descend from it
+              case "$BEFORE" in
+                ''|0000000000000000000000000000000000000000) out true "new branch" ;;
+              esac
+              git merge-base --is-ancestor "$BEFORE" HEAD 2>/dev/null ||
+                out true "$BEFORE is not an ancestor of HEAD"
+              base="$BEFORE"
+              ;;
+            *)
+              out true "event $EVENT_NAME"
+              ;;
+          esac
+
+          changed="$(git diff --name-status --no-renames "$base" HEAD)" || out true "git diff failed"
+          [ -n "$changed" ] || out true "empty diff"
+
+          echo "Changed files:"
+          echo "$changed"
+
+          while IFS=$'\t' read -r status file; do
+            case "$file" in
+              README.md|CHANGELOG.md|LICENSE)
+                [ "$status" = "M" ] || out true "$status $file"
+                ;;
+              lib/*|spec/*|test/*|bin/*|examples/*|rubocop/*|test_workers/*)
+                out true "$file"
+                ;;
+              .github/ISSUE_TEMPLATE/*|.github/FUNDING.yml)
+                ;;
+              *.md|LICENSE*)
+                # Docs in a top-level directory that holds Ruby code count as code
+                if [ "$file" != "${file#*/}" ]; then
+                  tree="$(git ls-tree -r --name-only HEAD -- "${file%%/*}/")" || out true "git ls-tree failed"
+                  ! grep -q '\.rb$' <<< "$tree" || out true "$file"
+                fi
+                ;;
+              *.png|*.jpg|*.jpeg|*.svg|*.gif)
+                ;;
+              *)
+                out true "$file"
+                ;;
+            esac
+          done <<< "$changed"
+
+          out false "docs only"
