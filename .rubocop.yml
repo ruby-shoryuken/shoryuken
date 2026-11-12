@@ -12,6 +12,8 @@ Metrics/BlockLength:
     - context
   CountAsOne:
     - method_call
+  Exclude:
+    - 'bin/integrations'
 
 Metrics/PerceivedComplexity:
   Enabled: false
