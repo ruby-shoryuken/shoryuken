@@ -6,6 +6,12 @@
   - Supported Rails versions: 8.0 and 8.1
   - Users on Rails 7.2 should upgrade or remain on Shoryuken 7.0.x
 
+- Fix: An ActiveJob `retry_on` retry or an `ActiveJob::Continuable` resume keeps the `message_group_id` and the custom
+  `message_attributes` given with `.set`
+  - The retry or resume was sent without the custom attributes, and on a FIFO queue in the default `ShoryukenMessage`
+    group, so per-group ordering was lost
+  - The `message_deduplication_id` is not kept: a FIFO retry still gets a new one
+
 - Fix: `shoryuken sqs` prints `[FAIL] The specified queue <name> does not exist` when SQS reports a missing queue as
   `QueueDoesNotExist`, as ElasticMQ does
   - `purge`, `delete`, `dump`, `requeue` and `mv` printed a backtrace
