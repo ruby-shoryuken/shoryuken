@@ -16,12 +16,28 @@ module Shoryuken
     # Initializes SQS SendMessage parameters on instances of ActiveJob::Base to the empty hash, and populates it whenever
     # `#enqueue` is called, such as when using ActiveJob::Base.set.
     module SQSSendMessageParametersSupport
+      # Key of the job data entry that carries the SQS parameters of a received message to the deserialized job. It is
+      # never part of the message body.
+      JOB_DATA_KEY = 'shoryuken_sqs_send_message_parameters'
+
       # Initializes a new ActiveJob instance with empty SQS parameters
       #
       # Uses argument forwarding (...) to properly pass all arguments including keyword arguments to the base class.
       def initialize(...)
         super(...)
         self.sqs_send_message_parameters = {}
+      end
+
+      # Restores the job and the SQS parameters of the message it was received from (see
+      # Shoryuken::ActiveJob::JobWrapper#perform), so re-enqueueing it from the worker keeps them
+      #
+      # @param job_data [Hash] the job data
+      # @return [Object] the deserialize result
+      def deserialize(job_data)
+        result = super
+        params = job_data[JOB_DATA_KEY]
+        sqs_send_message_parameters.merge!(params) if params
+        result
       end
 
       # Enqueues the job with optional SQS-specific parameters
