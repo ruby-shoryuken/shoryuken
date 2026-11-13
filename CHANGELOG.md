@@ -6,6 +6,11 @@
     group, so per-group ordering was lost
   - The `message_deduplication_id` is not kept: a FIFO retry still gets a new one
 
+- Enhancement: Require `concurrent-ruby` `>= 1.3.7`, which fixes GHSA-h8w8-99g7-qmvj (CVE-2026-54904),
+  GHSA-wv3x-4vxv-whpp (CVE-2026-54905) and GHSA-6wx8-w4f5-wwcr (CVE-2026-54906)
+  - Hardening only: Shoryuken does not use the affected `AtomicReference`, `ReadWriteLock` and
+    `ReentrantReadWriteLock`
+
 - Breaking: Remove support for Rails 7.2
   - Rails 7.2 reached end-of-life (August 2026) and gets no fix for GHSA-8474-xrp6-wh69 (Active Support
     `safe_constantize` DoS)
