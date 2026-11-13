@@ -59,7 +59,8 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
             'JobWrapperSpecJob'
           end
 
-          def perform(options = {})
+          def perform(options = {}, preset = {})
+            sqs_send_message_parameters.merge!(preset)
             enqueue(options.symbolize_keys)
           end
         end
@@ -67,6 +68,7 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
 
       let(:adapter) { instance_double(ActiveJob::QueueAdapters::ShoryukenAdapter) }
       let(:tenant) { { string_value: 'acme', data_type: 'String' } }
+      let(:signature) { { binary_value: "\x00\xFF".b, data_type: 'Binary' } }
       let(:enqueued_parameters) { [] }
 
       let(:sqs_msg) do
@@ -79,6 +81,7 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
           },
           message_attributes: {
             'tenant' => Aws::SQS::Types::MessageAttributeValue.new(**tenant, string_list_values: []),
+            'signature' => Aws::SQS::Types::MessageAttributeValue.new(**signature, binary_list_values: []),
             'shoryuken_class' => { string_value: described_class.to_s, data_type: 'String' }
           }
         )
@@ -98,7 +101,7 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
 
         expect(enqueued_parameters.first).to eq(
           message_group_id: 'order-42',
-          message_attributes: { 'tenant' => tenant }
+          message_attributes: { 'tenant' => tenant, 'signature' => signature }
         )
       end
 
@@ -118,6 +121,18 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
         subject.perform sqs_msg, job_class.new.serialize
 
         expect(enqueued_parameters.last).not_to have_key('shoryuken_sqs_message')
+      end
+
+      it 'lets values already set on the job win over the received ones and keeps the other received attributes' do
+        other = { string_value: 'other', data_type: 'String' }
+        preset = { message_group_id: 'preset', message_attributes: { 'tenant' => other } }
+
+        subject.perform sqs_msg, job_class.new({}, preset).serialize
+
+        expect(enqueued_parameters.first).to eq(
+          message_group_id: 'preset',
+          message_attributes: { 'tenant' => other, 'signature' => signature }
+        )
       end
 
       it 'lets values given on re-enqueue win over the received ones' do
