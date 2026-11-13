@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'active_job'
+require 'active_job/extensions'
 require 'shoryuken/worker'
 
 module Shoryuken
@@ -15,14 +16,20 @@ module Shoryuken
       shoryuken_options body_parser: :json, auto_delete: true
 
       # Processes an ActiveJob job from an SQS message. SQS redeliveries of the message count as executions on top
-      # of the serialized ones.
+      # of the serialized ones. The job keeps the message, so a retry or a continuation resume reuses its group id and
+      # custom message attributes.
       #
       # @param sqs_msg [Shoryuken::Message] The SQS message containing the job data
       # @param hash [Hash] The parsed job data from the message body
       def perform(sqs_msg, hash)
         receive_count = sqs_msg.attributes['ApproximateReceiveCount'].to_i
         past_receives = receive_count - 1
-        ::ActiveJob::Base.execute hash.merge({ 'executions' => hash['executions'].to_i + past_receives })
+        ::ActiveJob::Base.execute hash.merge(
+          {
+            'executions' => hash['executions'].to_i + past_receives,
+            SQSSendMessageParametersSupport::JOB_DATA_KEY => sqs_msg
+          }
+        )
       end
     end
   end

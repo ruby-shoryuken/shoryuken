@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Fix: An ActiveJob `retry_on` retry or an `ActiveJob::Continuable` resume keeps the `message_group_id` and the custom
+  `message_attributes` given with `.set`
+  - The retry or resume was sent without the custom attributes, and on a FIFO queue in the default `ShoryukenMessage`
+    group, so per-group ordering was lost
+  - The `message_deduplication_id` is not kept: a FIFO retry still gets a new one
+
 - Enhancement: Require `concurrent-ruby` `>= 1.3.7`, which fixes GHSA-h8w8-99g7-qmvj (CVE-2026-54904),
   GHSA-wv3x-4vxv-whpp (CVE-2026-54905) and GHSA-6wx8-w4f5-wwcr (CVE-2026-54906)
   - Hardening only: Shoryuken does not use the affected `AtomicReference`, `ReadWriteLock` and
