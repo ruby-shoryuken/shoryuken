@@ -44,6 +44,8 @@ module Shoryuken
         # @option options [String] :queue override the default queue
         # @return [Aws::SQS::Types::SendMessageResult] the send result
         # @raise [Errors::InvalidDelayError] if delay exceeds 15 minutes
+        # @raise [Errors::FifoDelayNotSupportedError] if a delay is used with a FIFO queue
+        # @note A time in the past or a negative interval is sent with a delay of 0
         def perform_in(worker_class, interval, body, options = {})
           interval = interval.to_f
           now = Time.now.to_f
@@ -52,6 +54,19 @@ module Shoryuken
           delay = (ts - now).ceil
 
           raise Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
+
+          delay = [delay, 0].max
+
+          if delay.positive?
+            queue = Shoryuken::Client.queues(options[:queue] || worker_class.get_shoryuken_options['queue'])
+
+            if queue.fifo?
+              raise(
+                Errors::FifoDelayNotSupportedError,
+                "FIFO queue '#{queue.name}' does not support per-message delays"
+              )
+            end
+          end
 
           worker_class.perform_async(body, options.merge(delay_seconds: delay))
         end

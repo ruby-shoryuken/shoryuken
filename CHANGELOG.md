@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Change: A raw worker `perform_at`/`perform_in` sends a time in the past or a negative interval with a delay of 0
+  and raises `Shoryuken::Errors::FifoDelayNotSupportedError` for a delay on a FIFO queue, as the ActiveJob adapter does
+  - Both cases raised `Aws::SQS::Errors::InvalidParameterValue` from SQS
+  - The FIFO check runs before the send; code that rescues `Aws::SQS::Errors::InvalidParameterValue` for it must
+    rescue `Shoryuken::Errors::FifoDelayNotSupportedError` instead
+  - An interval of 0 on a FIFO queue is still sent
+
 - Fix: An ActiveJob `retry_on` retry or an `ActiveJob::Continuable` resume keeps the `message_group_id` and the custom
   `message_attributes` given with `.set`
   - The retry or resume was sent without the custom attributes, and on a FIFO queue in the default `ShoryukenMessage`

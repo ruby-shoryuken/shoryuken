@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe Shoryuken::Worker::DefaultExecutor do
-  let(:sqs_queue) { double 'SQS Queue' }
+  let(:sqs_queue) { double 'SQS Queue', name: queue, fifo?: false }
   let(:queue)     { 'default' }
 
   before do
@@ -31,6 +31,48 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
         TestWorker.perform_in(901, 'message')
       }.to raise_error 'The maximum allowed delay is 15 minutes'
     end
+
+    it 'sends a negative interval with a delay of 0' do
+      expect(sqs_queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+      TestWorker.perform_in(-5, 'message')
+    end
+
+    context 'with a FIFO queue' do
+      let(:sqs_queue) { double 'SQS Queue', name: queue, fifo?: true }
+
+      it 'raises before the send when a delay is given' do
+        expect(sqs_queue).not_to receive(:send_message)
+
+        expect {
+          TestWorker.perform_in(5, 'message')
+        }.to raise_error(
+          Shoryuken::Errors::FifoDelayNotSupportedError,
+          "FIFO queue 'default' does not support per-message delays"
+        )
+      end
+
+      it 'checks the queue given in the options' do
+        other_queue = double 'Other SQS Queue', name: 'other.fifo', fifo?: true
+        allow(Shoryuken::Client).to receive(:queues).with('other.fifo').and_return(other_queue)
+
+        expect {
+          TestWorker.perform_in(5, 'message', queue: 'other.fifo')
+        }.to raise_error(Shoryuken::Errors::FifoDelayNotSupportedError, /other\.fifo/)
+      end
+
+      it 'sends an interval of 0' do
+        expect(sqs_queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+        TestWorker.perform_in(0, 'message')
+      end
+
+      it 'sends a negative interval with a delay of 0' do
+        expect(sqs_queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+        TestWorker.perform_in(-5, 'message')
+      end
+    end
   end
 
   describe '.perform_at' do
@@ -55,6 +97,30 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
       expect {
         TestWorker.perform_in(Time.now + 901, 'message')
       }.to raise_error 'The maximum allowed delay is 15 minutes'
+    end
+
+    it 'sends a time in the past with a delay of 0' do
+      expect(sqs_queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+      TestWorker.perform_at(Time.now - 60, 'message')
+    end
+
+    context 'with a FIFO queue' do
+      let(:sqs_queue) { double 'SQS Queue', name: queue, fifo?: true }
+
+      it 'raises before the send for a future time' do
+        expect(sqs_queue).not_to receive(:send_message)
+
+        expect {
+          TestWorker.perform_at(Time.now + 60, 'message')
+        }.to raise_error(Shoryuken::Errors::FifoDelayNotSupportedError)
+      end
+
+      it 'sends a time in the past with a delay of 0' do
+        expect(sqs_queue).to receive(:send_message).with(hash_including(delay_seconds: 0))
+
+        TestWorker.perform_at(Time.now - 60, 'message')
+      end
     end
   end
 
