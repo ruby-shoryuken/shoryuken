@@ -16,7 +16,9 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
       let(:receive_count) { '1' }
 
       it 'keeps the serialized executions' do
-        expect(ActiveJob::Base).to receive(:execute).with({ 'arguments' => [1], 'executions' => 2 })
+        expect(ActiveJob::Base).to receive(:execute).with(
+          { 'arguments' => [1], 'executions' => 2, 'shoryuken_sqs_message' => sqs_msg }
+        )
 
         subject.perform sqs_msg, { 'arguments' => [1], 'executions' => 2 }
       end
@@ -26,42 +28,46 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
       let(:receive_count) { '42' }
 
       it 'adds the past receives to the serialized executions' do
-        expect(ActiveJob::Base).to receive(:execute).with({ 'arguments' => [1], 'executions' => 43 })
+        expect(ActiveJob::Base).to receive(:execute).with(
+          { 'arguments' => [1], 'executions' => 43, 'shoryuken_sqs_message' => sqs_msg }
+        )
 
         subject.perform sqs_msg, { 'arguments' => [1], 'executions' => 2 }
       end
 
       it 'counts missing serialized executions as 0' do
-        expect(ActiveJob::Base).to receive(:execute).with({ 'arguments' => [1], 'executions' => 41 })
+        expect(ActiveJob::Base).to receive(:execute).with(
+          { 'arguments' => [1], 'executions' => 41, 'shoryuken_sqs_message' => sqs_msg }
+        )
 
         subject.perform sqs_msg, { 'arguments' => [1] }
       end
 
       it 'counts nil serialized executions as 0' do
-        expect(ActiveJob::Base).to receive(:execute).with({ 'arguments' => [1], 'executions' => 41 })
+        expect(ActiveJob::Base).to receive(:execute).with(
+          { 'arguments' => [1], 'executions' => 41, 'shoryuken_sqs_message' => sqs_msg }
+        )
 
         subject.perform sqs_msg, { 'arguments' => [1], 'executions' => nil }
       end
     end
 
-    context 'when the message has a group id and custom message attributes' do
+    context 'when the job is enqueued again from the worker' do
       let(:job_class) do
         Class.new(ActiveJob::Base) do
           def self.name
             'JobWrapperSpecJob'
           end
 
-          def perform
-            self.class.received_parameters = sqs_send_message_parameters.dup
-          end
-
-          class << self
-            attr_accessor :received_parameters
+          def perform(options = {})
+            enqueue(options.symbolize_keys)
           end
         end
       end
 
+      let(:adapter) { instance_double(ActiveJob::QueueAdapters::ShoryukenAdapter) }
       let(:tenant) { { string_value: 'acme', data_type: 'String' } }
+      let(:enqueued_parameters) { [] }
 
       let(:sqs_msg) do
         double(
@@ -78,12 +84,19 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
         )
       end
 
-      before { stub_const('JobWrapperSpecJob', job_class) }
+      before do
+        stub_const('JobWrapperSpecJob', job_class)
+        allow(job_class).to receive(:queue_adapter).and_return(adapter)
+        allow(adapter).to receive(:enqueue) do |job|
+          enqueued_parameters << job.sqs_send_message_parameters.dup
+          enqueued_parameters << job.serialize
+        end
+      end
 
-      it 'keeps the group id and the custom attributes in the job SQS parameters' do
+      it 'keeps the group id and the custom attributes of the received message' do
         subject.perform sqs_msg, job_class.new.serialize
 
-        expect(job_class.received_parameters).to eq(
+        expect(enqueued_parameters.first).to eq(
           message_group_id: 'order-42',
           message_attributes: { 'tenant' => tenant }
         )
@@ -92,53 +105,45 @@ RSpec.describe Shoryuken::ActiveJob::JobWrapper do
       it 'does not keep the deduplication id' do
         subject.perform sqs_msg, job_class.new.serialize
 
-        expect(job_class.received_parameters).not_to have_key(:message_deduplication_id)
+        expect(enqueued_parameters.first).not_to have_key(:message_deduplication_id)
       end
 
       it 'does not keep the adapter-owned attributes' do
         subject.perform sqs_msg, job_class.new.serialize
 
-        expect(job_class.received_parameters[:message_attributes]).not_to have_key('shoryuken_class')
+        expect(enqueued_parameters.first[:message_attributes]).not_to have_key('shoryuken_class')
       end
 
-      it 'does not add the parameters to the serialized job' do
-        job_class.class_eval do
-          def perform
-            self.class.received_parameters = serialize
-          end
-        end
-
+      it 'does not add the received message to the serialized job' do
         subject.perform sqs_msg, job_class.new.serialize
 
-        expect(job_class.received_parameters).not_to have_key('shoryuken_sqs_send_message_parameters')
+        expect(enqueued_parameters.last).not_to have_key('shoryuken_sqs_message')
       end
 
       it 'lets values given on re-enqueue win over the received ones' do
-        job_class.class_eval do
-          def perform
-            enqueue(message_group_id: 'other')
-          end
-        end
-        adapter = instance_double(ActiveJob::QueueAdapters::ShoryukenAdapter)
-        allow(job_class).to receive(:queue_adapter).and_return(adapter)
-        allow(adapter).to receive(:enqueue) { |job| job_class.received_parameters = job.sqs_send_message_parameters }
+        other = { 'tenant' => { string_value: 'other', data_type: 'String' } }
 
-        subject.perform sqs_msg, job_class.new.serialize
+        subject.perform sqs_msg, job_class.new({ 'message_group_id' => 'other', 'message_attributes' => other }).serialize
 
-        expect(job_class.received_parameters).to include(
-          message_group_id: 'other',
-          message_attributes: { 'tenant' => tenant }
-        )
+        expect(enqueued_parameters.first).to eq(message_group_id: 'other', message_attributes: other)
       end
-    end
 
-    context 'when the message has neither a group id nor custom message attributes' do
-      let(:receive_count) { '1' }
+      context 'when the received message has neither a group id nor custom message attributes' do
+        let(:sqs_msg) do
+          double(
+            Shoryuken::Message,
+            attributes: { 'ApproximateReceiveCount' => '1' },
+            message_attributes: {
+              'shoryuken_class' => { string_value: described_class.to_s, data_type: 'String' }
+            }
+          )
+        end
 
-      it 'passes no SQS parameters to the job' do
-        expect(ActiveJob::Base).to receive(:execute).with({ 'arguments' => [1], 'executions' => 0 })
+        it 'adds no SQS parameters to the job' do
+          subject.perform sqs_msg, job_class.new.serialize
 
-        subject.perform sqs_msg, { 'arguments' => [1] }
+          expect(enqueued_parameters.first).to eq({})
+        end
       end
     end
   end
