@@ -7,7 +7,8 @@
 # with `queue:` sends to that queue only. `perform_async`, `perform_in` and
 # `perform_at` without `queue:` raise an ArgumentError naming the worker and its
 # queues, for an Array and for a lambda that returns several queues, and send
-# nothing. A lambda that returns one queue name registers and processes on it.
+# nothing. A lambda that returns no queue raises an ArgumentError too. A lambda
+# that returns one queue name registers and processes on it.
 #
 # It used to raise `NoMethodError: undefined method 'start_with?'` for an
 # instance of Array when sending without `queue:`.
@@ -54,6 +55,14 @@ ComputedQueuesWorker = Class.new do
   def perform(_sqs_msg, _body); end
 end
 
+EmptyQueuesWorker = Class.new do
+  include Shoryuken::Worker
+
+  shoryuken_options queue: -> { [] }
+
+  def perform(_sqs_msg, _body); end
+end
+
 assert_equal([MultipleQueuesWorker], Shoryuken.worker_registry.workers(first_queue))
 assert_equal([MultipleQueuesWorker], Shoryuken.worker_registry.workers(second_queue))
 assert_equal([ComputedQueueWorker], Shoryuken.worker_registry.workers(computed_queue))
@@ -62,6 +71,7 @@ async_error = raised_error(ArgumentError) { MultipleQueuesWorker.perform_async('
 perform_in_error = raised_error(ArgumentError) { MultipleQueuesWorker.perform_in(5, 'no queue') }
 perform_at_error = raised_error(ArgumentError) { MultipleQueuesWorker.perform_at(Time.now + 5, 'no queue') }
 computed_error = raised_error(ArgumentError) { ComputedQueuesWorker.perform_async('no queue') }
+empty_error = raised_error(ArgumentError) { EmptyQueuesWorker.perform_async('no queue') }
 
 assert(async_error, 'perform_async without queue: should raise ArgumentError')
 assert(perform_in_error, 'perform_in without queue: should raise ArgumentError')
@@ -71,6 +81,7 @@ assert_equal(
   "MultipleQueuesWorker has several queues (#{first_queue}, #{second_queue}): pass the queue: option to choose one",
   async_error.message
 )
+assert_equal('EmptyQueuesWorker has no queue: pass the queue: option', empty_error&.message)
 assert_includes(computed_error.message, "ComputedQueuesWorker has several queues (#{prefix}-a, #{prefix}-b)")
 assert_equal(0, queue_size(first_queue, delayed: true), 'Nothing should be sent')
 assert_equal(0, queue_size(second_queue, delayed: true), 'Nothing should be sent')

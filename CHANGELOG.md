@@ -5,6 +5,7 @@
   `queue:`
   - It raised `NoMethodError: undefined method 'start_with?' for an instance of Array`
   - A one-element Array sends to its queue; it raised the same `NoMethodError`
+  - An empty Array raises an `ArgumentError` that asks for `queue:`; it raised a `NoMethodError`
 
 - Fix: ActiveJob `perform_all_later` delays a job set with `wait` or `wait_until` and splits each batch at 1 MiB in
   total, not only at 10 messages

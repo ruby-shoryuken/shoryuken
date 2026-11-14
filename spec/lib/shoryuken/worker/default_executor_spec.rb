@@ -225,6 +225,18 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
       end
     end
 
+    context 'with an empty worker queue array' do
+      before { TestWorker.get_shoryuken_options['queue'] = [] }
+
+      it 'raises without a queue option' do
+        expect(Shoryuken::Client).not_to receive(:queues)
+
+        expect {
+          TestWorker.perform_async('message')
+        }.to raise_error(ArgumentError, 'TestWorker has no queue: pass the queue: option')
+      end
+    end
+
     context 'with a one-element worker queue array' do
       before { TestWorker.get_shoryuken_options['queue'] = [queue] }
 
