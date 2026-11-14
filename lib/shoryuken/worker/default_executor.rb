@@ -14,6 +14,7 @@ module Shoryuken
         # @option options [Hash] :message_attributes custom message attributes
         # @option options [String] :queue override the default queue
         # @return [Aws::SQS::Types::SendMessageResult] the send result
+        # @raise [ArgumentError] if no :queue is given and the worker has several queues
         def perform_async(worker_class, body, options = {})
           # Work on a copy: callers may reuse the same options hash across
           # enqueues, and mutating it (deleting :queue, adding :message_body)
@@ -29,7 +30,7 @@ module Shoryuken
 
           options[:message_body] = body
 
-          queue = options.delete(:queue) || worker_class.get_shoryuken_options['queue']
+          queue = options.delete(:queue) || default_queue(worker_class)
 
           Shoryuken::Client.queues(queue).send_message(options)
         end
@@ -45,6 +46,7 @@ module Shoryuken
         # @return [Aws::SQS::Types::SendMessageResult] the send result
         # @raise [Errors::InvalidDelayError] if delay exceeds 15 minutes
         # @raise [Errors::FifoDelayNotSupportedError] if a delay is used with a FIFO queue
+        # @raise [ArgumentError] if no :queue is given and the worker has several queues
         # @note A time in the past or a negative interval is sent with a delay of 0
         def perform_in(worker_class, interval, body, options = {})
           interval = interval.to_f
@@ -58,7 +60,7 @@ module Shoryuken
           delay = [delay, 0].max
 
           if delay.positive?
-            queue = Shoryuken::Client.queues(options[:queue] || worker_class.get_shoryuken_options['queue'])
+            queue = Shoryuken::Client.queues(options[:queue] || default_queue(worker_class))
 
             if queue.fifo?
               raise(
@@ -69,6 +71,25 @@ module Shoryuken
           end
 
           worker_class.perform_async(body, options.merge(delay_seconds: delay))
+        end
+
+        private
+
+        # Returns the queue to send to when no :queue option is given
+        #
+        # @param worker_class [Class] the worker class
+        # @return [String] the worker's queue
+        # @raise [ArgumentError] if the worker has several queues
+        def default_queue(worker_class)
+          queue = worker_class.get_shoryuken_options['queue']
+
+          return queue unless queue.is_a?(Array)
+          return queue.first if queue.size <= 1
+
+          raise(
+            ArgumentError,
+            "#{worker_class} has several queues (#{queue.join(', ')}): pass the queue: option to choose one"
+          )
         end
       end
     end
