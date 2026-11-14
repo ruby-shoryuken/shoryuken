@@ -77,11 +77,12 @@ assert(async_error, 'perform_async without queue: should raise ArgumentError')
 assert(perform_in_error, 'perform_in without queue: should raise ArgumentError')
 assert(perform_at_error, 'perform_at without queue: should raise ArgumentError')
 assert(computed_error, 'perform_async without queue: should raise ArgumentError for a lambda with several queues')
+assert(empty_error, 'perform_async without queue: should raise ArgumentError for a lambda with no queue')
 assert_equal(
   "MultipleQueuesWorker has several queues (#{first_queue}, #{second_queue}): pass the queue: option to choose one",
   async_error.message
 )
-assert_equal('EmptyQueuesWorker has no queue: pass the queue: option', empty_error&.message)
+assert_equal('EmptyQueuesWorker has no queue: pass the queue: option', empty_error.message)
 assert_includes(computed_error.message, "ComputedQueuesWorker has several queues (#{prefix}-a, #{prefix}-b)")
 assert_equal(0, queue_size(first_queue, delayed: true), 'Nothing should be sent')
 assert_equal(0, queue_size(second_queue, delayed: true), 'Nothing should be sent')

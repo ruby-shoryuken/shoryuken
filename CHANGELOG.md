@@ -1,8 +1,8 @@
 ## [Unreleased]
 
-- Fix: A worker `perform_async`, `perform_in` or `perform_at` without `queue:` on a worker with several queues (an
-  Array, or a lambda that returns several) raises an `ArgumentError` that names the worker and its queues and asks for
-  `queue:`
+- Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
+  returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
+  without `queue:`
   - It raised `NoMethodError: undefined method 'start_with?' for an instance of Array`
   - A one-element Array sends to its queue; it raised the same `NoMethodError`
   - An empty Array raises an `ArgumentError` that asks for `queue:`; it raised a `NoMethodError`
