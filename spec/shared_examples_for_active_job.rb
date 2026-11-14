@@ -348,6 +348,175 @@ RSpec.shared_examples 'active_job_adapters' do
     end
   end
 
+  describe '#enqueue_all' do
+    let(:batches) { [] }
+
+    before do
+      allow(queue).to receive(:send_messages) do |params|
+        batches << params[:entries]
+        double(successful: params[:entries].map { |entry| double(id: entry[:id]) })
+      end
+    end
+
+    it 'sends delay_seconds for a scheduled job and none for the others' do
+      jobs = [TestJob.new(1), TestJob.new(2).set(wait: 10.seconds)]
+
+      expect(subject.enqueue_all(jobs)).to eq(2)
+
+      expect(batches.flatten.map { |entry| entry[:delay_seconds] }).to eq([nil, 10])
+    end
+
+    it 'sends delay_seconds 0 for a job scheduled in the past' do
+      subject.enqueue_all([TestJob.new.set(wait_until: 30.seconds.ago)])
+
+      expect(batches.flatten.first[:delay_seconds]).to eq(0)
+    end
+
+    it 'raises InvalidDelayError for a delay over 15 minutes before any send' do
+      jobs = [TestJob.new, TestJob.new.set(wait: 901.seconds)]
+
+      expect { subject.enqueue_all(jobs) }.to raise_error(
+        Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes'
+      )
+      expect(batches).to be_empty
+    end
+
+    it 'splits the jobs into batches of 10 messages' do
+      subject.enqueue_all(Array.new(25) { TestJob.new })
+
+      expect(batches.map(&:size)).to eq([10, 10, 5])
+      expect(batches.last.map { |entry| entry[:id] }).to eq(%w[0 1 2 3 4])
+    end
+
+    it 'splits the jobs into batches of up to 1 MiB in total' do
+      jobs = Array.new(10) { TestJob.new('a' * 200_000) }
+
+      expect(subject.enqueue_all(jobs)).to eq(10)
+
+      expect(batches.map(&:size)).to eq([5, 5])
+      batches.each do |batch|
+        expect(batch.sum { |entry| entry[:message_body].bytesize }).to be <= 1024 * 1024
+      end
+    end
+
+    it 'counts the message attributes in the batch size' do
+      attributes = { 'big' => { string_value: 'a' * 300_000, data_type: 'String' } }
+      jobs = Array.new(4) do
+        job = TestJob.new('a' * 100_000)
+        job.sqs_send_message_parameters = { message_attributes: attributes }
+        job
+      end
+
+      subject.enqueue_all(jobs)
+
+      expect(batches.map(&:size)).to eq([2, 2])
+    end
+
+    it 'sends a message over 1 MiB in a batch of its own' do
+      jobs = [TestJob.new('a'), TestJob.new('a' * 1_100_000), TestJob.new('a')]
+
+      subject.enqueue_all(jobs)
+
+      expect(batches.map(&:size)).to eq([1, 1, 1])
+    end
+
+    it 'sends a first message over 1 MiB in a batch of its own' do
+      subject.enqueue_all([TestJob.new('a' * 1_100_000), TestJob.new('a')])
+
+      expect(batches.map(&:size)).to eq([1, 1])
+    end
+
+    it 'raises a delay error of a job after 10 valid ones before any send' do
+      jobs = Array.new(12) { TestJob.new } + [TestJob.new.set(wait: 901.seconds)]
+
+      expect { subject.enqueue_all(jobs) }.to raise_error(Shoryuken::Errors::InvalidDelayError)
+      expect(batches).to be_empty
+    end
+
+    context 'with jobs of exactly 1 MiB in total' do
+      let(:default_attributes_size) do
+        'shoryuken_class'.bytesize + 'String'.bytesize + 'Shoryuken::ActiveJob::JobWrapper'.bytesize
+      end
+      let(:overhead) { JSON.dump(TestJob.new('').serialize).bytesize + default_attributes_size }
+      let(:attributes) do
+        {
+          'tracer' => { string_value: 'abc', data_type: 'String' },
+          'blob' => { binary_value: 'xyz', data_type: 'Binary' }
+        }
+      end
+      let(:attributes_size) { 'tracer'.bytesize + 'String'.bytesize + 3 + 'blob'.bytesize + 'Binary'.bytesize + 3 }
+
+      it 'sends them in one batch' do
+        first = (1024 * 1024 / 2) - overhead
+
+        subject.enqueue_all([TestJob.new('a' * first), TestJob.new('a' * first)])
+
+        expect(batches.map(&:size)).to eq([2])
+      end
+
+      it 'sends one byte more in two batches' do
+        first = (1024 * 1024 / 2) - overhead
+
+        subject.enqueue_all([TestJob.new('a' * first), TestJob.new('a' * (first + 1))])
+
+        expect(batches.map(&:size)).to eq([1, 1])
+      end
+
+      it 'counts string and binary attribute names, types and values' do
+        first = (1024 * 1024 / 2) - overhead - attributes_size
+
+        [[first, first], [first, first + 1]].each do |sizes|
+          jobs = sizes.map do |size|
+            job = TestJob.new('a' * size)
+            job.sqs_send_message_parameters = { message_attributes: attributes }
+            job
+          end
+          subject.enqueue_all(jobs)
+        end
+
+        expect(batches.map(&:size)).to eq([2, 1, 1])
+      end
+    end
+
+    it 'marks only the jobs SQS accepted as enqueued' do
+      allow(queue).to receive(:send_messages).and_return(double(successful: [double(id: '1')]))
+      jobs = [TestJob.new, TestJob.new]
+
+      expect(subject.enqueue_all(jobs)).to eq(1)
+      expect(jobs.map(&:successfully_enqueued?)).to eq([false, true])
+    end
+
+    context 'when fifo' do
+      let(:fifo) { true }
+      let(:standard_queue) { double('Queue', fifo?: false, send_messages: double(successful: [])) }
+
+      before { allow(queue).to receive(:name).and_return('test.fifo') }
+
+      it 'raises FifoDelayNotSupportedError for a delayed job before any send' do
+        jobs = [TestJob.new, TestJob.new.set(wait: 10.seconds)]
+
+        expect { subject.enqueue_all(jobs) }.to raise_error(
+          Shoryuken::Errors::FifoDelayNotSupportedError, /FIFO queue.*does not support per-message delays/
+        )
+        expect(batches).to be_empty
+      end
+
+      it 'raises FifoDelayNotSupportedError before sending the jobs of other queues' do
+        allow(Shoryuken::Client).to receive(:queues).with('standard').and_return(standard_queue)
+        jobs = [TestJob.new.set(queue: 'standard'), TestJob.new.set(wait: 10.seconds)]
+
+        expect { subject.enqueue_all(jobs) }.to raise_error(Shoryuken::Errors::FifoDelayNotSupportedError)
+        expect(standard_queue).not_to have_received(:send_messages)
+      end
+
+      it 'sends delay_seconds 0 for a job scheduled in the past' do
+        subject.enqueue_all([TestJob.new.set(wait_until: 30.seconds.ago)])
+
+        expect(batches.flatten.first[:delay_seconds]).to eq(0)
+      end
+    end
+  end
+
   describe 'enqueueing the same job instance twice' do
     let(:sent) { [] }
     let(:job) { TestJob.new(1) }
@@ -397,7 +566,7 @@ RSpec.shared_examples 'active_job_adapters' do
       job.arguments = [2]
       subject.enqueue_all([job])
 
-      expect(entries.last[:message_body]['arguments']).to eq([2])
+      expect(JSON.parse(entries.last[:message_body])['arguments']).to eq([2])
     end
 
     context 'when fifo' do

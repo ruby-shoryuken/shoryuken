@@ -101,15 +101,124 @@ module ActiveJob
       # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if delay is used with a FIFO queue
       # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def enqueue_at(job, timestamp) # :nodoc:
+        # Checked before the send, so subclasses that send asynchronously still fail synchronously
+        delay = delay_seconds(job.queue_name, timestamp)
+
+        enqueue(job, delay_seconds: delay)
+      end
+
+      # Bulk enqueue multiple jobs efficiently using SQS batch API.
+      # Called by ActiveJob.perform_all_later (Rails 7.1+). A job with a scheduled time is delayed as in {#enqueue_at}.
+      # Each batch holds up to 10 messages and up to 1 MiB in total.
+      #
+      # @param jobs [Array<ActiveJob::Base>] array of ActiveJob instances to be enqueued
+      # @return [Integer] number of jobs successfully enqueued
+      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if a job is delayed on a FIFO queue, before any send
+      # @raise [Shoryuken::Errors::InvalidDelayError] if a job delay exceeds 15 minutes, before any send
+      def enqueue_all(jobs) # :nodoc:
+        # Delays are checked for every job first, so an invalid one raises before any send
+        groups = jobs.group_by(&:queue_name).map do |queue_name, queue_jobs|
+          queue = Shoryuken::Client.queues(queue_name)
+          delays = queue_jobs.map { |job| job.scheduled_at && delay_seconds(queue_name, job.scheduled_at.to_f) }
+
+          [queue, queue_jobs, delays]
+        end
+
+        groups.each do |queue, queue_jobs, delays|
+          batch_jobs = []
+          batch = []
+          batch_bytes = 0
+
+          queue_jobs.each_with_index do |job, idx|
+            entry = batch_entry(queue, job, delays[idx])
+            bytes = entry_size(entry)
+
+            if batch.size == MAX_BATCH_MESSAGES || (batch.any? && batch_bytes + bytes > MAX_BATCH_BYTES)
+              send_batch(queue, batch_jobs, batch)
+              batch_jobs = []
+              batch = []
+              batch_bytes = 0
+            end
+
+            entry[:id] = batch.size.to_s
+            batch_jobs << job
+            batch << entry
+            batch_bytes += bytes
+          end
+
+          send_batch(queue, batch_jobs, batch) if batch.any?
+        end
+
+        jobs.count(&:successfully_enqueued?)
+      end
+
+      private
+
+      # Builds the batch entry of a job, with the body in JSON, and stores its parameters on the job
+      #
+      # @param queue [Shoryuken::Queue] the queue to send to
+      # @param job [ActiveJob::Base] the job to enqueue
+      # @param delay [Integer, nil] the delay in seconds, nil for a job without a scheduled time
+      # @return [Hash] the batch entry, without its id
+      def batch_entry(queue, job, delay)
+        register_worker!(job)
+        job.sqs_send_message_parameters = job_parameters(job)
+        job.sqs_send_message_parameters[:delay_seconds] = delay if delay
+
+        msg = message(queue, job)
+        job.sqs_send_message_parameters = msg
+        entry = msg.dup
+        entry[:message_body] = JSON.dump(entry[:message_body]) if entry[:message_body].is_a?(Hash)
+        entry
+      end
+
+      # Sends one batch and marks each of its jobs as enqueued or not
+      #
+      # @param queue [Shoryuken::Queue] the queue to send to
+      # @param jobs [Array<ActiveJob::Base>] the jobs of the batch
+      # @param entries [Array<Hash>] the batch entries, in the order of the jobs
+      # @return [void]
+      def send_batch(queue, jobs, entries)
+        response = queue.send_messages(entries: entries)
+        successful_ids = response.successful.map { |r| r.id.to_i }.to_set
+        jobs.each_with_index do |job, idx|
+          job.successfully_enqueued = successful_ids.include?(idx)
+        end
+      end
+
+      # Calculates the size SQS counts for a message: its body and its attribute names, types and values
+      #
+      # @param entry [Hash] the batch entry, with the body in JSON
+      # @return [Integer] the size in bytes
+      def entry_size(entry)
+        size = entry[:message_body].bytesize
+        attributes = entry[:message_attributes]
+        return size + MESSAGE_ATTRIBUTES_SIZE if attributes.size == 1
+
+        attributes.each do |name, value|
+          size += name.to_s.bytesize + value[:data_type].to_s.bytesize
+          size += (value[:string_value] || value[:binary_value]).to_s.bytesize
+        end
+
+        size
+      end
+
+      # Calculates the delay of a send at a timestamp, as SQS accepts it. Looks up the queue only for a positive delay,
+      # so a send without one does its first queue lookup where it sends (on the send thread in subclasses).
+      #
+      # @param queue_name [String] the name of the queue to send to
+      # @param timestamp [Float] Unix timestamp when the job should be processed
+      # @return [Integer] delay in seconds, 0 for a timestamp in the past
+      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if the delay is positive and the queue is FIFO
+      # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
+      def delay_seconds(queue_name, timestamp)
         delay = calculate_delay(timestamp)
 
-        # FIFO queues do not support per-message delays
-        # Check early to fail synchronously (before any async wrapping in subclasses)
-        # Note: past timestamps are sent with delay_seconds=0 (calculate_delay
-        # clamps them, as SQS accepts only 0 to 900 seconds)
+        # FIFO queues do not support per-message delays. Past timestamps are sent with delay_seconds=0
+        # (calculate_delay clamps them, as SQS accepts only 0 to 900 seconds)
         # See https://github.com/ruby-shoryuken/shoryuken/issues/924
         if delay.positive?
-          queue = Shoryuken::Client.queues(job.queue_name)
+          queue = Shoryuken::Client.queues(queue_name)
           if queue.fifo?
             raise(
               Shoryuken::Errors::FifoDelayNotSupportedError,
@@ -119,39 +228,8 @@ module ActiveJob
           end
         end
 
-        enqueue(job, delay_seconds: delay)
+        delay
       end
-
-      # Bulk enqueue multiple jobs efficiently using SQS batch API.
-      # Called by ActiveJob.perform_all_later (Rails 7.1+).
-      #
-      # @param jobs [Array<ActiveJob::Base>] array of ActiveJob instances to be enqueued
-      # @return [Integer] number of jobs successfully enqueued
-      def enqueue_all(jobs) # :nodoc:
-        jobs.group_by(&:queue_name).each do |queue_name, queue_jobs|
-          queue = Shoryuken::Client.queues(queue_name)
-
-          queue_jobs.each_slice(10) do |batch|
-            entries = batch.map.with_index do |job, idx|
-              register_worker!(job)
-              job.sqs_send_message_parameters = job_parameters(job)
-              msg = message(queue, job)
-              job.sqs_send_message_parameters = msg
-              { id: idx.to_s }.merge(msg)
-            end
-
-            response = queue.send_messages(entries: entries)
-            successful_ids = response.successful.map { |r| r.id.to_i }.to_set
-            batch.each_with_index do |job, idx|
-              job.successfully_enqueued = successful_ids.include?(idx)
-            end
-          end
-        end
-
-        jobs.count(&:successfully_enqueued?)
-      end
-
-      private
 
       # Calculates the delay in seconds from a timestamp
       #
@@ -252,6 +330,15 @@ module ActiveJob
         Shoryuken.register_worker(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
       end
 
+      # Maximum number of messages in one SQS batch
+      MAX_BATCH_MESSAGES = 10
+
+      # Maximum total size in bytes of one SQS batch
+      # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
+      MAX_BATCH_BYTES = 1024 * 1024
+
+      private_constant :MAX_BATCH_MESSAGES, :MAX_BATCH_BYTES
+
       # Default message attributes identifying the Shoryuken worker class
       MESSAGE_ATTRIBUTES = {
         'shoryuken_class' => {
@@ -259,6 +346,13 @@ module ActiveJob
           data_type: 'String'
         }
       }.freeze
+
+      # Size in bytes SQS counts for {MESSAGE_ATTRIBUTES}
+      MESSAGE_ATTRIBUTES_SIZE = MESSAGE_ATTRIBUTES.sum do |name, value|
+        name.bytesize + value[:data_type].bytesize + value[:string_value].bytesize
+      end
+
+      private_constant :MESSAGE_ATTRIBUTES_SIZE
     end
   end
 end
