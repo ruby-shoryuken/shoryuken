@@ -116,23 +116,37 @@ module ActiveJob
       # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if a job is delayed on a FIFO queue, before any send
       # @raise [Shoryuken::Errors::InvalidDelayError] if a job delay exceeds 15 minutes, before any send
       def enqueue_all(jobs) # :nodoc:
-        batches = jobs.group_by(&:queue_name).map do |queue_name, queue_jobs|
+        # Delays are checked for every job first, so an invalid one raises before any send
+        groups = jobs.group_by(&:queue_name).map do |queue_name, queue_jobs|
           queue = Shoryuken::Client.queues(queue_name)
+          delays = queue_jobs.map { |job| job.scheduled_at && delay_seconds(queue, job.scheduled_at.to_f) }
 
-          [queue, queue_jobs, queue_jobs.map { |job| batch_entry(queue, job) }]
+          [queue, queue_jobs, delays]
         end
 
-        batches.each do |queue, queue_jobs, entries|
-          each_batch(entries) do |start, count|
-            batch = entries[start, count]
-            batch.each_with_index { |entry, idx| entry[:id] = idx.to_s }
+        groups.each do |queue, queue_jobs, delays|
+          batch_jobs = []
+          batch = []
+          batch_size = 0
 
-            response = queue.send_messages(entries: batch)
-            successful_ids = response.successful.map { |r| r.id.to_i }.to_set
-            queue_jobs[start, count].each_with_index do |job, idx|
-              job.successfully_enqueued = successful_ids.include?(idx)
+          queue_jobs.each_with_index do |job, idx|
+            entry = batch_entry(queue, job, delays[idx])
+            size = entry_size(entry)
+
+            if batch.size == MAX_BATCH_MESSAGES || (batch.any? && batch_size + size > MAX_BATCH_BYTES)
+              send_batch(queue, batch_jobs, batch)
+              batch_jobs = []
+              batch = []
+              batch_size = 0
             end
+
+            entry[:id] = batch.size.to_s
+            batch_jobs << job
+            batch << entry
+            batch_size += size
           end
+
+          send_batch(queue, batch_jobs, batch) if batch.any?
         end
 
         jobs.count(&:successfully_enqueued?)
@@ -144,13 +158,12 @@ module ActiveJob
       #
       # @param queue [Shoryuken::Queue] the queue to send to
       # @param job [ActiveJob::Base] the job to enqueue
+      # @param delay [Integer, nil] the delay in seconds, nil for a job without a scheduled time
       # @return [Hash] the batch entry, without its id
-      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if the job is delayed on a FIFO queue
-      # @raise [Shoryuken::Errors::InvalidDelayError] if the job delay exceeds 15 minutes
-      def batch_entry(queue, job)
+      def batch_entry(queue, job, delay)
         register_worker!(job)
         job.sqs_send_message_parameters = job_parameters(job)
-        job.sqs_send_message_parameters[:delay_seconds] = delay_seconds(queue, job.scheduled_at.to_f) if job.scheduled_at
+        job.sqs_send_message_parameters[:delay_seconds] = delay if delay
 
         msg = message(queue, job)
         job.sqs_send_message_parameters = msg
@@ -159,30 +172,18 @@ module ActiveJob
         entry
       end
 
-      # Yields the entries in batches of up to 10 messages and up to 1 MiB in total. A larger entry goes alone.
+      # Sends one batch and marks each of its jobs as enqueued or not
       #
-      # @param entries [Array<Hash>] the batch entries, with the bodies in JSON
-      # @yieldparam start [Integer] the index of the first entry of the batch
-      # @yieldparam count [Integer] the number of entries in the batch
+      # @param queue [Shoryuken::Queue] the queue to send to
+      # @param jobs [Array<ActiveJob::Base>] the jobs of the batch
+      # @param entries [Array<Hash>] the batch entries, in the order of the jobs
       # @return [void]
-      def each_batch(entries)
-        start = 0
-        batch_size = 0
-
-        entries.each_with_index do |entry, idx|
-          size = entry_size(entry)
-          count = idx - start
-
-          if count == MAX_BATCH_MESSAGES || (count.positive? && batch_size + size > MAX_BATCH_BYTES)
-            yield start, count
-            start = idx
-            batch_size = 0
-          end
-
-          batch_size += size
+      def send_batch(queue, jobs, entries)
+        response = queue.send_messages(entries: entries)
+        successful_ids = response.successful.map { |r| r.id.to_i }.to_set
+        jobs.each_with_index do |job, idx|
+          job.successfully_enqueued = successful_ids.include?(idx)
         end
-
-        yield start, entries.size - start if entries.size > start
       end
 
       # Calculates the size SQS counts for a message: its body and its attribute names, types and values
@@ -191,8 +192,10 @@ module ActiveJob
       # @return [Integer] the size in bytes
       def entry_size(entry)
         size = entry[:message_body].bytesize
+        attributes = entry[:message_attributes]
+        return size + MESSAGE_ATTRIBUTES_SIZE if attributes.size == 1
 
-        entry[:message_attributes]&.each do |name, value|
+        attributes.each do |name, value|
           size += name.to_s.bytesize + value[:data_type].to_s.bytesize
           size += (value[:string_value] || value[:binary_value]).to_s.bytesize
         end
@@ -339,6 +342,13 @@ module ActiveJob
           data_type: 'String'
         }
       }.freeze
+
+      # Size in bytes SQS counts for {MESSAGE_ATTRIBUTES}
+      MESSAGE_ATTRIBUTES_SIZE = MESSAGE_ATTRIBUTES.sum do |name, value|
+        name.bytesize + value[:data_type].bytesize + value[:string_value].bytesize
+      end
+
+      private_constant :MESSAGE_ATTRIBUTES_SIZE
     end
   end
 end
