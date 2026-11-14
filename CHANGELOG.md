@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Fix: ActiveJob `perform_all_later` delays a job set with `wait` or `wait_until` and splits each batch at 1 MiB in
+  total, not only at 10 messages
+  - A delay was ignored: every job became visible at once
+  - A batch over 1 MiB raised `Aws::SQS::Errors::BatchRequestTooLong` (ElasticMQ: `InvalidAttributeValue`) and no job
+    was sent
+  - Delays follow `enqueue_at`: a time in the past is sent with a delay of 0, a delay over 15 minutes raises
+    `Shoryuken::Errors::InvalidDelayError` and a delay on a FIFO queue raises
+    `Shoryuken::Errors::FifoDelayNotSupportedError`, both before any job is sent
+
 - Change: A raw worker `perform_at`/`perform_in` sends a time in the past or a negative interval with a delay of 0
   and raises `Shoryuken::Errors::FifoDelayNotSupportedError` for a delay on a FIFO queue, as the ActiveJob adapter does
   - Both cases raised `Aws::SQS::Errors::InvalidParameterValue` from SQS

@@ -101,48 +101,34 @@ module ActiveJob
       # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if delay is used with a FIFO queue
       # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def enqueue_at(job, timestamp) # :nodoc:
-        delay = calculate_delay(timestamp)
-
-        # FIFO queues do not support per-message delays
-        # Check early to fail synchronously (before any async wrapping in subclasses)
-        # Note: past timestamps are sent with delay_seconds=0 (calculate_delay
-        # clamps them, as SQS accepts only 0 to 900 seconds)
-        # See https://github.com/ruby-shoryuken/shoryuken/issues/924
-        if delay.positive?
-          queue = Shoryuken::Client.queues(job.queue_name)
-          if queue.fifo?
-            raise(
-              Shoryuken::Errors::FifoDelayNotSupportedError,
-              "FIFO queue '#{queue.name}' does not support per-message delays. " \
-              'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
-            )
-          end
-        end
+        # Checked before the send, so subclasses that send asynchronously still fail synchronously
+        delay = delay_seconds(Shoryuken::Client.queues(job.queue_name), timestamp)
 
         enqueue(job, delay_seconds: delay)
       end
 
       # Bulk enqueue multiple jobs efficiently using SQS batch API.
-      # Called by ActiveJob.perform_all_later (Rails 7.1+).
+      # Called by ActiveJob.perform_all_later (Rails 7.1+). A job with a scheduled time is delayed as in {#enqueue_at}.
+      # Each batch holds up to 10 messages and up to 1 MiB in total.
       #
       # @param jobs [Array<ActiveJob::Base>] array of ActiveJob instances to be enqueued
       # @return [Integer] number of jobs successfully enqueued
+      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if a job is delayed on a FIFO queue, before any send
+      # @raise [Shoryuken::Errors::InvalidDelayError] if a job delay exceeds 15 minutes, before any send
       def enqueue_all(jobs) # :nodoc:
-        jobs.group_by(&:queue_name).each do |queue_name, queue_jobs|
+        batches = jobs.group_by(&:queue_name).map do |queue_name, queue_jobs|
           queue = Shoryuken::Client.queues(queue_name)
 
-          queue_jobs.each_slice(10) do |batch|
-            entries = batch.map.with_index do |job, idx|
-              register_worker!(job)
-              job.sqs_send_message_parameters = job_parameters(job)
-              msg = message(queue, job)
-              job.sqs_send_message_parameters = msg
-              { id: idx.to_s }.merge(msg)
-            end
+          [queue, queue_jobs.map { |job| [job, batch_entry(queue, job)] }]
+        end
 
-            response = queue.send_messages(entries: entries)
+        batches.each do |queue, entries|
+          each_batch(entries) do |batch|
+            batch_entries = batch.map.with_index { |(_job, entry), idx| { id: idx.to_s }.merge(entry) }
+
+            response = queue.send_messages(entries: batch_entries)
             successful_ids = response.successful.map { |r| r.id.to_i }.to_set
-            batch.each_with_index do |job, idx|
+            batch.each_with_index do |(job, _entry), idx|
               job.successfully_enqueued = successful_ids.include?(idx)
             end
           end
@@ -152,6 +138,87 @@ module ActiveJob
       end
 
       private
+
+      # Builds the batch entry of a job, with the body in JSON, and stores its parameters on the job
+      #
+      # @param queue [Shoryuken::Queue] the queue to send to
+      # @param job [ActiveJob::Base] the job to enqueue
+      # @return [Hash] the batch entry, without its id
+      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if the job is delayed on a FIFO queue
+      # @raise [Shoryuken::Errors::InvalidDelayError] if the job delay exceeds 15 minutes
+      def batch_entry(queue, job)
+        register_worker!(job)
+        job.sqs_send_message_parameters = job_parameters(job)
+        job.sqs_send_message_parameters[:delay_seconds] = delay_seconds(queue, job.scheduled_at.to_f) if job.scheduled_at
+
+        msg = message(queue, job)
+        job.sqs_send_message_parameters = msg
+        msg.merge(message_body: JSON.dump(msg[:message_body]))
+      end
+
+      # Yields the entries in batches of up to 10 messages and up to 1 MiB in total. A larger entry goes alone.
+      #
+      # @param entries [Array<Array(ActiveJob::Base, Hash)>] the jobs with their batch entries
+      # @yieldparam batch [Array<Array(ActiveJob::Base, Hash)>] the jobs with their batch entries of one batch
+      # @return [void]
+      def each_batch(entries)
+        batch = []
+        batch_size = 0
+
+        entries.each do |pair|
+          size = entry_size(pair.last)
+
+          if batch.size == MAX_BATCH_MESSAGES || (batch.any? && batch_size + size > MAX_BATCH_BYTES)
+            yield batch
+            batch = []
+            batch_size = 0
+          end
+
+          batch << pair
+          batch_size += size
+        end
+
+        yield batch if batch.any?
+      end
+
+      # Calculates the size SQS counts for a message: its body and its attribute names, types and values
+      #
+      # @param entry [Hash] the batch entry, with the body in JSON
+      # @return [Integer] the size in bytes
+      def entry_size(entry)
+        size = entry[:message_body].bytesize
+
+        entry[:message_attributes]&.each do |name, value|
+          size += name.to_s.bytesize + value[:data_type].to_s.bytesize
+          size += (value[:string_value] || value[:binary_value]).to_s.bytesize
+        end
+
+        size
+      end
+
+      # Calculates the delay of a send at a timestamp, as SQS accepts it
+      #
+      # @param queue [Shoryuken::Queue] the queue to send to
+      # @param timestamp [Float] Unix timestamp when the job should be processed
+      # @return [Integer] delay in seconds, 0 for a timestamp in the past
+      # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if the delay is positive and the queue is FIFO
+      # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
+      def delay_seconds(queue, timestamp)
+        delay = calculate_delay(timestamp)
+
+        # FIFO queues do not support per-message delays. Past timestamps are sent with delay_seconds=0
+        # (calculate_delay clamps them, as SQS accepts only 0 to 900 seconds)
+        # See https://github.com/ruby-shoryuken/shoryuken/issues/924
+        if delay.positive? && queue.fifo?
+          raise(
+            Shoryuken::Errors::FifoDelayNotSupportedError,
+            "FIFO queue '#{queue.name}' does not support per-message delays. " \
+            'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
+          )
+        end
+
+        delay
+      end
 
       # Calculates the delay in seconds from a timestamp
       #
@@ -251,6 +318,15 @@ module ActiveJob
       def register_worker!(job)
         Shoryuken.register_worker(job.queue_name, Shoryuken::ActiveJob::JobWrapper)
       end
+
+      # Maximum number of messages in one SQS batch
+      MAX_BATCH_MESSAGES = 10
+
+      # Maximum total size in bytes of one SQS batch
+      # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
+      MAX_BATCH_BYTES = 1024 * 1024
+
+      private_constant :MAX_BATCH_MESSAGES, :MAX_BATCH_BYTES
 
       # Default message attributes identifying the Shoryuken worker class
       MESSAGE_ATTRIBUTES = {
