@@ -73,6 +73,31 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
         TestWorker.perform_in(-5, 'message')
       end
     end
+
+    context 'with several worker queues' do
+      before { TestWorker.get_shoryuken_options['queue'] = %w[queue1 queue2] }
+
+      it 'raises without a queue option' do
+        expect(Shoryuken::Client).not_to receive(:queues)
+
+        expect {
+          TestWorker.perform_in(60, 'message')
+        }.to raise_error(ArgumentError, /TestWorker has several queues \(queue1, queue2\)/)
+      end
+
+      it 'raises without a queue option when no delay is given' do
+        expect(Shoryuken::Client).not_to receive(:queues)
+
+        expect { TestWorker.perform_in(0, 'message') }.to raise_error(ArgumentError, /pass the queue: option/)
+      end
+
+      it 'sends to the queue given in the options' do
+        expect(Shoryuken::Client).to receive(:queues).with('queue2').twice.and_return(sqs_queue)
+        expect(sqs_queue).to receive(:send_message).with(hash_including(delay_seconds: 60))
+
+        TestWorker.perform_in(60, 'message', queue: 'queue2')
+      end
+    end
   end
 
   describe '.perform_at' do
@@ -176,6 +201,50 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
       )
 
       TestWorker.perform_async('delayed message', queue: new_queue)
+    end
+
+    context 'with several worker queues' do
+      before { TestWorker.get_shoryuken_options['queue'] = %w[queue1 queue2] }
+
+      it 'raises without a queue option' do
+        expect(Shoryuken::Client).not_to receive(:queues)
+
+        expect {
+          TestWorker.perform_async('message')
+        }.to raise_error(
+          ArgumentError,
+          'TestWorker has several queues (queue1, queue2): pass the queue: option to choose one'
+        )
+      end
+
+      it 'sends to the queue given in the options' do
+        expect(Shoryuken::Client).to receive(:queues).with('queue2').and_return(sqs_queue)
+        expect(sqs_queue).to receive(:send_message).with(hash_including(message_body: 'message'))
+
+        TestWorker.perform_async('message', queue: 'queue2')
+      end
+    end
+
+    context 'with an empty worker queue array' do
+      before { TestWorker.get_shoryuken_options['queue'] = [] }
+
+      it 'raises without a queue option' do
+        expect(Shoryuken::Client).not_to receive(:queues)
+
+        expect {
+          TestWorker.perform_async('message')
+        }.to raise_error(ArgumentError, 'TestWorker has no queue: pass the queue: option')
+      end
+    end
+
+    context 'with a one-element worker queue array' do
+      before { TestWorker.get_shoryuken_options['queue'] = [queue] }
+
+      it 'sends to that queue' do
+        expect(sqs_queue).to receive(:send_message).with(hash_including(message_body: 'message'))
+
+        TestWorker.perform_async('message')
+      end
     end
 
     it 'does not mutate the caller-supplied options hash' do

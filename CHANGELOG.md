@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
+  returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
+  without `queue:`
+  - It raised `NoMethodError: undefined method 'start_with?' for an instance of Array`
+  - A one-element Array sends to its queue; it raised the same `NoMethodError`
+  - An empty Array raises an `ArgumentError` that asks for `queue:`; it raised a `NoMethodError`
+
 - Fix: ActiveJob `perform_all_later` delays a job set with `wait` or `wait_until` and splits each batch at 1 MiB in
   total, not only at 10 messages
   - A delay was ignored: every job became visible at once
