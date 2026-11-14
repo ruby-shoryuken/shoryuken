@@ -119,16 +119,17 @@ module ActiveJob
         batches = jobs.group_by(&:queue_name).map do |queue_name, queue_jobs|
           queue = Shoryuken::Client.queues(queue_name)
 
-          [queue, queue_jobs.map { |job| [job, batch_entry(queue, job)] }]
+          [queue, queue_jobs, queue_jobs.map { |job| batch_entry(queue, job) }]
         end
 
-        batches.each do |queue, entries|
-          each_batch(entries) do |batch|
-            batch_entries = batch.map.with_index { |(_job, entry), idx| { id: idx.to_s }.merge(entry) }
+        batches.each do |queue, queue_jobs, entries|
+          each_batch(entries) do |start, count|
+            batch = entries[start, count]
+            batch.each_with_index { |entry, idx| entry[:id] = idx.to_s }
 
-            response = queue.send_messages(entries: batch_entries)
+            response = queue.send_messages(entries: batch)
             successful_ids = response.successful.map { |r| r.id.to_i }.to_set
-            batch.each_with_index do |(job, _entry), idx|
+            queue_jobs[start, count].each_with_index do |job, idx|
               job.successfully_enqueued = successful_ids.include?(idx)
             end
           end
@@ -153,32 +154,35 @@ module ActiveJob
 
         msg = message(queue, job)
         job.sqs_send_message_parameters = msg
-        msg.merge(message_body: JSON.dump(msg[:message_body]))
+        entry = msg.dup
+        entry[:message_body] = JSON.dump(entry[:message_body]) if entry[:message_body].is_a?(Hash)
+        entry
       end
 
       # Yields the entries in batches of up to 10 messages and up to 1 MiB in total. A larger entry goes alone.
       #
-      # @param entries [Array<Array(ActiveJob::Base, Hash)>] the jobs with their batch entries
-      # @yieldparam batch [Array<Array(ActiveJob::Base, Hash)>] the jobs with their batch entries of one batch
+      # @param entries [Array<Hash>] the batch entries, with the bodies in JSON
+      # @yieldparam start [Integer] the index of the first entry of the batch
+      # @yieldparam count [Integer] the number of entries in the batch
       # @return [void]
       def each_batch(entries)
-        batch = []
+        start = 0
         batch_size = 0
 
-        entries.each do |pair|
-          size = entry_size(pair.last)
+        entries.each_with_index do |entry, idx|
+          size = entry_size(entry)
+          count = idx - start
 
-          if batch.size == MAX_BATCH_MESSAGES || (batch.any? && batch_size + size > MAX_BATCH_BYTES)
-            yield batch
-            batch = []
+          if count == MAX_BATCH_MESSAGES || (count.positive? && batch_size + size > MAX_BATCH_BYTES)
+            yield start, count
+            start = idx
             batch_size = 0
           end
 
-          batch << pair
           batch_size += size
         end
 
-        yield batch if batch.any?
+        yield start, entries.size - start if entries.size > start
       end
 
       # Calculates the size SQS counts for a message: its body and its attribute names, types and values
