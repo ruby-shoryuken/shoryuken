@@ -102,7 +102,7 @@ module ActiveJob
       # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def enqueue_at(job, timestamp) # :nodoc:
         # Checked before the send, so subclasses that send asynchronously still fail synchronously
-        delay = delay_seconds(Shoryuken::Client.queues(job.queue_name), timestamp)
+        delay = delay_seconds(job.queue_name, timestamp)
 
         enqueue(job, delay_seconds: delay)
       end
@@ -119,7 +119,7 @@ module ActiveJob
         # Delays are checked for every job first, so an invalid one raises before any send
         groups = jobs.group_by(&:queue_name).map do |queue_name, queue_jobs|
           queue = Shoryuken::Client.queues(queue_name)
-          delays = queue_jobs.map { |job| job.scheduled_at && delay_seconds(queue, job.scheduled_at.to_f) }
+          delays = queue_jobs.map { |job| job.scheduled_at && delay_seconds(queue_name, job.scheduled_at.to_f) }
 
           [queue, queue_jobs, delays]
         end
@@ -203,25 +203,29 @@ module ActiveJob
         size
       end
 
-      # Calculates the delay of a send at a timestamp, as SQS accepts it
+      # Calculates the delay of a send at a timestamp, as SQS accepts it. Looks up the queue only for a positive delay,
+      # so a send without one does its first queue lookup where it sends (on the send thread in subclasses).
       #
-      # @param queue [Shoryuken::Queue] the queue to send to
+      # @param queue_name [String] the name of the queue to send to
       # @param timestamp [Float] Unix timestamp when the job should be processed
       # @return [Integer] delay in seconds, 0 for a timestamp in the past
       # @raise [Shoryuken::Errors::FifoDelayNotSupportedError] if the delay is positive and the queue is FIFO
       # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
-      def delay_seconds(queue, timestamp)
+      def delay_seconds(queue_name, timestamp)
         delay = calculate_delay(timestamp)
 
         # FIFO queues do not support per-message delays. Past timestamps are sent with delay_seconds=0
         # (calculate_delay clamps them, as SQS accepts only 0 to 900 seconds)
         # See https://github.com/ruby-shoryuken/shoryuken/issues/924
-        if delay.positive? && queue.fifo?
-          raise(
-            Shoryuken::Errors::FifoDelayNotSupportedError,
-            "FIFO queue '#{queue.name}' does not support per-message delays. " \
-            'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
-          )
+        if delay.positive?
+          queue = Shoryuken::Client.queues(queue_name)
+          if queue.fifo?
+            raise(
+              Shoryuken::Errors::FifoDelayNotSupportedError,
+              "FIFO queue '#{queue.name}' does not support per-message delays. " \
+              'When using ActiveJob retry_on with FIFO queues, set `wait: 0`.'
+            )
+          end
         end
 
         delay

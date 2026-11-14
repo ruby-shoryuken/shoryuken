@@ -38,6 +38,16 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
     end
   end
 
+  describe '#enqueue_at' do
+    it 'calls error_handler when the queue lookup fails for a timestamp in the past' do
+      error = Aws::SQS::Errors::QueueDoesNotExist.new(nil, 'The specified queue does not exist.')
+      allow(Shoryuken::Client).to receive(:queues).with(job.queue_name).and_raise(error)
+      expect(error_handler).to receive(:call).with(error, job, { delay_seconds: 0 })
+
+      expect { subject.enqueue_at(job, Time.current.to_f - 30) }.not_to raise_error
+    end
+  end
+
   describe '#wait_for_pending_sends' do
     # Use a real async executor (instead of the ImmediateExecutor stubbed above)
     # so sends are genuinely in-flight and the drain has something to wait for.
