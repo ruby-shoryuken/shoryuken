@@ -434,7 +434,6 @@ RSpec.shared_examples 'active_job_adapters' do
     end
 
     context 'with jobs of exactly 1 MiB in total' do
-      # Body of a job with an empty string argument, plus the default shoryuken_class attribute
       let(:default_attributes_size) do
         'shoryuken_class'.bytesize + 'String'.bytesize + 'Shoryuken::ActiveJob::JobWrapper'.bytesize
       end

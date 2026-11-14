@@ -127,23 +127,23 @@ module ActiveJob
         groups.each do |queue, queue_jobs, delays|
           batch_jobs = []
           batch = []
-          batch_size = 0
+          batch_bytes = 0
 
           queue_jobs.each_with_index do |job, idx|
             entry = batch_entry(queue, job, delays[idx])
-            size = entry_size(entry)
+            bytes = entry_size(entry)
 
-            if batch.size == MAX_BATCH_MESSAGES || (batch.any? && batch_size + size > MAX_BATCH_BYTES)
+            if batch.size == MAX_BATCH_MESSAGES || (batch.any? && batch_bytes + bytes > MAX_BATCH_BYTES)
               send_batch(queue, batch_jobs, batch)
               batch_jobs = []
               batch = []
-              batch_size = 0
+              batch_bytes = 0
             end
 
             entry[:id] = batch.size.to_s
             batch_jobs << job
             batch << entry
-            batch_size += size
+            batch_bytes += bytes
           end
 
           send_batch(queue, batch_jobs, batch) if batch.any?
