@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'did_you_mean'
 require 'optparse'
 
 module Shoryuken
@@ -19,6 +20,9 @@ module Shoryuken
       TRUE_VALUES = %w[true TRUE t T].freeze
       FALSE_VALUES = %w[false FALSE f F].freeze
 
+      # Marks an unknown switch for the parser, keeping its place among the other arguments
+      UNKNOWN = "\0"
+
       # ANSI color codes used by {#say}
       COLORS = { red: 31, green: 32, yellow: 33 }.freeze
 
@@ -31,7 +35,7 @@ module Shoryuken
       # A nested command set, such as `shoryuken sqs`
       Subcommand = Struct.new(:name, :klass, :usage, :desc, keyword_init: true)
 
-      private_constant :NUMERIC, :TRUE_VALUES, :FALSE_VALUES, :COLORS, :Option, :Command, :Subcommand
+      private_constant :NUMERIC, :UNKNOWN, :TRUE_VALUES, :FALSE_VALUES, :COLORS, :Option, :Command, :Subcommand
 
       class << self
         # Sets or returns the command set name shown after `shoryuken` in usage lines
@@ -159,7 +163,11 @@ module Shoryuken
 
           matches = names.select { |command| command.start_with?(name) }
           return matches.first if matches.one?
-          raise Error, "Could not find command #{name.inspect}." if matches.empty?
+
+          if matches.empty?
+            suggestions = DidYouMean::SpellChecker.new(dictionary: names).correct(name)
+            raise Error, did_you_mean("Could not find command #{name.inspect}.", suggestions)
+          end
 
           raise Error, "Ambiguous command #{name} matches [#{matches.sort.join(', ')}]"
         end
@@ -191,7 +199,7 @@ module Shoryuken
         # @param argv [Array<String>] the arguments after `help`
         # @return [void]
         def help(argv)
-          return print_commands if argv.empty?
+          return print_commands if argv.empty? || help_switch?(argv.first)
 
           name = find_command(argv.first)
 
@@ -291,41 +299,53 @@ module Shoryuken
           options = definitions.each_with_object({}) do |option, result|
             result[option.name] = option.default.dup unless option.default.nil?
           end
-
-          argv, unknown = extract_lists(definitions, argv, options)
+          argv = normalize(definitions, argv)
+          # The array or hash option that takes the next arguments, the arguments that are not options and the
+          # unknown switches
+          state = { list: nil, args: [], unknown: [] }
 
           parser = OptionParser.new
-          # Drops OptionParser's own --help, --version and completion switches
-          parser.base.long.clear
-          definitions.each { |option| define(parser, option, options) }
+          definitions.each { |option| define(parser, option, options, state) }
+          parse_arguments(parser, argv, options, state)
 
-          [options, parse_arguments(parser, argv, unknown)]
+          raise Error, unknown_switches(definitions, state[:unknown]) if state[:unknown].any?
+
+          [options, state[:args] + argv]
         rescue OptionParser::NeedlessArgument => e
-          raise Error, "Unknown switches #{e.args.first.split('=').first.inspect}"
+          raise Error, unknown_switches(definitions, [e.args.first.split('=').first])
         rescue OptionParser::MissingArgument => e
           raise Error, "No value provided for option '#{long_switch(definitions, e.args.first)}'"
         end
 
-        # Runs the parser over every argument, collecting the unknown switches
+        # Runs the parser over the arguments up to `--`: the values after an array or hash option go to it, the other
+        # arguments to `state[:args]` and the unknown short switches to `state[:unknown]`
         #
         # @param parser [OptionParser] the parser
-        # @param argv [Array<String>] the arguments
-        # @param unknown [Array<String>] the unknown long switches
-        # @return [Array<String>] the arguments that are not options
-        # @raise [Error] when there are unknown switches
-        def parse_arguments(parser, argv, unknown)
-          args = []
+        # @param argv [Array<String>] the arguments; what follows `--` is left in it
+        # @param options [Hash{Symbol => Object}] the parsed options to fill
+        # @param state [Hash] the list option that takes the next arguments, the arguments that are not options and
+        #   the unknown switches
+        # @return [void]
+        def parse_arguments(parser, argv, options, state)
+          parser.order!(argv) do |arg|
+            list = state[:list]
 
-          begin
-            parser.order!(argv) { |arg| args << arg }
-          rescue OptionParser::InvalidOption => e
-            unknown << e.args.first.split('=').first
-            retry
+            if arg.start_with?(UNKNOWN)
+              state[:list] = nil
+              state[:unknown] << arg.delete_prefix(UNKNOWN)
+            elsif list&.type == :array
+              options[list.name] << arg
+            elsif list && arg.include?(':')
+              options[list.name].store(*arg.split(':', 2))
+            else
+              state[:list] = nil
+              state[:args] << arg
+            end
           end
-
-          raise Error, "Unknown switches #{unknown.map(&:inspect).join(', ')}" if unknown.any?
-
-          args + argv
+        rescue OptionParser::InvalidOption => e
+          state[:list] = nil
+          state[:unknown] << e.args.first
+          retry
         end
 
         # Adds an option to the parser
@@ -333,67 +353,104 @@ module Shoryuken
         # @param parser [OptionParser] the parser
         # @param option [Option] the option
         # @param options [Hash{Symbol => Object}] the parsed options to fill
+        # @param state [Hash] the list option that takes the next arguments, the arguments that are not options and
+        #   the unknown switches
         # @return [void]
-        def define(parser, option, options)
+        def define(parser, option, options, state)
           switches = [*option.aliases]
           long = "--#{dashed(option)}"
+          set = lambda do |value|
+            state[:list] = nil
+            options[option.name] = value
+          end
 
           case option.type
           when :boolean
-            parser.on(*switches, "--[no-]#{dashed(option)}") { |value| options[option.name] = value }
-            parser.on("--skip-#{dashed(option)}") { options[option.name] = false }
+            parser.on(*switches, "--[no-]#{dashed(option)}") { |value| set.call(value) }
+            parser.on("--skip-#{dashed(option)}") { set.call(false) }
+            return
           when :numeric
-            parser.on(*switches, "#{long} VALUE") { |value| options[option.name] = numeric(long, value) }
-          else
-            parser.on(*switches, "#{long} VALUE") { |value| options[option.name] = value }
+            parser.on(*switches, "#{long} VALUE") { |value| set.call(numeric(long, given(long, value))) }
+          when :string
+            # Thor used the default, or else the option name, when no value followed
+            parser.on(*switches, "#{long} [VALUE]") { |value| set.call(value || option.default || option.name.to_s) }
+          when :array
+            parser.on(*switches, "#{long} VALUE") do |value|
+              set.call([])
+              # Thor took `-1` for an unknown switch, not a value
+              next state[:unknown] << value if given(long, value).start_with?('-')
+
+              options[option.name] << value
+              state[:list] = option
+            end
+          when :hash
+            parser.on(*switches, "#{long} VALUE") do |value|
+              set.call({})
+              next state[:unknown] << value if given(long, value).start_with?('-')
+              # Thor took only `key:value` arguments: the first other one is not the option's
+              next state[:args] << value unless value.include?(':')
+
+              options[option.name].store(*value.split(':', 2))
+              state[:list] = option
+            end
           end
+
+          parser.on("--no-#{dashed(option)}", "--skip-#{dashed(option)}") { set.call(nil) }
         end
 
-        # Takes the array and hash options with their values out of the arguments (each takes the values that follow
-        # it up to the next switch), takes out the unknown long switches and normalizes the other switches
+        # @param long [String] the long switch
+        # @param value [String] the argument OptionParser took as its value
+        # @return [String] the value
+        # @raise [Error] when the argument is a switch
+        def given(long, value)
+          raise Error, "No value provided for option '#{long}'" if value.match?(/\A(--\w|-[a-zA-Z])/)
+
+          value
+        end
+
+        # Normalizes the switches up to `--` the way Thor read them, and marks the unknown ones with {UNKNOWN}
         #
         # @param definitions [Array<Option>] the options the command accepts
         # @param argv [Array<String>] the arguments after the command name
-        # @param options [Hash{Symbol => Object}] the parsed options to fill
-        # @return [Array(Array<String>, Array<String>)] the remaining arguments and the unknown long switches
-        # @raise [Error] when an array or hash option has no value
-        def extract_lists(definitions, argv, options)
-          lists = definitions.select { |option| %i[array hash].include?(option.type) }
+        # @return [Array<String>] the arguments for OptionParser
+        def normalize(definitions, argv)
           known = long_switches(definitions)
+          shorts = definitions.flat_map { |option| [*option.aliases] }
           argv = argv.dup
           rest = []
-          unknown = []
 
           until argv.empty?
             arg = argv.shift
             break rest.push(arg, *argv) if arg == '--'
+            # Thor took `-1` for a value, not a switch
+            next rest << arg unless arg.match?(/\A-([a-zA-Z]|-.)/)
+
+            flags = arg[1..].chars.map { |flag| "-#{flag}" }
+            # Thor took `-vd` and `-pd` for `-v -d` and `-p -d` when one of them is a switch of the command
+            next argv.unshift(*flags) if arg.match?(/\A-[a-zA-Z]{2,}\z/) && flags.intersect?(shorts)
 
             switch, inline = arg.split('=', 2)
             # Thor took `--config_file` as `--config-file`
             switch = switch.tr('_', '-') if switch.start_with?('--')
-            option = lists.find { |list| [*list.aliases, "--#{dashed(list)}"].include?(switch) }
+            # OptionParser takes an abbreviated long switch and a short one with any value attached; Thor did not
+            next rest << "#{UNKNOWN}#{arg}" if switch.start_with?('--') ? !known.include?(switch) : attached?(arg)
 
-            # OptionParser takes an abbreviated long switch; Thor did not
-            next unknown << switch if !option && switch.start_with?('--') && !known.include?(switch)
-
-            unless option
-              # Thor took `--verbose false` as `--verbose=false`
-              if inline.nil? && boolean_option(definitions, switch) && (TRUE_VALUES + FALSE_VALUES).include?(argv.first)
-                inline = argv.shift
-              end
-
-              rest.concat(split_switch(definitions, switch, inline, arg))
-              next
+            # Thor took `--verbose false` as `--verbose=false`
+            if inline.nil? && boolean_option(definitions, switch) && (TRUE_VALUES + FALSE_VALUES).include?(argv.first)
+              inline = argv.shift
             end
 
-            values = inline ? [inline] : []
-            values << argv.shift while list_value?(option, argv.first)
-            raise Error, "No value provided for option '--#{dashed(option)}'" if values.empty? && option.type == :array
-
-            options[option.name] = option.type == :array ? values : values.to_h { |value| value.split(':', 2) }
+            rest.concat(split_switch(definitions, switch, inline, arg))
           end
 
-          [rest, unknown]
+          rest
+        end
+
+        # @param arg [String] a short switch
+        # @return [Boolean] whether it has a value attached that Thor did not take: only a number (`-c3`) or a value
+        #   after `=` (`-c=3`)
+        def attached?(arg)
+          arg.size > 2 && !arg.include?('=') && !arg.match?(/\A-[a-zA-Z][-+]?(\d*\.\d+|\d+)\z/)
         end
 
         # @param definitions [Array<Option>] the options the command accepts
@@ -401,8 +458,27 @@ module Shoryuken
         def long_switches(definitions)
           definitions.flat_map do |option|
             long = dashed(option)
-            option.type == :boolean ? ["--#{long}", "--no-#{long}", "--skip-#{long}"] : ["--#{long}"]
+            ["--#{long}", "--no-#{long}", "--skip-#{long}"]
           end
+        end
+
+        # @param definitions [Array<Option>] the options the command accepts
+        # @param unknown [Array<String>] the unknown switches
+        # @return [String] the error message, with Thor's suggestions
+        def unknown_switches(definitions, unknown)
+          dictionary = definitions.map { |option| "--#{dashed(option)}" }
+          suggestions = unknown.flat_map { |switch| DidYouMean::SpellChecker.new(dictionary: dictionary).correct(switch) }
+
+          did_you_mean("Unknown switches #{unknown.map(&:inspect).join(', ')}", suggestions.uniq)
+        end
+
+        # @param message [String] the error message
+        # @param suggestions [Array<String>] the suggestions
+        # @return [String] the message with a `Did you mean?` line when there are suggestions
+        def did_you_mean(message, suggestions)
+          return message if suggestions.empty?
+
+          "#{message}\nDid you mean?  #{suggestions.map(&:inspect).join("\n               ")}"
         end
 
         # @param definitions [Array<Option>] the options the command accepts
@@ -412,8 +488,10 @@ module Shoryuken
         # @return [Array<String>] the argument for OptionParser
         def split_switch(definitions, switch, inline, arg)
           boolean = boolean_option(definitions, switch)
+          # Thor took the value of `--verbose=false` and `--no-verbose=true` as given, and any other as an argument
           return ["--no-#{dashed(boolean)}"] if boolean && FALSE_VALUES.include?(inline)
-          return [switch] if boolean && TRUE_VALUES.include?(inline)
+          return ["--#{dashed(boolean)}"] if boolean && TRUE_VALUES.include?(inline)
+          return [switch, inline] if boolean && inline
           # Thor took `-c=3` as `-c 3`
           return [switch, inline] if inline && switch.match?(/\A-[a-zA-Z]\z/)
           return [arg] unless switch.start_with?('--')
@@ -423,20 +501,13 @@ module Shoryuken
 
         # @param definitions [Array<Option>] the options the command accepts
         # @param switch [String] a switch, a long one with dashes
-        # @return [Option, nil] the boolean option of the switch
+        # @return [Option, nil] the boolean option of the switch, `--no-` and `--skip-` ones included
         def boolean_option(definitions, switch)
           definitions.find do |option|
-            option.type == :boolean && [*option.aliases, "--#{dashed(option)}"].include?(switch)
+            option.type == :boolean &&
+              [*option.aliases, "--#{dashed(option)}", "--no-#{dashed(option)}", "--skip-#{dashed(option)}"]
+                .include?(switch)
           end
-        end
-
-        # @param option [Option] the array or hash option
-        # @param arg [String, nil] the next argument
-        # @return [Boolean] whether the argument is a value of the option
-        def list_value?(option, arg)
-          return false if arg.nil? || arg.match?(/\A-{1,2}\S/)
-
-          option.type == :array || arg.include?(':')
         end
 
         # @param long [String] the long switch

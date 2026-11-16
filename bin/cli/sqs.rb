@@ -32,6 +32,7 @@ module Shoryuken
         # @return [void]
         # @raise [Error] when a known command follows the leading class options
         def dispatch(argv)
+          return super(argv.drop(1)) if argv.first == '--'
           return super unless argv.first&.start_with?('-') && !help_switch?(argv.first)
 
           leading = []
@@ -44,7 +45,8 @@ module Shoryuken
 
             leading << arg
             next if arg.include?('=')
-            raise Error, "No value provided for option '--endpoint'" if argv.empty?
+            # Thor took `sqs -e` for `sqs -e endpoint`
+            return print_commands if argv.empty?
 
             leading << argv.shift
           end
