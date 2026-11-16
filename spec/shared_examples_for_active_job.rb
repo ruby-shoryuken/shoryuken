@@ -313,6 +313,12 @@ RSpec.shared_examples 'active_job_adapters' do
       subject.enqueue_at(job, Time.current.to_f - 30)
     end
 
+    it 'sends delay_seconds 900 for a delay of exactly 15 minutes' do
+      expect(queue).to receive(:send_message).with(hash_including(delay_seconds: 900))
+
+      subject.enqueue_at(job, Time.now.to_f + 900)
+    end
+
     it 'raises InvalidDelayError for a delay over 15 minutes' do
       expect(queue).not_to receive(:send_message)
 
@@ -370,6 +376,12 @@ RSpec.shared_examples 'active_job_adapters' do
       subject.enqueue_all([TestJob.new.set(wait_until: 30.seconds.ago)])
 
       expect(batches.flatten.first[:delay_seconds]).to eq(0)
+    end
+
+    it 'sends delay_seconds 900 for a job scheduled exactly 15 minutes ahead' do
+      subject.enqueue_all([TestJob.new.set(wait: 900.seconds)])
+
+      expect(batches.flatten.first[:delay_seconds]).to eq(900)
     end
 
     it 'raises InvalidDelayError for a delay over 15 minutes before any send' do
