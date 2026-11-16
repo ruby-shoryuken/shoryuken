@@ -116,7 +116,7 @@ module Shoryuken
         def start(argv = ARGV)
           dispatch(argv.dup)
         rescue Error => e
-          warn(e.message)
+          $stderr.puts(e.message)
           exit(1)
         rescue Errno::EPIPE
           nil
@@ -198,7 +198,7 @@ module Shoryuken
           if name == 'help'
             puts "Usage:\n  #{banner} help [COMMAND]\n\n#{help_description}"
           elsif subcommands.key?(name)
-            subcommands[name].klass.start([])
+            subcommands[name].klass.start(['help', *argv.drop(1)])
           else
             print_command(commands[name])
           end
