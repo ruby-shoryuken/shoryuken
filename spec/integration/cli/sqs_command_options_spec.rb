@@ -4,7 +4,8 @@
 #
 # `dump -n` dumps that many messages and `--no-delete` keeps them in the queue; `requeue --batch-size` and `mv -n`
 # with `--no-delete` or `-d` take their values; `ls -w -n` lists the queues again after the interval; `create -a`
-# sets every given attribute; `-e`/`--endpoint` defaults to `SHORYUKEN_SQS_ENDPOINT`.
+# sets every given attribute and rejects `-a` with no value or an attached one; `-e`/`--endpoint` defaults to
+# `SHORYUKEN_SQS_ENDPOINT`; `sqs --` runs the command after it.
 
 setup_sqs
 
@@ -12,6 +13,13 @@ endpoint = SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS']
 
 def queue_attribute(queue, name)
   Shoryuken::Client.sqs.get_queue_attributes(queue_url: queue_url(queue), attribute_names: [name]).attributes[name]
+end
+
+def queue_exists?(queue)
+  queue_url(queue)
+  true
+rescue Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
+  false
 end
 
 def assert_success(args, message)
@@ -40,6 +48,10 @@ def assert_endpoint_default(source, endpoint)
     'sqs', 'ls', source, "--endpoint=#{endpoint}", env: { 'SHORYUKEN_SQS_ENDPOINT' => 'http://localhost:1' }
   )
   assert(status.success?, "--endpoint must win over SHORYUKEN_SQS_ENDPOINT, got: #{output}")
+  assert_includes(output, source)
+
+  status, output = run_shoryuken_command_until_exit('sqs', '--', 'ls', source, '-e', endpoint)
+  assert(status.success?, "sqs -- ls must run ls, got: #{output}")
   assert_includes(output, source)
 end
 
@@ -78,6 +90,14 @@ with_queue_name do |queue|
 end
 
 with_queue_name do |queue|
+  status, output = run_shoryuken_sqs('create', queue, '-a')
+  assert_equal(1, status.exitstatus, "create -a with no value must exit 1, got: #{output}")
+  assert_includes(output, "No value provided for option '--attributes'")
+  status, output = run_shoryuken_sqs('create', queue, '-aDelaySeconds:5')
+  assert_equal(1, status.exitstatus, "create -aDelaySeconds:5 must exit 1, got: #{output}")
+  assert_includes(output, 'Unknown switches "-aDelaySeconds:5"')
+  refute(queue_exists?(queue), 'a rejected create must not create the queue')
+
   assert_success(['create', queue, '--attributes=DelaySeconds:3'], "Queue #{queue} was successfully")
   assert_equal('3', queue_attribute(queue, 'DelaySeconds'))
 end

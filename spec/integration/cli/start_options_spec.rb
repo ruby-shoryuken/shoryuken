@@ -80,15 +80,25 @@ with_queue_and_dir do |queue, dir|
     assert_equal([config, 5], [options[:config_file], options[:concurrency]])
     assert_includes(output, '[DEPRECATED] Please use --config instead of --config-file')
   end
+
+  options, = parsed_options(dir, queue, '-vdq', queue, '-L', logfile)
+  assert_equal([true, true, [[queue]]], options.values_at(:verbose, :daemon, :queues), 'a cluster must end with -q')
+
+  options, = parsed_options(dir, queue, '-q', queue, '-P', '-d', '-L', logfile)
+  assert_equal(['pidfile', true], options.values_at(:pidfile, :daemon), '-P with no value must not take -d')
 end
 
 # --- start is the default command ---
 assert_rejected(%w[-c abc], %(Expected numeric value for '--concurrency'; got "abc"))
 assert_rejected(%w[start -t x], %(Expected numeric value for '--timeout'; got "x"))
 assert_rejected(%w[start -q], "No value provided for option '--queues'")
-assert_rejected(%w[check -r], "No value provided for option '--require'")
-assert_rejected(%w[start --conc 2], 'Unknown switches "--conc"')
+assert_rejected(%w[start -c -v], "No value provided for option '--concurrency'")
+assert_rejected(%w[check -r], '[FAIL] cannot load such file -- require')
 assert_rejected(%w[start -d], "[FAIL] You should set a logfile if you're going to daemonize")
+assert_rejected(%w[start -qa], "No value provided for option '--queues'")
+assert_rejected(%w[start -qdefault,2], 'Unknown switches "-qdefault,2"')
+assert_rejected(%w[start --conc 2], %(Unknown switches "--conc"\nDid you mean?  "--config"))
+assert_rejected(%w[STart], %(Could not find command "STart".\nDid you mean?  "start"))
 
 # --- help ---
 [%w[help], %w[-h], %w[--help], %w[-?]].each do |args|
@@ -110,7 +120,7 @@ end
   ].each { |switch| assert_includes(output, switch) }
 end
 
-[%w[help sqs], %w[sqs], %w[sqs -h], %w[sqs help]].each do |args|
+[%w[help sqs], %w[sqs], %w[sqs -h], %w[sqs help], %w[sqs --], %w[sqs -e]].each do |args|
   status, output = run_shoryuken_command_until_exit(*args)
   assert_equal(0, status.exitstatus, "#{args.join(' ')} must exit 0, got: #{output}")
   %w[create delete dump help ls mv purge requeue].each do |command|

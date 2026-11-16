@@ -1,11 +1,14 @@
 ## [Unreleased]
 
 - Breaking: The `shoryuken` CLI is built on the stdlib `OptionParser`; the `thor` dependency is gone
-  - Commands, options, short aliases, defaults, value parsing, error messages and exit statuses stay the same
+  - Commands and their prefixes, option names, short aliases and clusters, defaults, value parsing, error messages
+    (with `Did you mean?`) and exit statuses stay the same, except for these differences:
   - Help (`help`, `-h`, `--help`) lists the options with `--[no-]flag` and without Thor's brackets
   - `-h` and `--help` after a command print its help: `shoryuken start -h` was rejected as an unknown switch
   - The `tree` command that Thor added is gone
   - `-D N` as the first argument runs `start` with that delay; Thor took a leading `-D` for `help`
+  - An argument after `--` is never an option value: Thor gave it to an option left without one (`start -q a -- b`
+    processed the queues `a` and `b`, `start -L -- x` logged to `x`)
   - Code loaded with `-r` still sees `OptionParser`, as in 7.0
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
