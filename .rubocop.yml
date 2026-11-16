@@ -155,3 +155,8 @@ Layout/ArgumentAlignment:
 
 Layout/FirstMethodParameterLineBreak:
   Enabled: true
+
+# The CLI prints its errors with `$stderr.puts`: `warn` prints nothing under `ruby -W0` or a `Warning` hook
+Style/StderrPuts:
+  Exclude:
+    - 'bin/cli/base.rb'

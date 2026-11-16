@@ -15,7 +15,6 @@
 # it in the unit suite would flip server? for every other spec. Integration
 # specs each run in their own process, so that's contained here.
 
-require 'thor'
 require_relative '../../../bin/cli/base'
 require_relative '../../../bin/cli/sqs'
 
