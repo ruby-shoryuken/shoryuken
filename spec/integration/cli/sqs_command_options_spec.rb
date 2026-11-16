@@ -20,6 +20,29 @@ def assert_success(args, message)
   assert_includes(output, message)
 end
 
+def assert_watch(source)
+  status, output = run_shoryuken_sqs_until('ls', source, '-w', '-n', '0.2', signal: 'INT') do |log|
+    log.scan('Messages Available').size >= 2
+  end
+  assert(output.scan(/^#{Regexp.escape(source)}\s+0\s/).size >= 2, "ls -w must list again, got: #{output}")
+  assert(status.success?, "ls -w must exit 0 on INT, got: #{output}")
+end
+
+def assert_endpoint_default(source, endpoint)
+  status, output = run_shoryuken_command_until_exit(
+    'sqs', 'ls', source,
+    env: { 'SHORYUKEN_SQS_ENDPOINT' => endpoint, 'AWS_ENDPOINT_URL_SQS' => 'http://localhost:1' }
+  )
+  assert(status.success?, "ls must use SHORYUKEN_SQS_ENDPOINT, got: #{output}")
+  assert_includes(output, source)
+
+  status, output = run_shoryuken_command_until_exit(
+    'sqs', 'ls', source, "--endpoint=#{endpoint}", env: { 'SHORYUKEN_SQS_ENDPOINT' => 'http://localhost:1' }
+  )
+  assert(status.success?, "--endpoint must win over SHORYUKEN_SQS_ENDPOINT, got: #{output}")
+  assert_includes(output, source)
+end
+
 # Messages come back at once after a receive, so `mv` and `dump` see the ones a `--no-delete` call left
 with_queue_and_dir(attributes: { 'VisibilityTimeout' => '0' }) do |source, dir|
   with_queue_and_dir do |target, _target_dir|
@@ -44,24 +67,8 @@ with_queue_and_dir(attributes: { 'VisibilityTimeout' => '0' }) do |source, dir|
     assert_success(['dump', source, '--delete', '--path', all], 'with 2 messages')
     assert_equal(0, queue_size(source), 'dump --delete must delete the messages')
 
-    status, output = run_shoryuken_sqs_until('ls', source, '-w', '-n', '0.2', signal: 'INT') do |log|
-      log.scan('Messages Available').size >= 2
-    end
-    assert(output.scan(/^#{Regexp.escape(source)}\s+0\s/).size >= 2, "ls -w must list again, got: #{output}")
-    assert(status.success?, "ls -w must exit 0 on INT, got: #{output}")
-
-    status, output = run_shoryuken_command_until_exit(
-      'sqs', 'ls', source,
-      env: { 'SHORYUKEN_SQS_ENDPOINT' => endpoint, 'AWS_ENDPOINT_URL_SQS' => 'http://localhost:1' }
-    )
-    assert(status.success?, "ls must use SHORYUKEN_SQS_ENDPOINT, got: #{output}")
-    assert_includes(output, source)
-
-    status, output = run_shoryuken_command_until_exit(
-      'sqs', 'ls', source, "--endpoint=#{endpoint}", env: { 'SHORYUKEN_SQS_ENDPOINT' => 'http://localhost:1' }
-    )
-    assert(status.success?, "--endpoint must win over SHORYUKEN_SQS_ENDPOINT, got: #{output}")
-    assert_includes(output, source)
+    assert_watch(source)
+    assert_endpoint_default(source, endpoint)
   end
 end
 
