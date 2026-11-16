@@ -292,15 +292,14 @@ module Shoryuken
             result[option.name] = option.default.dup unless option.default.nil?
           end
 
-          argv = extract_lists(definitions, argv, options)
+          argv, unknown = extract_lists(definitions, argv, options)
 
           parser = OptionParser.new
           # Drops OptionParser's own --help, --version and completion switches
           parser.base.long.clear
-          parser.require_exact = true
           definitions.each { |option| define(parser, option, options) }
 
-          [options, parse_arguments(parser, argv)]
+          [options, parse_arguments(parser, argv, unknown)]
         rescue OptionParser::NeedlessArgument => e
           raise Error, "Unknown switches #{e.args.first.split('=').first.inspect}"
         rescue OptionParser::MissingArgument => e
@@ -311,11 +310,11 @@ module Shoryuken
         #
         # @param parser [OptionParser] the parser
         # @param argv [Array<String>] the arguments
+        # @param unknown [Array<String>] the unknown long switches
         # @return [Array<String>] the arguments that are not options
         # @raise [Error] when there are unknown switches
-        def parse_arguments(parser, argv)
+        def parse_arguments(parser, argv, unknown)
           args = []
-          unknown = []
 
           begin
             parser.order!(argv) { |arg| args << arg }
@@ -351,17 +350,19 @@ module Shoryuken
         end
 
         # Takes the array and hash options with their values out of the arguments (each takes the values that follow
-        # it up to the next switch) and normalizes the other switches
+        # it up to the next switch), takes out the unknown long switches and normalizes the other switches
         #
         # @param definitions [Array<Option>] the options the command accepts
         # @param argv [Array<String>] the arguments after the command name
         # @param options [Hash{Symbol => Object}] the parsed options to fill
-        # @return [Array<String>] the remaining arguments
+        # @return [Array(Array<String>, Array<String>)] the remaining arguments and the unknown long switches
         # @raise [Error] when an array or hash option has no value
         def extract_lists(definitions, argv, options)
           lists = definitions.select { |option| %i[array hash].include?(option.type) }
+          known = long_switches(definitions)
           argv = argv.dup
           rest = []
+          unknown = []
 
           until argv.empty?
             arg = argv.shift
@@ -371,6 +372,9 @@ module Shoryuken
             # Thor took `--config_file` as `--config-file`
             switch = switch.tr('_', '-') if switch.start_with?('--')
             option = lists.find { |list| [*list.aliases, "--#{dashed(list)}"].include?(switch) }
+
+            # OptionParser takes an abbreviated long switch; Thor did not
+            next unknown << switch if !option && switch.start_with?('--') && !known.include?(switch)
 
             unless option
               # Thor took `--verbose false` as `--verbose=false`
@@ -389,7 +393,16 @@ module Shoryuken
             options[option.name] = option.type == :array ? values : values.to_h { |value| value.split(':', 2) }
           end
 
-          rest
+          [rest, unknown]
+        end
+
+        # @param definitions [Array<Option>] the options the command accepts
+        # @return [Array<String>] every long switch of the options
+        def long_switches(definitions)
+          definitions.flat_map do |option|
+            long = dashed(option)
+            option.type == :boolean ? ["--#{long}", "--no-#{long}", "--skip-#{long}"] : ["--#{long}"]
+          end
         end
 
         # @param definitions [Array<Option>] the options the command accepts
