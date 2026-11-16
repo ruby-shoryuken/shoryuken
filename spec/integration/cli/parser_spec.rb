@@ -99,6 +99,10 @@ assert_equal(false, recorded('record', 'q', '--skip-flag').first[:flag])
 assert_equal(false, recorded('record', 'q', '--flag=false').first[:flag])
 assert_equal(false, recorded('record', 'q', '-f=false').first[:flag])
 assert_equal(true, recorded('record', 'q', '--no-flag', '--flag=true').first[:flag])
+options, name = recorded('record', '-f', 'false', 'q')
+assert_equal([false, 'q'], [options[:flag], name])
+options, name = recorded('record', '--flag', 'q')
+assert_equal([true, 'q'], [options[:flag], name])
 
 # --- strings, switch spelling, order ---
 assert_equal('a', recorded('record', 'q', '--config-file', 'a').first[:config_file])

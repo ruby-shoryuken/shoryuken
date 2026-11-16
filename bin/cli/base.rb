@@ -373,6 +373,11 @@ module Shoryuken
             option = lists.find { |list| [*list.aliases, "--#{dashed(list)}"].include?(switch) }
 
             unless option
+              # Thor took `--verbose false` as `--verbose=false`
+              if inline.nil? && boolean_option(definitions, switch) && (TRUE_VALUES + FALSE_VALUES).include?(argv.first)
+                inline = argv.shift
+              end
+
               rest.concat(split_switch(definitions, switch, inline, arg))
               next
             end
@@ -393,9 +398,7 @@ module Shoryuken
         # @param arg [String] the argument as given
         # @return [Array<String>] the argument for OptionParser
         def split_switch(definitions, switch, inline, arg)
-          boolean = definitions.find do |option|
-            option.type == :boolean && [*option.aliases, "--#{dashed(option)}"].include?(switch)
-          end
+          boolean = boolean_option(definitions, switch)
           return ["--no-#{dashed(boolean)}"] if boolean && FALSE_VALUES.include?(inline)
           return [switch] if boolean && TRUE_VALUES.include?(inline)
           # Thor took `-c=3` as `-c 3`
@@ -403,6 +406,15 @@ module Shoryuken
           return [arg] unless switch.start_with?('--')
 
           [[switch, inline].compact.join('=')]
+        end
+
+        # @param definitions [Array<Option>] the options the command accepts
+        # @param switch [String] a switch, a long one with dashes
+        # @return [Option, nil] the boolean option of the switch
+        def boolean_option(definitions, switch)
+          definitions.find do |option|
+            option.type == :boolean && [*option.aliases, "--#{dashed(option)}"].include?(switch)
+          end
         end
 
         # @param option [Option] the array or hash option

@@ -5,7 +5,6 @@
   - Help (`help`, `-h`, `--help`) lists the options with `--[no-]flag` and without Thor's brackets
   - `-h` and `--help` after a command print its help: `shoryuken start -h` was rejected as an unknown switch
   - The `tree` command that Thor added is gone
-  - A boolean switch takes `true` or `false` only inline (`--verbose=false`); Thor also took it as the next argument
   - `-D N` as the first argument runs `start` with that delay; Thor took a leading `-D` for `help`
   - Code loaded with `-r` still sees `OptionParser`, as in 7.0
 
