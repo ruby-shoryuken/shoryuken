@@ -47,16 +47,22 @@ module Shoryuken
           @namespace
         end
 
+        # Returns the commands of this class
+        #
         # @return [Hash{String => Command}] the commands by name
         def commands
           @commands ||= {}
         end
 
+        # Returns the nested command sets of this class
+        #
         # @return [Hash{String => Subcommand}] the nested command sets by name
         def subcommands
           @subcommands ||= {}
         end
 
+        # Returns the options every command of this class accepts
+        #
         # @return [Array<Option>] the options every command of this class accepts
         def class_options
           @class_options ||= []
@@ -128,6 +134,8 @@ module Shoryuken
 
         protected
 
+        # Tells whether an argument is a help switch
+        #
         # @param arg [String, nil] an argument
         # @return [Boolean] whether the argument asks for help
         def help_switch?(arg)
@@ -189,6 +197,8 @@ module Shoryuken
 
         private
 
+        # Returns the start of every usage line
+        #
         # @return [String] the program name and namespace that start every usage line
         def banner
           ['shoryuken', namespace].compact.join(' ')
@@ -212,6 +222,8 @@ module Shoryuken
           end
         end
 
+        # Returns the description of the help command
+        #
         # @return [String] the description of the help command
         def help_description
           return 'Describe subcommands or one specific subcommand' if namespace
@@ -261,6 +273,8 @@ module Shoryuken
           print_rows(rows)
         end
 
+        # Returns the long switch of an option as help shows it
+        #
         # @param option [Option] the option
         # @return [String] the long switch with its value placeholder
         def switch_usage(option)
@@ -283,6 +297,8 @@ module Shoryuken
           rows.each { |left, right| puts "  #{left.ljust(width)}  # #{right}" }
         end
 
+        # Returns the option name with dashes
+        #
         # @param option [Option] the option
         # @return [String] the option name as used in its long switch
         def dashed(option)
@@ -300,8 +316,6 @@ module Shoryuken
             result[option.name] = option.default.dup unless option.default.nil?
           end
           argv = normalize(definitions, argv)
-          # The array or hash option that takes the next arguments, the arguments that are not options and the
-          # unknown switches
           state = { list: nil, args: [], unknown: [] }
 
           parser = OptionParser.new
@@ -398,6 +412,8 @@ module Shoryuken
           parser.on("--no-#{dashed(option)}", "--skip-#{dashed(option)}") { set.call(nil) }
         end
 
+        # Checks that OptionParser did not take a switch as the value of an option
+        #
         # @param long [String] the long switch
         # @param value [String] the argument OptionParser took as its value
         # @return [String] the value
@@ -446,13 +462,16 @@ module Shoryuken
           rest
         end
 
+        # Tells whether a short switch has a value attached that Thor did not take
+        #
         # @param arg [String] a short switch
-        # @return [Boolean] whether it has a value attached that Thor did not take: only a number (`-c3`) or a value
-        #   after `=` (`-c=3`)
+        # @return [Boolean] true unless the value is a number (`-c3`) or follows `=` (`-c=3`)
         def attached?(arg)
           arg.size > 2 && !arg.include?('=') && !arg.match?(/\A-[a-zA-Z][-+]?(\d*\.\d+|\d+)\z/)
         end
 
+        # Returns every long switch of the options, with the `--no-` and `--skip-` ones
+        #
         # @param definitions [Array<Option>] the options the command accepts
         # @return [Array<String>] every long switch of the options
         def long_switches(definitions)
@@ -462,6 +481,8 @@ module Shoryuken
           end
         end
 
+        # Builds the unknown switches error message
+        #
         # @param definitions [Array<Option>] the options the command accepts
         # @param unknown [Array<String>] the unknown switches
         # @return [String] the error message, with Thor's suggestions
@@ -472,6 +493,8 @@ module Shoryuken
           did_you_mean("Unknown switches #{unknown.map(&:inspect).join(', ')}", suggestions.uniq)
         end
 
+        # Adds the suggestions to an error message
+        #
         # @param message [String] the error message
         # @param suggestions [Array<String>] the suggestions
         # @return [String] the message with a `Did you mean?` line when there are suggestions
@@ -481,6 +504,8 @@ module Shoryuken
           "#{message}\nDid you mean?  #{suggestions.map(&:inspect).join("\n               ")}"
         end
 
+        # Rewrites a switch the way Thor read it
+        #
         # @param definitions [Array<Option>] the options the command accepts
         # @param switch [String] the argument up to its first `=`, a long switch with dashes
         # @param inline [String, nil] the argument after its first `=`
@@ -499,6 +524,8 @@ module Shoryuken
           [[switch, inline].compact.join('=')]
         end
 
+        # Finds the boolean option of a switch
+        #
         # @param definitions [Array<Option>] the options the command accepts
         # @param switch [String] a switch, a long one with dashes
         # @return [Option, nil] the boolean option of the switch, `--no-` and `--skip-` ones included
@@ -510,6 +537,8 @@ module Shoryuken
           end
         end
 
+        # Converts a numeric option value
+        #
         # @param long [String] the long switch
         # @param value [String] the value given
         # @return [Integer, Float] the value as a number
@@ -520,6 +549,8 @@ module Shoryuken
           value.include?('.') ? value.to_f : value.to_i
         end
 
+        # Finds the long switch of a switch as given
+        #
         # @param definitions [Array<Option>] the options the command accepts
         # @param switch [String] a switch as given on the command line
         # @return [String] the long switch of the option
@@ -528,6 +559,8 @@ module Shoryuken
           option ? "--#{dashed(option)}" : switch
         end
 
+        # Fails unless the command takes that many arguments
+        #
         # @param command [Command] the command
         # @param args [Array<String>] the arguments left after the options
         # @return [void]
@@ -548,6 +581,8 @@ module Shoryuken
 
       attr_reader :options
 
+      # Creates a command instance with the parsed options
+      #
       # @param options [Hash{Symbol => Object}] the parsed options
       def initialize(options = {})
         @options = options
@@ -563,6 +598,8 @@ module Shoryuken
         puts message
       end
 
+      # Tells whether {#say} prints in color
+      #
       # @return [Boolean] whether {#say} prints in color
       def colors?
         $stdout.tty? && ENV['TERM'] != 'dumb' && ENV['NO_COLOR'].to_s.empty?

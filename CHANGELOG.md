@@ -9,7 +9,6 @@
   - `-D N` as the first argument runs `start` with that delay; Thor took a leading `-D` for `help`
   - An argument after `--` is never an option value: Thor gave it to an option left without one (`start -q a -- b`
     processed the queues `a` and `b`, `start -L -- x` logged to `x`)
-  - Code loaded with `-r` still sees `OptionParser`, as in 7.0
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
