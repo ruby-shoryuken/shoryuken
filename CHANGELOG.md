@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- Breaking: The `shoryuken` CLI is built on the stdlib `OptionParser`; the `thor` dependency is gone
+  - Commands, options, short aliases, defaults, value parsing, error messages and exit statuses stay the same
+  - Help (`help`, `-h`, `--help`) lists the options with `--[no-]flag` and without Thor's brackets
+  - `-h` and `--help` after a command print its help: `shoryuken start -h` was rejected as an unknown switch
+  - The `tree` command that Thor added is gone
+  - A boolean switch takes `true` or `false` only inline (`--verbose=false`); Thor also took it as the next argument
+  - `-D N` as the first argument runs `start` with that delay; Thor took a leading `-D` for `help`
+  - Code loaded with `-r` still sees `OptionParser`, as in 7.0
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
@@ -92,9 +101,6 @@
   - When SQS still failed after the fetch retries, the process soft-shut down and exited with status 0, so a
     supervisor (systemd `Restart=on-failure`, Kubernetes, ...) took the crash for a clean stop and did not restart it
   - A USR1 sent by an operator and a TERM or INT shutdown still exit with status 0
-
-- Removed: `shoryuken` no longer requires `optparse`; nothing in Shoryuken used `OptionParser`
-  - Code loaded with `-r` that uses `OptionParser` must `require 'optparse'` itself
 
 - Breaking: An unsupported worker `body_parser` raises `Shoryuken::Errors::InvalidConfigurationError` when the worker
   class loads

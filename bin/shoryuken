@@ -2,7 +2,6 @@
 
 require 'rubygems'
 
-require 'thor'
 require 'aws-sdk-core'
 require_relative 'cli/base'
 require_relative 'cli/sqs'
@@ -10,9 +9,21 @@ require_relative '../lib/shoryuken/runner'
 module Shoryuken
   module CLI
     class Runner < Base
-      default_task :start
+      subcommand('sqs', Shoryuken::CLI::SQS, 'sqs COMMAND', 'SQS commands')
 
-      register(Shoryuken::CLI::SQS, 'sqs', 'sqs COMMAND', 'SQS commands')
+      class << self
+        protected
+
+        # Runs `start` when no command is given
+        def dispatch(argv)
+          # Thor printed the command list for a leading `-?`
+          argv[0] = '-h' if argv.first == '-?'
+
+          return super unless argv.empty? || (argv.first.start_with?('-') && !help_switch?(argv.first))
+
+          run_command(commands['start'], argv)
+        end
+      end
 
       # Options shared by the commands that load the Shoryuken environment
       def self.environment_options
@@ -69,25 +80,23 @@ module Shoryuken
         say "Shoryuken #{Shoryuken::VERSION}"
       end
 
-      no_commands do
-        # Fails when the options ask to daemonize without a logfile
-        def validate_daemon_options(opts)
-          fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
-        end
+      # Fails when the options ask to daemonize without a logfile
+      def validate_daemon_options(opts)
+        fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
+      end
 
-        # Normalizes the command line options for {Shoryuken::EnvironmentLoader}
-        def normalized_options
-          opts = options.to_h.transform_keys(&:to_sym)
+      # Normalizes the command line options for {Shoryuken::EnvironmentLoader}
+      def normalized_options
+        opts = options.to_h.transform_keys(&:to_sym)
 
-          say '[DEPRECATED] Please use --config instead of --config-file', :yellow if opts[:config_file]
+        say '[DEPRECATED] Please use --config instead of --config-file', :yellow if opts[:config_file]
 
-          opts[:config_file] = opts.delete(:config) if opts[:config]
+        opts[:config_file] = opts.delete(:config) if opts[:config]
 
-          # Keep compatibility with old CLI queue format
-          opts[:queues] = opts[:queues].reject(&:empty?).map { |q| q.split(',') } if opts[:queues]
+        # Keep compatibility with old CLI queue format
+        opts[:queues] = opts[:queues].reject(&:empty?).map { |q| q.split(',') } if opts[:queues]
 
-          opts
-        end
+        opts
       end
     end
   end
