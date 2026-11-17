@@ -465,13 +465,18 @@ module Shoryuken
 
         url = find_queue_url(queue_name)
         sent = 0
+        rejected = 0
 
         begin
-          failed = batch_send(url, messages, options[:batch_size]) { |batch, _| sent += batch.size }
+          failed = batch_send(url, messages, options[:batch_size]) do |batch, batch_failed|
+            sent += batch.size
+            rejected += batch_failed.size
+          end
         rescue *request_errors => e
           fail_task(
-            "Could not requeue #{messages.size - sent} messages from #{path} to #{queue_name}: #{request_error(e)}. " \
-            "Sent the first #{sent} lines of #{path}, resume from line #{sent + 1}"
+            "Could not requeue #{messages.size - sent + rejected} messages from #{path} to #{queue_name}: " \
+            "#{request_error(e)}. Sent the first #{sent} lines of #{path} (#{sent - rejected} requeued, " \
+            "#{rejected} rejected), resume from line #{sent + 1}"
           )
         end
 
@@ -499,6 +504,7 @@ module Shoryuken
         rejected = []
         not_deleted = []
         error = nil
+        delete_error = nil
 
         begin
           # Deleting each accepted batch at once keeps a later failed batch from leaving sent messages in the source
@@ -510,7 +516,16 @@ module Shoryuken
 
             moved.concat(accepted)
             rejected.concat(refused)
-            not_deleted.concat(batch_delete(url_source, accepted)) if options[:delete]
+            next unless options[:delete]
+
+            begin
+              not_deleted.concat(batch_delete(url_source, accepted))
+            rescue *request_errors => e
+              # The batch is in the target: sending more would leave more messages in both queues
+              delete_error = e
+              not_deleted.concat(accepted)
+              break
+            end
           end
         rescue *request_errors => e
           error = e
@@ -519,11 +534,19 @@ module Shoryuken
         moved_ids = moved.to_set(&:message_id)
         not_moved = messages.reject { |m| moved_ids.include?(m.message_id) }
         batch_release(url_source, not_moved) unless not_moved.empty?
+        unsent = not_moved.size - rejected.size
 
         if error
           fail_task(
-            "Could not move #{not_moved.size - rejected.size} messages from #{queue_name_source} to " \
+            "Could not move #{unsent} messages from #{queue_name_source} to " \
             "#{queue_name_target}, they stay in #{queue_name_source}: #{request_error(error)}. " \
+            "Moved #{moved.size} messages before the error",
+            quit: false
+          )
+        elsif delete_error
+          fail_task(
+            "Could not delete moved messages from #{queue_name_source}: #{request_error(delete_error)}. " \
+            "Stopped, #{unsent} messages were not sent, they stay in #{queue_name_source}. " \
             "Moved #{moved.size} messages before the error",
             quit: false
           )
@@ -539,7 +562,7 @@ module Shoryuken
         unless not_deleted.empty?
           fail_task "Could not delete #{not_deleted.size} moved messages from #{queue_name_source}", quit: false
         end
-        exit(1) unless error.nil? && rejected.empty? && not_deleted.empty?
+        exit(1) unless error.nil? && delete_error.nil? && rejected.empty? && not_deleted.empty?
       end
 
       desc 'purge QUEUE-NAME', 'Deletes the messages in a queue'
