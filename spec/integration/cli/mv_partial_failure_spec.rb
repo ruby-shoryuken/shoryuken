@@ -5,13 +5,14 @@
 # messages without a MessageGroupId).
 #
 # `mv` deletes from the source only the messages the target accepted, so the
-# rejected ones stay in the source. Both commands print every rejected entry,
-# count only the accepted messages in their success line, and exit with a
-# non-zero status. A requeue with no rejected entry exits with 0.
+# rejected ones stay in the source, visible again at once. Both commands print
+# every rejected entry, count only the accepted messages in their success
+# line, and exit with a non-zero status. A requeue with no rejected entry exits with 0.
 #
 # Regression: mv deleted every received message, so the rejected ones were
 # lost; both commands printed only the first rejected entry of a batch and
-# exited with 0, reporting all messages as moved or requeued.
+# exited with 0, reporting all messages as moved or requeued; mv left the
+# rejected messages in flight until the source visibility timeout ended.
 
 setup_sqs
 
@@ -51,7 +52,10 @@ with_queue_and_dir do |source, _dir|
     assert_includes(output, "Moved 2 messages from #{source} to #{target}", "got: #{output}")
     assert_includes(output, "[FAIL] Could not move 3 messages, they stay in #{source}", "got: #{output}")
     assert_equal(grouped, bodies(target), 'the target must hold only the accepted messages')
-    assert_equal(3, queue_size(source), 'the rejected messages must stay in the source')
+    assert_equal(
+      { visible: 3, in_flight: 0 }, queue_counts(source),
+      'the rejected messages must stay in the source, visible again'
+    )
   end
 end
 

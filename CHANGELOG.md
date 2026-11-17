@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+- Fix: `shoryuken sqs mv` and `shoryuken sqs requeue` print a `[FAIL]` line and exit with 1 when a whole
+  `send_message_batch` request fails (a network error, `AccessDenied`, `BatchEntryIdsNotDistinct`)
+  - Both raised the error with a backtrace and printed no counts
+  - `mv` deletes each accepted batch from the source right after it is sent; it deleted nothing, so a re-run sent the
+    batches before the error to the target again
+  - `mv` makes the messages it did not move (rejected entries and the unsent rest) visible again in the source; they
+    stayed in flight until the source visibility timeout ended
+  - `requeue` names the lines of the dump file it sent and the entries the queue rejected, so a re-run can resume
+    after them
+  - After a failed `delete_message_batch` request `mv` stops sending and names the moved messages it could not delete
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
