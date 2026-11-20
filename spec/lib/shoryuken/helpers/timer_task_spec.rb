@@ -27,8 +27,14 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'accepts string numbers as execution_interval' do
-      timer = described_class.new(execution_interval: '5.5') {}
-      expect(timer.instance_variable_get(:@execution_interval)).to eq(5.5)
+      first_run = nil
+      timer = described_class.new(execution_interval: '0.1') { first_run ||= Time.now }
+      started = Time.now
+      timer.execute
+      sleep(0.2)
+      timer.kill
+
+      expect(first_run - started).to be_between(0.1, 0.15)
     end
 
     it 'raises ArgumentError for non-numeric execution_interval' do
@@ -37,10 +43,15 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect { described_class.new(execution_interval: {}) {} }.to raise_error(TypeError)
     end
 
-    it 'stores the task block in @task instance variable' do
-      task_proc = proc { puts 'test' }
-      timer = described_class.new(execution_interval: 1, &task_proc)
-      expect(timer.instance_variable_get(:@task)).to eq(task_proc)
+    it 'runs the task passed as a proc' do
+      calls = []
+      task_proc = proc { calls << :called }
+      timer = described_class.new(execution_interval: 0.01, &task_proc)
+      timer.execute
+      sleep(0.05)
+      timer.kill
+
+      expect(calls).to include(:called)
     end
 
     it 'stores the execution interval' do
@@ -48,11 +59,20 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect(timer.instance_variable_get(:@execution_interval)).to eq(5)
     end
 
-    it 'initializes state variables correctly' do
-      timer = described_class.new(execution_interval: 1) {}
-      expect(timer.instance_variable_get(:@running)).to be false
-      expect(timer.instance_variable_get(:@killed)).to be false
-      expect(timer.instance_variable_get(:@thread)).to be_nil
+    it 'does not start until executed' do
+      task_called = false
+      threads_before = Thread.list
+      timer = described_class.new(execution_interval: 0.01) { task_called = true }
+      sleep(0.05)
+
+      expect(Thread.list - threads_before).to be_empty
+      expect(task_called).to be false
+
+      timer.execute
+      sleep(0.05)
+
+      expect(timer.kill).to be true
+      expect(task_called).to be true
     end
   end
 
