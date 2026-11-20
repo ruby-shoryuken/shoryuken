@@ -27,13 +27,14 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
     end
 
     it 'accepts string numbers as execution_interval' do
-      task_called = false
-      timer = described_class.new(execution_interval: '0.01') { task_called = true }
+      first_run = nil
+      timer = described_class.new(execution_interval: '0.1') { first_run ||= Time.now }
+      started = Time.now
       timer.execute
-      sleep(0.05)
+      sleep(0.2)
       timer.kill
 
-      expect(task_called).to be true
+      expect(first_run - started).to be_within(0.05).of(0.1)
     end
 
     it 'raises ArgumentError for non-numeric execution_interval' do
@@ -53,14 +54,9 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect(calls).to include(:called)
     end
 
-    it 'waits the execution interval before the first run' do
-      task_called = false
-      timer = described_class.new(execution_interval: 5) { task_called = true }
-      timer.execute
-      sleep(0.05)
-      timer.kill
-
-      expect(task_called).to be false
+    it 'stores the execution interval' do
+      timer = described_class.new(execution_interval: 5) {}
+      expect(timer.instance_variable_get(:@execution_interval)).to eq(5)
     end
 
     it 'does not start until executed' do
