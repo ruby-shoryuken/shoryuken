@@ -34,7 +34,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       sleep(0.2)
       timer.kill
 
-      expect(first_run - started).to be_within(0.05).of(0.1)
+      expect(first_run - started).to be_between(0.1, 0.15)
     end
 
     it 'raises ArgumentError for non-numeric execution_interval' do
