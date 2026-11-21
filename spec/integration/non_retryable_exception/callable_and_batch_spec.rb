@@ -11,8 +11,8 @@ setup_sqs
 
 DT.clear
 
-CALLABLE_QUEUE = DT.queue
-BATCH_QUEUE = "#{DT.queue}-batch".freeze
+CALLABLE_QUEUE = DT.queues[0]
+BATCH_QUEUE = DT.queues[1]
 create_test_queue(CALLABLE_QUEUE, attributes: { 'VisibilityTimeout' => '1' })
 create_test_queue(BATCH_QUEUE, attributes: { 'VisibilityTimeout' => '1' })
 Shoryuken.add_group('default', 2)
