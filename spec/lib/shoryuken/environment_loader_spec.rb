@@ -34,6 +34,22 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       end
     end
 
+    context 'when Shoryuken::Queue reports a missing queue as QueueNotFoundError' do
+      before do
+        allow(Shoryuken::Client)
+          .to receive(:queues)
+          .with('stubbed_queue')
+          .and_raise(Shoryuken::Errors::QueueNotFoundError, 'The specified queue stubbed_queue does not exist.')
+      end
+
+      it 'raises QueueNotFoundError naming the queue with the create hint' do
+        expect { subject.load }.to raise_error(
+          Shoryuken::Errors::QueueNotFoundError,
+          /stubbed_queue do not exist.\nTry 'shoryuken sqs create QUEUE-NAME'/
+        )
+      end
+    end
+
     context "when given queues don't exist" do
       specify do
         expect { subject.load }.to raise_error(
