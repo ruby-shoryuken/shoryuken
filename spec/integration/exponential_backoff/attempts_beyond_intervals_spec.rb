@@ -47,5 +47,6 @@ assert_equal(4, DT[:attempts].size)
 gaps = DT[:attempts].each_cons(2).map { |earlier, later| later - earlier }
 
 assert(gaps[0] >= 0.5 && gaps[0] < 2.5, "First retry should come after ~1s (was #{gaps[0]}s)")
-assert(gaps[1] >= 2.0 && gaps[1] < 10, "Second retry should come after ~3s (was #{gaps[1]}s)")
-assert(gaps[2] >= 2.0 && gaps[2] < 10, "Third retry should reuse the last interval of ~3s (was #{gaps[2]}s)")
+assert(gaps[1] >= 2.0 && gaps[1] < 5.0, "Second retry should come after ~3s (was #{gaps[1]}s)")
+assert(gaps[2] >= 2.0 && gaps[2] < 5.0, "Third retry should reuse the last interval of ~3s (was #{gaps[2]}s)")
+assert((gaps[2] - gaps[1]).abs < 1, "Third retry gap should match the second (#{gaps[2]}s vs #{gaps[1]}s)")
