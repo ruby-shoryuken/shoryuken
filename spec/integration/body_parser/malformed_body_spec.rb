@@ -66,6 +66,5 @@ queues.each do |queue|
     "#{queue}: the message must come back after the 2s visibility timeout, not be deleted or delayed: #{gaps}"
   )
   assert_equal(1, queue_size(queue), "#{queue}: the message must not be deleted")
+  delete_test_queue(queue)
 end
-
-queues.each { |queue| delete_test_queue(queue) }
