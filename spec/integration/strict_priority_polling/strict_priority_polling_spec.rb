@@ -14,9 +14,10 @@ queue_low = DT.queues[1]
 Shoryuken.options[:polling_strategy] = 'StrictPriority'
 
 Shoryuken.add_group('default', 1)
-# Higher weight = higher priority (queue_high appears 3 times, queue_low appears 1 time)
-Shoryuken.add_queue(queue_high, 3, 'default')
+# Higher weight = higher priority (queue_high appears 3 times, queue_low appears 1 time).
+# queue_low is added first, so the order shows ranking by weight, not by declaration.
 Shoryuken.add_queue(queue_low, 1, 'default')
+Shoryuken.add_queue(queue_high, 3, 'default')
 
 worker_class = Class.new do
   include Shoryuken::Worker
