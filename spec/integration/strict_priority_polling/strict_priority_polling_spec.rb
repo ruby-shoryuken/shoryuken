@@ -14,9 +14,10 @@ queue_low = DT.queues[1]
 Shoryuken.options[:polling_strategy] = 'StrictPriority'
 
 Shoryuken.add_group('default', 1)
-# Higher weight = higher priority (queue_high appears 3 times, queue_low appears 1 time)
-Shoryuken.add_queue(queue_high, 3, 'default')
+# Higher weight = higher priority (queue_high appears 3 times, queue_low appears 1 time).
+# queue_low is added first, so the order shows ranking by weight, not by declaration.
 Shoryuken.add_queue(queue_low, 1, 'default')
+Shoryuken.add_queue(queue_high, 3, 'default')
 
 worker_class = Class.new do
   include Shoryuken::Worker
@@ -46,13 +47,18 @@ poll_queues_until(timeout: 20) { DT[:processed_order].size >= 6 }
 
 assert_equal(6, DT[:processed_order].size)
 
-# With StrictPriority, high priority messages should generally be processed first
 high_messages = DT[:processed_order].select { |m| m[:queue] == queue_high }
 low_messages = DT[:processed_order].select { |m| m[:queue] == queue_low }
 
-assert_equal(3, high_messages.size, "All high priority messages should be processed")
-assert_equal(3, low_messages.size, "All low priority messages should be processed")
+assert_equal(3, high_messages.size, 'All high priority messages should be processed')
+assert_equal(3, low_messages.size, 'All low priority messages should be processed')
 
 # Verify both queues were processed
 queues_processed = DT[:processed_order].map { |m| m[:queue] }.uniq
-assert_equal(2, queues_processed.size, "Both queues should have messages processed")
+assert_equal(2, queues_processed.size, 'Both queues should have messages processed')
+
+# The low priority queue is not fetched while the high priority queue has messages
+assert_equal(
+  [queue_high] * 3 + [queue_low] * 3,
+  DT[:processed_order].map { |m| m[:queue] }
+)
