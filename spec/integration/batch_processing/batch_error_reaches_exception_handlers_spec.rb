@@ -19,13 +19,11 @@ Shoryuken.add_queue(PLAIN_QUEUE, 1, 'default')
 
 BatchWorkerError = Class.new(StandardError)
 
-original_handlers = Shoryuken.exception_handlers.dup
-
-recorder = Object.new
-recorder.define_singleton_method(:call) do |exception, queue, sqs_msg|
-  DT[:errors] << { queue: queue, class: exception.class, message: exception.message, batch: sqs_msg.is_a?(Array) }
-end
-Shoryuken.exception_handlers << recorder
+Shoryuken.exception_handlers = [
+  lambda do |error, queue, sqs_msg|
+    DT[:errors] << { queue: queue, class: error.class, message: error.message, batch: sqs_msg.is_a?(Array) }
+  end
+]
 
 class BackoffBatchWorker
   include Shoryuken::Worker
@@ -52,21 +50,17 @@ end
 Shoryuken::Client.queues(BACKOFF_QUEUE).send_message(message_body: 'backoff')
 Shoryuken::Client.queues(PLAIN_QUEUE).send_message(message_body: 'plain')
 
-begin
-  poll_queues_until(timeout: 20) do
-    [BACKOFF_QUEUE, PLAIN_QUEUE].all? { |queue| DT[:batches].count(queue) >= 2 }
-  end
+poll_queues_until(timeout: 20) do
+  [BACKOFF_QUEUE, PLAIN_QUEUE].all? { |queue| DT[:batches].count(queue) >= 2 }
+end
 
-  [BACKOFF_QUEUE, PLAIN_QUEUE].each do |queue|
-    errors = DT[:errors].select { |error| error[:queue] == queue }
+[BACKOFF_QUEUE, PLAIN_QUEUE].each do |queue|
+  errors = DT[:errors].select { |error| error[:queue] == queue }
 
-    assert(errors.size >= 2, "Expected a handler call per failed batch of #{queue}: #{errors}")
-    errors.each do |error|
-      assert_equal(BatchWorkerError, error[:class])
-      assert_equal("#{queue} batch failed", error[:message])
-      assert(error[:batch], 'Expected the handler to receive the batch')
-    end
+  assert(errors.size >= 2, "Expected a handler call per failed batch of #{queue}: #{errors}")
+  errors.each do |error|
+    assert_equal(BatchWorkerError, error[:class])
+    assert_equal("#{queue} batch failed", error[:message])
+    assert(error[:batch], 'Expected the handler to receive the batch')
   end
-ensure
-  Shoryuken.exception_handlers.replace(original_handlers)
 end
