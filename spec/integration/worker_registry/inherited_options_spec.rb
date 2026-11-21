@@ -10,8 +10,6 @@
 #
 # Regression: #450 - a worker subclass did not inherit its parent's options.
 
-require 'timeout'
-
 setup_sqs
 
 PARENT_QUEUE = DT.queues[0]
@@ -51,12 +49,7 @@ assert_equal([InheritedOptionsChildWorker], Shoryuken.worker_registry.workers(CH
 InheritedOptionsParentWorker.perform_async('from' => 'parent')
 InheritedOptionsChildWorker.perform_async('from' => 'child')
 
-launcher = Shoryuken::Launcher.new
-launcher.start
-
-Timeout.timeout(15) { sleep 0.2 until DT[:processed].size >= 2 }
-
-launcher.stop
+poll_queues_until { DT[:processed].size >= 2 }
 
 assert_equal(
   [
