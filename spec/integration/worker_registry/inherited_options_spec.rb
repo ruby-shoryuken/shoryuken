@@ -5,7 +5,8 @@
 # The parent sets queue, body_parser and auto_delete. The subclass sets only its
 # own queue. It keeps the parent's JSON body parser and auto_delete, so it gets a
 # Hash body and its message is deleted. The parent keeps its own queue, and each
-# worker is registered on its own queue.
+# worker is registered on its own queue. A bare subclass with no
+# shoryuken_options call gets all of the parent's options.
 #
 # Regression: #450 - a worker subclass did not inherit its parent's options.
 
@@ -35,10 +36,15 @@ class InheritedOptionsChildWorker < InheritedOptionsParentWorker
   shoryuken_options queue: CHILD_QUEUE
 end
 
+class InheritedOptionsBareWorker < InheritedOptionsParentWorker; end
+
 assert_equal(PARENT_QUEUE, InheritedOptionsParentWorker.get_shoryuken_options['queue'])
 assert_equal(CHILD_QUEUE, InheritedOptionsChildWorker.get_shoryuken_options['queue'])
 assert_equal(:json, InheritedOptionsChildWorker.get_shoryuken_options['body_parser'])
 assert(InheritedOptionsChildWorker.auto_delete?, 'The subclass should inherit auto_delete')
+assert_equal(PARENT_QUEUE, InheritedOptionsBareWorker.get_shoryuken_options['queue'])
+assert_equal(:json, InheritedOptionsBareWorker.get_shoryuken_options['body_parser'])
+assert(InheritedOptionsBareWorker.auto_delete?, 'The bare subclass should inherit auto_delete')
 assert_equal([InheritedOptionsParentWorker], Shoryuken.worker_registry.workers(PARENT_QUEUE))
 assert_equal([InheritedOptionsChildWorker], Shoryuken.worker_registry.workers(CHILD_QUEUE))
 
