@@ -129,6 +129,7 @@ RSpec.describe Shoryuken::Processor do
           def unblock(*); end
           def kernel_sleep(*); end
           def io_wait(*); end
+          def fiber_interrupt(*); end
           def close; end
         end.new
       end
