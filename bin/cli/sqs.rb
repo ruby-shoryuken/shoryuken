@@ -3,7 +3,6 @@
 require 'date'
 require 'securerandom'
 
-# rubocop:disable Metrics/BlockLength
 module Shoryuken
   module CLI
     # SQS command line interface for queue management operations.
@@ -143,15 +142,53 @@ module Shoryuken
           end
         end
 
+        # Makes messages visible again in a queue, warning about the ones SQS did not release
+        #
+        # @param url [String] the queue URL
+        # @param messages [Array<Aws::SQS::Types::Message>] the received messages to release
+        # @return [void]
+        def batch_release(url, messages)
+          messages.each_slice(10) do |batch|
+            failed = sqs.change_message_visibility_batch(
+              queue_url: url,
+              entries: batch.map do |message|
+                { id: message.message_id, receipt_handle: message.receipt_handle, visibility_timeout: 0 }
+              end
+            ).failed
+
+            failed.each do |failure|
+              say "Could not release #{failure.id}, code: #{failure.code}, message: #{failure.message}", :yellow
+            end
+          end
+        rescue *request_errors => e
+          say "Could not release the messages that were not moved: #{request_error(e)}", :yellow
+        end
+
+        # Returns the errors of a whole SQS request (after the SDK retries) that stop mv and requeue with a [FAIL] line
+        #
+        # @return [Array<Class>] the error classes
+        def request_errors
+          [Aws::SQS::Errors::ServiceError, Seahorse::Client::NetworkingError]
+        end
+
+        # Describes an error of a whole SQS request for a [FAIL] line
+        #
+        # @param error [StandardError] the error
+        # @return [String] the error message and class
+        def request_error(error)
+          "#{error.message} (#{error.class})"
+        end
+
         # Batch sends messages to a queue
         #
         # @param url [String] the queue URL
         # @param messages [Array<Hash>] the messages to send
         # @param max_batch_size [Integer] maximum messages per batch
+        # @yield [Array<Hash>, Array<Aws::SQS::Types::BatchResultErrorEntry>] each sent batch and its rejected entries
         # @return [Array<Aws::SQS::Types::BatchResultErrorEntry>] the entries SQS did not accept
-        def batch_send(url, messages, max_batch_size = 10)
+        def batch_send(url, messages, max_batch_size = 10, &block)
           messages = messages.to_a.flatten.map(&method(:normalize_dump_message))
-          batch_send_normalized_messages url, messages, max_batch_size
+          batch_send_normalized_messages url, messages, max_batch_size, &block
         end
 
         # Batch sends normalized messages to a queue
@@ -159,6 +196,7 @@ module Shoryuken
         # @param url [String] the queue URL
         # @param messages [Array<Hash>] the normalized messages
         # @param max_batch_size [Integer] maximum messages per batch
+        # @yield [Array<Hash>, Array<Aws::SQS::Types::BatchResultErrorEntry>] each sent batch and its rejected entries
         # @return [Array<Aws::SQS::Types::BatchResultErrorEntry>] the entries SQS did not accept
         def batch_send_normalized_messages(url, messages, max_batch_size)
           failed = []
@@ -177,11 +215,13 @@ module Shoryuken
                 next
               end
 
-              sqs.send_message_batch(queue_url: url, entries: batch).failed.each do |failure|
+              batch_failed = sqs.send_message_batch(queue_url: url, entries: batch).failed
+              batch_failed.each do |failure|
                 say "Could not requeue #{failure.id}, code: #{failure.code}", :yellow
-                failed << failure
               end
+              failed.concat(batch_failed)
               messages = messages.drop batch.size
+              yield batch, batch_failed if block_given?
               break
             end
           end
@@ -423,7 +463,22 @@ module Shoryuken
 
         messages = File.readlines(path).map { |line| JSON.parse(line, symbolize_names: true) }
 
-        failed = batch_send(find_queue_url(queue_name), messages, options[:batch_size])
+        url = find_queue_url(queue_name)
+        sent = 0
+        rejected = 0
+
+        begin
+          failed = batch_send(url, messages, options[:batch_size]) do |batch, batch_failed|
+            sent += batch.size
+            rejected += batch_failed.size
+          end
+        rescue *request_errors => e
+          fail_task(
+            "Could not requeue #{messages.size - sent + rejected} messages from #{path} to #{queue_name}: " \
+            "#{request_error(e)}. Sent the first #{sent} lines of #{path} (#{sent - rejected} requeued, " \
+            "#{rejected} rejected), resume from line #{sent + 1}"
+          )
+        end
 
         say "Requeued #{messages.size - failed.size} messages from #{path} to #{queue_name}", :green
 
@@ -444,23 +499,70 @@ module Shoryuken
           messages << m
         end
 
-        failed_ids = batch_send(url_target, messages.map(&:to_h)).to_set(&:id)
-        moved = messages.reject { |m| failed_ids.include?(m.message_id) }
-        not_deleted = options[:delete] ? batch_delete(url_source, moved) : []
+        by_id = messages.to_h { |m| [m.message_id, m] }
+        moved = []
+        rejected = []
+        not_deleted = []
+        error = nil
+        delete_error = nil
 
-        if count.zero?
+        begin
+          # Deleting each accepted batch at once keeps a later failed batch from leaving sent messages in the source
+          batch_send(url_target, messages.map(&:to_h)) do |batch, batch_failed|
+            failed_ids = batch_failed.to_set(&:id)
+            accepted, refused = batch.map { |entry| by_id[entry[:id]] }.partition do |m|
+              !failed_ids.include?(m.message_id)
+            end
+
+            moved.concat(accepted)
+            rejected.concat(refused)
+            next unless options[:delete]
+
+            begin
+              not_deleted.concat(batch_delete(url_source, accepted))
+            rescue *request_errors => e
+              # The batch is in the target: sending more would leave more messages in both queues
+              delete_error = e
+              not_deleted.concat(accepted)
+              break
+            end
+          end
+        rescue *request_errors => e
+          error = e
+        end
+
+        moved_ids = moved.to_set(&:message_id)
+        not_moved = messages.reject { |m| moved_ids.include?(m.message_id) }
+        batch_release(url_source, not_moved) unless not_moved.empty?
+        unsent = not_moved.size - rejected.size
+
+        if error
+          fail_task(
+            "Could not move #{unsent} messages from #{queue_name_source} to " \
+            "#{queue_name_target}, they stay in #{queue_name_source}: #{request_error(error)}. " \
+            "Moved #{moved.size} messages before the error",
+            quit: false
+          )
+        elsif delete_error
+          fail_task(
+            "Could not delete moved messages from #{queue_name_source}: #{request_error(delete_error)}. " \
+            "Stopped, #{unsent} messages were not sent, they stay in #{queue_name_source}. " \
+            "Moved #{moved.size} messages before the error",
+            quit: false
+          )
+        elsif count.zero?
           say "Queue #{queue_name_source} is empty", :yellow
         else
           say "Moved #{moved.size} messages from #{queue_name_source} to #{queue_name_target}", :green
         end
 
-        unless failed_ids.empty?
-          fail_task "Could not move #{failed_ids.size} messages, they stay in #{queue_name_source}", quit: false
+        unless rejected.empty?
+          fail_task "Could not move #{rejected.size} messages, they stay in #{queue_name_source}", quit: false
         end
         unless not_deleted.empty?
           fail_task "Could not delete #{not_deleted.size} moved messages from #{queue_name_source}", quit: false
         end
-        exit(1) unless failed_ids.empty? && not_deleted.empty?
+        exit(1) unless error.nil? && delete_error.nil? && rejected.empty? && not_deleted.empty?
       end
 
       desc 'purge QUEUE-NAME', 'Deletes the messages in a queue'
@@ -490,4 +592,3 @@ module Shoryuken
     end
   end
 end
-# rubocop:enable Metrics/BlockLength

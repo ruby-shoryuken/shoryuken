@@ -14,6 +14,8 @@ Metrics/BlockLength:
     - method_call
   Exclude:
     - 'bin/integrations'
+    # Thor's no_commands block holds the private helpers of the sqs commands
+    - 'bin/cli/sqs.rb'
 
 Metrics/PerceivedComplexity:
   Enabled: false
