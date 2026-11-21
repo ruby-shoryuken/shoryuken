@@ -46,13 +46,18 @@ poll_queues_until(timeout: 20) { DT[:processed_order].size >= 6 }
 
 assert_equal(6, DT[:processed_order].size)
 
-# With StrictPriority, high priority messages should generally be processed first
 high_messages = DT[:processed_order].select { |m| m[:queue] == queue_high }
 low_messages = DT[:processed_order].select { |m| m[:queue] == queue_low }
 
-assert_equal(3, high_messages.size, "All high priority messages should be processed")
-assert_equal(3, low_messages.size, "All low priority messages should be processed")
+assert_equal(3, high_messages.size, 'All high priority messages should be processed')
+assert_equal(3, low_messages.size, 'All low priority messages should be processed')
 
 # Verify both queues were processed
 queues_processed = DT[:processed_order].map { |m| m[:queue] }.uniq
-assert_equal(2, queues_processed.size, "Both queues should have messages processed")
+assert_equal(2, queues_processed.size, 'Both queues should have messages processed')
+
+# The low priority queue is not fetched while the high priority queue has messages
+assert_equal(
+  [queue_high] * 3 + [queue_low] * 3,
+  DT[:processed_order].map { |m| m[:queue] }
+)
