@@ -11,21 +11,21 @@ setup_sqs
 
 DT.clear
 
-callable_queue = DT.queue
-batch_queue = "#{DT.queue}-batch"
-create_test_queue(callable_queue, attributes: { 'VisibilityTimeout' => '1' })
-create_test_queue(batch_queue, attributes: { 'VisibilityTimeout' => '1' })
+CALLABLE_QUEUE = DT.queue
+BATCH_QUEUE = "#{DT.queue}-batch".freeze
+create_test_queue(CALLABLE_QUEUE, attributes: { 'VisibilityTimeout' => '1' })
+create_test_queue(BATCH_QUEUE, attributes: { 'VisibilityTimeout' => '1' })
 Shoryuken.add_group('default', 2)
-Shoryuken.add_queue(callable_queue, 1, 'default')
-Shoryuken.add_queue(batch_queue, 1, 'default')
+Shoryuken.add_queue(CALLABLE_QUEUE, 1, 'default')
+Shoryuken.add_queue(BATCH_QUEUE, 1, 'default')
 
 BatchPermanentError = Class.new(StandardError)
 
-Class.new do
+class CallableNonRetryableWorker
   include Shoryuken::Worker
 
   shoryuken_options(
-    queue: callable_queue,
+    queue: CALLABLE_QUEUE,
     auto_delete: true,
     batch: false,
     non_retryable_exceptions: ->(error) { error.message.include?('permanent') }
@@ -46,11 +46,11 @@ Class.new do
   end
 end
 
-Class.new do
+class BatchNonRetryableWorker
   include Shoryuken::Worker
 
   shoryuken_options(
-    queue: batch_queue,
+    queue: BATCH_QUEUE,
     auto_delete: false,
     batch: true,
     non_retryable_exceptions: [BatchPermanentError]
@@ -64,11 +64,11 @@ Class.new do
 end
 
 batch_bodies = 5.times.map { |i| "batch-#{i}" }
-Shoryuken::Client.queues(batch_queue).send_messages(
+Shoryuken::Client.queues(BATCH_QUEUE).send_messages(
   entries: batch_bodies.map { |body| { id: SecureRandom.uuid, message_body: body } }
 )
 
-callable_url = Shoryuken::Client.sqs.get_queue_url(queue_name: callable_queue).queue_url
+callable_url = Shoryuken::Client.sqs.get_queue_url(queue_name: CALLABLE_QUEUE).queue_url
 Shoryuken::Client.sqs.send_message(queue_url: callable_url, message_body: 'permanent')
 Shoryuken::Client.sqs.send_message(queue_url: callable_url, message_body: 'transient')
 
@@ -89,12 +89,12 @@ begin
   transient_attempts = DT[:callable_attempts].select { |a| a[:body] == 'transient' }
   assert_equal([1, 2], transient_attempts.map { |a| a[:receive_count] }, 'A falsy callable result must retry')
   assert_equal(['transient'], DT[:callable_successes])
-  assert_equal(0, queue_size(callable_queue))
+  assert_equal(0, queue_size(CALLABLE_QUEUE))
 
   received = DT[:batches].flatten
   assert(DT[:batches].any? { |batch| batch.size > 1 }, "Expected a batch with several messages: #{DT[:batches]}")
   assert_equal(batch_bodies.sort, received.sort, 'Every batch message must be received exactly once')
-  assert_equal(0, queue_size(batch_queue))
+  assert_equal(0, queue_size(BATCH_QUEUE))
 ensure
   Timeout.timeout(30) { launcher.stop }
 end
