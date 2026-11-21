@@ -55,9 +55,9 @@ delayed_gap = DT[:delayed][1] - DT[:delayed][0]
 
 assert_equal(2, DT[:immediate].size)
 assert_equal(2, DT[:delayed].size)
-assert(immediate_gap < 5, "visibility_timeout = 0 should redeliver at once (was #{immediate_gap}s)")
+assert(immediate_gap < 1.5, "visibility_timeout = 0 should redeliver at once (was #{immediate_gap}s)")
 assert(delayed_gap >= 1.5, "visibility_timeout = 2 should hide the message for about 2s (was #{delayed_gap}s)")
-assert(delayed_gap < 10, "visibility_timeout = 2 should redeliver well before 30s (was #{delayed_gap}s)")
+assert(delayed_gap < 4, "visibility_timeout = 2 should redeliver after about 2s (was #{delayed_gap}s)")
 
 assert_equal(0, queue_size(IMMEDIATE_QUEUE))
 assert_equal(0, queue_size(DELAYED_QUEUE))
