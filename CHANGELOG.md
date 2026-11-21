@@ -156,6 +156,11 @@
 - Fix: A missing queue reported by SQS as `QueueDoesNotExist` (the error the current SQS JSON protocol raises) now
   gets the same "queue(s) do not exist" error on startup as `NonExistentQueue`, instead of the raw SQS error
 
+- Fix: `Shoryuken::Client.queues`, a raw worker `perform_async` and the ActiveJob adapter raise
+  `Shoryuken::Errors::QueueNotFoundError` for a missing queue reported by SQS as `QueueDoesNotExist`, as for
+  `NonExistentQueue`
+  - They raised the raw `Aws::SQS::Errors::QueueDoesNotExist`; a queue given by URL too
+
 - Breaking: `shoryuken` exits with status 1 on an unknown command, an unknown option or an extra argument
   - Thor printed the error and exited with status 0, for `start`, `version` and the `sqs` subcommands, so scripts and
     process managers took a command that did nothing for a success

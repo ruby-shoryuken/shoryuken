@@ -68,6 +68,19 @@ RSpec.describe Shoryuken::Queue do
         expect(subject.name).to eq(queue_name)
       end
     end
+
+    %w[NonExistentQueue QueueDoesNotExist].each do |code|
+      context "when SQS reports the queue missing as #{code}" do
+        it 'raises QueueNotFoundError naming the queue' do
+          sqs.stub_responses(:get_queue_url, code)
+
+          expect { described_class.new(sqs, 'missing') }.to raise_error(
+            Shoryuken::Errors::QueueNotFoundError,
+            'The specified queue missing does not exist.'
+          )
+        end
+      end
+    end
   end
 
   describe '#delete_messages' do
