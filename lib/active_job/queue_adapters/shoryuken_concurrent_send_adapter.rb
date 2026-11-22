@@ -95,7 +95,7 @@ module ActiveJob
       def error_handler
         @error_handler ||= lambda { |error, job, _options|
           if job.class.log_arguments? && job.arguments.any?
-            arguments = " with arguments: #{job.arguments.map { |arg| log_argument(arg).inspect }.join(', ')}"
+            arguments = " with arguments: #{job.arguments.map { |arg| format_log_argument(arg).inspect }.join(', ')}"
           end
 
           Shoryuken.logger.warn(
@@ -111,12 +111,12 @@ module ActiveJob
       #
       # @param arg [Object] the job argument
       # @return [Object] the argument with each GlobalID record replaced by its global id
-      def log_argument(arg)
+      def format_log_argument(arg)
         case arg
         when Hash
-          arg.transform_values { |value| log_argument(value) }
+          arg.transform_values { |value| format_log_argument(value) }
         when Array
-          arg.map { |value| log_argument(value) }
+          arg.map { |value| format_log_argument(value) }
         when GlobalID::Identification
           begin
             arg.to_global_id

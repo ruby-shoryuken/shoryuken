@@ -33,10 +33,6 @@ class User
 
   attr_reader :id, :email
 
-  def self.find(id)
-    new(id, 'record@example.com')
-  end
-
   def initialize(id, email)
     @id = id
     @email = email
@@ -65,7 +61,7 @@ with_queue_and_dir(fifo: true, attributes: { 'ContentBasedDeduplication' => 'fal
   unsaved_job = PlainArgumentsJob.set(queue: queue).perform_later(User.new(nil, 'unsaved@example.com'), {})
 
   assert(adapter.wait_for_pending_sends(15), 'the failed sends must count as finished')
-  assert_equal(0, queue_size(queue), "both sends must fail: #{log.string}")
+  assert_equal(0, queue_size(queue), "every send must fail: #{log.string}")
 
   secret_line = log.string.lines.find { |line| line.include?("Job ID: #{secret_job.job_id}") }
   plain_line = log.string.lines.find { |line| line.include?("Job ID: #{plain_job.job_id}") }
