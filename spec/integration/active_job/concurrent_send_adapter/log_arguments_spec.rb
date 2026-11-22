@@ -13,6 +13,8 @@
 # queue and the error, but none of its arguments. A job that keeps the default
 # `log_arguments = true` also gets its arguments, formatted as the Rails
 # enqueue line does: a GlobalID record as its global id, not its attributes.
+# A record without an id cannot be serialized, so its send fails before SQS;
+# it is still logged, as the record itself.
 
 require 'active_job/queue_adapters/shoryuken_concurrent_send_adapter'
 
@@ -60,12 +62,14 @@ with_queue_and_dir(fifo: true, attributes: { 'ContentBasedDeduplication' => 'fal
     User.new(1, 'record@example.com'),
     { users: [User.new(2, 'nested@example.com')], note: 'PLAIN-NOTE' }
   )
+  unsaved_job = PlainArgumentsJob.set(queue: queue).perform_later(User.new(nil, 'unsaved@example.com'), {})
 
-  assert(adapter.wait_for_pending_sends(15), 'both failed sends must count as finished')
+  assert(adapter.wait_for_pending_sends(15), 'the failed sends must count as finished')
   assert_equal(0, queue_size(queue), "both sends must fail: #{log.string}")
 
   secret_line = log.string.lines.find { |line| line.include?("Job ID: #{secret_job.job_id}") }
   plain_line = log.string.lines.find { |line| line.include?("Job ID: #{plain_job.job_id}") }
+  unsaved_line = log.string.lines.find { |line| line.include?("Job ID: #{unsaved_job.job_id}") }
 
   assert(
     secret_line&.include?(
@@ -84,9 +88,17 @@ with_queue_and_dir(fifo: true, attributes: { 'ContentBasedDeduplication' => 'fal
   )
   assert(plain_line.include?('gid://shoryuken/User/1'), "a record must be logged as its global id: #{log.string}")
   assert(plain_line.include?('gid://shoryuken/User/2'), "a nested record must be logged as its global id: #{log.string}")
-  assert(plain_line.include?('note: "PLAIN-NOTE"'), "a plain argument must be logged: #{log.string}")
+  assert(
+    plain_line.include?({ note: 'PLAIN-NOTE' }.inspect[1..-2]),
+    "a plain argument must be logged: #{log.string}"
+  )
   refute(log.string.include?('record@example.com'), "a record's attributes must not be logged: #{log.string}")
   refute(log.string.include?('nested@example.com'), "a record's attributes must not be logged: #{log.string}")
+
+  assert(
+    unsaved_line&.include?('due to error: Unable to serialize User without an id'),
+    "a record without a global id must not stop the failed send from being logged: #{log.string}"
+  )
 
   refute(log.string.include?('message_body'), "the SQS message body must not be logged: #{log.string}")
 end
