@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: The default error handler of `ShoryukenConcurrentSendAdapter` logs a failed send with the job class, job id,
+  queue and error, and the job arguments only when the job allows it with ActiveJob `log_arguments`
+  - It logged `job.inspect`, so the job arguments and the SQS message body reached the log even with
+    `self.log_arguments = false`
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`

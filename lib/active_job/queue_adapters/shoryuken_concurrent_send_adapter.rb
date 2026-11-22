@@ -88,10 +88,20 @@ module ActiveJob
 
       # Returns the error handler, using a default logger if not set
       #
+      # The default handler logs the job class, job id and queue, and the job arguments only when
+      # the job class allows it with `log_arguments`
+      #
       # @return [Proc] the error handler
       def error_handler
         @error_handler ||= lambda { |error, job, _options|
-          Shoryuken.logger.warn("Failed to enqueue job: #{job.inspect} due to error: #{error}")
+          if job.class.log_arguments? && job.arguments.any?
+            arguments = " with arguments: #{job.arguments.map(&:inspect).join(', ')}"
+          end
+
+          Shoryuken.logger.warn(
+            "Failed to enqueue job: #{job.class.name} (Job ID: #{job.job_id}) to queue #{job.queue_name}" \
+            "#{arguments} due to error: #{error}"
+          )
         }
       end
 
