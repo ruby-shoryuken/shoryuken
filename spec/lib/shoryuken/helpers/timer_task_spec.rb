@@ -83,9 +83,12 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       timer_task.kill
     end
 
-    it 'sets @running to true when executed' do
+    it 'marks the timer as running so a second execute starts no thread' do
       timer_task.execute
-      expect(timer_task.instance_variable_get(:@running)).to be true
+      threads_before = Thread.list
+      timer_task.execute
+
+      expect(Thread.list - threads_before).to be_empty
       timer_task.kill
     end
 
@@ -138,16 +141,30 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       expect(timer_task.kill).to be false
     end
 
-    it 'sets @killed to true' do
-      timer_task.execute
-      timer_task.kill
-      expect(timer_task.instance_variable_get(:@killed)).to be true
+    it 'prevents a later execute from restarting the task' do
+      task_called = false
+      timer = described_class.new(execution_interval: 0.01) { task_called = true }
+      timer.execute
+      timer.kill
+      task_called = false
+      threads_before = Thread.list
+      timer.execute
+      sleep(0.05)
+
+      expect(Thread.list - threads_before).to be_empty
+      expect(task_called).to be false
     end
 
-    it 'sets @running to false' do
-      timer_task.execute
-      timer_task.kill
-      expect(timer_task.instance_variable_get(:@running)).to be false
+    it 'stops the timer thread while it waits for the next run' do
+      threads_before = Thread.list
+      timer = described_class.new(execution_interval: 10) {}
+      timer.execute
+      timer_threads = Thread.list - threads_before
+      Thread.pass until timer_threads.first.status == 'sleep'
+      timer.kill
+
+      expect(timer_threads.size).to eq(1)
+      expect(timer_threads.first.join(1)).to eq(timer_threads.first)
     end
 
     it 'kills the thread if alive' do
@@ -304,6 +321,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
 
     it 'handles concurrent execute calls safely' do
       timer = described_class.new(execution_interval: 0.1) {}
+      threads_before = Thread.list
 
       threads = 5.times.map do
         Thread.new { timer.execute }
@@ -311,8 +329,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
 
       threads.each(&:join)
 
-      # Should only have one thread created
-      expect(timer.instance_variable_get(:@thread)).to be_a(Thread)
+      expect(Thread.list - threads_before).to contain_exactly(be_a(Thread))
       timer.kill
     end
 
