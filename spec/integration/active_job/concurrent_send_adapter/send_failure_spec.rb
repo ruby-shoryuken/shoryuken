@@ -50,11 +50,9 @@ with_queue_and_dir do |queue, _dir|
   log.truncate(0)
   log.rewind
 
-  successes = Queue.new
-  failures = Queue.new
   adapter = ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter.new(
-    ->(response, job, options) { successes << [response, job, options] },
-    ->(error, job, options) { failures << [error, job, options] }
+    ->(response, job, options) { DT[:successes] << [response, job, options] },
+    ->(error, job, options) { DT[:failures] << [error, job, options] }
   )
   ActiveJob::Base.queue_adapter = adapter
 
@@ -63,16 +61,16 @@ with_queue_and_dir do |queue, _dir|
   lost_job = SendOutcomeJob.set(queue: "missing-#{DT.uuid}").perform_later
 
   assert(adapter.wait_for_pending_sends(15), 'both sends must finish')
-  assert_equal(1, successes.size, 'the success handler must run once')
-  assert_equal(1, failures.size, 'the error handler must run once')
+  assert_equal(1, DT[:successes].size, 'the success handler must run once')
+  assert_equal(1, DT[:failures].size, 'the error handler must run once')
 
-  response, job, options = successes.pop
+  response, job, options = DT[:successes].first
   assert(response.message_id.is_a?(String) && !response.message_id.empty?, "got response #{response.inspect}")
   assert_equal(sent_job.job_id, job.job_id)
   assert_equal({ delay_seconds: 30 }, options)
   assert_equal(1, queue_size(queue, delayed: true), 'the successful send must reach SQS')
 
-  error, job, options = failures.pop
+  error, job, options = DT[:failures].first
   assert(error.is_a?(Aws::SQS::Errors::ServiceError), "got error #{error.inspect}")
   assert_includes(error.message, 'The specified queue does not exist')
   assert_equal(lost_job.job_id, job.job_id)
