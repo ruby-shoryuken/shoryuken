@@ -2,6 +2,7 @@
 
 - Fix: The default error handler of `ShoryukenConcurrentSendAdapter` logs a failed send with the job class, job id,
   queue and error, and the job arguments only when the job allows it with ActiveJob `log_arguments`
+  - The arguments are formatted as in the Rails enqueue log line: a GlobalID record is logged as its global id
   - It logged `job.inspect`, so the job arguments and the SQS message body reached the log even with
     `self.log_arguments = false`
 
