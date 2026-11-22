@@ -80,18 +80,12 @@ queues.each { |queue| Shoryuken::Client.queues(queue).send_message(message_body:
 # deleted would be received again.
 redelivery_deadline = monotonic_now + 5
 
-begin
-  poll_queues_until(timeout: 20) do
-    DT[swallowed_queue].any? &&
-      DT[reraised_queue].size >= 2 &&
-      DT[prepended_queue].size >= 2 &&
-      queues.all? { |queue| queue_size(queue).zero? } &&
-      monotonic_now > redelivery_deadline
-  end
-ensure
-  Shoryuken.server_middleware do |chain|
-    [SwallowingMiddleware, ReraisingMiddleware, PrependedSwallowingMiddleware].each { |klass| chain.remove(klass) }
-  end
+poll_queues_until(timeout: 20) do
+  DT[swallowed_queue].any? &&
+    DT[reraised_queue].size >= 2 &&
+    DT[prepended_queue].size >= 2 &&
+    queues.all? { |queue| queue_size(queue).zero? } &&
+    monotonic_now > redelivery_deadline
 end
 
 # --- chain.add, error swallowed ---
