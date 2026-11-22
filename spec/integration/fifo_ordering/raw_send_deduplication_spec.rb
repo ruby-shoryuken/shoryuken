@@ -9,9 +9,6 @@
 # Shoryuken.fifo_message_deduplication = false no id is generated, so each send
 # needs an explicit one. The queues have ContentBasedDeduplication off, so only
 # the id Shoryuken sends decides deduplication.
-#
-# Regression: there was no way to send two raw messages with an identical body
-# to a FIFO queue; the second was silently dropped.
 
 setup_sqs
 
