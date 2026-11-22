@@ -160,7 +160,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
       timer = described_class.new(execution_interval: 10) {}
       timer.execute
       timer_threads = Thread.list - threads_before
-      Thread.pass until timer_threads.first.status == 'sleep'
+      Thread.pass until timer_threads.first.status == 'sleep' || !timer_threads.first.alive?
       timer.kill
 
       expect(timer_threads.size).to eq(1)
@@ -329,7 +329,7 @@ RSpec.describe Shoryuken::Helpers::TimerTask do
 
       threads.each(&:join)
 
-      expect(Thread.list - threads_before).to contain_exactly(be_a(Thread))
+      expect((Thread.list - threads_before).size).to eq(1)
       timer.kill
     end
 
