@@ -194,7 +194,8 @@ RSpec.describe Shoryuken::Logging do
     it 'accepts custom log target' do
       log_target = StringIO.new
       logger = described_class.initialize_logger(log_target)
-      expect(logger.instance_variable_get(:@logdev).dev).to eq(log_target)
+      logger.info('custom target message')
+      expect(log_target.string).to include('custom target message')
     end
   end
 
