@@ -15,7 +15,7 @@ setup_sqs
 class DedupWorker
   include Shoryuken::Worker
 
-  def perform(sqs_msg, body); end
+  def perform(_sqs_msg, _body); end
 end
 
 def with_fifo_queue
@@ -78,37 +78,33 @@ end
 
 # --- fifo_message_deduplication = false: no id is generated ---
 
-begin
-  Shoryuken.fifo_message_deduplication = false
+Shoryuken.fifo_message_deduplication = false
 
-  with_fifo_queue do |queue|
-    DedupWorker.perform_async('same-body', queue: queue, message_deduplication_id: 'id-a')
-    DedupWorker.perform_async('same-body', queue: queue, message_deduplication_id: 'id-b')
+with_fifo_queue do |queue|
+  DedupWorker.perform_async('same-body', queue: queue, message_deduplication_id: 'id-a')
+  DedupWorker.perform_async('same-body', queue: queue, message_deduplication_id: 'id-b')
 
-    assert_equal(2, queue_size(queue), 'with the opt-out, distinct explicit ids deliver both perform_async messages')
+  assert_equal(2, queue_size(queue), 'with the opt-out, distinct explicit ids deliver both perform_async messages')
 
-    error = raised_error(Aws::SQS::Errors::InvalidParameterValue) do
-      DedupWorker.perform_async('same-body', queue: queue)
-    end
-
-    assert(error, 'with the opt-out, perform_async without an explicit id sends no message_deduplication_id')
+  error = raised_error(Aws::SQS::Errors::InvalidParameterValue) do
+    DedupWorker.perform_async('same-body', queue: queue)
   end
 
-  with_fifo_queue do |queue|
-    Shoryuken::Client.queues(queue).send_messages(
-      [
-        { message_body: 'same-body', message_deduplication_id: 'id-a' },
-        { message_body: 'same-body', message_deduplication_id: 'id-b' }
-      ]
-    )
+  assert(error, 'with the opt-out, perform_async without an explicit id sends no message_deduplication_id')
+end
 
-    assert_equal(2, queue_size(queue), 'with the opt-out, distinct explicit ids deliver both batch messages')
+with_fifo_queue do |queue|
+  Shoryuken::Client.queues(queue).send_messages(
+    [
+      { message_body: 'same-body', message_deduplication_id: 'id-a' },
+      { message_body: 'same-body', message_deduplication_id: 'id-b' }
+    ]
+  )
 
-    response = Shoryuken::Client.queues(queue).send_messages(%w[same-body same-body])
+  assert_equal(2, queue_size(queue), 'with the opt-out, distinct explicit ids deliver both batch messages')
 
-    assert_equal(2, response.failed.size, 'with the opt-out, batch entries without an explicit id are rejected')
-    assert_equal(2, queue_size(queue))
-  end
-ensure
-  Shoryuken.fifo_message_deduplication = true
+  response = Shoryuken::Client.queues(queue).send_messages(%w[same-body same-body])
+
+  assert_equal(2, response.failed.size, 'with the opt-out, batch entries without an explicit id are rejected')
+  assert_equal(2, queue_size(queue))
 end
