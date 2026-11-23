@@ -106,6 +106,29 @@ RSpec.describe Shoryuken::Worker do
       expect(ChildWorker.get_shoryuken_options['auto_delete']).to eq(true)
     end
 
+    it 'keeps the options of a worker with a prepended module and of its subclass' do
+      module PrependedWorkerExtension; end
+
+      class PrependedParentWorker
+        include Shoryuken::Worker
+        prepend PrependedWorkerExtension
+
+        shoryuken_options queue: 'prepended_queue', auto_delete: true
+      end
+
+      class PrependedChildWorker < PrependedParentWorker
+        shoryuken_options queue: 'prepended_child_queue'
+      end
+
+      expect(PrependedParentWorker.get_shoryuken_options['queue']).to eq('prepended_queue')
+      expect(PrependedChildWorker.get_shoryuken_options['queue']).to eq('prepended_child_queue')
+      expect(PrependedChildWorker.get_shoryuken_options['auto_delete']).to eq(true)
+      expect(PrependedParentWorker.new.shoryuken_options_hash['queue']).to eq('prepended_queue')
+      expect(PrependedChildWorker.new.shoryuken_options_hash['queue']).to eq('prepended_child_queue')
+      expect(Shoryuken.worker_registry.workers('prepended_queue')).to eq([PrependedParentWorker])
+      expect(Shoryuken.worker_registry.workers('prepended_child_queue')).to eq([PrependedChildWorker])
+    end
+
     it 'accepts every known worker option' do
       expect do
         Class.new do

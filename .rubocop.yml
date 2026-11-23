@@ -14,6 +14,8 @@ Metrics/BlockLength:
     - method_call
   Exclude:
     - 'bin/integrations'
+    # shoryuken_class_attribute defines each attribute's readers and writers in one block
+    - 'lib/shoryuken/worker.rb'
 
 Metrics/PerceivedComplexity:
   Enabled: false
@@ -104,6 +106,12 @@ Lint/RescueException:
 Lint/ConstantDefinitionInBlock:
   Exclude:
     - 'spec/lib/shoryuken/processor_spec.rb'
+    - 'spec/lib/shoryuken/worker_spec.rb'
+
+# get_shoryuken_options is public worker API
+Naming/AccessorMethodName:
+  Exclude:
+    - 'lib/shoryuken/worker.rb'
 
 Style/DoubleNegation:
   Enabled: false
