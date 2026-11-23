@@ -1,9 +1,8 @@
 ## [Unreleased]
 
-- Fix: Worker options set on the singleton class of a worker instance
-  (`worker.singleton_class.shoryuken_options_hash = ...`) apply to that instance, as with Rails `class_attribute`
-  - The instance kept the class options; a Ruby < 2.1 check in `shoryuken_class_attribute` never detected the
-    singleton class
+- Fix: The instance reader `worker.shoryuken_options_hash` returns the options set on the singleton class of that
+  instance (`worker.singleton_class.shoryuken_options_hash = ...`), as with Rails `class_attribute`
+  - It returned the class options
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
