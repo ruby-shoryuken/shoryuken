@@ -32,6 +32,21 @@ def write_worker(dir, queue)
   boot_file
 end
 
+def expect_failed_start_removes_pidfile(pidfile, logfile, boot_file)
+  missing = DT.uuid
+  status, output = run_shoryuken_until_exit('-d', '-P', pidfile, '-L', logfile, '-r', boot_file, '-q', missing)
+  assert(status.success?, "the launching process exits before the daemon loads the queues, got: #{output}")
+
+  wait_for("the daemon must fail on the missing queue, log: #{File.read(logfile)}") do
+    File.read(logfile).include?("The specified queue(s) #{missing} do not exist")
+  end
+  wait_for("the failed daemon must remove its pidfile, log: #{File.read(logfile)}") { !File.exist?(pidfile) }
+
+  log = File.read(logfile)
+  assert_includes(log, 'Shoryuken::Errors::QueueNotFoundError', 'an error after the fork must keep its class')
+  refute(log.include?('[FAIL]'), "an error after the fork must not be printed as [FAIL], log: #{log}")
+end
+
 with_queue_and_dir do |queue, dir|
   pidfile = File.join(dir, 'shoryuken.pid')
   logfile = File.join(dir, 'shoryuken.log')
@@ -62,12 +77,5 @@ with_queue_and_dir do |queue, dir|
   File.delete(pidfile)
 
   # --- failed start after the fork ---
-  missing = DT.uuid
-  status, output = run_shoryuken_until_exit('-d', '-P', pidfile, '-L', logfile, '-r', boot_file, '-q', missing)
-  assert(status.success?, "the launching process exits before the daemon loads the queues, got: #{output}")
-
-  wait_for("the daemon must fail on the missing queue, log: #{File.read(logfile)}") do
-    File.read(logfile).include?("The specified queue(s) #{missing} do not exist")
-  end
-  wait_for("the failed daemon must remove its pidfile, log: #{File.read(logfile)}") { !File.exist?(pidfile) }
+  expect_failed_start_removes_pidfile(pidfile, logfile, boot_file)
 end
