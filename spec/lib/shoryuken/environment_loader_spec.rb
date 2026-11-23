@@ -216,20 +216,25 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
 
     it 'accepts a daemon with a logfile' do
-      Shoryuken.options.merge!(daemon: true, logfile: '/dev/null')
+      Shoryuken.options[:daemon] = true
+      Shoryuken.options[:logfile] = '/dev/null'
 
       expect { subject.validate_daemon_options }.not_to raise_error
     end
 
     it 'raises when an option has an invalid value' do
-      Shoryuken.options.merge!(daemon: true, logfile: '/dev/null', concurrency: 0)
+      Shoryuken.options[:daemon] = true
+      Shoryuken.options[:logfile] = '/dev/null'
+      Shoryuken.options[:concurrency] = 0
 
       expect { subject.validate_daemon_options }
         .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /concurrency/)
     end
 
     it 'makes a later load validate the option values only once' do
-      Shoryuken.options.merge!(daemon: true, logfile: '/dev/null', concurency: 1)
+      Shoryuken.options[:daemon] = true
+      Shoryuken.options[:logfile] = '/dev/null'
+      Shoryuken.options[:concurency] = 1
       allow(subject).to receive(:load_queues_and_workers)
       allow(subject).to receive(:validate_queues)
       allow(subject).to receive(:validate_workers)
