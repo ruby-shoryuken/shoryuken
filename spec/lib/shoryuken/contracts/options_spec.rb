@@ -55,6 +55,12 @@ RSpec.describe Shoryuken::Contracts::Options do
       expect { validate(opts) }.not_to raise_error
     end
 
+    it 'accepts the thread and fiber executors as a String or a Symbol' do
+      ['thread', 'fiber', :thread, :fiber].each do |executor|
+        expect { validate(options.merge(executor: executor)) }.not_to raise_error
+      end
+    end
+
     it 'accepts groups given as an array of pairs' do
       expect { validate(options.merge(groups: [['custom', { queues: ['q1'], delay: 25 }]])) }.not_to raise_error
     end
@@ -92,6 +98,8 @@ RSpec.describe Shoryuken::Contracts::Options do
     it { expect_invalid('daemon', options.merge(daemon: 'yes')) }
     it { expect_invalid('logfile', options.merge(logfile: 1)) }
     it { expect_invalid('thread_priority', options.merge(thread_priority: nil)) }
+    it { expect_invalid('executor', options.merge(executor: 'process')) }
+    it { expect_invalid('executor', options.merge(executor: nil)) }
     it { expect_invalid('groups', options.merge(groups: 'custom')) }
 
     it 'names the group of an invalid group option' do

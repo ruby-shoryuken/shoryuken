@@ -413,6 +413,68 @@ RSpec.describe Shoryuken::Launcher do
     end
   end
 
+  describe 'executor mode' do
+    context 'when in thread mode' do
+      it 'runs the workers of every group on the launcher executor' do
+        subject
+
+        expect(Shoryuken::Manager).to have_received(:new).with('first_group', any_args, executor, executor)
+        expect(Shoryuken::Manager).to have_received(:new).with('second_group', any_args, executor, executor)
+      end
+    end
+
+    context 'when in fiber mode' do
+      let(:fiber_executors) { [] }
+
+      before do
+        Shoryuken.groups['second_group'][:concurrency] = 3
+        allow(Shoryuken).to receive(:executor).and_return(:fiber)
+        allow(Shoryuken::Helpers::FiberExecutor).to receive(:new).and_wrap_original do |original, limit|
+          original.call(limit).tap { |fiber_executor| fiber_executors << [limit, fiber_executor] }
+        end
+        allow(first_group_manager).to receive(:stop_new_dispatching)
+        allow(second_group_manager).to receive(:stop_new_dispatching)
+      end
+
+      it 'gives each group a fiber executor limited to its concurrency and keeps the launcher executor' do
+        subject
+
+        expect(fiber_executors.map(&:first)).to eq([1, 3])
+        expect(Shoryuken::Manager)
+          .to have_received(:new).with('first_group', any_args, executor, fiber_executors[0].last)
+        expect(Shoryuken::Manager)
+          .to have_received(:new).with('second_group', any_args, executor, fiber_executors[1].last)
+      end
+
+      it 'shuts the fiber executors down on stop!' do
+        subject.stop!
+
+        expect(fiber_executors.map(&:last)).to all(satisfy { |fiber_executor| !fiber_executor.running? })
+        expect(executor).to be_shutdown
+      end
+
+      it 'kills a fiber executor whose workers do not finish within the timeout' do
+        subject
+        fiber_executor = fiber_executors[0].last
+        fiber_executor.post { sleep(5) }
+        expect(fiber_executor).to receive(:kill).and_call_original
+
+        subject.stop!
+      end
+    end
+
+    context 'when the mode is unknown' do
+      before { allow(Shoryuken).to receive(:executor).and_return(:process) }
+
+      it 'raises an InvalidConfigurationError' do
+        expect { subject }.to raise_error(
+          Shoryuken::Errors::InvalidConfigurationError,
+          'executor needs to be :thread or :fiber, got :process'
+        )
+      end
+    end
+  end
+
   describe '#stopping?' do
     it 'returns false by default' do
       expect(subject.stopping?).to be false

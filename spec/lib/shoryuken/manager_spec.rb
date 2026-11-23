@@ -366,6 +366,43 @@ RSpec.describe Shoryuken::Manager do
         expect(subject.send(:busy)).to eq(0)
       end
     end
+
+    context 'with a fiber processor executor' do
+      subject do
+        Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor, processor_executor)
+      end
+
+      let(:processor_executor) { Shoryuken::Helpers::FiberExecutor.new(concurrency) }
+      let(:executor) { instance_double(Concurrent::ImmediateExecutor, running?: true) }
+
+      after do
+        processor_executor.shutdown
+        processor_executor.wait_for_termination(5)
+      end
+
+      it 'runs the processor as a task under a Fiber scheduler and runs completion once' do
+        schedulers = ::Queue.new
+        allow(Shoryuken::Processor).to receive(:process) { schedulers << Fiber.scheduler }
+        expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+
+        subject.send(:assign, queue, sqs_msg)
+        processor_executor.shutdown
+        processor_executor.wait_for_termination(5)
+
+        expect(schedulers.pop).to be_a(Async::Scheduler)
+        expect(subject.send(:busy)).to eq(0)
+      end
+
+      it 'rolls back the busy count and releases the message when the processor executor is shut down' do
+        processor_executor.shutdown
+
+        subject.send(:assign, queue, sqs_msg)
+
+        expect(subject.send(:busy)).to eq(0)
+        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+        expect(Shoryuken::Processor).not_to have_received(:process)
+      end
+    end
   end
 
   describe '#processor_done' do

@@ -269,7 +269,7 @@ module Shoryuken
     # Returns the executor a group's workers run on: the launcher executor in thread mode, a fiber executor of its own
     # limited to the group's concurrency in fiber mode
     #
-    # @param concurrency [Integer] the group's concurrency
+    # @param concurrency [Integer] the maximum number of the group's messages that run at once
     # @return [#post] the executor
     # @raise [Errors::InvalidConfigurationError] when the executor mode is unknown or the async gem is missing
     def processor_executor(concurrency)

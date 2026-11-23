@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Feature: An opt-in fiber executor (`executor: fiber` in the config file, or `Shoryuken.executor = :fiber`) runs each
+  message as an `Async` task on one thread per group, at most the group's `concurrency` at a time
+  - The default stays `executor: thread`
+  - The `async` gem is optional: it is required only in fiber mode, and building the launcher without it raises
+    `Shoryuken::Errors::InvalidConfigurationError`
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
