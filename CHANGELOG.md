@@ -37,8 +37,12 @@
 - Breaking: Remove support for Rails 7.2
   - Rails 7.2 reached end-of-life (August 2026) and gets no fix for GHSA-8474-xrp6-wh69 (Active Support
     `safe_constantize` DoS)
-  - Supported Rails versions: 8.0 and 8.1
   - Users on Rails 7.2 should upgrade or remain on Shoryuken 7.0.x
+
+- Breaking: Remove support for Rails 8.0
+  - Rails 8.0 reached end-of-life (November 2026)
+  - Supported Rails versions: 8.1
+  - Users on Rails 8.0 should upgrade or remain on Shoryuken 7.0.x
 
 - Fix: `shoryuken sqs` prints `[FAIL] The specified queue <name> does not exist` when SQS reports a missing queue as
   `QueueDoesNotExist`, as ElasticMQ does
