@@ -129,6 +129,17 @@ RSpec.describe Shoryuken::Worker do
       expect(Shoryuken.worker_registry.workers('prepended_child_queue')).to eq([PrependedChildWorker])
     end
 
+    it 'keeps options set on the singleton class of an instance to that instance' do
+      worker = TestWorker.new
+      other_worker = TestWorker.new
+
+      worker.singleton_class.shoryuken_options_hash = { 'queue' => 'instance_queue' }
+
+      expect(worker.shoryuken_options_hash['queue']).to eq('instance_queue')
+      expect(other_worker.shoryuken_options_hash['queue']).to eq('default')
+      expect(TestWorker.get_shoryuken_options['queue']).to eq('default')
+    end
+
     it 'accepts every known worker option' do
       expect do
         Class.new do
