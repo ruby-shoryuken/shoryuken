@@ -174,6 +174,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
     {
       '(sqs_msg, body)' => proc { |_sqs_msg, _body| },
+      '(sqs_msg, body = nil)' => proc { |_sqs_msg, _body = nil| },
       '(*args)' => proc { |*_args| },
       '(sqs_msg, body, extra = nil)' => proc { |_sqs_msg, _body, _extra = nil| },
       '(sqs_msg, body, option: nil)' => proc { |_sqs_msg, _body, option: nil| }
@@ -217,6 +218,78 @@ RSpec.describe Shoryuken::EnvironmentLoader do
             '(sqs_msg, body = ..., *rest, key:, option: ..., **opts, &block)'
           ]
         )
+      end
+    end
+
+    shared_examples 'it formats the parameters as written' do |formatted|
+      it "reports it takes (#{formatted})" do
+        expect(problems).to eq(
+          ["#{worker_class.inspect}#perform must accept (sqs_msg, body); it takes (#{formatted})"]
+        )
+      end
+    end
+
+    context 'when perform takes (sqs_msg, body, *, key:)' do
+      let(:worker_class) do
+        Class.new do
+          def perform(sqs_msg, body, *, key:); end
+        end
+      end
+
+      it_behaves_like 'it formats the parameters as written', 'sqs_msg, body, *, key:'
+    end
+
+    context 'when perform takes (sqs_msg, body, extra, **)' do
+      let(:worker_class) do
+        Class.new do
+          def perform(sqs_msg, body, extra, **); end
+        end
+      end
+
+      it_behaves_like 'it formats the parameters as written', 'sqs_msg, body, extra, **'
+    end
+
+    context 'when perform takes (sqs_msg, body, extra, &)' do
+      let(:worker_class) do
+        Class.new do
+          def perform(sqs_msg, body, extra, &); end
+        end
+      end
+
+      it_behaves_like 'it formats the parameters as written', 'sqs_msg, body, extra, &'
+    end
+
+    context 'when perform takes (sqs_msg, body, extra, ...)' do
+      let(:worker_class) do
+        Class.new do
+          def perform(sqs_msg, body, extra, ...); end
+        end
+      end
+
+      it_behaves_like 'it formats the parameters as written', 'sqs_msg, body, extra, ...'
+    end
+
+    context 'when perform takes (sqs_msg, **nil)' do
+      let(:worker_class) do
+        Class.new do
+          def perform(sqs_msg, **nil); end
+        end
+      end
+
+      it_behaves_like 'it formats the parameters as written', 'sqs_msg, **nil'
+    end
+
+    context 'when perform is protected' do
+      let(:worker_class) do
+        Class.new do
+          protected
+
+          def perform(_sqs_msg, _body); end
+        end
+      end
+
+      it 'reports it missing' do
+        expect(problems).to eq(["#{worker_class.inspect} must define perform(sqs_msg, body)"])
       end
     end
 
@@ -283,6 +356,36 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
       it 'reports it once' do
         expect(problems.size).to eq(1)
+      end
+    end
+
+    context 'when a queue has a wrong worker registered before a valid one' do
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_name); end
+        end
+      end
+      let(:valid_worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_sqs_msg, _body); end
+        end
+      end
+      let(:registry) { Shoryuken::DefaultWorkerRegistry.new }
+
+      before do
+        registry.register_worker('queue1', worker_class)
+        registry.register_worker('queue1', valid_worker_class)
+        allow(Shoryuken).to receive(:worker_registry).and_return(registry)
+      end
+
+      it 'reports the wrong one' do
+        expect(problems).to eq(
+          ["#{worker_class.inspect}#perform must accept (sqs_msg, body); it takes (_name)"]
+        )
       end
     end
 

@@ -183,7 +183,7 @@ RSpec.describe Shoryuken::Options do
       )
       test2_worker.shoryuken_options queue: 'default'
 
-      expect(subject.worker_registry.workers('default')).to eq([test2_worker])
+      expect(subject.worker_registry.workers('default')).to eq([TestWorker, test2_worker])
     end
 
     it 'raises an exception when mixing batchable with non batchable' do

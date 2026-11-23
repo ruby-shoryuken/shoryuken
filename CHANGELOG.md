@@ -6,6 +6,8 @@
     `[FAIL] TypoWorker must define perform(sqs_msg, body)` for a missing or non-public `perform`
   - Such a worker passed `check` and failed on every message, which came back after each visibility timeout
   - `check` now exits 1 for a worker that defines `perform` through `method_missing`; `start` still boots it
+  - Every worker of a queue is checked; `DefaultWorkerRegistry#workers` returns every worker class registered for the
+    queue, the last registered one last, not only the last one
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called

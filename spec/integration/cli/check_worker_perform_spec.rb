@@ -2,7 +2,8 @@
 
 # This spec tests that `shoryuken check` fails for a worker whose `perform`
 # cannot take the message and its body, and that `shoryuken start` logs the same
-# problem as a warning and still boots.
+# problem as a warning and still boots. Every worker of the queue is checked,
+# also one registered before another worker of the same queue.
 #
 # The processor calls `perform(sqs_msg, body)`. A Sidekiq-style
 # `perform(name)` or a typo (`preform`) used to pass `check` and fail on every
@@ -46,6 +47,27 @@ with_queue_and_dir do |queue, dir|
   status, output = run_shoryuken_command_until_exit('check', '-q', queue, '-r', worker_file)
   assert_equal(1, status.exitstatus, "a missing perform must exit 1, got: #{output}")
   assert_includes(output, '[FAIL] TypoWorker must define perform(sqs_msg, body)')
+
+  # --- a wrong worker registered before a valid one on the same queue ---
+  worker_file = File.join(dir, 'shared_queue_workers.rb')
+  File.write(worker_file, <<~RUBY)
+    class SharedSigWorker
+      include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}'
+      def perform(name); end
+    end
+
+    class SharedGoodWorker
+      include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}'
+      def perform(_sqs_msg, _body); end
+    end
+  RUBY
+
+  status, output = run_shoryuken_command_until_exit('check', '-q', queue, '-r', worker_file)
+  assert_equal(1, status.exitstatus, "a wrong worker sharing its queue must exit 1, got: #{output}")
+  assert_includes(output, '[FAIL] SharedSigWorker#perform must accept (sqs_msg, body); it takes (name)')
+  refute(output.include?('SharedGoodWorker'), "got: #{output}")
 
   # --- perform with the message and body ---
   worker_file = write_worker(dir, 'GoodWorker', queue, 'def perform(_sqs_msg, _body); end')

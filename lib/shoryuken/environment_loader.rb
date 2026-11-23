@@ -4,6 +4,11 @@ module Shoryuken
   # Loads and configures the Shoryuken environment from configuration files
   # and command line options. Handles Rails integration and queue setup.
   class EnvironmentLoader
+    # What Method#parameters returns for a method that takes only `...`
+    FORWARDING_PARAMETERS = [%i[rest *], %i[keyrest **], %i[block &]].freeze
+
+    private_constant :FORWARDING_PARAMETERS
+
     # @return [Hash] the configuration options
     attr_reader :options
 
@@ -339,17 +344,30 @@ module Shoryuken
     # @param parameters [Array<Array(Symbol, Symbol)>] the result of Method#parameters
     # @return [String] the parameter list without parentheses
     def format_parameters(parameters)
-      parameters.map do |type, name|
-        case type
-        when :opt then "#{name} = ..."
-        when :rest then "*#{name}"
-        when :keyreq then "#{name}:"
-        when :key then "#{name}: ..."
-        when :keyrest then "**#{name}"
-        when :block then "&#{name}"
-        else name.to_s
-        end
-      end.join(', ')
+      forwarding = parameters.last(3) == FORWARDING_PARAMETERS
+      parameters = parameters[0...-3] if forwarding
+
+      formatted = parameters.map { |type, name| format_parameter(type, name) }
+      formatted << '...' if forwarding
+      formatted.join(', ')
+    end
+
+    # Formats one method parameter the way it appears in the method definition
+    #
+    # @param type [Symbol] the parameter type from Method#parameters
+    # @param name [Symbol, nil] the parameter name, the bare prefix for an anonymous one
+    # @return [String] the parameter as written in the definition
+    def format_parameter(type, name)
+      case type
+      when :opt then "#{name} = ..."
+      when :rest then name == :* ? '*' : "*#{name}"
+      when :keyreq then "#{name}:"
+      when :key then "#{name}: ..."
+      when :keyrest then name == :** ? '**' : "**#{name}"
+      when :nokey then '**nil'
+      when :block then name == :& ? '&' : "&#{name}"
+      else name.to_s
+      end
     end
 
     # Returns the configured queues that have no registered worker
