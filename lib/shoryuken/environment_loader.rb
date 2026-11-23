@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'erb'
+
 module Shoryuken
   # Loads and configures the Shoryuken environment from configuration files
   # and command line options. Handles Rails integration and queue setup.
