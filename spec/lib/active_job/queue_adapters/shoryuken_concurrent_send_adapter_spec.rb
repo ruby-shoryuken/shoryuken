@@ -7,6 +7,11 @@ require 'active_job/queue_adapters/shoryuken_concurrent_send_adapter'
 RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
   include_examples 'active_job_adapters'
 
+  it 'is an AbstractAdapter without Rails' do
+    expect(defined?(Rails)).to be_nil
+    expect(described_class < ActiveJob::QueueAdapters::AbstractAdapter).to be(true)
+  end
+
   let(:options) { {} }
   let(:error_handler) { -> {} }
   let(:success_handler) { -> {} }

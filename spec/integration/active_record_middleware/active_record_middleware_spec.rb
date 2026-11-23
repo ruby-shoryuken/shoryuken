@@ -12,12 +12,6 @@ Shoryuken.add_queue(queue_name, 1, 'default')
 
 # Mock ActiveRecord module to track connection clearing
 module ActiveRecord
-  VERSION = Gem::Version.new('7.2.0')
-
-  def self.version
-    VERSION
-  end
-
   class Base
     class << self
       attr_accessor :connections_cleared
