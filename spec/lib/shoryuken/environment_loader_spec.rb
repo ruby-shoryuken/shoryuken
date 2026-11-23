@@ -180,7 +180,13 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       '(sqs_msg, body, option: nil)' => proc { |_sqs_msg, _body, option: nil| }
     }.each do |signature, body|
       context "when perform takes #{signature}" do
-        let(:worker_class) { Class.new { define_method(:perform, &body) } }
+        let(:worker_class) do
+          Class.new do
+            include Shoryuken::Worker
+
+            define_method(:perform, &body)
+          end
+        end
 
         it 'reports no problem' do
           expect(problems).to eq([])
@@ -194,7 +200,13 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       '(sqs_msg, body, key:)' => [proc { |sqs_msg, body, key:| }, 'sqs_msg, body, key:']
     }.each do |signature, (body, formatted)|
       context "when perform takes #{signature}" do
-        let(:worker_class) { Class.new { define_method(:perform, &body) } }
+        let(:worker_class) do
+          Class.new do
+            include Shoryuken::Worker
+
+            define_method(:perform, &body)
+          end
+        end
 
         it 'reports the signature it takes' do
           expect(problems).to eq(
@@ -207,6 +219,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform takes every kind of parameter' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def perform(sqs_msg, body = nil, *rest, key:, option: nil, **opts, &block); end
         end
       end
@@ -232,6 +246,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform takes (sqs_msg, body, *, key:)' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def perform(sqs_msg, body, *, key:); end
         end
       end
@@ -242,6 +258,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform takes (sqs_msg, body, extra, **)' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def perform(sqs_msg, body, extra, **); end
         end
       end
@@ -252,6 +270,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform takes (sqs_msg, body, extra, &)' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def perform(sqs_msg, body, extra, &); end
         end
       end
@@ -262,6 +282,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform takes (sqs_msg, body, extra, ...)' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def perform(sqs_msg, body, extra, ...); end
         end
       end
@@ -272,6 +294,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform takes (sqs_msg, **nil)' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def perform(sqs_msg, **nil); end
         end
       end
@@ -282,6 +306,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform is protected' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           protected
 
           def perform(_sqs_msg, _body); end
@@ -296,6 +322,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when the worker has no perform' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           def preform(_sqs_msg, _body); end
         end
       end
@@ -308,6 +336,8 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     context 'when perform is private' do
       let(:worker_class) do
         Class.new do
+          include Shoryuken::Worker
+
           private
 
           def perform(_sqs_msg, _body); end
@@ -346,7 +376,13 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
 
     context 'when the worker is registered for several configured queues' do
-      let(:worker_class) { Class.new { def perform(_name); end } }
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_name); end
+        end
+      end
 
       before do
         Shoryuken.options[:queues] = %w[queue1 queue2]
@@ -511,7 +547,13 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
 
     context 'when loading for start' do
-      let(:worker_class) { Class.new { def perform(_name); end } }
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_name); end
+        end
+      end
 
       before do
         allow(subject).to receive(:validate_workers).and_call_original

@@ -4,7 +4,8 @@
 # cannot take the message and its body, and that `shoryuken start` logs the same
 # problem as a warning and still boots. Every worker of the queue is checked,
 # also one registered before another worker of the same queue, except an
-# abstract base worker: one without perform that has a subclass.
+# abstract base worker (no perform, with a subclass) that is not the last one
+# registered for the queue.
 #
 # The processor calls `perform(sqs_msg, body)`. A Sidekiq-style
 # `perform(name)` or a typo (`preform`) used to pass `check` and fail on every

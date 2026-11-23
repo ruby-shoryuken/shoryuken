@@ -296,8 +296,7 @@ module Shoryuken
     end
 
     # Returns a problem for each worker of the configured queues that has no public perform or whose perform cannot
-    # be called with two positional arguments, the way the processor calls it. An abstract base worker (no perform,
-    # with a subclass) is skipped
+    # be called with two positional arguments
     #
     # @return [Array<String>] one message per worker with a wrong or missing perform
     def worker_perform_problems
@@ -326,11 +325,7 @@ module Shoryuken
     # @return [String, nil] the problem, nil when perform takes two positional arguments
     def worker_perform_problem(worker_class)
       name = worker_class.name || worker_class.inspect
-      signature = if worker_class.respond_to?(:get_shoryuken_options) && worker_class.get_shoryuken_options['batch']
-                    '(sqs_msgs, bodies)'
-                  else
-                    '(sqs_msg, body)'
-                  end
+      signature = worker_class.get_shoryuken_options['batch'] ? '(sqs_msgs, bodies)' : '(sqs_msg, body)'
 
       return "#{name} must define perform#{signature}" unless worker_class.public_method_defined?(:perform)
 
