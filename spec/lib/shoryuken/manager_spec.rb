@@ -373,32 +373,41 @@ RSpec.describe Shoryuken::Manager do
       end
 
       let(:processor_executor) { Shoryuken::Helpers::FiberExecutor.new(concurrency) }
-      let(:executor) { instance_double(Concurrent::ImmediateExecutor, running?: true) }
+      let(:busy_counts) { [] }
+      let(:handler) { ->(event) { busy_counts << event[:busy_processors] } }
+
+      before do
+        Shoryuken.options[:lifecycle_events][:utilization_update] << handler
+        allow(fetcher).to receive(:fetch) do
+          subject.stop_new_dispatching
+          [sqs_msg]
+        end
+      end
 
       after do
+        Shoryuken.options[:lifecycle_events][:utilization_update].delete(handler)
         processor_executor.shutdown
         processor_executor.wait_for_termination(5)
       end
 
-      it 'runs the processor as a task under a Fiber scheduler and runs completion once' do
+      it 'runs the processor as a task under a Fiber scheduler and frees the processor once done' do
         schedulers = ::Queue.new
         allow(Shoryuken::Processor).to receive(:process) { schedulers << Fiber.scheduler }
-        expect(subject).to receive(:processor_done).with(queue).once.and_call_original
 
-        subject.send(:assign, queue, sqs_msg)
+        subject.start
         processor_executor.shutdown
         processor_executor.wait_for_termination(5)
 
         expect(schedulers.pop).to be_a(Async::Scheduler)
-        expect(subject.send(:busy)).to eq(0)
+        expect(busy_counts).to eq([0, 1, 0])
       end
 
-      it 'rolls back the busy count and releases the message when the processor executor is shut down' do
+      it 'frees the processor and releases the message when the processor executor is shut down' do
         processor_executor.shutdown
 
-        subject.send(:assign, queue, sqs_msg)
+        subject.start
 
-        expect(subject.send(:busy)).to eq(0)
+        expect(busy_counts).to eq([0, 1, 0])
         expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
         expect(Shoryuken::Processor).not_to have_received(:process)
       end
