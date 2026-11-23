@@ -4,7 +4,7 @@
 # cannot take the message and its body, and that `shoryuken start` logs the same
 # problem as a warning and still boots. Every worker of the queue is checked,
 # also one registered before another worker of the same queue, except an
-# abstract base worker without perform that a subclass on the queue replaces.
+# abstract base worker: one without perform that has a subclass.
 #
 # The processor calls `perform(sqs_msg, body)`. A Sidekiq-style
 # `perform(name)` or a typo (`preform`) used to pass `check` and fail on every
@@ -52,6 +52,46 @@ def write_base_workers(dir, queue)
 
     class ChildWorker < ApplicationWorker
       shoryuken_options body_parser: :json
+      def perform(_sqs_msg, _body); end
+    end
+  RUBY
+  worker_file
+end
+
+def write_base_with_subclass_elsewhere(dir, queue, other_queue)
+  worker_file = File.join(dir, 'base_with_subclass_elsewhere.rb')
+  File.write(worker_file, <<~RUBY)
+    class ElsewhereApplicationWorker
+      include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}'
+    end
+
+    class ElsewhereChildWorker < ElsewhereApplicationWorker
+      shoryuken_options queue: '#{other_queue}'
+      def perform(_sqs_msg, _body); end
+    end
+
+    class ElsewhereOtherWorker
+      include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}'
+      def perform(_sqs_msg, _body); end
+    end
+  RUBY
+  worker_file
+end
+
+def write_typo_before_valid_worker(dir, queue)
+  worker_file = File.join(dir, 'typo_before_valid_worker.rb')
+  File.write(worker_file, <<~RUBY)
+    class SharedTypoWorker
+      include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}'
+      def preform(_sqs_msg, _body); end
+    end
+
+    class SharedValidWorker
+      include Shoryuken::Worker
+      shoryuken_options queue: '#{queue}'
       def perform(_sqs_msg, _body); end
     end
   RUBY
@@ -106,4 +146,22 @@ with_queue_and_dir do |queue, dir|
   status, output = run_shoryuken_command_until_exit('check', '-q', queue, '-r', worker_file)
   assert_equal(0, status.exitstatus, "a valid perform must exit 0, got: #{output}")
   assert_includes(output, 'Configuration OK')
+end
+
+with_queue_and_dir do |queue, dir|
+  with_queue_and_dir do |other_queue, _|
+    # --- an abstract base worker whose subclass sets another queue ---
+    worker_file = write_base_with_subclass_elsewhere(dir, queue, other_queue)
+
+    status, output = run_shoryuken_command_until_exit('check', '-q', queue, other_queue, '-r', worker_file)
+    assert_equal(0, status.exitstatus, "an abstract base worker must not fail check, got: #{output}")
+    assert_includes(output, 'Configuration OK')
+  end
+
+  # --- a worker without perform and without a subclass before a valid one on the same queue ---
+  worker_file = write_typo_before_valid_worker(dir, queue)
+
+  status, output = run_shoryuken_command_until_exit('check', '-q', queue, '-r', worker_file)
+  assert_equal(1, status.exitstatus, "a missing perform must exit 1, got: #{output}")
+  assert_includes(output, '[FAIL] SharedTypoWorker must define perform(sqs_msg, body)')
 end

@@ -296,8 +296,8 @@ module Shoryuken
     end
 
     # Returns a problem for each worker of the configured queues that has no public perform or whose perform cannot
-    # be called with two positional arguments, the way the processor calls it. An abstract base worker without
-    # perform is skipped
+    # be called with two positional arguments, the way the processor calls it. An abstract base worker (no perform,
+    # with a subclass) is skipped
     #
     # @return [Array<String>] one message per worker with a wrong or missing perform
     def worker_perform_problems
@@ -307,8 +307,8 @@ module Shoryuken
                .filter_map { |worker_class| worker_perform_problem(worker_class) }
     end
 
-    # Drops the abstract base workers of a queue: a class without public perform that a registered subclass replaces,
-    # unless it is the queue's fallback worker (the last registered one)
+    # Drops the abstract base workers of a queue: a class without public perform that has a subclass, unless it is the
+    # queue's fallback worker (the last registered one)
     #
     # @param workers [Array<Class>] the worker classes registered for a queue
     # @return [Array<Class>] the worker classes to check
@@ -316,7 +316,7 @@ module Shoryuken
       workers.reject do |worker_class|
         !worker_class.equal?(workers.last) &&
           !worker_class.public_method_defined?(:perform) &&
-          workers.any? { |other| other.is_a?(Class) && other < worker_class }
+          worker_class.subclasses.any?
       end
     end
 

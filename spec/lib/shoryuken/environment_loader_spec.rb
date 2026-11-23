@@ -421,6 +421,67 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       end
     end
 
+    context 'when a queue has an abstract base worker whose subclass uses another queue' do
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+        end
+      end
+      let(:subclass) do
+        Class.new(worker_class) do
+          def perform(_sqs_msg, _body); end
+        end
+      end
+      let(:valid_worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_sqs_msg, _body); end
+        end
+      end
+      let(:registry) { Shoryuken::DefaultWorkerRegistry.new }
+
+      before do
+        Shoryuken.options[:queues] = %w[queue1 queue2]
+        registry.register_worker('queue1', worker_class)
+        registry.register_worker('queue2', subclass)
+        registry.register_worker('queue1', valid_worker_class)
+        allow(Shoryuken).to receive(:worker_registry).and_return(registry)
+      end
+
+      it 'reports no problem' do
+        expect(problems).to eq([])
+      end
+    end
+
+    context 'when a queue has a worker without perform and without a subclass before a valid one' do
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def preform(_sqs_msg, _body); end
+        end
+      end
+      let(:valid_worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_sqs_msg, _body); end
+        end
+      end
+      let(:registry) { Shoryuken::DefaultWorkerRegistry.new }
+
+      before do
+        registry.register_worker('queue1', worker_class)
+        registry.register_worker('queue1', valid_worker_class)
+        allow(Shoryuken).to receive(:worker_registry).and_return(registry)
+      end
+
+      it 'reports it missing' do
+        expect(problems).to eq(["#{worker_class.inspect} must define perform(sqs_msg, body)"])
+      end
+    end
+
     context 'when a queue has a base worker with a wrong perform and its subclass' do
       let(:worker_class) do
         Class.new do
