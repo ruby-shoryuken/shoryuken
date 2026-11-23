@@ -41,7 +41,8 @@ module Shoryuken
       :exception_handlers
     )
 
-    # Executor the launcher runs the dispatch loops and the workers on. When nil, the launcher uses its own
+    # Executor the launcher runs the dispatch loops on, and the workers too in thread mode (in fiber mode, see
+    # {#executor}, each group runs its workers on its own fiber executor). When nil, the launcher uses its own
     # `Concurrent::CachedThreadPool`. It does not have to be a concurrent-ruby executor: any object with these
     # methods works:
     # - `post { ... }` runs the block on another thread and returns without waiting for it, or raises
@@ -53,7 +54,8 @@ module Shoryuken
     #   finish and returns true when they did
     # - `kill` stops the posted blocks that did not finish in time
     #
-    # @return [#post, #running?, #shutdown, #wait_for_termination, #kill, nil] the executor used to launch workers
+    # @return [#post, #running?, #shutdown, #wait_for_termination, #kill, nil] the executor for the dispatch loops and,
+    #   in thread mode, the workers
     attr_accessor :launcher_executor
 
     # @return [Hash] the default options for workers

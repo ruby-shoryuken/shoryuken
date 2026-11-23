@@ -191,8 +191,7 @@ module Shoryuken
         logger.info { 'Draining in-flight ActiveJob sends' }
 
         drained = adapters.map do |adapter|
-          remaining = [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
-          adapter.wait_for_pending_sends(remaining)
+          adapter.wait_for_pending_sends(remaining_time(deadline))
         end
 
         logger.warn { 'Timed out draining in-flight ActiveJob sends; some may not have been delivered' } unless drained.all?

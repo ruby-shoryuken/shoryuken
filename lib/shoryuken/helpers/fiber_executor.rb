@@ -37,6 +37,8 @@ module Shoryuken
         raise Concurrent::RejectedExecutionError, 'fiber executor is shut down'
       end
 
+      # Checks if the executor still accepts blocks
+      #
       # @return [Boolean] false once the executor is shut down
       def running?
         @running.true?
