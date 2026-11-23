@@ -389,6 +389,66 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       end
     end
 
+    context 'when a queue has an abstract base worker and its subclass' do
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+        end
+      end
+      let(:subclass) do
+        Class.new(worker_class) do
+          def perform(_sqs_msg, _body); end
+        end
+      end
+      let(:registry) { Shoryuken::DefaultWorkerRegistry.new }
+
+      before do
+        registry.register_worker('queue1', worker_class)
+        registry.register_worker('queue1', subclass)
+        allow(Shoryuken).to receive(:worker_registry).and_return(registry)
+      end
+
+      it 'reports no problem' do
+        expect(problems).to eq([])
+      end
+
+      context 'when the base worker is the fallback worker' do
+        before { registry.register_worker('queue1', worker_class) }
+
+        it 'reports it missing' do
+          expect(problems).to eq(["#{worker_class.inspect} must define perform(sqs_msg, body)"])
+        end
+      end
+    end
+
+    context 'when a queue has a base worker with a wrong perform and its subclass' do
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          def perform(_name); end
+        end
+      end
+      let(:subclass) do
+        Class.new(worker_class) do
+          def perform(_sqs_msg, _body); end
+        end
+      end
+      let(:registry) { Shoryuken::DefaultWorkerRegistry.new }
+
+      before do
+        registry.register_worker('queue1', worker_class)
+        registry.register_worker('queue1', subclass)
+        allow(Shoryuken).to receive(:worker_registry).and_return(registry)
+      end
+
+      it 'reports the base worker' do
+        expect(problems).to eq(
+          ["#{worker_class.inspect}#perform must accept (sqs_msg, body); it takes (_name)"]
+        )
+      end
+    end
+
     context 'when loading for start' do
       let(:worker_class) { Class.new { def perform(_name); end } }
 
