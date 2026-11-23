@@ -246,7 +246,9 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#assign' do
-    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil) }
+    let(:client) { double(Aws::SQS::Client, change_message_visibility_batch: double(failed: [])) }
+    let(:sqs_msg) { build_message('m1') }
+    let(:other_msg) { build_message('m2') }
     let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
 
     before do
@@ -254,8 +256,26 @@ RSpec.describe Shoryuken::Manager do
       allow(Shoryuken::Processor).to receive(:process)
     end
 
+    def build_message(receipt_handle, queue_url = 'queue-url')
+      double(
+        Shoryuken::Message,
+        message_id: SecureRandom.uuid,
+        queue_url: queue_url,
+        client: client,
+        data: double(receipt_handle: receipt_handle)
+      )
+    end
+
+    def released_entries(queue_url = 'queue-url')
+      entries = []
+      expect(client).to have_received(:change_message_visibility_batch).with(hash_including(queue_url: queue_url)) do |args|
+        entries.concat(args[:entries])
+      end
+      entries
+    end
+
     it 'runs completion exactly once on success' do
-      expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+      expect(subject).to receive(:processor_done).with(queue, sqs_msg).once.and_call_original
 
       subject.send(:assign, queue, sqs_msg)
 
@@ -265,7 +285,7 @@ RSpec.describe Shoryuken::Manager do
     it 'runs completion exactly once when processing raises' do
       allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
 
-      expect(subject).to receive(:processor_done).with(queue).once.and_call_original
+      expect(subject).to receive(:processor_done).with(queue, sqs_msg).once.and_call_original
 
       subject.send(:assign, queue, sqs_msg)
 
@@ -275,7 +295,7 @@ RSpec.describe Shoryuken::Manager do
     it 'does not release a message it processes' do
       subject.send(:assign, queue, sqs_msg)
 
-      expect(sqs_msg).not_to have_received(:visibility_timeout=)
+      expect(client).not_to have_received(:change_message_visibility_batch)
     end
 
     it 'tracks the message as in flight only while it is processed' do
@@ -289,7 +309,6 @@ RSpec.describe Shoryuken::Manager do
     end
 
     it 'tracks every message of a batch as in flight' do
-      other_msg = double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil)
       in_flight = nil
       allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
 
@@ -313,27 +332,35 @@ RSpec.describe Shoryuken::Manager do
       it 'releases the message by setting its visibility timeout to 0' do
         expect(subject.send(:assign, queue, sqs_msg)).to be_nil
 
-        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+        expect(released_entries).to eq([{ id: '0', receipt_handle: 'm1', visibility_timeout: 0 }])
         expect(Shoryuken::Processor).not_to have_received(:process)
       end
 
-      it 'releases every message of a batch' do
-        other_msg = double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil)
+      it 'releases every message of a batch with one request' do
+        subject.send(:assign, queue, [sqs_msg, other_msg])
+
+        expect(client).to have_received(:change_message_visibility_batch).once
+        expect(released_entries.map { |entry| entry[:receipt_handle] }).to eq(%w[m1 m2])
+      end
+
+      it 'logs each message the batch request fails to release' do
+        failure = double(id: '1', code: 'ReceiptHandleIsInvalid', message: 'invalid')
+        allow(client).to receive(:change_message_visibility_batch).and_return(double(failed: [failure]))
+        allow(Shoryuken.logger).to receive(:error)
 
         subject.send(:assign, queue, [sqs_msg, other_msg])
 
-        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
-        expect(other_msg).to have_received(:visibility_timeout=).with(0)
+        expect(Shoryuken.logger).to have_received(:error).once do |&block|
+          expect(block.call).to include(other_msg.message_id, 'ReceiptHandleIsInvalid')
+        end
       end
 
-      it 'logs a failed release and still releases the rest of the batch' do
-        other_msg = double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil)
-        allow(sqs_msg).to receive(:visibility_timeout=).and_raise('change visibility failed')
+      it 'logs a failed release request instead of raising' do
+        allow(client).to receive(:change_message_visibility_batch).and_raise('change visibility failed')
         allow(Shoryuken.logger).to receive(:error)
 
         expect { subject.send(:assign, queue, [sqs_msg, other_msg]) }.not_to raise_error
 
-        expect(other_msg).to have_received(:visibility_timeout=).with(0)
         expect(Shoryuken.logger).to have_received(:error)
       end
     end
@@ -383,11 +410,11 @@ RSpec.describe Shoryuken::Manager do
       it 'releases the message by setting its visibility timeout to 0' do
         subject.send(:assign, queue, sqs_msg)
 
-        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+        expect(released_entries).to eq([{ id: '0', receipt_handle: 'm1', visibility_timeout: 0 }])
       end
 
       it 'does not raise when the release fails' do
-        allow(sqs_msg).to receive(:visibility_timeout=).and_raise('change visibility failed')
+        allow(client).to receive(:change_message_visibility_batch).and_raise('change visibility failed')
         allow(Shoryuken.logger).to receive(:error)
 
         expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
@@ -403,6 +430,46 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#release' do
+    let(:client) { double(Aws::SQS::Client, change_message_visibility_batch: double(failed: [])) }
+
+    def build_message(receipt_handle, queue_url)
+      double(
+        Shoryuken::Message,
+        message_id: SecureRandom.uuid,
+        queue_url: queue_url,
+        client: client,
+        data: double(receipt_handle: receipt_handle)
+      )
+    end
+
+    it 'sends one request per queue and per 10 messages' do
+      messages = Array.new(12) { |i| build_message("a#{i}", 'queue-a') } + [build_message('b0', 'queue-b')]
+
+      subject.release(messages)
+
+      expect(client).to have_received(:change_message_visibility_batch).exactly(3).times
+      first_entries = Array.new(10) { |i| { id: i.to_s, receipt_handle: "a#{i}", visibility_timeout: 0 } }
+      second_entries = Array.new(2) { |i| { id: i.to_s, receipt_handle: "a#{i + 10}", visibility_timeout: 0 } }
+      expect(client).to have_received(:change_message_visibility_batch).with(queue_url: 'queue-a', entries: first_entries)
+      expect(client).to have_received(:change_message_visibility_batch).with(queue_url: 'queue-a', entries: second_entries)
+      expect(client).to have_received(:change_message_visibility_batch)
+        .with(queue_url: 'queue-b', entries: [{ id: '0', receipt_handle: 'b0', visibility_timeout: 0 }])
+    end
+
+    it 'releases the other queues when the request for one queue fails' do
+      allow(client).to receive(:change_message_visibility_batch)
+        .with(hash_including(queue_url: 'queue-a'))
+        .and_raise('failed')
+      allow(Shoryuken.logger).to receive(:error)
+
+      subject.release([build_message('a0', 'queue-a'), build_message('b0', 'queue-b')])
+
+      expect(client).to have_received(:change_message_visibility_batch).with(hash_including(queue_url: 'queue-b'))
+      expect(Shoryuken.logger).to have_received(:error)
+    end
+  end
+
   describe '#processor_done' do
     let(:sqs_queue)         { double Shoryuken::Queue }
 
@@ -414,7 +481,7 @@ RSpec.describe Shoryuken::Manager do
       it 'calls message_processed on strategy' do
         expect(sqs_queue).to receive(:fifo?).and_return(true)
         expect(polling_strategy).to receive(:message_processed).with(queue)
-        subject.send(:processor_done, queue)
+        subject.send(:processor_done, queue, double(Shoryuken::Message))
       end
     end
 
@@ -422,7 +489,7 @@ RSpec.describe Shoryuken::Manager do
       it 'does not call message_processed on strategy' do
         expect(sqs_queue).to receive(:fifo?).and_return(false)
         expect(polling_strategy).to_not receive(:message_processed)
-        subject.send(:processor_done, queue)
+        subject.send(:processor_done, queue, double(Shoryuken::Message))
       end
     end
   end

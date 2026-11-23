@@ -28,7 +28,6 @@ module Shoryuken
       @fetcher                    = fetcher
       @polling_strategy           = polling_strategy
       @max_processors             = concurrency
-      @busy_processors            = Shoryuken::Helpers::AtomicCounter.new(0)
       @executor                   = executor
       @running                    = Shoryuken::Helpers::AtomicBoolean.new(true)
       @stop_new_dispatching       = Shoryuken::Helpers::AtomicBoolean.new(false)
@@ -98,19 +97,39 @@ module Shoryuken
     end
 
     # Makes messages visible again, so another consumer can receive them at once instead of after the visibility timeout.
-    # A failed release is logged, not raised, so it cannot break dispatch or shutdown
+    # Sends one batch request per queue and up to 10 messages. A failed release is logged, not raised, so it cannot break
+    # dispatch or shutdown
     #
-    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch
+    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or messages
     # @return [void]
     def release(sqs_msg)
-      (sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]).each do |message|
-        message.visibility_timeout = 0
-      rescue => e
-        logger.error { "Failed to release message #{message.message_id}: #{e.message}" }
+      (sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]).group_by(&:queue_url).each do |queue_url, messages|
+        messages.each_slice(BATCH_LIMIT) { |batch| release_batch(queue_url, batch) }
       end
     end
 
     private
+
+    # Makes up to 10 messages of one queue visible again with a single request, logging each message it fails to release
+    #
+    # @param queue_url [String] the URL of the queue the messages belong to
+    # @param messages [Array<Shoryuken::Message>] up to 10 messages of that queue
+    # @return [void]
+    def release_batch(queue_url, messages)
+      entries = messages.map.with_index do |message, index|
+        { id: index.to_s, receipt_handle: message.data.receipt_handle, visibility_timeout: 0 }
+      end
+
+      response = messages.first.client.change_message_visibility_batch(queue_url: queue_url, entries: entries)
+
+      response.failed.each do |failure|
+        logger.error do
+          "Failed to release message #{messages[failure.id.to_i].message_id}: #{failure.code}: #{failure.message}"
+        end
+      end
+    rescue => e
+      logger.error { "Failed to release #{messages.size} messages of #{queue_url}: #{e.message}" }
+    end
 
     # The main dispatch loop
     #
@@ -166,7 +185,7 @@ module Shoryuken
     #
     # @return [Integer] the number of busy processors
     def busy
-      @busy_processors.value
+      @in_flight_mutex.synchronize { @in_flight.size }
     end
 
     # Returns the count of ready processors
@@ -179,9 +198,10 @@ module Shoryuken
     # Handles completion of processor work
     #
     # @param queue [String] the queue name
+    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch it processed
     # @return [void]
-    def processor_done(queue)
-      @busy_processors.decrement
+    def processor_done(queue, sqs_msg)
+      @in_flight_mutex.synchronize { @in_flight.delete(sqs_msg) }
       fire_utilization_update_event
 
       client_queue = Shoryuken::Client.queues(queue)
@@ -191,7 +211,7 @@ module Shoryuken
       @polling_strategy.message_processed(queue)
     rescue => e
       # Swallow (but log) failures from the SQS lookups or the strategy callback:
-      # the busy counter was already decremented above and the caller's ensure
+      # the message was already removed from the in-flight list above and the caller's ensure
       # must not run completion twice
       logger.error { "Processor completion failed for #{queue}: #{e.message}" }
       logger.debug { e.backtrace.join("\n") } unless e.backtrace.nil?
@@ -210,9 +230,8 @@ module Shoryuken
 
       logger.debug { "Assigning #{sqs_msg.message_id}" }
 
-      @busy_processors.increment
-      fire_utilization_update_event
       @in_flight_mutex.synchronize { @in_flight[sqs_msg] = true }
+      fire_utilization_update_event
 
       # Completion runs in an ensure so it executes exactly once whether
       # processing succeeds or raises. The previous `.then { processor_done }
@@ -226,8 +245,7 @@ module Shoryuken
           Processor.process(queue_name, sqs_msg)
         ensure
           Thread.current.priority = original_priority
-          @in_flight_mutex.synchronize { @in_flight.delete(sqs_msg) }
-          processor_done(queue_name)
+          processor_done(queue_name, sqs_msg)
         end
       rescue Exception
         # Processor.process already passed the error to the exception handlers. A custom
@@ -237,13 +255,12 @@ module Shoryuken
     rescue Concurrent::RejectedExecutionError
       # The executor was shut down (or a bounded custom launcher_executor is
       # saturated) between the running? check above and the post. The posted
-      # block - and therefore processor_done - never ran, so roll back the
-      # increment here. Leaking it would permanently shrink `ready`
+      # block - and therefore processor_done - never ran, so remove the
+      # in-flight entry here. Leaking it would permanently shrink `ready`
       # (@max_processors - busy) until dispatch stalls and the group stops
       # processing. The message was never processed, so we must not run the
-      # FIFO message_processed callback - decrement directly instead.
+      # FIFO message_processed callback - remove it directly instead.
       @in_flight_mutex.synchronize { @in_flight.delete(sqs_msg) }
-      @busy_processors.decrement
       fire_utilization_update_event
       release(sqs_msg)
       nil
