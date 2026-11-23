@@ -10,18 +10,19 @@
 setup_sqs
 setup_active_job
 
-MISSING_QUEUES = DT.uuids(4)
+WORKER_QUEUE = DT.queues[0]
+JOB_QUEUE = DT.queues[1]
 
 class MissingQueueWorker
   include Shoryuken::Worker
 
-  shoryuken_options queue: MISSING_QUEUES[1]
+  shoryuken_options queue: WORKER_QUEUE
 
   def perform(_sqs_msg, _body); end
 end
 
 class MissingQueueJob < ActiveJob::Base
-  queue_as MISSING_QUEUES[2]
+  queue_as JOB_QUEUE
 
   def perform; end
 end
@@ -33,19 +34,21 @@ def assert_queue_not_found(name, label, &block)
   assert_equal("The specified queue #{name} does not exist.", error.message, "#{label}: got #{error.message}")
 end
 
-assert_queue_not_found(MISSING_QUEUES[0], 'Client.queues') do
-  Shoryuken::Client.queues(MISSING_QUEUES[0])
+client_queue, url_queue = DT.uuids(2)
+
+assert_queue_not_found(client_queue, 'Client.queues') do
+  Shoryuken::Client.queues(client_queue)
 end
 
-assert_queue_not_found(MISSING_QUEUES[1], 'perform_async') do
-  MissingQueueWorker.perform_async('body', queue: MISSING_QUEUES[1])
+assert_queue_not_found(WORKER_QUEUE, 'perform_async') do
+  MissingQueueWorker.perform_async('body', queue: WORKER_QUEUE)
 end
 
-assert_queue_not_found(MISSING_QUEUES[2], 'perform_later') do
+assert_queue_not_found(JOB_QUEUE, 'perform_later') do
   MissingQueueJob.perform_later
 end
 
-missing_url = "http://localhost:9324/000000000000/#{MISSING_QUEUES[3]}"
+missing_url = "http://localhost:9324/000000000000/#{url_queue}"
 assert_queue_not_found(missing_url, 'queue URL') do
   Shoryuken::Client.queues(missing_url)
 end

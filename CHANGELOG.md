@@ -159,8 +159,8 @@
 - Fix: `Shoryuken::Client.queues`, a raw worker `perform_async`, `perform_in` and `perform_at`, and ActiveJob
   `perform_later` and `perform_all_later` raise `Shoryuken::Errors::QueueNotFoundError` for a missing queue reported
   by SQS as `QueueDoesNotExist`, as for `NonExistentQueue`
-  - They raised the raw `Aws::SQS::Errors::QueueDoesNotExist` (the current SQS JSON protocol and ElasticMQ); a queue
-    given by URL or ARN too
+  - They raised the raw `Aws::SQS::Errors::QueueDoesNotExist`, the error of the current SQS JSON protocol and of
+    ElasticMQ, for a queue given by name, URL or ARN
   - Code that rescued `Aws::SQS::Errors::QueueDoesNotExist` should rescue `Shoryuken::Errors::QueueNotFoundError`
 
 - Breaking: `shoryuken` exits with status 1 on an unknown command, an unknown option or an extra argument
