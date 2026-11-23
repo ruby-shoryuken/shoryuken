@@ -15,7 +15,7 @@ class ConfigTestJob < ActiveJob::Base
 end
 
 adapter = ActiveJob::Base.queue_adapter
-assert_equal("ActiveJob::QueueAdapters::ShoryukenAdapter", adapter.class.name)
+assert_equal('ActiveJob::QueueAdapters::ShoryukenAdapter', adapter.class.name)
 
 require 'active_job/queue_adapters/shoryuken_concurrent_send_adapter'
 refute(defined?(Rails))

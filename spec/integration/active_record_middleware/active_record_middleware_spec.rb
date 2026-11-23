@@ -67,9 +67,10 @@ assert_equal(3, DT[:processed].size)
 
 # Verify ActiveRecord connections were cleared after each message
 # The middleware should have called clear_active_connections! for each message
+cleared = ActiveRecord::Base.connections_cleared.size
 assert(
-  ActiveRecord::Base.connections_cleared.size >= 3,
-  "ActiveRecord connections should be cleared after each message (cleared #{ActiveRecord::Base.connections_cleared.size} times)"
+  cleared >= 3,
+  "ActiveRecord connections should be cleared after each message (cleared #{cleared} times)"
 )
 
 # Verify the :all scope was used (Rails 7.1+ behavior)

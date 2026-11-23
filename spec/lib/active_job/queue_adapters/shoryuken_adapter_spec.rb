@@ -30,5 +30,4 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenAdapter do
       expect(described_class.instance).to be_a(described_class)
     end
   end
-
 end
