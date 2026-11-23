@@ -5,9 +5,9 @@
 # `shoryuken sqs`, both with the file in the current directory and with `sqs -C <path>`. `-e` wins over the file's
 # endpoint.
 #
-# A config/shoryuken.yml in the current directory that `shoryuken sqs` cannot read (ERB that needs Rails, invalid
-# YAML) does not stop the command: it warns and uses `-e`. A `-C` file that cannot be read prints one `[FAIL]` line
-# and exits with status 1.
+# A config/shoryuken.yml in the current directory that `shoryuken sqs` cannot read (ERB that needs Rails or does
+# not compile, invalid YAML) does not stop the command: it warns and uses `-e`. A `-C` file that cannot be read prints
+# one `[FAIL]` line and exits with status 1.
 #
 # Regression: only `shoryuken -C` read the aws section, so the script and `shoryuken sqs` raised
 # Aws::Errors::MissingRegionError.
@@ -134,12 +134,16 @@ with_queue_and_dir do |queue, dir|
   raising = File.join(dir, 'raising.yml')
   write_file(raising, "aws:\n  region: <%= raise 'no region' %>\n")
   assert_sqs_fails(dir, raising, "[FAIL] Could not read the config file #{raising}: RuntimeError: no region")
+
+  erb_typo = File.join(dir, 'erb_typo.yml')
+  write_file(erb_typo, "aws:\n  region: <%= 1 + %>\n")
+  assert_sqs_fails(dir, erb_typo, "[FAIL] Could not read the config file #{erb_typo}: SyntaxError")
 end
 
 with_queue_and_dir do |queue, dir|
   config = File.join(dir, 'config', 'shoryuken.yml')
 
-  ["aws:\n  region: <%= Rails.env %>\n", "aws: [\n"].each do |content|
+  ["aws:\n  region: <%= Rails.env %>\n", "aws:\n  region: <%= 1 + %>\n", "aws: [\n"].each do |content|
     write_file(config, content)
 
     status, output = run_shoryuken_command_until_exit(

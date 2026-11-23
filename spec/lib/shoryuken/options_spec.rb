@@ -162,7 +162,11 @@ RSpec.describe Shoryuken::Options do
       write_config("aws: us-east-1\n")
       expect(Dir.chdir(dir) { options.aws_options }).to eq({})
 
+      write_config("aws:\n  region: <%= 1 + %>\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
       expect(options.logger).to have_received(:warn).with(/Could not read .*NameError/).once
+      expect(options.logger).to have_received(:warn).with(/Could not read .*: SyntaxError/).once
       expect(options.logger).to have_received(:warn).with(/Could not read .*Psych::SyntaxError/).once
       expect(options.logger).to have_received(:warn).with(/aws section of .* is not a mapping/).once
     end
