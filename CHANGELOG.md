@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- Fix: `Shoryuken::EnvironmentLoader.setup_options(config_file: ...)` evaluates ERB in the config file outside the CLI
+  - It raised `NameError: uninitialized constant Shoryuken::EnvironmentLoader::ERB`: only the CLI runner required `erb`
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
