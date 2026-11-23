@@ -98,10 +98,12 @@ module ProcessHelper
     end
   end
 
-  # Runs `bin/shoryuken start -d` with the pidfile and logfile until the launching process exits, waits for the pidfile,
-  # yields [launcher status, launcher output, daemon pid] and kills the daemon if it still runs afterwards
-  def with_shoryuken_daemon(pidfile, logfile, *args, timeout: 30)
-    status, output = run_shoryuken_until_exit('-d', '-P', pidfile, '-L', logfile, *args, timeout: timeout)
+  # Runs `bin/shoryuken start -d` with the pidfile and logfile (passed with -L unless cli_logfile is false, when the
+  # config file sets it) until the launching process exits, waits for the pidfile, yields [launcher status, launcher
+  # output, daemon pid] and kills the daemon if it still runs afterwards
+  def with_shoryuken_daemon(pidfile, logfile, *args, timeout: 30, cli_logfile: true)
+    logfile_args = cli_logfile ? ['-L', logfile] : []
+    status, output = run_shoryuken_until_exit('-d', '-P', pidfile, *logfile_args, *args, timeout: timeout)
 
     begin
       Timeout.timeout(timeout) { sleep 0.1 until File.exist?(pidfile) && File.read(pidfile).end_with?("\n") }

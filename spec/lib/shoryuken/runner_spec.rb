@@ -41,6 +41,34 @@ RSpec.describe Shoryuken::Runner do
       cli.run(pidfile: '/dev/null')
     end
 
+    it 'does not daemonize when the options ask to daemonize without a logfile' do
+      expect(Process).not_to receive(:daemon)
+
+      expect { cli.run(daemon: true) }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /You should set a logfile/)
+    end
+
+    it 'does not daemonize when a queue does not exist and there is nothing to require' do
+      allow(Shoryuken::Client)
+        .to receive(:queues)
+        .with('missing')
+        .and_raise(Aws::SQS::Errors::NonExistentQueue.new(nil, nil))
+      expect(Process).not_to receive(:daemon)
+
+      expect { cli.run(daemon: true, logfile: '/dev/null', queues: ['missing']) }
+        .to raise_error(Shoryuken::Errors::QueueNotFoundError)
+    end
+
+    it 'requires the files after it daemonizes' do
+      events = []
+      allow(Process).to receive(:daemon) { events << :daemon }
+      allow_any_instance_of(Shoryuken::EnvironmentLoader).to receive(:load) { events << :load }
+
+      cli.run(daemon: true, logfile: '/dev/null', require: './workers')
+
+      expect(events).to eq(%i[daemon load])
+    end
+
     context 'when USR1 arrives' do
       before do
         allow(launcher).to receive(:start) { Process.kill('USR1', Process.pid) }
@@ -115,6 +143,29 @@ RSpec.describe Shoryuken::Runner do
         expect(launcher).to have_received(:stop!)
         expect(cli).to have_received(:exit).with(0)
       end
+    end
+  end
+
+  describe '#write_pid' do
+    let(:dir) { Dir.mktmpdir }
+    let(:pidfile) { File.join(dir, 'shoryuken.pid') }
+
+    after { FileUtils.rm_rf(dir) }
+
+    it 'removes the pidfile at exit when it holds the pid of this process' do
+      allow(cli).to receive(:at_exit) { |&block| block.call }
+
+      cli.send(:write_pid, pidfile: pidfile)
+
+      expect(File.exist?(pidfile)).to be(false)
+    end
+
+    it 'keeps the pidfile at exit when another process wrote its pid to it' do
+      allow(cli).to receive(:at_exit) { |&block| File.write(pidfile, "#{Process.pid + 1}\n") && block.call }
+
+      cli.send(:write_pid, pidfile: pidfile)
+
+      expect(File.read(pidfile)).to eq("#{Process.pid + 1}\n")
     end
   end
 

@@ -36,10 +36,7 @@ module Shoryuken
       desc 'start', 'Starts shoryuken'
       environment_options
       def start
-        opts = normalized_options
-        validate_daemon_options(opts)
-
-        Shoryuken::Runner.instance.run(opts.freeze)
+        Shoryuken::Runner.instance.run(normalized_options.freeze)
       rescue Shoryuken::Errors::InvalidConfigurationError => e
         say_error "[FAIL] #{e.message} (#{e.class})", :red
         exit 1
@@ -48,10 +45,7 @@ module Shoryuken
       desc 'check', 'Validates the configuration, queues and workers without starting to process'
       environment_options
       def check
-        opts = normalized_options
-        validate_daemon_options(opts)
-
-        problems = Shoryuken::EnvironmentLoader.setup_options(opts.freeze).check
+        problems = Shoryuken::EnvironmentLoader.setup_options(normalized_options.freeze).check
 
         fail_task problems.join("\n") if problems.any?
 
@@ -73,11 +67,6 @@ module Shoryuken
       end
 
       no_commands do
-        # Fails when the options ask to daemonize without a logfile
-        def validate_daemon_options(opts)
-          fail_task "You should set a logfile if you're going to daemonize" if opts[:daemon] && opts[:logfile].nil?
-        end
-
         # Normalizes the command line options for {Shoryuken::EnvironmentLoader}
         def normalized_options
           opts = options.to_h.transform_keys(&:to_sym)
