@@ -14,9 +14,7 @@ RSpec.describe Shoryuken::Middleware::Server::ActiveRecord do
 
       def self.connection_handler
         @connection_handler ||= Object.new.tap do |handler|
-          def handler.clear_active_connections!(_pool_key)
-            # Mock implementation
-          end
+          def handler.clear_active_connections!(_pool_key); end
         end
       end
     end
