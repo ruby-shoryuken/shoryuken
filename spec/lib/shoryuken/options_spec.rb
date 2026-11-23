@@ -136,6 +136,37 @@ RSpec.describe Shoryuken::Options do
       expect(options.aws_options).to eq(region: 'eu-west-1')
     end
 
+    it 'falls back to the current directory when Rails has no root yet' do
+      write_config("aws:\n  region: eu-west-1\n")
+      stub_const('Rails', double(root: nil))
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq(region: 'eu-west-1')
+    end
+
+    it 'falls back to the current directory when Rails does not respond to root' do
+      write_config("aws:\n  region: eu-west-1\n")
+      stub_const('Rails', Module.new)
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq(region: 'eu-west-1')
+    end
+
+    it 'warns and returns an empty hash when the file cannot be read' do
+      allow(options.logger).to receive(:warn)
+
+      write_config("aws:\n  region: <%= Rails.env %>\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      write_config("aws: [\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      write_config("aws: us-east-1\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      expect(options.logger).to have_received(:warn).with(/Could not read .*NameError/).once
+      expect(options.logger).to have_received(:warn).with(/Could not read .*Psych::SyntaxError/).once
+      expect(options.logger).to have_received(:warn).with(/aws section of .* is not a mapping/).once
+    end
+
     it 'returns an empty hash without the file or without an aws section' do
       expect(Dir.chdir(dir) { options.aws_options }).to eq({})
 

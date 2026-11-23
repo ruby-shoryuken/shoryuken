@@ -170,7 +170,8 @@ module Shoryuken
 
     # Returns the options the default SQS client is built with: options[:aws] when it is set or a config file was
     # loaded, else the aws section of {#default_config_file}, so a process that enqueues without loading the config
-    # file uses the same AWS settings as the worker
+    # file uses the same AWS settings as the worker. A default file that cannot be read (ERB that needs Rails outside
+    # of it, invalid YAML, an aws section that is not a mapping) is skipped with a warning
     #
     # @api private
     # @return [Hash] the options for Aws::SQS::Client.new
@@ -178,9 +179,16 @@ module Shoryuken
       return options[:aws] if options[:config_file] || !options[:aws].to_h.empty?
 
       path = default_config_file
-      return {} unless File.exist?(path)
+      return {} unless File.file?(path)
 
-      EnvironmentLoader.read_config_file(path)[:aws] || {}
+      aws = EnvironmentLoader.read_config_file(path)[:aws]
+      return aws if aws.is_a?(Hash)
+
+      logger.warn("The aws section of #{path} is not a mapping, ignoring it") unless aws.nil?
+      {}
+    rescue StandardError, SyntaxError => e
+      logger.warn("Could not read the aws section of #{path}, ignoring it: #{e.class}: #{e.message.lines.first&.chomp}")
+      {}
     end
 
     # Returns the path of config/shoryuken.yml under the Rails root when Rails is loaded, else under the current

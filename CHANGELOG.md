@@ -3,9 +3,11 @@
 - Change: The `aws` section of `config/shoryuken.yml` reaches a process that enqueues without running `shoryuken`
   (`perform_async`, the ActiveJob adapters) and `shoryuken sqs`, not only the `shoryuken -C` process
   - The default SQS client reads the section from `config/shoryuken.yml` under the Rails root, else under the current
-    directory, when the process loaded no config file and `Shoryuken.options[:aws]` is empty
+    directory, when the process loaded no config file and `Shoryuken.options[:aws]` is empty. When that file cannot
+    be read (ERB that needs Rails outside of it, such as `<%= Rails.env %>` in `shoryuken sqs`, invalid YAML, an
+    `aws` value that is not a mapping), it logs a warning and uses the AWS SDK settings, as before
   - `shoryuken sqs` accepts `-C`/`--config <path>` to read the section from another file; `-e` overrides its
-    `endpoint`
+    `endpoint`. A `-C` file that cannot be read prints one `[FAIL]` line and exits with status 1
   - Such a process raised `Aws::Errors::MissingRegionError` or used the AWS SDK settings (`AWS_REGION`,
     `AWS_ENDPOINT_URL_SQS`, `~/.aws/config`); where the file sets a value the SDK settings also set, the file now wins.
     `Shoryuken.sqs_client = ...` still replaces the default client

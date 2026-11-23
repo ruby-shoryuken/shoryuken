@@ -109,11 +109,16 @@ module Shoryuken
         #
         # @return [Hash] the aws options
         def config_aws_options
-          return Shoryuken.shoryuken_options.aws_options unless options[:config]
+          return Shoryuken.shoryuken_options.aws_options unless (path = options[:config])
 
-          Shoryuken::EnvironmentLoader.read_config_file(options[:config])[:aws] || {}
-        rescue Shoryuken::Errors::InvalidConfigurationError, Psych::Exception => e
+          aws = Shoryuken::EnvironmentLoader.read_config_file(path)[:aws] || {}
+          fail_task "The aws section of #{path} must be a mapping" unless aws.is_a?(Hash)
+
+          aws
+        rescue Shoryuken::Errors::InvalidConfigurationError => e
           fail_task e.message
+        rescue StandardError, SyntaxError => e
+          fail_task "Could not read the config file #{path}: #{e.class}: #{e.message.lines.first&.chomp}"
         end
 
         # Returns the SQS client instance
