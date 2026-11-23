@@ -5,6 +5,8 @@ module Shoryuken
     # Default executor that sends messages to SQS for asynchronous processing.
     # This is the standard executor used in production environments.
     class DefaultExecutor
+      extend DefaultQueue
+
       class << self
         # Enqueues a job for asynchronous processing via SQS
         #
@@ -71,27 +73,6 @@ module Shoryuken
           end
 
           worker_class.perform_async(body, options.merge(delay_seconds: delay))
-        end
-
-        private
-
-        # Returns the queue to send to when no :queue option is given
-        #
-        # @param worker_class [Class] the worker class
-        # @return [String] the worker's queue
-        # @raise [ArgumentError] if the worker has no queue or several queues
-        def default_queue(worker_class)
-          queue = worker_class.get_shoryuken_options['queue']
-
-          return queue unless queue.is_a?(Array)
-          return queue.first if queue.size == 1
-
-          raise(ArgumentError, "#{worker_class} has no queue: pass the queue: option") if queue.empty?
-
-          raise(
-            ArgumentError,
-            "#{worker_class} has several queues (#{queue.join(', ')}): pass the queue: option to choose one"
-          )
         end
       end
     end
