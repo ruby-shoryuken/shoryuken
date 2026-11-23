@@ -121,13 +121,19 @@ module Shoryuken
 
     # Shuts the executor down, giving in-flight workers up to the configured timeout to finish before force-killing them so
     # the process can exit. Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns: a graceful stop still
-    # waits for workers, but must not block forever on a hung one.
+    # waits for workers, but must not block forever on a hung one. The killed workers' messages are released, so they
+    # come back at once instead of after the visibility timeout.
     #
     # @return [void]
     def shutdown_executor
       shutdown_step(:shutdown_executor) do
         executor.shutdown
-        executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+        next if executor.wait_for_termination(Shoryuken.options[:timeout])
+
+        # Taken before the kill: a killed worker's ensure removes its message from the in-flight list
+        in_flight = @managers.map { |manager| [manager, manager.in_flight_messages] }
+        executor.kill
+        in_flight.each { |manager, messages| manager.release(messages) }
       end
     end
 

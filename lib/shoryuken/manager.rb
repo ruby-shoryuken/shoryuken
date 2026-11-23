@@ -34,6 +34,8 @@ module Shoryuken
       @stop_new_dispatching       = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatch_started           = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatching_release_signal = ::Queue.new
+      @in_flight                  = {}.compare_by_identity
+      @in_flight_mutex            = Mutex.new
     end
 
     # Starts the dispatch loop
@@ -86,6 +88,26 @@ module Shoryuken
     # @return [Boolean] true if a fatal dispatch error stopped the manager
     def failed?
       @running.false?
+    end
+
+    # Returns the messages its workers are processing now, so a shutdown can release them if it kills those workers
+    #
+    # @return [Array<Shoryuken::Message>] the messages, batches flattened
+    def in_flight_messages
+      @in_flight_mutex.synchronize { @in_flight.keys }.flatten
+    end
+
+    # Makes messages visible again, so another consumer can receive them at once instead of after the visibility timeout.
+    # A failed release is logged, not raised, so it cannot break dispatch or shutdown
+    #
+    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch
+    # @return [void]
+    def release(sqs_msg)
+      (sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]).each do |message|
+        message.visibility_timeout = 0
+      rescue => e
+        logger.error { "Failed to release message #{message.message_id}: #{e.message}" }
+      end
     end
 
     private
@@ -190,6 +212,7 @@ module Shoryuken
 
       @busy_processors.increment
       fire_utilization_update_event
+      @in_flight_mutex.synchronize { @in_flight[sqs_msg] = true }
 
       # Completion runs in an ensure so it executes exactly once whether
       # processing succeeds or raises. The previous `.then { processor_done }
@@ -203,6 +226,7 @@ module Shoryuken
           Processor.process(queue_name, sqs_msg)
         ensure
           Thread.current.priority = original_priority
+          @in_flight_mutex.synchronize { @in_flight.delete(sqs_msg) }
           processor_done(queue_name)
         end
       rescue Exception
@@ -218,23 +242,11 @@ module Shoryuken
       # (@max_processors - busy) until dispatch stalls and the group stops
       # processing. The message was never processed, so we must not run the
       # FIFO message_processed callback - decrement directly instead.
+      @in_flight_mutex.synchronize { @in_flight.delete(sqs_msg) }
       @busy_processors.decrement
       fire_utilization_update_event
       release(sqs_msg)
       nil
-    end
-
-    # Makes fetched but never started messages visible again, so another consumer can receive them at once instead of
-    # after the visibility timeout. A failed release is logged, not raised, so it cannot break dispatch or shutdown
-    #
-    # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch
-    # @return [void]
-    def release(sqs_msg)
-      (sqs_msg.is_a?(Array) ? sqs_msg : [sqs_msg]).each do |message|
-        message.visibility_timeout = 0
-      rescue => e
-        logger.error { "Failed to release message #{message.message_id}: #{e.message}" }
-      end
     end
 
     # Dispatches a batch of messages from a queue

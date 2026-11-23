@@ -278,6 +278,35 @@ RSpec.describe Shoryuken::Manager do
       expect(sqs_msg).not_to have_received(:visibility_timeout=)
     end
 
+    it 'tracks the message as in flight only while it is processed' do
+      in_flight = nil
+      allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(in_flight).to eq([sqs_msg])
+      expect(subject.in_flight_messages).to eq([])
+    end
+
+    it 'tracks every message of a batch as in flight' do
+      other_msg = double(Shoryuken::Message, message_id: SecureRandom.uuid, 'visibility_timeout=': nil)
+      in_flight = nil
+      allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
+
+      subject.send(:assign, queue, [sqs_msg, other_msg])
+
+      expect(in_flight).to eq([sqs_msg, other_msg])
+      expect(subject.in_flight_messages).to eq([])
+    end
+
+    it 'stops tracking the message when processing raises' do
+      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
+
+      subject.send(:assign, queue, sqs_msg)
+
+      expect(subject.in_flight_messages).to eq([])
+    end
+
     context 'when the manager is not running' do
       before { allow(subject).to receive(:running?).and_return(false) }
 
@@ -364,6 +393,12 @@ RSpec.describe Shoryuken::Manager do
         expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
 
         expect(subject.send(:busy)).to eq(0)
+      end
+
+      it 'does not track the message as in flight' do
+        subject.send(:assign, queue, sqs_msg)
+
+        expect(subject.in_flight_messages).to eq([])
       end
     end
   end

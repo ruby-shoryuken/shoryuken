@@ -115,11 +115,41 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     it 'kills the executor when workers do not finish within the timeout' do
+      allow(first_group_manager).to receive_messages(in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(in_flight_messages: [], release: nil)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       expect(executor).to receive(:kill)
 
       subject.stop
+    end
+
+    it 'releases the messages of the killed workers, taken before the kill' do
+      first_messages = [double(Shoryuken::Message)]
+      second_messages = [double(Shoryuken::Message), double(Shoryuken::Message)]
+      allow(first_group_manager).to receive_messages(in_flight_messages: first_messages, release: nil)
+      allow(second_group_manager).to receive_messages(in_flight_messages: second_messages, release: nil)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill) do
+        allow(first_group_manager).to receive(:in_flight_messages).and_return([])
+        allow(second_group_manager).to receive(:in_flight_messages).and_return([])
+      end
+
+      subject.stop
+
+      expect(first_group_manager).to have_received(:release).with(first_messages)
+      expect(second_group_manager).to have_received(:release).with(second_messages)
+    end
+
+    it 'does not release messages when workers finish within the timeout' do
+      allow(first_group_manager).to receive(:release)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(true)
+
+      subject.stop
+
+      expect(first_group_manager).not_to have_received(:release)
     end
 
     context 'when stop_callback raises' do
@@ -297,6 +327,8 @@ RSpec.describe Shoryuken::Launcher do
       allow(first_group_manager).to receive(:await_dispatching_in_progress)
       allow(second_group_manager).to receive(:stop_new_dispatching)
       allow(second_group_manager).to receive(:await_dispatching_in_progress)
+      allow(first_group_manager).to receive_messages(in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(in_flight_messages: [], release: nil)
 
       # Make ActiveJob present and point its adapter at our double, regardless of
       # whether active_job happens to be loaded by another spec.
