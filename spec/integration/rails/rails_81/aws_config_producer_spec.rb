@@ -83,9 +83,7 @@ with_queue_and_dir do |queue, dir|
     'RAILS_ENV' => 'production'
   )
 
-  status, output = run_shoryuken_command_until_exit(
-    'enqueue', bin: write_producer(dir, app_dir, queue), env: env, chdir: cwd
-  )
+  status, output = run_ruby_script_until_exit(write_producer(dir, app_dir, queue), env: env, chdir: cwd)
 
   assert_equal(0, status.exitstatus, "perform_later must enqueue, got: #{output}")
   assert_includes(output, 'enqueued')

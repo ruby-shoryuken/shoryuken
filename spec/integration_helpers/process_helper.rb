@@ -23,19 +23,27 @@ module ProcessHelper
 
   # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env, in another directory) until it
   # exits on its own, returns [status, output]
-  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {}, chdir: Dir.pwd)
-    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args, chdir: chdir) do |_in, out, wait|
+  def run_shoryuken_command_until_exit(command, *args, bin: SHORYUKEN_BIN, **options)
+    run_ruby_script_until_exit(bin, command, *args, **options)
+  end
+
+  # Runs a Ruby script (with extra env, in another directory) until it exits on its own, returns [status, output]
+  def run_ruby_script_until_exit(script, *args, timeout: 30, env: {}, chdir: Dir.pwd)
+    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, script, *args, chdir: chdir) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 
       unless wait.join(timeout)
         Process.kill('KILL', wait.pid)
         reader.join
-        raise IntegrationsHelper::TestFailure, "shoryuken must exit, but it kept running: #{output}"
+        raise IntegrationsHelper::TestFailure, "#{File.basename(script)} must exit, but it kept running: #{output}"
       end
 
       unless reader.join(timeout)
-        raise IntegrationsHelper::TestFailure, "shoryuken exited, but a process it left kept its output open: #{output}"
+        raise(
+          IntegrationsHelper::TestFailure,
+          "#{File.basename(script)} exited, but a process it left kept its output open: #{output}"
+        )
       end
 
       [wait.value, output]

@@ -89,9 +89,7 @@ end
 with_queue_and_dir do |queue, dir|
   write_config(File.join(dir, 'config', 'shoryuken.yml'))
 
-  status, output = run_shoryuken_command_until_exit(
-    'enqueue', bin: write_producer(dir, queue), env: sqs_env(dir), chdir: dir
-  )
+  status, output = run_ruby_script_until_exit(write_producer(dir, queue), env: sqs_env(dir), chdir: dir)
 
   assert_equal(0, status.exitstatus, "The producer must enqueue, got: #{output}")
   assert_includes(output, 'enqueued')

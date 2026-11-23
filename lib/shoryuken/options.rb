@@ -169,9 +169,7 @@ module Shoryuken
     end
 
     # Returns the options the default SQS client is built with: options[:aws] when it is set or a config file was
-    # loaded, else the aws section of {#default_config_file}, so a process that enqueues without loading the config
-    # file uses the same AWS settings as the worker. A default file that cannot be read (ERB that needs Rails outside
-    # of it, invalid YAML, an aws section that is not a mapping) is skipped with a warning
+    # loaded, else the aws section of config/shoryuken.yml. A default file that cannot be read is skipped with a warning
     #
     # @api private
     # @return [Hash] the options for Aws::SQS::Client.new
@@ -189,17 +187,6 @@ module Shoryuken
     rescue StandardError, SyntaxError => e
       logger.warn("Could not read the aws section of #{path}, ignoring it: #{e.class}: #{e.message.lines.first&.chomp}")
       {}
-    end
-
-    # Returns the path of config/shoryuken.yml under the Rails root when Rails is loaded, else under the current
-    # directory
-    #
-    # @api private
-    # @return [String] the path, which may not exist
-    def default_config_file
-      root = ::Rails.root if defined?(::Rails) && ::Rails.respond_to?(:root)
-
-      File.join((root || Dir.pwd).to_s, 'config', 'shoryuken.yml')
     end
 
     # Sets the SQS client receive message options for the default group
@@ -394,6 +381,16 @@ module Shoryuken
     end
 
     private
+
+    # Returns the path of config/shoryuken.yml under the Rails root when Rails is loaded, else under the current
+    # directory
+    #
+    # @return [String] the path, which may not exist
+    def default_config_file
+      root = ::Rails.root if defined?(::Rails) && ::Rails.respond_to?(:root)
+
+      File.join((root || Dir.pwd).to_s, 'config', 'shoryuken.yml')
+    end
 
     # Creates the default server middleware chain
     #
