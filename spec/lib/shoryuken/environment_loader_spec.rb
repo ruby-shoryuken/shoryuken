@@ -292,4 +292,26 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       end
     end
   end
+
+  describe '.read_config_file' do
+    let(:file) { Tempfile.new(['shoryuken', '.yml']) }
+
+    after { file.close! }
+
+    it 'returns the options with symbolized keys, after ERB' do
+      file.write("aws:\n  region: <%= 'eu-west-1' %>\n")
+      file.flush
+
+      expect(described_class.read_config_file(file.path)).to eq(aws: { region: 'eu-west-1' })
+    end
+
+    it 'returns an empty hash for an empty file' do
+      expect(described_class.read_config_file(file.path)).to eq({})
+    end
+
+    it 'raises when the file does not exist' do
+      expect { described_class.read_config_file('missing.yml') }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /missing.yml does not exist/)
+    end
+  end
 end

@@ -21,10 +21,10 @@ module ProcessHelper
     run_shoryuken_command_until_exit('sqs', *args, '-e', SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS'], **options)
   end
 
-  # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env) until it exits on its own,
-  # returns [status, output]
-  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {})
-    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, out, wait|
+  # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env, in another directory) until it
+  # exits on its own, returns [status, output]
+  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {}, chdir: Dir.pwd)
+    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args, chdir: chdir) do |_in, out, wait|
       output = +''
       reader = Thread.new { out.each_line { |line| output << line } }
 

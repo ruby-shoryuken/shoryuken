@@ -23,6 +23,21 @@ module Shoryuken
       instance
     end
 
+    # Reads and parses a configuration file
+    #
+    # @param path [String, Pathname] path to the configuration file
+    # @return [Hash] the parsed options, with symbolized keys
+    # @raise [Errors::InvalidConfigurationError] if the file does not exist
+    def self.read_config_file(path)
+      raise Errors::InvalidConfigurationError, "The supplied config file #{path} does not exist" unless File.exist?(path)
+
+      if (result = YAML.load(ERB.new(IO.read(path)).result))
+        Shoryuken::Helpers::HashUtils.deep_symbolize_keys(result)
+      else
+        {}
+      end
+    end
+
     # Loads the environment for Rails console usage
     #
     # @return [void]
@@ -104,13 +119,7 @@ module Shoryuken
     def config_file_options
       return {} unless (path = options[:config_file])
 
-      raise Errors::InvalidConfigurationError, "The supplied config file #{path} does not exist" unless File.exist?(path)
-
-      if (result = YAML.load(ERB.new(IO.read(path)).result))
-        Shoryuken::Helpers::HashUtils.deep_symbolize_keys(result)
-      else
-        {}
-      end
+      self.class.read_config_file(path)
     end
 
     # Initializes the logger with file output and verbosity settings

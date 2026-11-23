@@ -161,12 +161,37 @@ module Shoryuken
       groups[group].to_h.fetch(:delay, options[:delay]).to_f
     end
 
-    # Returns the SQS client, initializing a default one if needed.
-    # Uses AWS configuration from options[:aws] if available.
+    # Returns the SQS client, initializing a default one from {#aws_options} if needed
     #
     # @return [Aws::SQS::Client] the SQS client
     def sqs_client
-      @sqs_client ||= Aws::SQS::Client.new(options[:aws])
+      @sqs_client ||= Aws::SQS::Client.new(aws_options)
+    end
+
+    # Returns the options the default SQS client is built with: options[:aws] when it is set or a config file was
+    # loaded, else the aws section of {#default_config_file}, so a process that enqueues without loading the config
+    # file uses the same AWS settings as the worker
+    #
+    # @api private
+    # @return [Hash] the options for Aws::SQS::Client.new
+    def aws_options
+      return options[:aws] if options[:config_file] || !options[:aws].to_h.empty?
+
+      path = default_config_file
+      return {} unless File.exist?(path)
+
+      EnvironmentLoader.read_config_file(path)[:aws] || {}
+    end
+
+    # Returns the path of config/shoryuken.yml under the Rails root when Rails is loaded, else under the current
+    # directory
+    #
+    # @api private
+    # @return [String] the path, which may not exist
+    def default_config_file
+      root = ::Rails.root if defined?(::Rails) && ::Rails.respond_to?(:root)
+
+      File.join((root || Dir.pwd).to_s, 'config', 'shoryuken.yml')
     end
 
     # Sets the SQS client receive message options for the default group

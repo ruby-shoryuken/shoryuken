@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+- Change: The `aws` section of `config/shoryuken.yml` reaches a process that enqueues without running `shoryuken`
+  (`perform_async`, the ActiveJob adapters) and `shoryuken sqs`, not only the `shoryuken -C` process
+  - The default SQS client reads the section from `config/shoryuken.yml` under the Rails root, else under the current
+    directory, when the process loaded no config file and `Shoryuken.options[:aws]` is empty
+  - `shoryuken sqs` accepts `-C`/`--config <path>` to read the section from another file; `-e` overrides its
+    `endpoint`
+  - Such a process raised `Aws::Errors::MissingRegionError` or used the AWS SDK settings (`AWS_REGION`,
+    `AWS_ENDPOINT_URL_SQS`, `~/.aws/config`); where the file sets a value the SDK settings also set, the file now wins.
+    `Shoryuken.sqs_client = ...` still replaces the default client
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
