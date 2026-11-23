@@ -16,17 +16,9 @@ module ActiveJob
     # Example Rails configuration:
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
 
-    # Determine the appropriate base class based on Rails version
-    # This prevents AbstractAdapter autoloading issues in Rails 7.0-7.1
-    base = if defined?(Rails) && defined?(Rails::VERSION)
-             (Rails::VERSION::MAJOR == 7 && Rails::VERSION::MINOR < 2 ? Object : AbstractAdapter)
-           else
-             Object
-           end
-
     # Shoryuken queue adapter for ActiveJob integration.
     # Provides methods for enqueueing jobs to SQS queues.
-    class ShoryukenAdapter < base
+    class ShoryukenAdapter < AbstractAdapter
       class << self
         # Returns the singleton adapter instance
         #
