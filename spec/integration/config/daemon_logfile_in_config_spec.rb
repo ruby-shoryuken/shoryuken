@@ -37,9 +37,21 @@ def write_worker(dir, queue, record)
 end
 
 def wait_for_record(record, logfile)
-  Timeout.timeout(30) { sleep 0.1 until File.exist?(record) }
+  Timeout.timeout(30) { sleep 0.1 until File.exist?(record) && File.read(record).end_with?("\n") }
 rescue Timeout::Error
   raise IntegrationsHelper::TestFailure, "the daemon must process the message, log: #{File.read(logfile)}"
+end
+
+def expect_rejected_without_logfile(config, boot_file, pidfile)
+  status, output = run_shoryuken_command_until_exit('check', '-C', config, '-r', boot_file)
+  assert_equal(1, status.exitstatus, "check must fail, got: #{output}")
+  assert_includes(output, "[FAIL] You should set a logfile if you're going to daemonize")
+
+  status, output = run_shoryuken_until_exit('-C', config, '-r', boot_file)
+  assert_equal(1, status.exitstatus, "start must fail in the launching process, got: #{output}")
+  assert_includes(output, "[FAIL] You should set a logfile if you're going to daemonize")
+  refute(output.include?('.rb:'), "start must not print a backtrace, got: #{output}")
+  refute(File.exist?(pidfile), 'start must fail before it forks and writes the pidfile')
 end
 
 with_queue_and_dir do |queue, dir|
@@ -51,14 +63,7 @@ with_queue_and_dir do |queue, dir|
   # --- daemon in the config file, no logfile ---
   no_logfile = write_config(dir, 'no_logfile', "daemon: true\npidfile: #{pidfile}\nqueues:\n  - #{queue}\n")
 
-  status, output = run_shoryuken_command_until_exit('check', '-C', no_logfile, '-r', boot_file)
-  assert_equal(1, status.exitstatus, "check must fail, got: #{output}")
-  assert_includes(output, "[FAIL] You should set a logfile if you're going to daemonize")
-
-  status, output = run_shoryuken_until_exit('-C', no_logfile, '-r', boot_file)
-  assert_equal(1, status.exitstatus, "start must fail in the launching process, got: #{output}")
-  assert_includes(output, "You should set a logfile if you're going to daemonize")
-  refute(File.exist?(pidfile), 'start must fail before it forks and writes the pidfile')
+  expect_rejected_without_logfile(no_logfile, boot_file, pidfile)
 
   # --- logfile in the config file, -d on the CLI ---
   with_logfile = write_config(dir, 'with_logfile', "logfile: #{logfile}\nqueues:\n  - #{queue}\n")

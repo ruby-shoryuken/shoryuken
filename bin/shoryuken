@@ -36,8 +36,14 @@ module Shoryuken
       desc 'start', 'Starts shoryuken'
       environment_options
       def start
+        launching_pid = Process.pid
+
         Shoryuken::Runner.instance.run(normalized_options.freeze)
-      rescue Shoryuken::Errors::InvalidConfigurationError => e
+      rescue Shoryuken::Errors::BaseError => e
+        # The forked daemon also reaches this rescue; its logfile needs the backtrace of an error found after the fork
+        raise unless e.is_a?(Shoryuken::Errors::InvalidConfigurationError) ||
+                     (Shoryuken.options[:daemon] && Process.pid == launching_pid)
+
         say_error "[FAIL] #{e.message} (#{e.class})", :red
         exit 1
       end

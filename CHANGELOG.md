@@ -5,10 +5,9 @@
     `start` exited 0 and the daemon crashed with a `TypeError`
   - A `logfile` in the config file with `-d` on the CLI is accepted; it failed with `You should set a logfile if you're
     going to daemonize`
-  - `start -d` exits 1 in the launching process on an invalid option value and, when there is nothing to require
-    (`-r`), on a missing queue; it exited 0 and the error went only to the logfile
-  - `start -d` without a logfile prints the error as an `InvalidConfigurationError`, like other invalid options, instead
-    of `[FAIL] ...`
+  - `start -d` prints `[FAIL] <message> (<error class>)` and exits 1 in the launching process on an invalid option
+    value and, when there is nothing to require (`-r`), on a missing queue; it exited 0 and the error went only to the
+    logfile
 
 - Fix: the process removes its pidfile (`-P`, `pidfile:`) when it exits, if the file still holds its pid; a stopped or
   failed process left a dead pid in it

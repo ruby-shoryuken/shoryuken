@@ -69,6 +69,29 @@ RSpec.describe Shoryuken::Runner do
       expect(events).to eq(%i[daemon load])
     end
 
+    context 'with a pidfile' do
+      let(:dir) { Dir.mktmpdir }
+      let(:pidfile) { File.join(dir, 'shoryuken.pid') }
+
+      after { FileUtils.rm_rf(dir) }
+
+      it 'removes the pidfile at exit when it holds the pid of this process' do
+        allow(cli).to receive(:at_exit) { |&block| block.call }
+
+        cli.run(pidfile: pidfile)
+
+        expect(File.exist?(pidfile)).to be(false)
+      end
+
+      it 'keeps the pidfile at exit when another process wrote its pid to it' do
+        allow(cli).to receive(:at_exit) { |&block| File.write(pidfile, "#{Process.pid + 1}\n") && block.call }
+
+        cli.run(pidfile: pidfile)
+
+        expect(File.read(pidfile)).to eq("#{Process.pid + 1}\n")
+      end
+    end
+
     context 'when USR1 arrives' do
       before do
         allow(launcher).to receive(:start) { Process.kill('USR1', Process.pid) }
@@ -143,29 +166,6 @@ RSpec.describe Shoryuken::Runner do
         expect(launcher).to have_received(:stop!)
         expect(cli).to have_received(:exit).with(0)
       end
-    end
-  end
-
-  describe '#write_pid' do
-    let(:dir) { Dir.mktmpdir }
-    let(:pidfile) { File.join(dir, 'shoryuken.pid') }
-
-    after { FileUtils.rm_rf(dir) }
-
-    it 'removes the pidfile at exit when it holds the pid of this process' do
-      allow(cli).to receive(:at_exit) { |&block| block.call }
-
-      cli.send(:write_pid, pidfile: pidfile)
-
-      expect(File.exist?(pidfile)).to be(false)
-    end
-
-    it 'keeps the pidfile at exit when another process wrote its pid to it' do
-      allow(cli).to receive(:at_exit) { |&block| File.write(pidfile, "#{Process.pid + 1}\n") && block.call }
-
-      cli.send(:write_pid, pidfile: pidfile)
-
-      expect(File.read(pidfile)).to eq("#{Process.pid + 1}\n")
     end
   end
 

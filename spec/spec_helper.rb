@@ -107,6 +107,7 @@ RSpec.configure do |config|
     Shoryuken.options[:logfile]     = nil
     Shoryuken.options[:queues]      = nil
     Shoryuken.options[:require]     = nil
+    Shoryuken.options[:pidfile]     = nil
 
     Shoryuken.options[:exception_handlers] = []
 
