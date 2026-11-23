@@ -20,6 +20,7 @@ module Shoryuken
       optional(:queues) { |value| valid_queues?(value) }
       optional(:groups) { |value| value.nil? || value.is_a?(Hash) || value.is_a?(Array) }
       optional(:thread_priority) { |value| value.is_a?(Integer) }
+      optional(:executor) { |value| (value.is_a?(String) || value.is_a?(Symbol)) && %w[thread fiber].include?(value.to_s) }
       optional(:aws) { |value| value.is_a?(Hash) }
       optional(:lifecycle_events) { |value| value.is_a?(Hash) }
       optional(:config_file) { |value| value.nil? || value.is_a?(String) || value.respond_to?(:to_path) }

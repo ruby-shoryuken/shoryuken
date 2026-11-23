@@ -8,6 +8,7 @@ module Shoryuken
 
     # Initializes a new Launcher with managers for each processing group
     def initialize
+      @fiber_executors = []
       @managers = create_managers
       @stopping = false
       @stopped = false
@@ -126,8 +127,23 @@ module Shoryuken
     # @return [void]
     def shutdown_executor
       shutdown_step(:shutdown_executor) do
+        shutdown_fiber_executors
         executor.shutdown
         executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+      end
+    end
+
+    # Shuts the fiber executors of the groups down (fiber executor mode only), giving their in-flight workers together up
+    # to the configured timeout to finish before force-killing them
+    #
+    # @return [void]
+    def shutdown_fiber_executors
+      @fiber_executors.each(&:shutdown)
+
+      deadline = shutdown_deadline
+      @fiber_executors.each do |fiber_executor|
+        remaining = [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
+        fiber_executor.kill unless fiber_executor.wait_for_termination(remaining)
       end
     end
 
@@ -244,8 +260,26 @@ module Shoryuken
           Shoryuken::Fetcher.new(group),
           Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.delay(group)),
           options[:concurrency],
-          executor
+          executor,
+          processor_executor(options[:concurrency])
         )
+      end
+    end
+
+    # Returns the executor a group's workers run on: the launcher executor in thread mode, a fiber executor of its own
+    # limited to the group's concurrency in fiber mode
+    #
+    # @param concurrency [Integer] the group's concurrency
+    # @return [#post] the executor
+    # @raise [Errors::InvalidConfigurationError] when the executor mode is unknown or the async gem is missing
+    def processor_executor(concurrency)
+      case Shoryuken.executor
+      when :thread
+        executor
+      when :fiber
+        Shoryuken::Helpers::FiberExecutor.new(concurrency).tap { |fiber_executor| @fiber_executors << fiber_executor }
+      else
+        raise Errors::InvalidConfigurationError, "executor needs to be :thread or :fiber, got #{Shoryuken.executor.inspect}"
       end
     end
   end

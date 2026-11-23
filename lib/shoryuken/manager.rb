@@ -23,13 +23,15 @@ module Shoryuken
     # @param polling_strategy [Shoryuken::Polling::BaseStrategy] the polling strategy
     # @param concurrency [Integer] the maximum number of concurrent processors
     # @param executor [#post, #running?] the executor for async operations (see {Shoryuken::Options#launcher_executor})
-    def initialize(group, fetcher, polling_strategy, concurrency, executor)
+    # @param processor_executor [#post] the executor the workers run on, the launcher executor unless in fiber mode
+    def initialize(group, fetcher, polling_strategy, concurrency, executor, processor_executor = executor)
       @group                      = group
       @fetcher                    = fetcher
       @polling_strategy           = polling_strategy
       @max_processors             = concurrency
       @busy_processors            = Shoryuken::Helpers::AtomicCounter.new(0)
       @executor                   = executor
+      @processor_executor         = processor_executor
       @running                    = Shoryuken::Helpers::AtomicBoolean.new(true)
       @stop_new_dispatching       = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatch_started           = Shoryuken::Helpers::AtomicBoolean.new(false)
@@ -196,7 +198,7 @@ module Shoryuken
       # .rescue { processor_done }` chain ran completion twice when
       # processor_done itself raised, double decrementing the busy counter
       # and silently breaking the concurrency limit
-      @executor.post do
+      @processor_executor.post do
         original_priority = Thread.current.priority
         begin
           Thread.current.priority = Shoryuken.thread_priority

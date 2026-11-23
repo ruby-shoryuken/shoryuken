@@ -218,6 +218,20 @@ module Shoryuken
     # @return [Integer] the thread priority
     attr_writer :thread_priority
 
+    # Returns how workers run: `:thread` (default) runs each message on a thread of the launcher executor, `:fiber` runs
+    # each message as an Async task, at most the group's concurrency at a time (needs the async gem)
+    #
+    # @return [Symbol] :thread or :fiber
+    def executor
+      (@executor || options[:executor] || :thread).to_sym
+    end
+
+    # Sets how workers run
+    #
+    # @param value [Symbol, String] :thread or :fiber
+    # @return [Symbol, String] the value
+    attr_writer :executor
+
     # Registers a worker class with the worker registry
     #
     # @param args [Array] arguments to pass to the registry

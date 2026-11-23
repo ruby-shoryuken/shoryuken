@@ -45,6 +45,8 @@ module Shoryuken
     :ungrouped_queues,
     :thread_priority,
     :thread_priority=,
+    :executor,
+    :executor=,
     :worker_registry,
     :worker_registry=,
     :worker_executor,

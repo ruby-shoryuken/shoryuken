@@ -5,6 +5,7 @@ gemspec
 
 group :test do
   gem 'activejob'
+  gem 'async'
   gem 'simplecov'
   gem 'warning'
 end
