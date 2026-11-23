@@ -65,7 +65,8 @@ module Shoryuken
     end
 
     # Loads and validates the environment like {#load}, without starting to process, and returns as problems what
-    # {#load} only logs as warnings: no queues at all, and queues without a worker
+    # {#load} only logs as warnings: no queues at all, queues without a worker and workers whose perform cannot take
+    # the message and its body
     #
     # @return [Array<String>] the problems found, empty when the configuration is valid
     # @raise [Shoryuken::Errors::BaseError] when an option has an invalid value or a queue does not exist
@@ -76,7 +77,7 @@ module Shoryuken
       return ['No queues supplied'] if Shoryuken.ungrouped_queues.empty?
 
       validate_queues
-      queues_without_workers.map { |queue| "No worker supplied for #{queue}" }
+      queues_without_workers.map { |queue| "No worker supplied for #{queue}" } + worker_perform_problems
     end
 
     private
@@ -276,13 +277,79 @@ module Shoryuken
       raise Errors::QueueNotFoundError, error_msg
     end
 
-    # Validates that all queues have registered workers
+    # Validates that all queues have registered workers and that each worker's perform takes the message and body
     #
     # @return [void]
     def validate_workers
       queues_without_workers.each do |queue|
         Shoryuken.logger.warn { "No worker supplied for #{queue}" }
       end
+
+      worker_perform_problems.each do |problem|
+        Shoryuken.logger.warn { problem }
+      end
+    end
+
+    # Returns a problem for each worker of the configured queues that has no public perform or whose perform cannot
+    # be called with two positional arguments, the way the processor calls it
+    #
+    # @return [Array<String>] one message per worker with a wrong or missing perform
+    def worker_perform_problems
+      Shoryuken.ungrouped_queues.uniq
+               .flat_map { |queue| Shoryuken.worker_registry.workers(queue) }
+               .uniq
+               .filter_map { |worker_class| worker_perform_problem(worker_class) }
+    end
+
+    # Checks the perform method of a worker class
+    #
+    # @param worker_class [Class] the worker class
+    # @return [String, nil] the problem, nil when perform takes two positional arguments
+    def worker_perform_problem(worker_class)
+      name = worker_class.name || worker_class.inspect
+      signature = if worker_class.respond_to?(:get_shoryuken_options) && worker_class.get_shoryuken_options['batch']
+                    '(sqs_msgs, bodies)'
+                  else
+                    '(sqs_msg, body)'
+                  end
+
+      return "#{name} must define perform#{signature}" unless worker_class.public_method_defined?(:perform)
+
+      parameters = worker_class.instance_method(:perform).parameters
+      return if two_positional_arguments?(parameters)
+
+      "#{name}#perform must accept #{signature}; it takes (#{format_parameters(parameters)})"
+    end
+
+    # Checks that a method with the given parameters can be called with exactly two positional arguments
+    #
+    # @param parameters [Array<Array(Symbol, Symbol)>] the result of Method#parameters
+    # @return [Boolean] true when at most two positional arguments are required, two are accepted and no keyword
+    #   argument is required
+    def two_positional_arguments?(parameters)
+      types = parameters.map(&:first)
+      required = types.count(:req)
+      accepted = required + types.count(:opt)
+
+      required <= 2 && (accepted >= 2 || types.include?(:rest)) && !types.include?(:keyreq)
+    end
+
+    # Formats method parameters the way they appear in the method definition
+    #
+    # @param parameters [Array<Array(Symbol, Symbol)>] the result of Method#parameters
+    # @return [String] the parameter list without parentheses
+    def format_parameters(parameters)
+      parameters.map do |type, name|
+        case type
+        when :opt then "#{name} = ..."
+        when :rest then "*#{name}"
+        when :keyreq then "#{name}:"
+        when :key then "#{name}: ..."
+        when :keyrest then "**#{name}"
+        when :block then "&#{name}"
+        else name.to_s
+        end
+      end.join(', ')
     end
 
     # Returns the configured queues that have no registered worker

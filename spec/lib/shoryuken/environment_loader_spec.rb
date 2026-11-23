@@ -155,6 +155,156 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
   end
 
+  describe 'worker perform checks' do
+    let(:contract) { instance_double(Shoryuken::Contracts::Options, validate!: nil) }
+    let(:problems) { subject.check }
+
+    before do
+      Shoryuken.groups.clear
+      Shoryuken.options[:groups] = nil
+      Shoryuken.options[:queues] = %w[queue1]
+      allow(Shoryuken::Contracts::Options).to receive(:new).and_return(contract)
+      allow(subject).to receive(:prefix_active_job_queue_names)
+      allow(subject).to receive(:require_workers)
+      allow(subject).to receive(:validate_queues)
+      allow(Shoryuken).to receive(:active_job?).and_return(false)
+      allow(Shoryuken.worker_registry).to receive(:queues).and_return(%w[queue1])
+      allow(Shoryuken.worker_registry).to receive(:workers).with('queue1').and_return([worker_class])
+    end
+
+    {
+      '(sqs_msg, body)' => proc { |_sqs_msg, _body| },
+      '(*args)' => proc { |*_args| },
+      '(sqs_msg, body, extra = nil)' => proc { |_sqs_msg, _body, _extra = nil| },
+      '(sqs_msg, body, option: nil)' => proc { |_sqs_msg, _body, option: nil| }
+    }.each do |signature, body|
+      context "when perform takes #{signature}" do
+        let(:worker_class) { Class.new { define_method(:perform, &body) } }
+
+        it 'reports no problem' do
+          expect(problems).to eq([])
+        end
+      end
+    end
+
+    {
+      '(name)' => [proc { |name| }, 'name'],
+      '(sqs_msg, body, extra)' => [proc { |sqs_msg, body, extra| }, 'sqs_msg, body, extra'],
+      '(sqs_msg, body, key:)' => [proc { |sqs_msg, body, key:| }, 'sqs_msg, body, key:']
+    }.each do |signature, (body, formatted)|
+      context "when perform takes #{signature}" do
+        let(:worker_class) { Class.new { define_method(:perform, &body) } }
+
+        it 'reports the signature it takes' do
+          expect(problems).to eq(
+            ["#{worker_class.inspect}#perform must accept (sqs_msg, body); it takes (#{formatted})"]
+          )
+        end
+      end
+    end
+
+    context 'when perform takes every kind of parameter' do
+      let(:worker_class) do
+        Class.new do
+          def perform(sqs_msg, body = nil, *rest, key:, option: nil, **opts, &block); end
+        end
+      end
+
+      it 'formats each kind' do
+        expect(problems).to eq(
+          [
+            "#{worker_class.inspect}#perform must accept (sqs_msg, body); it takes " \
+            '(sqs_msg, body = ..., *rest, key:, option: ..., **opts, &block)'
+          ]
+        )
+      end
+    end
+
+    context 'when the worker has no perform' do
+      let(:worker_class) do
+        Class.new do
+          def preform(_sqs_msg, _body); end
+        end
+      end
+
+      it 'reports it missing' do
+        expect(problems).to eq(["#{worker_class.inspect} must define perform(sqs_msg, body)"])
+      end
+    end
+
+    context 'when perform is private' do
+      let(:worker_class) do
+        Class.new do
+          private
+
+          def perform(_sqs_msg, _body); end
+        end
+      end
+
+      it 'reports it missing' do
+        expect(problems).to eq(["#{worker_class.inspect} must define perform(sqs_msg, body)"])
+      end
+    end
+
+    context 'when a batch worker has the wrong perform' do
+      let(:worker_class) do
+        Class.new do
+          include Shoryuken::Worker
+
+          shoryuken_options queue: 'batch_perform_check', batch: true
+
+          def perform(_sqs_msgs); end
+        end
+      end
+
+      it 'names the batch signature' do
+        expect(problems).to eq(
+          ["#{worker_class.inspect}#perform must accept (sqs_msgs, bodies); it takes (_sqs_msgs)"]
+        )
+      end
+    end
+
+    context 'when the worker is the ActiveJob wrapper' do
+      let(:worker_class) { Shoryuken::ActiveJob::JobWrapper }
+
+      it 'reports no problem' do
+        expect(problems).to eq([])
+      end
+    end
+
+    context 'when the worker is registered for several configured queues' do
+      let(:worker_class) { Class.new { def perform(_name); end } }
+
+      before do
+        Shoryuken.options[:queues] = %w[queue1 queue2]
+        allow(Shoryuken.worker_registry).to receive(:queues).and_return(%w[queue1 queue2])
+        allow(Shoryuken.worker_registry).to receive(:workers).with('queue2').and_return([worker_class])
+      end
+
+      it 'reports it once' do
+        expect(problems.size).to eq(1)
+      end
+    end
+
+    context 'when loading for start' do
+      let(:worker_class) { Class.new { def perform(_name); end } }
+
+      before do
+        allow(subject).to receive(:validate_workers).and_call_original
+      end
+
+      it 'logs the problem as a warning and does not raise' do
+        expect(Shoryuken.logger).to receive(:warn) do |&block|
+          expect(block.call).to eq(
+            "#{worker_class.inspect}#perform must accept (sqs_msg, body); it takes (_name)"
+          )
+        end
+
+        subject.load
+      end
+    end
+  end
+
   describe '#parse_queues loads default queues' do
     before do
       allow(subject).to receive(:initialize_rails)

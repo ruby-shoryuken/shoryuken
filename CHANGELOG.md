@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Breaking: `shoryuken check` fails, and `shoryuken start` logs a warning, for a worker of a configured queue whose
+  `perform` cannot be called as `perform(sqs_msg, body)` (batch: `perform(sqs_msgs, bodies)`)
+  - `[FAIL] SigWorker#perform must accept (sqs_msg, body); it takes (name)` for a wrong signature, and
+    `[FAIL] TypoWorker must define perform(sqs_msg, body)` for a missing or non-public `perform`
+  - Such a worker passed `check` and failed on every message, which came back after each visibility timeout
+  - `check` now exits 1 for a worker that defines `perform` through `method_missing`; `start` still boots it
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
