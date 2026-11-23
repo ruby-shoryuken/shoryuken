@@ -53,6 +53,13 @@ RSpec.describe Shoryuken::Helpers::FiberExecutor do
 
       expect { executor.post {} }.to raise_error(Concurrent::RejectedExecutionError)
     end
+
+    it 'raises Concurrent::RejectedExecutionError when a shutdown lands after the running check' do
+      executor.shutdown
+      allow(executor).to receive(:running?).and_return(true)
+
+      expect { executor.post {} }.to raise_error(Concurrent::RejectedExecutionError)
+    end
   end
 
   describe '#wait_for_termination' do

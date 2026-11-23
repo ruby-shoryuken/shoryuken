@@ -47,7 +47,7 @@ module Shoryuken
       stop_new_dispatching
 
       deadline = shutdown_deadline
-      shutdown_executor
+      shutdown_executor(deadline)
 
       drain_pending_active_job_sends(deadline)
 
@@ -70,7 +70,7 @@ module Shoryuken
       await_dispatching_in_progress(signalled_managers)
 
       deadline = shutdown_deadline
-      shutdown_executor
+      shutdown_executor(deadline)
 
       drain_pending_active_job_sends(deadline)
 
@@ -122,29 +122,31 @@ module Shoryuken
 
     # Shuts the executor down, giving in-flight workers up to the configured timeout to finish before force-killing them so
     # the process can exit. Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns: a graceful stop still
-    # waits for workers, but must not block forever on a hung one.
+    # waits for workers, but must not block forever on a hung one. In fiber mode the fiber executors of the groups and the
+    # launcher executor share the deadline.
     #
+    # @param deadline [Float, nil] monotonic time by which the executors must be done, or nil to wait without a deadline
     # @return [void]
-    def shutdown_executor
+    def shutdown_executor(deadline)
       shutdown_step(:shutdown_executor) do
-        shutdown_fiber_executors
+        @fiber_executors.each(&:shutdown)
         executor.shutdown
-        executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+
+        @fiber_executors.each do |fiber_executor|
+          fiber_executor.kill unless fiber_executor.wait_for_termination(remaining_time(deadline))
+        end
+
+        timeout = @fiber_executors.empty? ? Shoryuken.options[:timeout] : remaining_time(deadline)
+        executor.kill unless executor.wait_for_termination(timeout)
       end
     end
 
-    # Shuts the fiber executors of the groups down (fiber executor mode only), giving their in-flight workers together up
-    # to the configured timeout to finish before force-killing them
+    # Returns the seconds left until a shutdown deadline
     #
-    # @return [void]
-    def shutdown_fiber_executors
-      @fiber_executors.each(&:shutdown)
-
-      deadline = shutdown_deadline
-      @fiber_executors.each do |fiber_executor|
-        remaining = [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
-        fiber_executor.kill unless fiber_executor.wait_for_termination(remaining)
-      end
+    # @param deadline [Float, nil] monotonic time of the deadline, or nil when there is none
+    # @return [Float, nil] the seconds left, never negative, or nil without a deadline
+    def remaining_time(deadline)
+      [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
     end
 
     # Runs a single shutdown step, logging instead of raising its error so that one failing step cannot skip the

@@ -461,6 +461,27 @@ RSpec.describe Shoryuken::Launcher do
 
         subject.stop!
       end
+
+      it 'ends stop! within the timeout when a fiber worker and the launcher executor are both still busy' do
+        subject
+        fiber_executors[0].last.post { sleep(5) }
+        executor.post { sleep(5) }
+
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        subject.stop!
+
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < Shoryuken.options[:timeout] + 0.5
+      end
+
+      it 'ends stop! within one timeout when the fiber workers of two groups hang' do
+        subject
+        fiber_executors.each { |(_limit, fiber_executor)| fiber_executor.post { sleep(5) } }
+
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        subject.stop!
+
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < Shoryuken.options[:timeout] + 0.5
+      end
     end
 
     context 'when the mode is unknown' do
