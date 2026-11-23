@@ -247,6 +247,27 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '#executor' do
+    let(:options) { described_class.new }
+
+    it 'defaults to :thread' do
+      expect(options.executor).to eq(:thread)
+    end
+
+    it 'reads the executor option as a Symbol' do
+      options.options[:executor] = 'fiber'
+
+      expect(options.executor).to eq(:fiber)
+    end
+
+    it 'prefers the value set in code' do
+      options.options[:executor] = 'thread'
+      options.executor = :fiber
+
+      expect(options.executor).to eq(:fiber)
+    end
+  end
+
   describe '.polling_strategy' do
     context 'when not set' do
       specify do

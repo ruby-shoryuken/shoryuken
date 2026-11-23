@@ -8,6 +8,7 @@ module Shoryuken
 
     # Initializes a new Launcher with managers for each processing group
     def initialize
+      @fiber_executors = []
       @managers = create_managers
       @stopping = false
       @stopped = false
@@ -46,7 +47,7 @@ module Shoryuken
       stop_new_dispatching
 
       deadline = shutdown_deadline
-      shutdown_executor
+      shutdown_executor(deadline)
 
       drain_pending_active_job_sends(deadline)
 
@@ -69,7 +70,7 @@ module Shoryuken
       await_dispatching_in_progress(signalled_managers)
 
       deadline = shutdown_deadline
-      shutdown_executor
+      shutdown_executor(deadline)
 
       drain_pending_active_job_sends(deadline)
 
@@ -121,14 +122,31 @@ module Shoryuken
 
     # Shuts the executor down, giving in-flight workers up to the configured timeout to finish before force-killing them so
     # the process can exit. Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns: a graceful stop still
-    # waits for workers, but must not block forever on a hung one.
+    # waits for workers, but must not block forever on a hung one. In fiber mode the fiber executors of the groups and the
+    # launcher executor share the deadline.
     #
+    # @param deadline [Float, nil] monotonic time by which the executors must be done, or nil to wait without a deadline
     # @return [void]
-    def shutdown_executor
+    def shutdown_executor(deadline)
       shutdown_step(:shutdown_executor) do
+        @fiber_executors.each(&:shutdown)
         executor.shutdown
-        executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+
+        @fiber_executors.each do |fiber_executor|
+          fiber_executor.kill unless fiber_executor.wait_for_termination(remaining_time(deadline))
+        end
+
+        timeout = @fiber_executors.empty? ? Shoryuken.options[:timeout] : remaining_time(deadline)
+        executor.kill unless executor.wait_for_termination(timeout)
       end
+    end
+
+    # Returns the seconds left until a shutdown deadline
+    #
+    # @param deadline [Float, nil] monotonic time of the deadline, or nil when there is none
+    # @return [Float, nil] the seconds left, never negative, or nil without a deadline
+    def remaining_time(deadline)
+      [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
     end
 
     # Runs a single shutdown step, logging instead of raising its error so that one failing step cannot skip the
@@ -173,8 +191,7 @@ module Shoryuken
         logger.info { 'Draining in-flight ActiveJob sends' }
 
         drained = adapters.map do |adapter|
-          remaining = [deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0].max if deadline
-          adapter.wait_for_pending_sends(remaining)
+          adapter.wait_for_pending_sends(remaining_time(deadline))
         end
 
         logger.warn { 'Timed out draining in-flight ActiveJob sends; some may not have been delivered' } unless drained.all?
@@ -244,8 +261,26 @@ module Shoryuken
           Shoryuken::Fetcher.new(group),
           Shoryuken.polling_strategy(group).new(options[:queues], Shoryuken.delay(group)),
           options[:concurrency],
-          executor
+          executor,
+          processor_executor(options[:concurrency])
         )
+      end
+    end
+
+    # Returns the executor a group's workers run on: the launcher executor in thread mode, a fiber executor of its own
+    # limited to the group's concurrency in fiber mode
+    #
+    # @param concurrency [Integer] the maximum number of the group's messages that run at once
+    # @return [#post] the executor
+    # @raise [Errors::InvalidConfigurationError] when the executor mode is unknown or the async gem is missing
+    def processor_executor(concurrency)
+      case Shoryuken.executor
+      when :thread
+        executor
+      when :fiber
+        Shoryuken::Helpers::FiberExecutor.new(concurrency).tap { |fiber_executor| @fiber_executors << fiber_executor }
+      else
+        raise Errors::InvalidConfigurationError, "executor needs to be :thread or :fiber, got #{Shoryuken.executor.inspect}"
       end
     end
   end

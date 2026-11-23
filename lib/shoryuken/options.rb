@@ -41,7 +41,8 @@ module Shoryuken
       :exception_handlers
     )
 
-    # Executor the launcher runs the dispatch loops and the workers on. When nil, the launcher uses its own
+    # Executor the launcher runs the dispatch loops on, and the workers too in thread mode (in fiber mode, see
+    # {#executor}, each group runs its workers on its own fiber executor). When nil, the launcher uses its own
     # `Concurrent::CachedThreadPool`. It does not have to be a concurrent-ruby executor: any object with these
     # methods works:
     # - `post { ... }` runs the block on another thread and returns without waiting for it, or raises
@@ -53,7 +54,8 @@ module Shoryuken
     #   finish and returns true when they did
     # - `kill` stops the posted blocks that did not finish in time
     #
-    # @return [#post, #running?, #shutdown, #wait_for_termination, #kill, nil] the executor used to launch workers
+    # @return [#post, #running?, #shutdown, #wait_for_termination, #kill, nil] the executor for the dispatch loops and,
+    #   in thread mode, the workers
     attr_accessor :launcher_executor
 
     # @return [Hash] the default options for workers
@@ -217,6 +219,20 @@ module Shoryuken
     # @param value [Integer] the thread priority value
     # @return [Integer] the thread priority
     attr_writer :thread_priority
+
+    # Returns how workers run: `:thread` (default) runs each message on a thread of the launcher executor, `:fiber` runs
+    # each message as an Async task, at most the group's concurrency at a time (needs the async gem)
+    #
+    # @return [Symbol] :thread or :fiber
+    def executor
+      (@executor || options[:executor] || :thread).to_sym
+    end
+
+    # Sets how workers run
+    #
+    # @param value [Symbol, String] :thread or :fiber
+    # @return [Symbol, String] the value
+    attr_writer :executor
 
     # Registers a worker class with the worker registry
     #

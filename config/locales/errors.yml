@@ -11,6 +11,7 @@ en:
       groups_format: needs to be nil, a Hash or an Array of [name, options] pairs
       group_format: needs to be a Hash
       thread_priority_format: needs to be an Integer
+      executor_format: needs to be thread or fiber
       aws_format: needs to be a Hash
       lifecycle_events_format: needs to be a Hash
       config_file_format: needs to be nil, a String or a Pathname

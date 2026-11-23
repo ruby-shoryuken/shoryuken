@@ -366,6 +366,52 @@ RSpec.describe Shoryuken::Manager do
         expect(subject.send(:busy)).to eq(0)
       end
     end
+
+    context 'with a fiber processor executor' do
+      subject do
+        Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor, processor_executor)
+      end
+
+      let(:processor_executor) { Shoryuken::Helpers::FiberExecutor.new(concurrency) }
+      let(:busy_counts) { [] }
+      let(:handler) { ->(event) { busy_counts << event[:busy_processors] } }
+
+      before do
+        Shoryuken.options[:lifecycle_events][:utilization_update] << handler
+        allow(fetcher).to receive(:fetch) do
+          subject.stop_new_dispatching
+          [sqs_msg]
+        end
+      end
+
+      after do
+        Shoryuken.options[:lifecycle_events][:utilization_update].delete(handler)
+        processor_executor.shutdown
+        processor_executor.wait_for_termination(5)
+      end
+
+      it 'runs the processor as a task under a Fiber scheduler and frees the processor once done' do
+        schedulers = ::Queue.new
+        allow(Shoryuken::Processor).to receive(:process) { schedulers << Fiber.scheduler }
+
+        subject.start
+        processor_executor.shutdown
+        processor_executor.wait_for_termination(5)
+
+        expect(schedulers.pop).to be_a(Async::Scheduler)
+        expect(busy_counts).to eq([0, 1, 0])
+      end
+
+      it 'frees the processor and releases the message when the processor executor is shut down' do
+        processor_executor.shutdown
+
+        subject.start
+
+        expect(busy_counts).to eq([0, 1, 0])
+        expect(sqs_msg).to have_received(:visibility_timeout=).with(0)
+        expect(Shoryuken::Processor).not_to have_received(:process)
+      end
+    end
   end
 
   describe '#processor_done' do
