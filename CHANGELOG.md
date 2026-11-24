@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: A TERM or INT sent during the graceful stop of a TSTP or USR1 stops the process within `timeout`
+  - It waited for the graceful stop to end first, which waits for an in-flight long poll (up to `wait_time_seconds`)
+    outside `timeout`
+  - The lifecycle events and `stop_callback` still run once
+
 - Fix: `shoryuken check` and `shoryuken start` reject a `polling_strategy` name, global or in a group, that resolves to
   no class, before any message is processed
   - `check` printed "Configuration OK"; `start` failed only when the launcher created the managers
