@@ -7,9 +7,9 @@ module Shoryuken
     include Util
 
     # Seconds a shutdown waits for killed workers to stop before it releases their messages
-    KILLED_WORKERS_STOP_WAIT = 1
+    KILLED_WORKERS_STOP_WAIT_SECONDS = 1
 
-    private_constant :KILLED_WORKERS_STOP_WAIT
+    private_constant :KILLED_WORKERS_STOP_WAIT_SECONDS
 
     # Initializes a new Launcher with managers for each processing group
     def initialize
@@ -150,7 +150,7 @@ module Shoryuken
     #   workers processed before the kill
     # @return [void]
     def release_killed_workers_messages(in_flight)
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + KILLED_WORKERS_STOP_WAIT
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + KILLED_WORKERS_STOP_WAIT_SECONDS
 
       running = still_in_flight(in_flight)
       while running.any?(&:any?) && Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline

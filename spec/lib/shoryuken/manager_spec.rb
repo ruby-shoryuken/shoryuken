@@ -13,6 +13,7 @@ RSpec.describe Shoryuken::Manager do
   let(:fetcher) { double Shoryuken::Fetcher }
   let(:concurrency) { 1 }
   let(:executor) { Concurrent::ImmediateExecutor.new }
+  let(:client) { double(Aws::SQS::Client, change_message_visibility_batch: double(failed: [])) }
 
   subject { Shoryuken::Manager.new('default', fetcher, polling_strategy, concurrency, executor) }
 
@@ -23,6 +24,16 @@ RSpec.describe Shoryuken::Manager do
   after do
     Shoryuken.options[:concurrency] = 1
     TestWorker.get_shoryuken_options['batch'] = false
+  end
+
+  def build_message(receipt_handle, queue_url = 'queue-url')
+    double(
+      Shoryuken::Message,
+      message_id: SecureRandom.uuid,
+      queue_url: queue_url,
+      client: client,
+      data: double(receipt_handle: receipt_handle)
+    )
   end
 
   describe '#stop' do
@@ -246,7 +257,6 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#assign' do
-    let(:client) { double(Aws::SQS::Client, change_message_visibility_batch: double(failed: [])) }
     let(:sqs_msg) { build_message('m1') }
     let(:other_msg) { build_message('m2') }
     let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
@@ -254,16 +264,6 @@ RSpec.describe Shoryuken::Manager do
     before do
       allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
       allow(Shoryuken::Processor).to receive(:process)
-    end
-
-    def build_message(receipt_handle, queue_url = 'queue-url')
-      double(
-        Shoryuken::Message,
-        message_id: SecureRandom.uuid,
-        queue_url: queue_url,
-        client: client,
-        data: double(receipt_handle: receipt_handle)
-      )
     end
 
     def released_entries(queue_url = 'queue-url')
@@ -316,7 +316,7 @@ RSpec.describe Shoryuken::Manager do
       end
     end
 
-    it 'does not double decrement the busy counter when completion raises' do
+    it 'removes the message from the in-flight list once when completion raises' do
       allow(sqs_queue).to receive(:fifo?).and_return(true)
       allow(polling_strategy).to receive(:message_processed).and_raise('callback failed')
 
@@ -335,9 +335,9 @@ RSpec.describe Shoryuken::Manager do
         end
       end
 
-      it 'rolls back the busy counter and does not leak it' do
+      it 'removes the message from the in-flight list and does not leak it' do
         # The posted block never runs, so completion must not run either
-        # (decrement directly, and no FIFO message_processed callback).
+        # (remove the in-flight entry directly, and no FIFO message_processed callback).
         expect(subject).not_to receive(:processor_done)
 
         expect { subject.send(:assign, queue, sqs_msg) }.not_to raise_error
@@ -347,7 +347,7 @@ RSpec.describe Shoryuken::Manager do
 
       it 'does not run the FIFO message_processed callback' do
         # The message was never processed, so the rejection rollback must
-        # decrement directly and never reach the FIFO bookkeeping - even for a
+        # remove the in-flight entry directly and never reach the FIFO bookkeeping - even for a
         # FIFO queue. Guards against a refactor routing rollback through
         # processor_done.
         allow(sqs_queue).to receive(:fifo?).and_return(true)
@@ -446,18 +446,6 @@ RSpec.describe Shoryuken::Manager do
   end
 
   describe '#release' do
-    let(:client) { double(Aws::SQS::Client, change_message_visibility_batch: double(failed: [])) }
-
-    def build_message(receipt_handle, queue_url)
-      double(
-        Shoryuken::Message,
-        message_id: SecureRandom.uuid,
-        queue_url: queue_url,
-        client: client,
-        data: double(receipt_handle: receipt_handle)
-      )
-    end
-
     it 'sends one request per queue and per 10 messages' do
       messages = Array.new(12) { |i| build_message("a#{i}", 'queue-a') } + [build_message('b0', 'queue-b')]
 
