@@ -401,6 +401,21 @@ RSpec.shared_examples 'active_job_adapters' do
       expect(batches.flatten.first[:delay_seconds]).to eq(900)
     end
 
+    it 'rounds a delay of a fraction of a second up' do
+      subject.enqueue_all([TestJob.new.set(wait: 60.4.seconds)])
+
+      expect(batches.flatten.first[:delay_seconds]).to eq(61)
+    end
+
+    it 'raises InvalidDelayError for a delay of 900.4 seconds before any send' do
+      jobs = [TestJob.new, TestJob.new.set(wait: 900.4.seconds)]
+
+      expect { subject.enqueue_all(jobs) }.to raise_error(
+        Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes'
+      )
+      expect(batches).to be_empty
+    end
+
     it 'raises InvalidDelayError for a delay over 15 minutes before any send' do
       jobs = [TestJob.new, TestJob.new.set(wait: 901.seconds)]
 
@@ -527,6 +542,13 @@ RSpec.shared_examples 'active_job_adapters' do
         expect { subject.enqueue_all(jobs) }.to raise_error(
           Shoryuken::Errors::FifoDelayNotSupportedError, /FIFO queue.*does not support per-message delays/
         )
+        expect(batches).to be_empty
+      end
+
+      it 'raises FifoDelayNotSupportedError for a delay of a fraction of a second before any send' do
+        jobs = [TestJob.new, TestJob.new.set(wait: 0.3.seconds)]
+
+        expect { subject.enqueue_all(jobs) }.to raise_error(Shoryuken::Errors::FifoDelayNotSupportedError)
         expect(batches).to be_empty
       end
 
