@@ -4,6 +4,12 @@
   `Killing 2 busy workers after the 8s shutdown timeout; their messages come back after the visibility timeout`
   - It logged nothing: a killed job has a `started at` line but no `completed in` or `failed in` line
 
+- Fix: The default error handler of `ShoryukenConcurrentSendAdapter` logs a failed send with the job class, job id,
+  queue and error, and the job arguments only when the job allows it with ActiveJob `log_arguments`
+  - The arguments are formatted as in the Rails enqueue log line: a GlobalID record is logged as its global id
+  - It logged `job.inspect`, so the job arguments and the SQS message body reached the log even with
+    `self.log_arguments = false`
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
@@ -19,6 +25,10 @@
   - Delays follow `enqueue_at`: a time in the past is sent with a delay of 0, a delay over 15 minutes raises
     `Shoryuken::Errors::InvalidDelayError` and a delay on a FIFO queue raises
     `Shoryuken::Errors::FifoDelayNotSupportedError`, both before any job is sent
+
+- Change: `ShoryukenAdapter` and `ShoryukenConcurrentSendAdapter` inherit from
+  `ActiveJob::QueueAdapters::AbstractAdapter` also when Active Job is used without Rails
+  - They inherited from `Object` there
 
 - Change: A raw worker `perform_at`/`perform_in` sends a time in the past or a negative interval with a delay of 0
   and raises `Shoryuken::Errors::FifoDelayNotSupportedError` for a delay on a FIFO queue, as the ActiveJob adapter does
