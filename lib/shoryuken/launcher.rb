@@ -134,11 +134,13 @@ module Shoryuken
       end
     end
 
-    # Warns that the busy workers are about to be killed: a killed job logs neither "completed in" nor "failed in"
+    # Warns that the busy workers are about to be killed: a killed job logs neither "completed in" nor "failed in". With
+    # no busy worker the executor may still run an idle long poll, which loses nothing, so nothing is logged.
     #
     # @return [void]
     def log_killed_workers
       busy = @managers.sum(&:busy)
+      return unless busy.positive?
 
       logger.warn do
         "Killing #{busy} busy #{busy == 1 ? 'worker' : 'workers'} after the #{Shoryuken.options[:timeout]}s " \

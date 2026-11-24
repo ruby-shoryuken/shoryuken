@@ -143,6 +143,37 @@ RSpec.describe Shoryuken::Launcher do
       expect(executor).to have_received(:kill).ordered
     end
 
+    it 'names a single busy worker in the singular' do
+      Shoryuken.options[:timeout] = 3
+      allow(first_group_manager).to receive(:busy).and_return(1)
+      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill)
+      allow(Shoryuken.logger).to receive(:warn).and_call_original
+
+      subject.stop
+
+      expect(Shoryuken.logger).to have_received(:warn) do |&block|
+        expect(block.call).to eq(
+          'Killing 1 busy worker after the 3s shutdown timeout; their messages come back after the visibility timeout'
+        )
+      end
+    end
+
+    it 'logs no warning but still kills the executor when no worker is busy' do
+      allow(first_group_manager).to receive(:busy).and_return(0)
+      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(Shoryuken.logger).to receive(:warn)
+      expect(executor).to receive(:kill)
+
+      subject.stop
+
+      expect(Shoryuken.logger).not_to have_received(:warn)
+    end
+
     it 'still kills the executor when counting the busy workers raises' do
       allow(first_group_manager).to receive(:busy).and_raise('busy failure')
       allow(executor).to receive(:shutdown)

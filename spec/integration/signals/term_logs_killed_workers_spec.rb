@@ -6,11 +6,14 @@
 # A killed worker raises nothing, so its job logs neither "completed in" nor
 # "failed in". It used to log only "Received TERM, will shutdown" and
 # "Shutting down" and exit 0. A worker that finishes within `timeout` logs no
-# warning.
+# warning, and neither does an idle long poll that outlives `timeout`: no job
+# is cut off.
 
-def write_workers(dir, queue, started)
+def write_workers(dir, queue, started, long_poll: false)
   boot_file = File.join(dir, 'boot.rb')
   File.write(boot_file, <<~RUBY)
+    Shoryuken.sqs_client_receive_message_opts = { wait_time_seconds: 20 } if #{long_poll}
+
     class KilledAtTimeoutWorker
       include Shoryuken::Worker
 
@@ -64,4 +67,17 @@ with_queue_and_dir(attributes: { 'VisibilityTimeout' => '30' }) do |queue, dir|
 
   assert(status.success?, "the process must exit with status 0, got #{status.inspect}: #{output}")
   refute(output.include?('Killing'), "no worker is busy, so none is killed: #{output}")
+end
+
+with_queue_and_dir(attributes: { 'VisibilityTimeout' => '30' }) do |queue, dir|
+  started = File.join(dir, 'started')
+  Dir.mkdir(started)
+  boot_file = write_workers(dir, queue, started, long_poll: true)
+
+  status, output = run_shoryuken_until('-q', queue, '-t', '2', '-v', '-r', boot_file, signal: 'TERM') do |log|
+    log.include?("Looking for new messages in #{queue}")
+  end
+
+  assert(status.success?, "the process must exit with status 0, got #{status.inspect}: #{output}")
+  refute(output.include?('Killing'), "only an idle long poll runs, so no worker is killed: #{output}")
 end
