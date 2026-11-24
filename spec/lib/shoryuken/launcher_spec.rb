@@ -275,6 +275,57 @@ RSpec.describe Shoryuken::Launcher do
       end
     end
 
+    context 'when a graceful stop runs its stop_callback' do
+      let(:callback_release) { Queue.new }
+
+      before do
+        allow(Shoryuken).to receive(:stop_callback).and_return(-> { callback_release.pop })
+      end
+
+      after { callback_release.close }
+
+      it 'waits for the graceful stop to stop new dispatching before it stops' do
+        events = Queue.new
+        allow(subject).to receive(:fire_event) { |event, *| events << event }
+        graceful = Thread.new { subject.stop }
+        Thread.pass until graceful.status == 'sleep'
+
+        forced = Thread.new { subject.stop! }
+        Thread.pass until forced.status == 'sleep' || !forced.alive?
+        expect(executor).not_to be_shutdown
+
+        callback_release << true
+        [graceful, forced].each(&:join)
+
+        expect(Array.new(events.size) { events.pop }).to eq(%i[quiet shutdown stopped])
+        expect(first_group_manager).to have_received(:stop_new_dispatching).once
+        expect(executor).to be_shutdown
+      end
+    end
+
+    context 'when a graceful stop waits for a busy worker' do
+      let(:worker_release) { Queue.new }
+
+      before { executor.post { worker_release.pop } }
+
+      after { worker_release.close }
+
+      it 'fires the stopped event once' do
+        events = Queue.new
+        allow(subject).to receive(:fire_event) { |event, *| events << event }
+        graceful = Thread.new { subject.stop }
+        Thread.pass until graceful.status == 'sleep'
+
+        forced = Thread.new { subject.stop! }
+        Thread.pass until forced.status == 'sleep' || !forced.alive?
+
+        worker_release << true
+        [graceful, forced].each(&:join)
+
+        expect(Array.new(events.size) { events.pop }).to eq(%i[quiet shutdown stopped])
+      end
+    end
+
     it 'stops the managers' do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)

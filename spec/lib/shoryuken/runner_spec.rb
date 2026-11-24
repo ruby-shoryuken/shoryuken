@@ -64,6 +64,38 @@ RSpec.describe Shoryuken::Runner do
         expect(cli).to have_received(:exit).with(1)
       end
     end
+    context 'when USR1 arrives after the graceful stop of a TSTP has ended' do
+      before do
+        allow(launcher).to receive(:start) { Process.kill('TSTP', Process.pid) }
+        allow(launcher).to receive(:stop) do
+          graceful = Thread.current
+          Thread.new do
+            graceful.join
+            Process.kill('USR1', Process.pid)
+          end
+        end
+        allow(launcher).to receive(:failed?).and_return(false)
+        allow(cli).to receive(:exit).and_raise(SystemExit)
+      end
+
+      it 'exits with status 0' do
+        Timeout.timeout(5) { expect { cli.run({}) }.to raise_error(SystemExit) }
+        expect(launcher).to have_received(:stop).once
+        expect(cli).to have_received(:exit).with(0)
+      end
+    end
+
+    context 'when the graceful stop of a TSTP raises' do
+      before do
+        allow(launcher).to receive(:start) { Process.kill('TSTP', Process.pid) }
+        allow(launcher).to receive(:stop).and_raise('stop failure')
+      end
+
+      it 'raises the error on the main thread' do
+        Timeout.timeout(5) { expect { cli.run({}) }.to raise_error(RuntimeError, 'stop failure') }
+      end
+    end
+
     context 'when TERM arrives during the graceful stop of a TSTP' do
       let(:release) { Queue.new }
 

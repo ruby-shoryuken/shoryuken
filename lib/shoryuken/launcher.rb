@@ -35,11 +35,15 @@ module Shoryuken
     end
 
     # Forces an immediate stop of all processing. Does nothing once a stop has completed. Takes over a graceful stop
-    # ({#stop}) that is still running in another thread, so that stop no longer waits for the in-progress dispatching.
+    # ({#stop}) that is still running in another thread once it has stopped new dispatching, so that stop no longer
+    # waits for the in-progress dispatching.
     #
     # @return [void]
     def stop!
-      if begin_stop
+      @stop_lock.synchronize do
+        next if @stopping
+
+        @stopping = true
         initiate_stop
 
         # Don't await here so the timeout below is not delayed
@@ -53,13 +57,18 @@ module Shoryuken
     #
     # @return [void]
     def stop
-      return unless begin_stop
+      signalled_managers = @stop_lock.synchronize do
+        next if @stopping
 
-      fire_event(:quiet, true)
+        @stopping = true
+        fire_event(:quiet, true)
 
-      initiate_stop
+        initiate_stop
 
-      signalled_managers = stop_new_dispatching
+        stop_new_dispatching
+      end
+      return unless signalled_managers
+
       await_dispatching_in_progress(signalled_managers)
 
       finish_stop
@@ -83,17 +92,6 @@ module Shoryuken
     end
 
     private
-
-    # Marks the launcher as stopping
-    #
-    # @return [Boolean] true for the first stop, false when a stop has already started
-    def begin_stop
-      @stop_lock.synchronize do
-        next false if @stopping
-
-        @stopping = true
-      end
-    end
 
     # Shuts the executor down, drains the ActiveJob sends and fires the stopped event, once. A second caller waits for
     # the first to finish.
