@@ -17,6 +17,11 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenConcurrentSendAdapter do
 
   subject { described_class.new(success_handler, error_handler) }
 
+  it 'is an AbstractAdapter without Rails' do
+    expect(defined?(Rails)).to be_nil
+    expect(described_class < ActiveJob::QueueAdapters::AbstractAdapter).to be(true)
+  end
+
   context 'when success' do
     it 'calls success_handler' do
       response = true

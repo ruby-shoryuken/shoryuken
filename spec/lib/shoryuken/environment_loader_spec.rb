@@ -38,7 +38,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       specify do
         expect { subject.load }.to raise_error(
           Shoryuken::Errors::QueueNotFoundError,
-          <<-MSG.gsub(/^\s+/, '')
+          <<~MSG
             The specified queue(s) stubbed_queue do not exist.
             Try 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings.
             It's also possible that you don't have permission to access the specified queues.
