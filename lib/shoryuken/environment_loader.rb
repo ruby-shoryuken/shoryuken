@@ -57,9 +57,11 @@ module Shoryuken
     #
     # @return [void]
     # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
+    # @raise [Errors::InvalidPollingStrategyError] if a polling strategy name does not resolve
     def load
       Contracts::Options.new.validate!(Shoryuken.options)
       load_queues_and_workers
+      Contracts::PollingStrategies.new.validate!(Shoryuken.options)
       validate_queues
       validate_workers
     end
@@ -72,6 +74,7 @@ module Shoryuken
     def check
       Contracts::Options.new.validate!(Shoryuken.options)
       load_queues_and_workers
+      Contracts::PollingStrategies.new.validate!(Shoryuken.options)
 
       return ['No queues supplied'] if Shoryuken.ungrouped_queues.empty?
 
