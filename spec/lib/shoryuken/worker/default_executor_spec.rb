@@ -82,13 +82,15 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
 
         expect {
           TestWorker.perform_in(60, 'message')
-        }.to raise_error(ArgumentError, /TestWorker has several queues \(queue1, queue2\)/)
+        }.to raise_error(Shoryuken::Errors::QueueNotSpecifiedError, /TestWorker has several queues \(queue1, queue2\)/)
       end
 
       it 'raises without a queue option when no delay is given' do
         expect(Shoryuken::Client).not_to receive(:queues)
 
-        expect { TestWorker.perform_in(0, 'message') }.to raise_error(ArgumentError, /pass the queue: option/)
+        expect {
+          TestWorker.perform_in(0, 'message')
+        }.to raise_error(Shoryuken::Errors::QueueNotSpecifiedError, /pass the queue: option/)
       end
 
       it 'sends to the queue given in the options' do
@@ -212,7 +214,7 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
         expect {
           TestWorker.perform_async('message')
         }.to raise_error(
-          ArgumentError,
+          Shoryuken::Errors::QueueNotSpecifiedError,
           'TestWorker has several queues (queue1, queue2): pass the queue: option to choose one'
         )
       end
@@ -233,7 +235,7 @@ RSpec.describe Shoryuken::Worker::DefaultExecutor do
 
         expect {
           TestWorker.perform_async('message')
-        }.to raise_error(ArgumentError, 'TestWorker has no queue: pass the queue: option')
+        }.to raise_error(Shoryuken::Errors::QueueNotSpecifiedError, 'TestWorker has no queue: pass the queue: option')
       end
     end
 
