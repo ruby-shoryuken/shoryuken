@@ -38,7 +38,7 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       specify do
         expect { subject.load }.to raise_error(
           Shoryuken::Errors::QueueNotFoundError,
-          <<-MSG.gsub(/^\s+/, '')
+          <<~MSG
             The specified queue(s) stubbed_queue do not exist.
             Try 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings.
             It's also possible that you don't have permission to access the specified queues.
@@ -52,6 +52,20 @@ RSpec.describe Shoryuken::EnvironmentLoader do
 
       expect(subject).not_to receive(:parse_queues)
       expect { subject.load }.to raise_error(Shoryuken::Errors::InvalidConfigurationError, /concurrency/)
+    end
+
+    context 'when the polling strategy name is unknown' do
+      before do
+        Shoryuken.options[:polling_strategy] = 'NoSuchStrategy'
+        Shoryuken.options[:queues] = ['stubbed_queue']
+      end
+
+      after { Shoryuken.options[:polling_strategy] = nil }
+
+      it 'raises after it requires the workers' do
+        expect { subject.load }.to raise_error(Shoryuken::Errors::InvalidPollingStrategyError, /polling_strategy/)
+        expect(subject).to have_received(:require_workers)
+      end
     end
   end
 
@@ -86,6 +100,19 @@ RSpec.describe Shoryuken::EnvironmentLoader do
       it 'raises before loading the workers' do
         expect { subject.check }.to raise_error(Shoryuken::Errors::InvalidConfigurationError)
         expect(subject).not_to have_received(:require_workers)
+      end
+    end
+
+    context 'when a group names an unknown polling strategy' do
+      before do
+        Shoryuken.options[:queues] = %w[queue1]
+        Shoryuken.options[:groups] = { custom: { polling_strategy: 'NoSuchStrategy', queues: %w[queue1] } }
+      end
+
+      it 'raises after loading the workers' do
+        expect { subject.check }
+          .to raise_error(Shoryuken::Errors::InvalidPollingStrategyError, /groups\.custom\.polling_strategy/)
+        expect(subject).to have_received(:require_workers)
       end
     end
 
