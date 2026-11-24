@@ -64,6 +64,7 @@ RSpec.describe Shoryuken::Runner do
         expect(cli).to have_received(:exit).with(1)
       end
     end
+
     context 'when USR1 arrives after the graceful stop of a TSTP has ended' do
       before do
         allow(launcher).to receive(:start) { Process.kill('TSTP', Process.pid) }

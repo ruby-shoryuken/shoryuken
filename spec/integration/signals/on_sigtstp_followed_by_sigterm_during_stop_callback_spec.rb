@@ -19,12 +19,10 @@ with_queue_and_dir do |queue, dir|
       def perform(_sqs_msg, _body); end
     end
 
-    Shoryuken.configure_server do |config|
-      config.on_stop do
-        Shoryuken.logger.info('stop_callback started')
-        sleep 2
-        Shoryuken.logger.info('stop_callback finished')
-      end
+    Shoryuken.on_stop do
+      Shoryuken.logger.info('stop_callback started')
+      sleep 2
+      Shoryuken.logger.info('stop_callback finished')
     end
 
     %i[startup quiet shutdown stopped].each do |event|
