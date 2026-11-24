@@ -53,11 +53,7 @@ module Shoryuken
           now = Time.now.to_f
           ts = (interval < 1_000_000_000 ? (now + interval).to_f : interval)
 
-          delay = (ts - now).ceil
-
-          raise Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
-
-          delay = [delay, 0].max
+          delay = Shoryuken::Queue.delay_seconds(ts - now)
 
           if delay.positive?
             queue = Shoryuken::Client.queues(options[:queue] || default_queue(worker_class))

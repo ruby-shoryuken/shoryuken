@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- Breaking: ActiveJob `set(wait:)` and `set(wait_until:)` round a delay up to whole seconds, as a raw worker
+  `perform_in`/`perform_at` does, so a job never runs earlier than asked
+  - A delay of a fraction of a second on a FIFO queue raises `Shoryuken::Errors::FifoDelayNotSupportedError`; it was
+    rounded to 0 and sent
+  - A delay over 900 and up to 901 seconds raises `Shoryuken::Errors::InvalidDelayError`; it was rounded to 900 and
+    sent
+
 - Fix: A shutdown that kills busy workers after `timeout` logs a warning with their count, for example
   `Killing 2 busy workers after the 8s shutdown timeout; their messages come back after the visibility timeout`
   - It logged nothing: a killed job has a `started at` line but no `completed in` or `failed in` line
