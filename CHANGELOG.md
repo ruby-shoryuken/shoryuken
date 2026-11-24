@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: The instance reader `worker.shoryuken_options_hash` returns the options set on the singleton class of that
+  instance (`worker.singleton_class.shoryuken_options_hash = ...`), as with Rails `class_attribute`
+  - It returned the class options
+
 - Fix: A TERM or INT sent during the graceful stop of a TSTP or USR1 stops the process within `timeout`
   - It waited for the graceful stop to end first, which waits for an in-flight long poll (up to `wait_time_seconds`)
     outside `timeout`
