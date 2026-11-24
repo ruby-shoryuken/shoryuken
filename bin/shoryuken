@@ -40,6 +40,11 @@ module Shoryuken
         validate_daemon_options(opts)
 
         Shoryuken::Runner.instance.run(opts.freeze)
+      rescue Shoryuken::Errors::InvalidConfigurationError => e
+        # A daemon writes to its logfile, which keeps the backtrace
+        raise if Shoryuken.options[:daemon]
+
+        fail_task "#{e.message} (#{e.class})"
       end
 
       desc 'check', 'Validates the configuration, queues and workers without starting to process'

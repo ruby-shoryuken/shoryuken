@@ -4,7 +4,12 @@
   no class, before any message is processed
   - `check` printed "Configuration OK"; `start` failed only when the launcher created the managers
   - A custom strategy defined in a `-r` file is still accepted: the name is resolved after the workers are required
+  - The global name is checked only with top-level `queues`: only the default group uses it
   - `Shoryuken::Errors::InvalidPollingStrategyError` is now a subclass of `Shoryuken::Errors::InvalidConfigurationError`
+
+- Change: `shoryuken start` prints an invalid option (`Shoryuken::Errors::InvalidConfigurationError` or a subclass) as
+  `[FAIL] <message> (<error class>)` and exits 1, without a backtrace, as `shoryuken check` does
+  - A daemon (`-d`) still writes the error with its backtrace to the logfile
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called

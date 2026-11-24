@@ -5,8 +5,11 @@
 # and accept a custom strategy defined in a `-r` file.
 #
 # `check` prints `[FAIL]` with the key path and exits 1 without a backtrace.
-# `start` raises InvalidPollingStrategyError, an InvalidConfigurationError,
-# before it starts, and the message waiting in the queue is not processed.
+# `start` prints `[FAIL]` with the message and the error class
+# (InvalidPollingStrategyError, an InvalidConfigurationError) without a
+# backtrace and exits 1 before it starts; the message waiting in the queue is
+# not processed. A global name is used only by the default group, so without
+# top-level queues it is not checked and `start` processes as before.
 #
 # It used to pass `check` with "Configuration OK" and fail only when the
 # launcher built the managers.
@@ -34,8 +37,10 @@ end
 def expect_start_rejected(dir, boot_file, config, key)
   status, output = run_shoryuken_until_exit('-C', write_config(dir, config), '-r', boot_file)
 
-  refute(status.success?, "the process must fail to start, got: #{output}")
+  assert_equal(1, status.exitstatus, "the process must fail to start, got: #{output}")
+  assert_includes(output, '[FAIL]', "got: #{output}")
   assert_includes(output, 'Shoryuken::Errors::InvalidPollingStrategyError', "got: #{output}")
+  refute(output.include?('.rb:'), "start must not print a backtrace, got: #{output}")
   assert_includes(output, key, "got: #{output}")
   assert_includes(output, MESSAGE, "got: #{output}")
   refute(output.include?('Starting'), "the process must not start, got: #{output}")
@@ -88,4 +93,11 @@ with_queue_and_dir do |queue, dir|
     assert_equal(0, status.exitstatus, "a strategy from a -r file must be accepted, got: #{output}")
     assert_includes(output, 'Configuration OK')
   end
+
+  # --- an unknown global name with only groups ---
+  config = "polling_strategy: NoSuchStrategy\ngroups:\n  custom:\n    queues:\n      - #{queue}\n"
+  status, output = run_shoryuken_until('-C', write_config(dir, config), '-r', boot_file) { File.exist?(marker) }
+
+  assert(status.success?, "an unused global name must not stop the process, got #{status.inspect}: #{output}")
+  assert(File.exist?(marker), "the message must be processed, got: #{output}")
 end

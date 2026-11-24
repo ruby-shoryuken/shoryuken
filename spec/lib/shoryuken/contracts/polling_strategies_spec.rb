@@ -20,8 +20,13 @@ RSpec.describe Shoryuken::Contracts::PollingStrategies do
     expect(errors({})).to be_empty
   end
 
-  it 'rejects an unknown global name' do
-    expect(errors({ polling_strategy: 'NoSuchStrategy' }).keys).to eq([:polling_strategy])
+  it 'rejects an unknown global name when there are top-level queues' do
+    expect(errors({ polling_strategy: 'NoSuchStrategy', queues: ['q1'] }).keys).to eq([:polling_strategy])
+  end
+
+  it 'accepts an unknown global name without top-level queues, as no group uses it' do
+    expect(errors({ polling_strategy: 'NoSuchStrategy', queues: [], groups: { custom: { queues: ['q1'] } } }))
+      .to be_empty
   end
 
   it 'rejects an unknown name in a group, as a Hash or as an Array of pairs' do
@@ -32,7 +37,7 @@ RSpec.describe Shoryuken::Contracts::PollingStrategies do
   end
 
   it 'raises InvalidPollingStrategyError, an InvalidConfigurationError, naming every unknown name' do
-    opts = { polling_strategy: 'NoSuchStrategy', groups: { custom: { polling_strategy: 'NoSuchStrategy' } } }
+    opts = { polling_strategy: 'NoSuchStrategy', queues: ['q1'], groups: { custom: { polling_strategy: 'NoSuchStrategy' } } }
 
     expect { described_class.new.validate!(opts) }.to raise_error(
       Shoryuken::Errors::InvalidPollingStrategyError,

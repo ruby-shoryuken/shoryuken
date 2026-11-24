@@ -33,7 +33,8 @@ module Shoryuken
         end
       end
 
-      optional(:polling_strategy) { |value| resolvable?(value) }
+      # The global strategy is used only by the default group, which exists only with top-level queues
+      optional(:polling_strategy) { |value, data| data[:queues].to_a.empty? || resolvable?(value) }
 
       virtual do |data|
         groups = data[:groups]

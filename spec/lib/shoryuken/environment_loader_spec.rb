@@ -55,7 +55,10 @@ RSpec.describe Shoryuken::EnvironmentLoader do
     end
 
     context 'when the polling strategy name is unknown' do
-      before { Shoryuken.options[:polling_strategy] = 'NoSuchStrategy' }
+      before do
+        Shoryuken.options[:polling_strategy] = 'NoSuchStrategy'
+        Shoryuken.options[:queues] = ['stubbed_queue']
+      end
 
       after { Shoryuken.options[:polling_strategy] = nil }
 
