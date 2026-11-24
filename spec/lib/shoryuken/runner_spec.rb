@@ -64,6 +64,25 @@ RSpec.describe Shoryuken::Runner do
         expect(cli).to have_received(:exit).with(1)
       end
     end
+    context 'when TERM arrives during the graceful stop of a TSTP' do
+      let(:release) { Queue.new }
+
+      before do
+        allow(launcher).to receive(:start) { Process.kill('TSTP', Process.pid) }
+        allow(launcher).to receive(:stop) do
+          Process.kill('TERM', Process.pid)
+          release.pop
+        end
+      end
+
+      after { release.close }
+
+      it 'stops at once without waiting for the graceful stop' do
+        expect { cli.run({}) }.to_not raise_error
+        expect(launcher).to have_received(:stop!)
+        expect(cli).to have_received(:exit).with(0)
+      end
+    end
   end
 
   describe '#daemonize' do

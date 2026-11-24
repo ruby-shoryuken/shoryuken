@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Fix: A TERM or INT sent during the graceful stop of a TSTP or USR1 stops the process within `timeout`
+  - It waited for the graceful stop to end first, which waits for an in-flight long poll (up to `wait_time_seconds`)
+    outside `timeout`
+  - The lifecycle events and `stop_callback` still run once
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`

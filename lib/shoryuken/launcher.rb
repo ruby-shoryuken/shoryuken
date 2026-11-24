@@ -11,6 +11,7 @@ module Shoryuken
       @managers = create_managers
       @stopping = false
       @stopped = false
+      @stop_lock = ::Mutex.new
     end
 
     # Indicates whether the launcher is in the process of stopping.
@@ -33,34 +34,27 @@ module Shoryuken
       start_managers
     end
 
-    # Forces an immediate stop of all processing. Does nothing once a stop has completed.
+    # Forces an immediate stop of all processing. Does nothing once a stop has completed. Takes over a graceful stop
+    # ({#stop}) that is still running in another thread, so that stop no longer waits for the in-progress dispatching.
     #
     # @return [void]
     def stop!
-      return if @stopped
+      if begin_stop
+        initiate_stop
 
-      @stopping = true
-      initiate_stop
+        # Don't await here so the timeout below is not delayed
+        stop_new_dispatching
+      end
 
-      # Don't await here so the timeout below is not delayed
-      stop_new_dispatching
-
-      deadline = shutdown_deadline
-      shutdown_executor
-
-      drain_pending_active_job_sends(deadline)
-
-      fire_event(:stopped)
-      @stopped = true
+      finish_stop
     end
 
-    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has completed.
+    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has started.
     #
     # @return [void]
     def stop
-      return if @stopped
+      return unless begin_stop
 
-      @stopping = true
       fire_event(:quiet, true)
 
       initiate_stop
@@ -68,13 +62,7 @@ module Shoryuken
       signalled_managers = stop_new_dispatching
       await_dispatching_in_progress(signalled_managers)
 
-      deadline = shutdown_deadline
-      shutdown_executor
-
-      drain_pending_active_job_sends(deadline)
-
-      fire_event(:stopped)
-      @stopped = true
+      finish_stop
     end
 
     # Checks if all processing groups are healthy
@@ -95,6 +83,35 @@ module Shoryuken
     end
 
     private
+
+    # Marks the launcher as stopping
+    #
+    # @return [Boolean] true for the first stop, false when a stop has already started
+    def begin_stop
+      @stop_lock.synchronize do
+        next false if @stopping
+
+        @stopping = true
+      end
+    end
+
+    # Shuts the executor down, drains the ActiveJob sends and fires the stopped event, once. A second caller waits for
+    # the first to finish.
+    #
+    # @return [void]
+    def finish_stop
+      @stop_lock.synchronize do
+        next if @stopped
+
+        deadline = shutdown_deadline
+        shutdown_executor
+
+        drain_pending_active_job_sends(deadline)
+
+        fire_event(:stopped)
+        @stopped = true
+      end
+    end
 
     # Stops all managers from dispatching new messages
     #

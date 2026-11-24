@@ -250,6 +250,31 @@ RSpec.describe Shoryuken::Launcher do
       expect(first_group_manager).to have_received(:stop_new_dispatching).once
     end
 
+    context 'when a graceful stop awaits the dispatching in progress' do
+      let(:release) { Queue.new }
+
+      before do
+        allow(first_group_manager).to receive(:await_dispatching_in_progress) { release.pop }
+      end
+
+      after { release.close }
+
+      it 'stops without waiting for the dispatching and runs each step once' do
+        events = Queue.new
+        allow(subject).to receive(:fire_event) { |event, *| events << event }
+        graceful = Thread.new { subject.stop }
+        Thread.pass until graceful.status == 'sleep'
+
+        subject.stop!
+        release << true
+        graceful.join
+
+        expect(Array.new(events.size) { events.pop }).to eq(%i[quiet shutdown stopped])
+        expect(first_group_manager).to have_received(:stop_new_dispatching).once
+        expect(executor).to be_shutdown
+      end
+    end
+
     it 'stops the managers' do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)
