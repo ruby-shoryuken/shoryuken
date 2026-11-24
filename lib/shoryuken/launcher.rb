@@ -6,6 +6,11 @@ module Shoryuken
   class Launcher
     include Util
 
+    # Seconds a shutdown waits for killed workers to stop before it releases their messages
+    KILLED_WORKERS_STOP_WAIT = 1
+
+    private_constant :KILLED_WORKERS_STOP_WAIT
+
     # Initializes a new Launcher with managers for each processing group
     def initialize
       @managers = create_managers
@@ -121,8 +126,8 @@ module Shoryuken
 
     # Shuts the executor down, giving in-flight workers up to the configured timeout to finish before force-killing them so
     # the process can exit. Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns: a graceful stop still
-    # waits for workers, but must not block forever on a hung one. The killed workers' messages are released, so they
-    # come back at once instead of after the visibility timeout.
+    # waits for workers, but must not block forever on a hung one. The messages of killed workers that stopped are
+    # released, so they come back at once instead of after the visibility timeout.
     #
     # @return [void]
     def shutdown_executor
@@ -133,8 +138,43 @@ module Shoryuken
         # Taken before the kill: a killed worker's ensure removes its message from the in-flight list
         in_flight = @managers.map { |manager| [manager, manager.in_flight_messages] }
         executor.kill
-        in_flight.each { |manager, messages| manager.release(messages) }
+        release_killed_workers_messages(in_flight)
       end
+    end
+
+    # Releases the messages of killed workers once those workers stopped. Thread#kill only asks a thread to stop: a
+    # worker that masks interrupts or is in a blocking call still runs, so its message stays in flight instead of
+    # reaching another consumer while the job runs. A worker removes its message from the in-flight list when it stops
+    #
+    # @param in_flight [Array<Array(Shoryuken::Manager, Array<Shoryuken::Message>)>] each manager with the messages its
+    #   workers processed before the kill
+    # @return [void]
+    def release_killed_workers_messages(in_flight)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + KILLED_WORKERS_STOP_WAIT
+
+      running = still_in_flight(in_flight)
+      while running.any?(&:any?) && Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+        sleep 0.01
+        running = still_in_flight(in_flight)
+      end
+
+      in_flight.zip(running).each do |(manager, messages), running_messages|
+        manager.release(messages - running_messages)
+        next if running_messages.empty?
+
+        logger.warn do
+          "#{running_messages.size} message(s) of killed workers still running in group #{manager.group} stay in " \
+            'flight until their visibility timeout'
+        end
+      end
+    end
+
+    # Returns, per manager, the given messages its workers still process
+    #
+    # @param in_flight [Array<Array(Shoryuken::Manager, Array<Shoryuken::Message>)>] each manager with its messages
+    # @return [Array<Array<Shoryuken::Message>>] the messages still in flight, in the order of the managers
+    def still_in_flight(in_flight)
+      in_flight.map { |manager, messages| messages & manager.in_flight_messages }
     end
 
     # Runs a single shutdown step, logging instead of raising its error so that one failing step cannot skip the

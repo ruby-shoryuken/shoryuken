@@ -298,34 +298,6 @@ RSpec.describe Shoryuken::Manager do
       expect(client).not_to have_received(:change_message_visibility_batch)
     end
 
-    it 'tracks the message as in flight only while it is processed' do
-      in_flight = nil
-      allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
-
-      subject.send(:assign, queue, sqs_msg)
-
-      expect(in_flight).to eq([sqs_msg])
-      expect(subject.in_flight_messages).to eq([])
-    end
-
-    it 'tracks every message of a batch as in flight' do
-      in_flight = nil
-      allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
-
-      subject.send(:assign, queue, [sqs_msg, other_msg])
-
-      expect(in_flight).to eq([sqs_msg, other_msg])
-      expect(subject.in_flight_messages).to eq([])
-    end
-
-    it 'stops tracking the message when processing raises' do
-      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
-
-      subject.send(:assign, queue, sqs_msg)
-
-      expect(subject.in_flight_messages).to eq([])
-    end
-
     context 'when the manager is not running' do
       before { allow(subject).to receive(:running?).and_return(false) }
 
@@ -341,27 +313,6 @@ RSpec.describe Shoryuken::Manager do
 
         expect(client).to have_received(:change_message_visibility_batch).once
         expect(released_entries.map { |entry| entry[:receipt_handle] }).to eq(%w[m1 m2])
-      end
-
-      it 'logs each message the batch request fails to release' do
-        failure = double(id: '1', code: 'ReceiptHandleIsInvalid', message: 'invalid')
-        allow(client).to receive(:change_message_visibility_batch).and_return(double(failed: [failure]))
-        allow(Shoryuken.logger).to receive(:error)
-
-        subject.send(:assign, queue, [sqs_msg, other_msg])
-
-        expect(Shoryuken.logger).to have_received(:error).once do |&block|
-          expect(block.call).to include(other_msg.message_id, 'ReceiptHandleIsInvalid')
-        end
-      end
-
-      it 'logs a failed release request instead of raising' do
-        allow(client).to receive(:change_message_visibility_batch).and_raise('change visibility failed')
-        allow(Shoryuken.logger).to receive(:error)
-
-        expect { subject.send(:assign, queue, [sqs_msg, other_msg]) }.not_to raise_error
-
-        expect(Shoryuken.logger).to have_received(:error)
       end
     end
 
@@ -421,10 +372,74 @@ RSpec.describe Shoryuken::Manager do
 
         expect(subject.send(:busy)).to eq(0)
       end
+    end
+  end
 
-      it 'does not track the message as in flight' do
-        subject.send(:assign, queue, sqs_msg)
+  describe '#in_flight_messages' do
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:other_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
 
+    before do
+      # one dispatch, then stop the dispatch loop
+      allow(subject).to receive(:running?).and_return(true, true, true, false)
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+    end
+
+    it 'holds a message only while it is processed' do
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+      in_flight = nil
+      allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
+
+      subject.start
+
+      expect(in_flight).to eq([sqs_msg])
+      expect(subject.in_flight_messages).to eq([])
+    end
+
+    it 'holds every message of a batch while it is processed' do
+      TestWorker.get_shoryuken_options['batch'] = true
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg, other_msg])
+      in_flight = nil
+      allow(Shoryuken::Processor).to receive(:process) { in_flight = subject.in_flight_messages }
+
+      subject.start
+
+      expect(in_flight).to eq([sqs_msg, other_msg])
+      expect(subject.in_flight_messages).to eq([])
+    end
+
+    it 'drops a message when processing raises' do
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
+
+      subject.start
+
+      expect(Shoryuken::Processor).to have_received(:process)
+      expect(subject.in_flight_messages).to eq([])
+    end
+
+    context 'when the executor rejects the worker post' do
+      # Runs the dispatch, rejects the worker post it makes
+      let(:executor) do
+        double('executor', running?: true).tap do |rejecting_executor|
+          posts = 0
+          allow(rejecting_executor).to receive(:post) do |&block|
+            posts += 1
+            raise Concurrent::RejectedExecutionError if posts == 2
+
+            block.call
+          end
+        end
+      end
+
+      it 'does not hold the message' do
+        allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+        allow(subject).to receive(:release)
+
+        subject.start
+
+        expect(subject).to have_received(:release).with(sqs_msg)
         expect(subject.in_flight_messages).to eq([])
       end
     end
@@ -455,6 +470,19 @@ RSpec.describe Shoryuken::Manager do
       expect(client).to have_received(:change_message_visibility_batch).with(queue_url: 'queue-a', entries: second_entries)
       expect(client).to have_received(:change_message_visibility_batch)
         .with(queue_url: 'queue-b', entries: [{ id: '0', receipt_handle: 'b0', visibility_timeout: 0 }])
+    end
+
+    it 'logs each message the batch request fails to release' do
+      messages = [build_message('a0', 'queue-a'), build_message('a1', 'queue-a')]
+      failure = double(id: '1', code: 'ReceiptHandleIsInvalid', message: 'invalid')
+      allow(client).to receive(:change_message_visibility_batch).and_return(double(failed: [failure]))
+      allow(Shoryuken.logger).to receive(:error)
+
+      subject.release(messages)
+
+      expect(Shoryuken.logger).to have_received(:error).once do |&block|
+        expect(block.call).to include(messages[1].message_id, 'ReceiptHandleIsInvalid')
+      end
     end
 
     it 'releases the other queues when the request for one queue fails' do
