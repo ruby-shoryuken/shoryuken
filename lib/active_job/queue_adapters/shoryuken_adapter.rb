@@ -16,17 +16,9 @@ module ActiveJob
     # Example Rails configuration:
     #   Rails.application.config.active_job.queue_adapter = :shoryuken
 
-    # Determine the appropriate base class based on Rails version
-    # This prevents AbstractAdapter autoloading issues in Rails 7.0-7.1
-    base = if defined?(Rails) && defined?(Rails::VERSION)
-             (Rails::VERSION::MAJOR == 7 && Rails::VERSION::MINOR < 2 ? Object : AbstractAdapter)
-           else
-             Object
-           end
-
     # Shoryuken queue adapter for ActiveJob integration.
     # Provides methods for enqueueing jobs to SQS queues.
-    class ShoryukenAdapter < base
+    class ShoryukenAdapter < AbstractAdapter
       class << self
         # Returns the singleton adapter instance
         #
@@ -231,16 +223,13 @@ module ActiveJob
         delay
       end
 
-      # Calculates the delay in seconds from a timestamp
+      # Calculates the delay in seconds from a timestamp, rounded up
       #
       # @param timestamp [Float] Unix timestamp
       # @return [Integer] delay in seconds, 0 for a timestamp in the past
       # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def calculate_delay(timestamp)
-        delay = (timestamp - Time.now.to_f).round
-        raise Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > MAX_DELAY_SECONDS
-
-        [delay, 0].max
+        Shoryuken::Queue.delay_seconds(timestamp - Time.now.to_f)
       end
 
       # Builds the SQS message parameters for a job
@@ -337,10 +326,7 @@ module ActiveJob
       # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
       MAX_BATCH_BYTES = 1024 * 1024
 
-      # Maximum delay in seconds SQS accepts for a message
-      MAX_DELAY_SECONDS = 900
-
-      private_constant :MAX_BATCH_MESSAGES, :MAX_BATCH_BYTES, :MAX_DELAY_SECONDS
+      private_constant :MAX_BATCH_MESSAGES, :MAX_BATCH_BYTES
 
       # Default message attributes identifying the Shoryuken worker class
       MESSAGE_ATTRIBUTES = {
