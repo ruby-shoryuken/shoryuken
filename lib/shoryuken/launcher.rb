@@ -127,7 +127,22 @@ module Shoryuken
     def shutdown_executor
       shutdown_step(:shutdown_executor) do
         executor.shutdown
-        executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+        next if executor.wait_for_termination(Shoryuken.options[:timeout])
+
+        shutdown_step(:log_killed_workers) { log_killed_workers }
+        executor.kill
+      end
+    end
+
+    # Warns that the busy workers are about to be killed: a killed job logs neither "completed in" nor "failed in"
+    #
+    # @return [void]
+    def log_killed_workers
+      busy = @managers.sum(&:busy)
+
+      logger.warn do
+        "Killing #{busy} busy #{busy == 1 ? 'worker' : 'workers'} after the #{Shoryuken.options[:timeout]}s " \
+          'shutdown timeout; their messages come back after the visibility timeout'
       end
     end
 

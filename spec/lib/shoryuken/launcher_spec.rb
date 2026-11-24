@@ -115,11 +115,52 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     it 'kills the executor when workers do not finish within the timeout' do
+      allow(first_group_manager).to receive(:busy).and_return(0)
+      allow(second_group_manager).to receive(:busy).and_return(0)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       expect(executor).to receive(:kill)
 
       subject.stop
+    end
+
+    it 'warns how many busy workers it kills before killing the executor' do
+      Shoryuken.options[:timeout] = 3
+      allow(first_group_manager).to receive(:busy).and_return(2)
+      allow(second_group_manager).to receive(:busy).and_return(1)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill)
+      allow(Shoryuken.logger).to receive(:warn).and_call_original
+
+      subject.stop
+
+      expect(Shoryuken.logger).to have_received(:warn).ordered do |&block|
+        expect(block.call).to eq(
+          'Killing 3 busy workers after the 3s shutdown timeout; their messages come back after the visibility timeout'
+        )
+      end
+      expect(executor).to have_received(:kill).ordered
+    end
+
+    it 'still kills the executor when counting the busy workers raises' do
+      allow(first_group_manager).to receive(:busy).and_raise('busy failure')
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(Shoryuken.logger).to receive(:error)
+      expect(executor).to receive(:kill)
+
+      subject.stop
+    end
+
+    it 'logs no warning when workers finish within the timeout' do
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(true)
+      allow(Shoryuken.logger).to receive(:warn)
+
+      subject.stop
+
+      expect(Shoryuken.logger).not_to have_received(:warn)
     end
 
     context 'when stop_callback raises' do
@@ -342,6 +383,8 @@ RSpec.describe Shoryuken::Launcher do
 
     it 'gives the drain only the part of the timeout the executor shutdown left' do
       Shoryuken.options[:timeout] = 1
+      allow(first_group_manager).to receive(:busy).and_return(1)
+      allow(second_group_manager).to receive(:busy).and_return(0)
       executor.post { sleep 3 }
 
       expect(adapter).to receive(:wait_for_pending_sends).with(0).and_return(false)

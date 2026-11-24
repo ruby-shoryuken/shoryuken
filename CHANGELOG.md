@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: A shutdown that kills busy workers after `timeout` logs a warning with their count, for example
+  `Killing 2 busy workers after the 8s shutdown timeout; their messages come back after the visibility timeout`
+  - It logged nothing: a killed job has a `started at` line but no `completed in` or `failed in` line
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`
