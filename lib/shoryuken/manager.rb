@@ -88,6 +88,13 @@ module Shoryuken
       @running.false?
     end
 
+    # Returns the count of busy processors
+    #
+    # @return [Integer] the number of busy processors
+    def busy
+      @busy_processors.value
+    end
+
     private
 
     # The main dispatch loop
@@ -138,13 +145,6 @@ module Shoryuken
       handle_dispatch_error(e)
     ensure
       dispatch_loop
-    end
-
-    # Returns the count of busy processors
-    #
-    # @return [Integer] the number of busy processors
-    def busy
-      @busy_processors.value
     end
 
     # Returns the count of ready processors
