@@ -3,6 +3,8 @@
 - Fix: A shutdown that kills workers still busy after `timeout` (TERM, INT, USR1, TSTP or `Launcher#stop!`) makes
   their messages visible again at once
   - They stayed in flight until the queue's visibility timeout ran out
+  - A worker that still runs after the kill (masked interrupts, a blocking call) keeps its message in flight, and the
+    shutdown logs a warning; it waits up to 1 second for killed workers to stop
   - Released messages, killed or never started, are sent in one batch request per queue and 10 messages
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
