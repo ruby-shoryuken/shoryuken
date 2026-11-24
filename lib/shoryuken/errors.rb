@@ -17,7 +17,7 @@ module Shoryuken
     InvalidWorkerRegistrationError = Class.new(BaseError)
 
     # Raised when an invalid polling strategy is specified
-    InvalidPollingStrategyError = Class.new(BaseError)
+    InvalidPollingStrategyError = Class.new(InvalidConfigurationError)
 
     # Raised when an invalid lifecycle event name is used
     InvalidEventError = Class.new(BaseError)

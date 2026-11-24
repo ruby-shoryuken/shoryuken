@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+- Fix: `shoryuken check` and `shoryuken start` reject a `polling_strategy` name, global or in a group, that resolves to
+  no class, before any message is processed
+  - `check` printed "Configuration OK"; `start` failed only when the launcher created the managers
+  - A custom strategy defined in a `-r` file is still accepted: the name is resolved after the workers are required
+  - The global name is checked only with top-level `queues`: only the default group uses it
+  - `Shoryuken::Errors::InvalidPollingStrategyError` is now a subclass of `Shoryuken::Errors::InvalidConfigurationError`
+
+- Change: `shoryuken start` prints an invalid option (`Shoryuken::Errors::InvalidConfigurationError` or a subclass) to
+  stderr as `[FAIL] <message> (<error class>)` and exits 1, without a backtrace
+
 - Breaking: ActiveJob `set(wait:)` and `set(wait_until:)` round a delay up to whole seconds, as a raw worker
   `perform_in`/`perform_at` does, so a job never runs earlier than asked
   - A delay of a fraction of a second on a FIFO queue raises `Shoryuken::Errors::FifoDelayNotSupportedError`; it was
