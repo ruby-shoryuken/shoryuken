@@ -131,31 +131,21 @@ module Shoryuken
       # Adapted from: https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/cli.rb
 
       require 'rails'
-      if ::Rails::VERSION::MAJOR < 4
-        require File.expand_path('config/environment.rb')
-        ::Rails.application.eager_load!
-      else
-        # Painful contortions, see 1791 for discussion
-        require File.expand_path('config/application.rb')
-        if ::Rails::VERSION::MAJOR == 4
-          ::Rails::Application.initializer 'shoryuken.eager_load' do
-            ::Rails.application.config.eager_load = true
+      # Painful contortions, see 1791 for discussion
+      require File.expand_path('config/application.rb')
+      ::Rails::Application.initializer 'shoryuken.set_reloader_hook' do |app|
+        Shoryuken.reloader = proc do |&block|
+          app.reloader.wrap do
+            block.call
           end
         end
-        ::Rails::Application.initializer 'shoryuken.set_reloader_hook' do |app|
-          Shoryuken.reloader = proc do |&block|
-            app.reloader.wrap do
-              block.call
-            end
-          end
-        end
-        if Shoryuken.active_job?
-          require 'active_job/extensions'
-          require 'active_job/queue_adapters/shoryuken_adapter'
-          require 'active_job/queue_adapters/shoryuken_concurrent_send_adapter'
-        end
-        require File.expand_path('config/environment.rb')
       end
+      if Shoryuken.active_job?
+        require 'active_job/extensions'
+        require 'active_job/queue_adapters/shoryuken_adapter'
+        require 'active_job/queue_adapters/shoryuken_concurrent_send_adapter'
+      end
+      require File.expand_path('config/environment.rb')
     end
 
     # Checks if Rails should be loaded
@@ -268,9 +258,7 @@ module Shoryuken
 
       return if non_existent_queues.none?
 
-      # NOTE: HEREDOC's ~ operator removes indents, but is only available Ruby 2.3+
-      # See github PR: https://github.com/ruby-shoryuken/shoryuken/pull/691#issuecomment-1007653595
-      error_msg = <<-MSG.gsub(/^\s+/, '')
+      error_msg = <<~MSG
         The specified queue(s) #{non_existent_queues.join(', ')} do not exist.
         Try 'shoryuken sqs create QUEUE-NAME' for creating a queue with default settings.
         It's also possible that you don't have permission to access the specified queues.
