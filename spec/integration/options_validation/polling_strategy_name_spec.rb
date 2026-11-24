@@ -35,16 +35,14 @@ def expect_check_rejected(dir, boot_file, config, key)
 end
 
 def expect_start_rejected(dir, boot_file, config, key)
-  status, stdout, output = run_shoryuken_command_until_exit_split(
-    'start', '-C', write_config(dir, config), '-r', boot_file
-  )
+  status, stdout, stderr = run_shoryuken_until_exit('-C', write_config(dir, config), '-r', boot_file, split: true)
 
-  assert_equal(1, status.exitstatus, "the process must fail to start, got: #{stdout}#{output}")
-  assert_includes(output, '[FAIL]', "the error must go to stderr, got: #{output}, stdout: #{stdout}")
-  assert_includes(output, 'Shoryuken::Errors::InvalidPollingStrategyError', "got: #{output}")
-  refute(output.include?('.rb:'), "start must not print a backtrace, got: #{output}")
-  assert_includes(output, key, "got: #{output}")
-  assert_includes(output, MESSAGE, "got: #{output}")
+  assert_equal(1, status.exitstatus, "the process must fail to start, got: #{stdout}#{stderr}")
+  assert_includes(stderr, '[FAIL]', "the error must go to stderr, got: #{stderr}, stdout: #{stdout}")
+  assert_includes(stderr, 'Shoryuken::Errors::InvalidPollingStrategyError', "got: #{stderr}")
+  refute(stderr.include?('.rb:'), "start must not print a backtrace, got: #{stderr}")
+  assert_includes(stderr, key, "got: #{stderr}")
+  assert_includes(stderr, MESSAGE, "got: #{stderr}")
   refute(stdout.include?('[FAIL]'), "the error must not go to stdout, got: #{stdout}")
   refute(stdout.include?('Starting'), "the process must not start, got: #{stdout}")
 end

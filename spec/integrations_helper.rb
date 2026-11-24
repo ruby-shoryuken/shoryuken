@@ -47,7 +47,6 @@ require_relative 'integration_helpers/error_helper'
 require_relative 'integration_helpers/packaging_helper'
 require_relative 'integration_helpers/process_helper'
 require_relative 'integration_helpers/queue_state_helper'
-require_relative 'integration_helpers/split_output_helper'
 
 module IntegrationsHelper
   include CleanupHelper
@@ -56,7 +55,6 @@ module IntegrationsHelper
   include PackagingHelper
   include ProcessHelper
   include QueueStateHelper
-  include SplitOutputHelper
 
   class TestFailure < StandardError; end
 

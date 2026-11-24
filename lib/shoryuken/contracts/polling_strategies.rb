@@ -6,29 +6,22 @@ module Shoryuken
     # strategy can be defined in a required file, so this runs after the workers are required, unlike {Options}, which
     # already checked the types.
     #
-    # An unknown name raises {Errors::InvalidPollingStrategyError}.
+    # An unknown name raises {Errors::InvalidPollingStrategyError}, so it does not inherit {Base}, which raises
+    # {Errors::InvalidConfigurationError}.
     class PollingStrategies < Contractable::Contract
-      # Names of the built-in strategies, resolved without a constant lookup
-      BUILT_IN = %w[WeightedRoundRobin StrictPriority].freeze
-
-      private_constant :BUILT_IN
-
       self.error_messages = Base.load_error_messages('polling_strategies')
 
       class << self
         private
 
-        # Checks that a strategy name resolves the way {Options#polling_strategy} resolves it
+        # Checks that a strategy setting resolves with {Options#resolve_polling_strategy}
         #
         # @param value [Object] the polling strategy
-        # @return [Boolean] true if the value is not a String, a built-in name or the name of a defined constant
+        # @return [Boolean] true if the value resolves
         def resolvable?(value)
-          return true unless value.is_a?(String)
-          return true if BUILT_IN.include?(value)
-
-          Object.const_get(value)
+          Shoryuken.resolve_polling_strategy(value)
           true
-        rescue NameError
+        rescue Errors::InvalidPollingStrategyError
           false
         end
       end
