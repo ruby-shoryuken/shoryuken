@@ -21,6 +21,8 @@ module Shoryuken
     # Maximum delay in seconds SQS accepts for a message
     MAX_DELAY_SECONDS       = 900
 
+    private_constant :MAX_DELAY_SECONDS
+
     class << self
       # Converts a delay to the whole seconds SQS accepts, rounded up so a message never becomes visible early
       #

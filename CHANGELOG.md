@@ -6,7 +6,6 @@
     rounded to 0 and sent
   - A delay over 900 and up to 901 seconds raises `Shoryuken::Errors::InvalidDelayError`; it was rounded to 900 and
     sent
-  - Both paths use one limit, `Shoryuken::Queue::MAX_DELAY_SECONDS` (900)
 
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called

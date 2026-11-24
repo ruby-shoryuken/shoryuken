@@ -507,7 +507,7 @@ RSpec.describe Shoryuken::Queue do
       expect(described_class.delay_seconds(-5.7)).to eq(0)
     end
 
-    it 'raises InvalidDelayError for a delay over MAX_DELAY_SECONDS' do
+    it 'raises InvalidDelayError for a delay over 900 seconds' do
       expect { described_class.delay_seconds(900.4) }.to raise_error(
         Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes'
       )
