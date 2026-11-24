@@ -6,6 +6,10 @@
   - It logged `job.inspect`, so the job arguments and the SQS message body reached the log even with
     `self.log_arguments = false`
 
+- Change: `ShoryukenAdapter` and `ShoryukenConcurrentSendAdapter` inherit from
+  `ActiveJob::QueueAdapters::AbstractAdapter` also when Active Job is used without Rails
+  - They inherited from `Object` there
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
   returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
   without `queue:`

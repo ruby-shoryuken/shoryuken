@@ -200,8 +200,8 @@ RSpec.describe Shoryuken::Logging do
   end
 
   describe '.logger' do
-    after do
-      # Reset the instance variable to avoid affecting other tests
+    before do
+      # Start without a logger: spec_helper and other examples leave one set
       described_class.instance_variable_set(:@logger, nil)
     end
 
