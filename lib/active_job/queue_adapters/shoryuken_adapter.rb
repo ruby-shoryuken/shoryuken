@@ -231,16 +231,13 @@ module ActiveJob
         delay
       end
 
-      # Calculates the delay in seconds from a timestamp
+      # Calculates the delay in seconds from a timestamp, rounded up
       #
       # @param timestamp [Float] Unix timestamp
       # @return [Integer] delay in seconds, 0 for a timestamp in the past
       # @raise [Shoryuken::Errors::InvalidDelayError] if delay exceeds 15 minutes
       def calculate_delay(timestamp)
-        delay = (timestamp - Time.now.to_f).round
-        raise Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > MAX_DELAY_SECONDS
-
-        [delay, 0].max
+        Shoryuken::Queue.delay_seconds(timestamp - Time.now.to_f)
       end
 
       # Builds the SQS message parameters for a job
@@ -337,10 +334,7 @@ module ActiveJob
       # @see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
       MAX_BATCH_BYTES = 1024 * 1024
 
-      # Maximum delay in seconds SQS accepts for a message
-      MAX_DELAY_SECONDS = 900
-
-      private_constant :MAX_BATCH_MESSAGES, :MAX_BATCH_BYTES, :MAX_DELAY_SECONDS
+      private_constant :MAX_BATCH_MESSAGES, :MAX_BATCH_BYTES
 
       # Default message attributes identifying the Shoryuken worker class
       MESSAGE_ATTRIBUTES = {
