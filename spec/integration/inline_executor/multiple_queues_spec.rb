@@ -2,9 +2,9 @@
 
 # This spec tests the inline executor with a worker whose `queue` option is an Array.
 #
-# `perform_async` and `perform_in` without `queue:` raise the same ArgumentError as the default executor and do not
-# run the job: several queues name the worker and its queues, an empty Array asks for `queue:`. With `queue:` the job
-# runs with that `queue_name`; a one-element Array runs it with its only queue.
+# `perform_async` and `perform_in` without `queue:` raise the same Shoryuken::Errors::QueueNotSpecifiedError as the
+# default executor and do not run the job: several queues name the worker and its queues, an empty Array asks for
+# `queue:`. With `queue:` the job runs with that `queue_name`; a one-element Array runs it with its only queue.
 #
 # It used to run the job with `sqs_msg.queue_name` set to the Array.
 
@@ -45,13 +45,13 @@ class SingleQueueArrayWorker
   end
 end
 
-async_error = raised_error(ArgumentError) { MultipleQueuesWorker.perform_async('no queue') }
-perform_in_error = raised_error(ArgumentError) { MultipleQueuesWorker.perform_in(5, 'no queue') }
-empty_error = raised_error(ArgumentError) { EmptyQueuesWorker.perform_async('no queue') }
+async_error = raised_error(Shoryuken::Errors::QueueNotSpecifiedError) { MultipleQueuesWorker.perform_async('no queue') }
+perform_in_error = raised_error(Shoryuken::Errors::QueueNotSpecifiedError) { MultipleQueuesWorker.perform_in(5, 'no queue') }
+empty_error = raised_error(Shoryuken::Errors::QueueNotSpecifiedError) { EmptyQueuesWorker.perform_async('no queue') }
 
-assert(async_error, 'perform_async without queue: should raise ArgumentError')
-assert(perform_in_error, 'perform_in without queue: should raise ArgumentError')
-assert(empty_error, 'perform_async without queue: should raise ArgumentError for an empty Array')
+assert(async_error, 'perform_async without queue: should raise QueueNotSpecifiedError')
+assert(perform_in_error, 'perform_in without queue: should raise QueueNotSpecifiedError')
+assert(empty_error, 'perform_async without queue: should raise QueueNotSpecifiedError for an empty Array')
 assert_equal(
   "MultipleQueuesWorker has several queues (#{FIRST_QUEUE}, #{SECOND_QUEUE}): pass the queue: option to choose one",
   async_error.message

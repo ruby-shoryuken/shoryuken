@@ -47,7 +47,7 @@ RSpec.describe Shoryuken::Worker::InlineExecutor do
         expect {
           TestWorker.perform_async('test')
         }.to raise_error(
-          ArgumentError,
+          Shoryuken::Errors::QueueNotSpecifiedError,
           'TestWorker has several queues (queue1, queue2): pass the queue: option to choose one'
         )
       end
@@ -68,7 +68,7 @@ RSpec.describe Shoryuken::Worker::InlineExecutor do
       it 'raises without a queue option' do
         expect {
           TestWorker.perform_async('test')
-        }.to raise_error(ArgumentError, 'TestWorker has no queue: pass the queue: option')
+        }.to raise_error(Shoryuken::Errors::QueueNotSpecifiedError, 'TestWorker has no queue: pass the queue: option')
       end
     end
 
@@ -132,7 +132,7 @@ RSpec.describe Shoryuken::Worker::InlineExecutor do
 
       expect {
         TestWorker.perform_in(60, 'test')
-      }.to raise_error(ArgumentError, /TestWorker has several queues \(queue1, queue2\)/)
+      }.to raise_error(Shoryuken::Errors::QueueNotSpecifiedError, /TestWorker has several queues \(queue1, queue2\)/)
     end
 
     it 'properly passes message_attributes to perform_async' do

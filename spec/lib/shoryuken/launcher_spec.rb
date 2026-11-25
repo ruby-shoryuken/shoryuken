@@ -115,11 +115,83 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     it 'kills the executor when workers do not finish within the timeout' do
+      allow(first_group_manager).to receive(:busy).and_return(0)
+      allow(second_group_manager).to receive(:busy).and_return(0)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       expect(executor).to receive(:kill)
 
       subject.stop
+    end
+
+    it 'warns how many busy workers it kills before killing the executor' do
+      Shoryuken.options[:timeout] = 3
+      allow(first_group_manager).to receive(:busy).and_return(2)
+      allow(second_group_manager).to receive(:busy).and_return(1)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill)
+      allow(Shoryuken.logger).to receive(:warn).and_call_original
+
+      subject.stop
+
+      expect(Shoryuken.logger).to have_received(:warn).ordered do |&block|
+        expect(block.call).to eq(
+          'Killing 3 busy workers after the 3s shutdown timeout; their messages come back after the visibility timeout'
+        )
+      end
+      expect(executor).to have_received(:kill).ordered
+    end
+
+    it 'names a single busy worker in the singular' do
+      Shoryuken.options[:timeout] = 3
+      allow(first_group_manager).to receive(:busy).and_return(1)
+      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill)
+      allow(Shoryuken.logger).to receive(:warn).and_call_original
+
+      subject.stop
+
+      expect(Shoryuken.logger).to have_received(:warn) do |&block|
+        expect(block.call).to eq(
+          'Killing 1 busy worker after the 3s shutdown timeout; their messages come back after the visibility timeout'
+        )
+      end
+    end
+
+    it 'logs no warning but still kills the executor when no worker is busy' do
+      allow(first_group_manager).to receive(:busy).and_return(0)
+      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(Shoryuken.logger).to receive(:warn)
+      expect(executor).to receive(:kill)
+
+      subject.stop
+
+      expect(Shoryuken.logger).not_to have_received(:warn)
+    end
+
+    it 'still kills the executor when counting the busy workers raises' do
+      allow(first_group_manager).to receive(:busy).and_raise('busy failure')
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(Shoryuken.logger).to receive(:error)
+      expect(executor).to receive(:kill)
+
+      subject.stop
+    end
+
+    it 'logs no warning when workers finish within the timeout' do
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(true)
+      allow(Shoryuken.logger).to receive(:warn)
+
+      subject.stop
+
+      expect(Shoryuken.logger).not_to have_received(:warn)
     end
 
     context 'when stop_callback raises' do
@@ -250,6 +322,82 @@ RSpec.describe Shoryuken::Launcher do
       expect(first_group_manager).to have_received(:stop_new_dispatching).once
     end
 
+    context 'when a graceful stop awaits the dispatching in progress' do
+      let(:release) { Queue.new }
+
+      before do
+        allow(first_group_manager).to receive(:await_dispatching_in_progress) { release.pop }
+      end
+
+      after { release.close }
+
+      it 'stops without waiting for the dispatching and runs each step once' do
+        events = Queue.new
+        allow(subject).to receive(:fire_event) { |event, *| events << event }
+        graceful = Thread.new { subject.stop }
+        Thread.pass until graceful.status == 'sleep'
+
+        subject.stop!
+        release << true
+        graceful.join
+
+        expect(Array.new(events.size) { events.pop }).to eq(%i[quiet shutdown stopped])
+        expect(first_group_manager).to have_received(:stop_new_dispatching).once
+        expect(executor).to be_shutdown
+      end
+    end
+
+    context 'when a graceful stop runs its stop_callback' do
+      let(:callback_release) { Queue.new }
+
+      before do
+        allow(Shoryuken).to receive(:stop_callback).and_return(-> { callback_release.pop })
+      end
+
+      after { callback_release.close }
+
+      it 'waits for the graceful stop to stop new dispatching before it stops' do
+        events = Queue.new
+        allow(subject).to receive(:fire_event) { |event, *| events << event }
+        graceful = Thread.new { subject.stop }
+        Thread.pass until graceful.status == 'sleep'
+
+        forced = Thread.new { subject.stop! }
+        Thread.pass until forced.status == 'sleep' || !forced.alive?
+        expect(executor).not_to be_shutdown
+
+        callback_release << true
+        [graceful, forced].each(&:join)
+
+        expect(Array.new(events.size) { events.pop }).to eq(%i[quiet shutdown stopped])
+        expect(first_group_manager).to have_received(:stop_new_dispatching).once
+        expect(executor).to be_shutdown
+      end
+    end
+
+    context 'when a graceful stop waits for a busy worker' do
+      let(:worker_release) { Queue.new }
+
+      before { executor.post { worker_release.pop } }
+
+      after { worker_release.close }
+
+      it 'fires the stopped event once' do
+        events = Queue.new
+        allow(subject).to receive(:fire_event) { |event, *| events << event }
+        graceful = Thread.new { subject.stop }
+        Thread.pass until graceful.status == 'sleep'
+
+        forced = Thread.new { subject.stop! }
+        Thread.pass until forced.status == 'sleep' || !forced.alive?
+
+        worker_release << true
+        [graceful, forced].each(&:join)
+
+        expect(Array.new(events.size) { events.pop }).to eq(%i[quiet shutdown stopped])
+      end
+    end
+
     it 'stops the managers' do
       subject.stop!
       expect(first_group_manager).to have_received(:stop_new_dispatching)
@@ -342,6 +490,8 @@ RSpec.describe Shoryuken::Launcher do
 
     it 'gives the drain only the part of the timeout the executor shutdown left' do
       Shoryuken.options[:timeout] = 1
+      allow(first_group_manager).to receive(:busy).and_return(1)
+      allow(second_group_manager).to receive(:busy).and_return(0)
       executor.post { sleep 3 }
 
       expect(adapter).to receive(:wait_for_pending_sends).with(0).and_return(false)

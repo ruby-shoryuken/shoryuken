@@ -16,7 +16,7 @@ module Shoryuken
         # @option options [Hash] :message_attributes custom message attributes
         # @option options [String] :queue override the default queue
         # @return [Aws::SQS::Types::SendMessageResult] the send result
-        # @raise [ArgumentError] if no :queue is given and the worker has no queue or several queues
+        # @raise [Errors::QueueNotSpecifiedError] if no :queue is given and the worker has no queue or several queues
         def perform_async(worker_class, body, options = {})
           # Work on a copy: callers may reuse the same options hash across
           # enqueues, and mutating it (deleting :queue, adding :message_body)
@@ -48,18 +48,14 @@ module Shoryuken
         # @return [Aws::SQS::Types::SendMessageResult] the send result
         # @raise [Errors::InvalidDelayError] if delay exceeds 15 minutes
         # @raise [Errors::FifoDelayNotSupportedError] if a delay is used with a FIFO queue
-        # @raise [ArgumentError] if no :queue is given and the worker has no queue or several queues
+        # @raise [Errors::QueueNotSpecifiedError] if no :queue is given and the worker has no queue or several queues
         # @note A time in the past or a negative interval is sent with a delay of 0
         def perform_in(worker_class, interval, body, options = {})
           interval = interval.to_f
           now = Time.now.to_f
           ts = (interval < 1_000_000_000 ? (now + interval).to_f : interval)
 
-          delay = (ts - now).ceil
-
-          raise Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > 15 * 60
-
-          delay = [delay, 0].max
+          delay = Shoryuken::Queue.delay_seconds(ts - now)
 
           if delay.positive?
             queue = Shoryuken::Client.queues(options[:queue] || default_queue(worker_class))

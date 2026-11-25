@@ -1,13 +1,51 @@
 ## [Unreleased]
 
+- Fix: The instance reader `worker.shoryuken_options_hash` returns the options set on the singleton class of that
+  instance (`worker.singleton_class.shoryuken_options_hash = ...`), as with Rails `class_attribute`
+  - It returned the class options
+
+- Fix: A TERM or INT sent during the graceful stop of a TSTP or USR1 stops the process within `timeout`
+  - It waited for the graceful stop to end first, which waits for an in-flight long poll (up to `wait_time_seconds`)
+    outside `timeout`
+  - The lifecycle events and `stop_callback` still run once
+
+- Fix: `shoryuken check` and `shoryuken start` reject a `polling_strategy` name, global or in a group, that resolves to
+  no class, before any message is processed
+  - `check` printed "Configuration OK"; `start` failed only when the launcher created the managers
+  - A custom strategy defined in a `-r` file is still accepted: the name is resolved after the workers are required
+  - The global name is checked only with top-level `queues`: only the default group uses it
+  - `Shoryuken::Errors::InvalidPollingStrategyError` is now a subclass of `Shoryuken::Errors::InvalidConfigurationError`
+
+- Change: `shoryuken start` prints an invalid option (`Shoryuken::Errors::InvalidConfigurationError` or a subclass) to
+  stderr as `[FAIL] <message> (<error class>)` and exits 1, without a backtrace
+
+- Breaking: ActiveJob `set(wait:)` and `set(wait_until:)` round a delay up to whole seconds, as a raw worker
+  `perform_in`/`perform_at` does, so a job never runs earlier than asked
+  - A delay of a fraction of a second on a FIFO queue raises `Shoryuken::Errors::FifoDelayNotSupportedError`; it was
+    rounded to 0 and sent
+  - A delay over 900 and up to 901 seconds raises `Shoryuken::Errors::InvalidDelayError`; it was rounded to 900 and
+    sent
+
+- Fix: A shutdown that kills busy workers after `timeout` logs a warning with their count, for example
+  `Killing 2 busy workers after the 8s shutdown timeout; their messages come back after the visibility timeout`
+  - It logged nothing: a killed job has a `started at` line but no `completed in` or `failed in` line
+
+- Fix: The default error handler of `ShoryukenConcurrentSendAdapter` logs a failed send with the job class, job id,
+  queue and error, and the job arguments only when the job allows it with ActiveJob `log_arguments`
+  - The arguments are formatted as in the Rails enqueue log line: a GlobalID record is logged as its global id
+  - It logged `job.inspect`, so the job arguments and the SQS message body reached the log even with
+    `self.log_arguments = false`
+
 - Fix: `perform_async`, `perform_in` and `perform_at` of a raw worker with several queues (an Array, or a lambda that
-  returns several) raise an `ArgumentError` that names the worker and its queues and asks for `queue:` when called
-  without `queue:`
+  returns several) raise a `Shoryuken::Errors::QueueNotSpecifiedError` that names the worker and its queues and asks
+  for `queue:` when called without `queue:`
   - It raised `NoMethodError: undefined method 'start_with?' for an instance of Array`
   - A one-element Array sends to its queue; it raised the same `NoMethodError`
-  - An empty Array raises an `ArgumentError` that asks for `queue:`; it raised a `NoMethodError`
-  - `Shoryuken::Worker::InlineExecutor` raises the same `ArgumentError`; it ran the job with `queue_name` set to the
-    Array. With a one-element Array it runs the job with `queue_name` set to that queue (`'a'`, was `['a']`)
+  - An empty Array raises a `Shoryuken::Errors::QueueNotSpecifiedError` that asks for `queue:`; it raised a
+    `NoMethodError`
+  - `Shoryuken::Worker::InlineExecutor` raises the same `Shoryuken::Errors::QueueNotSpecifiedError`; it ran the job
+    with `queue_name` set to the Array. With a one-element Array it runs the job with `queue_name` set to that queue
+    (`'a'`, was `['a']`)
 
 - Fix: ActiveJob `perform_all_later` delays a job set with `wait` or `wait_until` and splits each batch at 1 MiB in
   total, not only at 10 messages
@@ -17,6 +55,10 @@
   - Delays follow `enqueue_at`: a time in the past is sent with a delay of 0, a delay over 15 minutes raises
     `Shoryuken::Errors::InvalidDelayError` and a delay on a FIFO queue raises
     `Shoryuken::Errors::FifoDelayNotSupportedError`, both before any job is sent
+
+- Change: `ShoryukenAdapter` and `ShoryukenConcurrentSendAdapter` inherit from
+  `ActiveJob::QueueAdapters::AbstractAdapter` also when Active Job is used without Rails
+  - They inherited from `Object` there
 
 - Change: A raw worker `perform_at`/`perform_in` sends a time in the past or a negative interval with a delay of 0
   and raises `Shoryuken::Errors::FifoDelayNotSupportedError` for a delay on a FIFO queue, as the ActiveJob adapter does

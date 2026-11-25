@@ -18,6 +18,25 @@ module Shoryuken
     # SQS attribute name for the dead-letter queue redrive policy
     REDRIVE_POLICY_ATTR     = 'RedrivePolicy'
 
+    # Maximum delay in seconds SQS accepts for a message
+    MAX_DELAY_SECONDS       = 900
+
+    private_constant :MAX_DELAY_SECONDS
+
+    class << self
+      # Converts a delay to the whole seconds SQS accepts, rounded up so a message never becomes visible early
+      #
+      # @param seconds [Float] the delay in seconds
+      # @return [Integer] the delay in whole seconds, 0 for a negative delay
+      # @raise [Errors::InvalidDelayError] if the delay exceeds MAX_DELAY_SECONDS
+      def delay_seconds(seconds)
+        delay = seconds.ceil
+        raise Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes' if delay > MAX_DELAY_SECONDS
+
+        [delay, 0].max
+      end
+    end
+
     # @return [String] the queue name
     attr_accessor :name
 

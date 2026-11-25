@@ -16,7 +16,7 @@ module Shoryuken
         # @option options [String] :queue override the default queue name
         # @option options [Hash] :message_attributes custom message attributes
         # @return [Object] the result of the worker's perform method
-        # @raise [ArgumentError] if no :queue is given and the worker has no queue or several queues
+        # @raise [Errors::QueueNotSpecifiedError] if no :queue is given and the worker has no queue or several queues
         def perform_async(worker_class, body, options = {})
           # Work on a copy so reused/shared options hashes aren't mutated across
           # calls (deleting :queue would reroute later jobs to the default
@@ -55,7 +55,7 @@ module Shoryuken
         # @option options [String] :queue override the default queue name
         # @option options [Hash] :message_attributes custom message attributes
         # @return [Object] the result of the worker's perform method
-        # @raise [ArgumentError] if no :queue is given and the worker has no queue or several queues
+        # @raise [Errors::QueueNotSpecifiedError] if no :queue is given and the worker has no queue or several queues
         def perform_in(worker_class, _interval, body, options = {})
           worker_class.perform_async(body, options)
         end

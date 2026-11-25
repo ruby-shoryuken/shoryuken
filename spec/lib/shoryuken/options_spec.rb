@@ -84,6 +84,22 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '.resolve_polling_strategy' do
+    it 'resolves nil, the built-in names, a constant name and a Class' do
+      expect(Shoryuken.resolve_polling_strategy(nil)).to eq(Shoryuken::Polling::WeightedRoundRobin)
+      expect(Shoryuken.resolve_polling_strategy('StrictPriority')).to eq(Shoryuken::Polling::StrictPriority)
+      expect(Shoryuken.resolve_polling_strategy('Shoryuken::Polling::StrictPriority'))
+        .to eq(Shoryuken::Polling::StrictPriority)
+      expect(Shoryuken.resolve_polling_strategy(Shoryuken::Polling::StrictPriority))
+        .to eq(Shoryuken::Polling::StrictPriority)
+    end
+
+    it 'raises InvalidPollingStrategyError for a name that resolves to no constant' do
+      expect { Shoryuken.resolve_polling_strategy('NoSuchStrategy') }
+        .to raise_error(Shoryuken::Errors::InvalidPollingStrategyError, /NoSuchStrategy/)
+    end
+  end
+
   describe '.delay works for each group' do
     specify do
       Shoryuken.add_group('group1', 25)
