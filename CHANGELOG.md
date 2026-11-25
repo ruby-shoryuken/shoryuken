@@ -43,6 +43,9 @@
   - A one-element Array sends to its queue; it raised the same `NoMethodError`
   - An empty Array raises a `Shoryuken::Errors::QueueNotSpecifiedError` that asks for `queue:`; it raised a
     `NoMethodError`
+  - `Shoryuken::Worker::InlineExecutor` raises the same `Shoryuken::Errors::QueueNotSpecifiedError`; it ran the job
+    with `queue_name` set to the Array. With a one-element Array it runs the job with `queue_name` set to that queue
+    (`'a'`, was `['a']`)
 
 - Fix: ActiveJob `perform_all_later` delays a job set with `wait` or `wait_until` and splits each batch at 1 MiB in
   total, not only at 10 messages
