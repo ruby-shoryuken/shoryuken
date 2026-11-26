@@ -252,7 +252,10 @@ module Shoryuken
 
       Shoryuken.ungrouped_queues.uniq.each do |queue|
         Shoryuken::Client.queues(queue)
-      rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
+      rescue Errors::QueueNotFoundError,
+             Aws::Errors::NoSuchEndpointError,
+             Aws::SQS::Errors::NonExistentQueue,
+             Aws::SQS::Errors::QueueDoesNotExist
         non_existent_queues << queue
       end
 

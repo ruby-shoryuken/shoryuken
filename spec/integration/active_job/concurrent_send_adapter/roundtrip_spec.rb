@@ -114,5 +114,6 @@ with_queue_and_dir do |queue, dir|
     output.match?(/Failed to enqueue job: LostJob \(Job ID: [\w-]+\) to queue #{missing_queue} due to error: The specified/),
     "the send error must reach the error handler: #{output}"
   )
+  assert_includes(output, "due to error: The specified queue #{missing_queue} does not exist")
   assert_equal(0, queue_size(queue), "both jobs must be processed and deleted: #{output}")
 end

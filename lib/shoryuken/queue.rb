@@ -243,7 +243,7 @@ module Shoryuken
       end
 
       set_by_name(name_or_url_or_arn)
-    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue
+    rescue Aws::Errors::NoSuchEndpointError, Aws::SQS::Errors::NonExistentQueue, Aws::SQS::Errors::QueueDoesNotExist
       raise Errors::QueueNotFoundError, "The specified queue #{name_or_url_or_arn} does not exist."
     end
 

@@ -43,6 +43,7 @@ with_queue_and_dir do |queue, _dir|
     ),
     "the default error handler must log the failed send: #{log.string}"
   )
+  assert_includes(log.string, "due to error: The specified queue #{missing_queue} does not exist")
 end
 
 # --- Custom success and error handlers ---
@@ -58,7 +59,8 @@ with_queue_and_dir do |queue, _dir|
 
   SendOutcomeJob.queue_as(queue)
   sent_job = SendOutcomeJob.set(wait: 30).perform_later
-  lost_job = SendOutcomeJob.set(queue: "missing-#{DT.uuid}").perform_later
+  missing_queue = "missing-#{DT.uuid}"
+  lost_job = SendOutcomeJob.set(queue: missing_queue).perform_later
 
   assert(adapter.wait_for_pending_sends(15), 'both sends must finish')
   assert_equal(1, DT[:successes].size, 'the success handler must run once')
@@ -71,8 +73,8 @@ with_queue_and_dir do |queue, _dir|
   assert_equal(1, queue_size(queue, delayed: true), 'the successful send must reach SQS')
 
   error, job, options = DT[:failures].first
-  assert(error.is_a?(Aws::SQS::Errors::ServiceError), "got error #{error.inspect}")
-  assert_includes(error.message, 'The specified queue does not exist')
+  assert(error.is_a?(Shoryuken::Errors::QueueNotFoundError), "got error #{error.inspect}")
+  assert_includes(error.message, "The specified queue #{missing_queue} does not exist")
   assert_equal(lost_job.job_id, job.job_id)
   assert_equal({}, options)
 
