@@ -89,6 +89,13 @@ module Shoryuken
       @running.false?
     end
 
+    # Returns the count of busy processors
+    #
+    # @return [Integer] the number of busy processors
+    def busy
+      @in_flight_mutex.synchronize { @in_flight.size }
+    end
+
     # Returns the messages its workers are processing now, so a shutdown can release them if it kills those workers
     #
     # @return [Array<Shoryuken::Message>] the messages, batches flattened
@@ -179,13 +186,6 @@ module Shoryuken
       handle_dispatch_error(e)
     ensure
       dispatch_loop
-    end
-
-    # Returns the count of busy processors
-    #
-    # @return [Integer] the number of busy processors
-    def busy
-      @in_flight_mutex.synchronize { @in_flight.size }
     end
 
     # Returns the count of ready processors

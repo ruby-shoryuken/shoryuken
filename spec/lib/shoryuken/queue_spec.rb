@@ -492,4 +492,25 @@ RSpec.describe Shoryuken::Queue do
       end
     end
   end
+
+  describe '.delay_seconds' do
+    it 'rounds a fraction of a second up' do
+      expect(described_class.delay_seconds(0.3)).to eq(1)
+      expect(described_class.delay_seconds(899.2)).to eq(900)
+    end
+
+    it 'returns a whole number of seconds unchanged' do
+      expect(described_class.delay_seconds(900.0)).to eq(900)
+    end
+
+    it 'returns 0 for a negative delay' do
+      expect(described_class.delay_seconds(-5.7)).to eq(0)
+    end
+
+    it 'raises InvalidDelayError for a delay over 900 seconds' do
+      expect { described_class.delay_seconds(900.4) }.to raise_error(
+        Shoryuken::Errors::InvalidDelayError, 'The maximum allowed delay is 15 minutes'
+      )
+    end
+  end
 end

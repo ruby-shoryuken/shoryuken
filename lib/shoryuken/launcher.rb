@@ -16,6 +16,7 @@ module Shoryuken
       @managers = create_managers
       @stopping = false
       @stopped = false
+      @stop_lock = ::Mutex.new
     end
 
     # Indicates whether the launcher is in the process of stopping.
@@ -38,48 +39,44 @@ module Shoryuken
       start_managers
     end
 
-    # Forces an immediate stop of all processing. Does nothing once a stop has completed.
+    # Forces an immediate stop of all processing. Does nothing once a stop has completed. Takes over a graceful stop
+    # ({#stop}) that is still running in another thread once it has stopped new dispatching, so that stop no longer
+    # waits for the in-progress dispatching.
     #
     # @return [void]
     def stop!
-      return if @stopped
+      @stop_lock.synchronize do
+        next if @stopping
 
-      @stopping = true
-      initiate_stop
+        @stopping = true
+        initiate_stop
 
-      # Don't await here so the timeout below is not delayed
-      stop_new_dispatching
+        # Don't await here so the timeout below is not delayed
+        stop_new_dispatching
+      end
 
-      deadline = shutdown_deadline
-      shutdown_executor
-
-      drain_pending_active_job_sends(deadline)
-
-      fire_event(:stopped)
-      @stopped = true
+      finish_stop
     end
 
-    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has completed.
+    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has started.
     #
     # @return [void]
     def stop
-      return if @stopped
+      signalled_managers = @stop_lock.synchronize do
+        next if @stopping
 
-      @stopping = true
-      fire_event(:quiet, true)
+        @stopping = true
+        fire_event(:quiet, true)
 
-      initiate_stop
+        initiate_stop
 
-      signalled_managers = stop_new_dispatching
+        stop_new_dispatching
+      end
+      return unless signalled_managers
+
       await_dispatching_in_progress(signalled_managers)
 
-      deadline = shutdown_deadline
-      shutdown_executor
-
-      drain_pending_active_job_sends(deadline)
-
-      fire_event(:stopped)
-      @stopped = true
+      finish_stop
     end
 
     # Checks if all processing groups are healthy
@@ -100,6 +97,24 @@ module Shoryuken
     end
 
     private
+
+    # Shuts the executor down, drains the ActiveJob sends and fires the stopped event, once. A second caller waits for
+    # the first to finish.
+    #
+    # @return [void]
+    def finish_stop
+      @stop_lock.synchronize do
+        next if @stopped
+
+        deadline = shutdown_deadline
+        shutdown_executor
+
+        drain_pending_active_job_sends(deadline)
+
+        fire_event(:stopped)
+        @stopped = true
+      end
+    end
 
     # Stops all managers from dispatching new messages
     #
@@ -137,8 +152,22 @@ module Shoryuken
 
         # Taken before the kill: a killed worker's ensure removes its message from the in-flight list
         in_flight = @managers.map { |manager| [manager, manager.in_flight_messages] }
+        shutdown_step(:log_killed_workers) { log_killed_workers }
         executor.kill
         release_killed_workers_messages(in_flight)
+      end
+    end
+
+    # Warns that the busy workers are about to be killed: a killed job logs neither "completed in" nor "failed in". With
+    # no busy worker the executor may still run an idle long poll, which loses nothing, so nothing is logged.
+    #
+    # @return [void]
+    def log_killed_workers
+      busy = @managers.sum(&:busy)
+      return unless busy.positive?
+
+      logger.warn do
+        "Killing #{busy} busy #{busy == 1 ? 'worker' : 'workers'} after the #{Shoryuken.options[:timeout]}s shutdown timeout"
       end
     end
 

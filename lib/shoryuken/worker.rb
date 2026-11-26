@@ -196,7 +196,7 @@ module Shoryuken
       #     include Shoryuken::Worker
       #     shoryuken_options queue: 'smart_queue',
       #                       non_retryable_exceptions: ->(error) {
-      #                         error.is_a?(ValidationError) || 
+      #                         error.is_a?(ValidationError) ||
       #                         (error.is_a?(NetworkError) && error.message.include?('permanent'))
       #                       }
       #
@@ -300,10 +300,7 @@ module Shoryuken
               define_method(name) { val }
             end
 
-            # singleton? backwards compatibility for ruby < 2.1
-            singleton_klass = respond_to?(:singleton?) ? singleton? : self != ancestors.first
-
-            if singleton_klass
+            if singleton_class?
               class_eval do
                 undef_method(name) if method_defined?(name) || private_method_defined?(name)
                 define_method(name) do
