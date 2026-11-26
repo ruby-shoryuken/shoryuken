@@ -6,7 +6,7 @@
 # Usage:
 #   bin/integrations                    # Run all integration tests
 #   bin/integrations fifo               # Run tests with 'fifo' in path
-#   bin/integrations rails/rails_80     # Run Rails 8.0 tests
+#   bin/integrations rails/rails_81     # Run Rails 8.1 tests
 #   bin/integrations batch retry        # Run tests matching 'batch' OR 'retry'
 #   bin/integrations -v fifo            # Run with verbose output
 
