@@ -34,6 +34,7 @@ module Shoryuken
       @dispatch_started           = Shoryuken::Helpers::AtomicBoolean.new(false)
       @dispatching_release_signal = ::Queue.new
       @in_flight                  = {}.compare_by_identity
+      @killed                     = []
       @in_flight_mutex            = Mutex.new
     end
 
@@ -101,6 +102,14 @@ module Shoryuken
     # @return [Array<Shoryuken::Message>] the messages, batches flattened
     def in_flight_messages
       @in_flight_mutex.synchronize { @in_flight.keys }.flatten
+    end
+
+    # Returns the messages whose workers stopped before their job finished, i.e. were killed. A message whose job
+    # finished, even with an error, is not in it: the job deleted it or set its visibility itself
+    #
+    # @return [Array<Shoryuken::Message>] the messages, batches flattened
+    def killed_messages
+      @in_flight_mutex.synchronize { @killed.dup }.flatten
     end
 
     # Makes messages visible again, so another consumer can receive them at once instead of after the visibility timeout.
@@ -199,9 +208,13 @@ module Shoryuken
     #
     # @param queue [String] the queue name
     # @param sqs_msg [Shoryuken::Message, Array<Shoryuken::Message>] the message or batch it processed
+    # @param finished [Boolean] false when the worker stopped before the job returned or raised
     # @return [void]
-    def processor_done(queue, sqs_msg)
-      @in_flight_mutex.synchronize { @in_flight.delete(sqs_msg) }
+    def processor_done(queue, sqs_msg, finished)
+      @in_flight_mutex.synchronize do
+        @in_flight.delete(sqs_msg)
+        @killed << sqs_msg unless finished
+      end
       fire_utilization_update_event
 
       client_queue = Shoryuken::Client.queues(queue)
@@ -240,12 +253,18 @@ module Shoryuken
       # and silently breaking the concurrency limit
       @executor.post do
         original_priority = Thread.current.priority
+        # Thread#kill runs only the ensure, so the flag stays unset for a killed worker
+        finished = false
         begin
           Thread.current.priority = Shoryuken.thread_priority
           Processor.process(queue_name, sqs_msg)
+          finished = true
+        rescue Exception
+          finished = true
+          raise
         ensure
           Thread.current.priority = original_priority
-          processor_done(queue_name, sqs_msg)
+          processor_done(queue_name, sqs_msg, finished)
         end
       rescue Exception
         # Processor.process already passed the error to the exception handlers. A custom

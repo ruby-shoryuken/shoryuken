@@ -275,7 +275,7 @@ RSpec.describe Shoryuken::Manager do
     end
 
     it 'runs completion exactly once on success' do
-      expect(subject).to receive(:processor_done).with(queue, sqs_msg).once.and_call_original
+      expect(subject).to receive(:processor_done).with(queue, sqs_msg, true).once.and_call_original
 
       subject.send(:assign, queue, sqs_msg)
 
@@ -285,7 +285,7 @@ RSpec.describe Shoryuken::Manager do
     it 'runs completion exactly once when processing raises' do
       allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
 
-      expect(subject).to receive(:processor_done).with(queue, sqs_msg).once.and_call_original
+      expect(subject).to receive(:processor_done).with(queue, sqs_msg, true).once.and_call_original
 
       subject.send(:assign, queue, sqs_msg)
 
@@ -445,6 +445,75 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  describe '#killed_messages' do
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:other_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:sqs_queue) { double(Shoryuken::Queue, fifo?: false) }
+    let(:workers) { [] }
+    # Runs the dispatch inline and each worker in its own thread, so a spec can kill it
+    let(:executor) do
+      double('executor', running?: true).tap do |threaded_executor|
+        allow(threaded_executor).to receive(:post) do |&block|
+          subject.in_flight_messages.empty? ? block.call : workers << Thread.new(&block)
+        end
+      end
+    end
+
+    before do
+      allow(subject).to receive(:running?).and_return(true, true, true, false)
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(sqs_queue)
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg])
+    end
+
+    def kill_worker_in_job
+      started = Queue.new
+      allow(Shoryuken::Processor).to receive(:process) do
+        started << true
+        sleep
+      end
+
+      subject.start
+      started.pop
+      workers.first.kill.join
+    end
+
+    it 'holds the message of a worker killed in its job' do
+      kill_worker_in_job
+
+      expect(subject.killed_messages).to eq([sqs_msg])
+      expect(subject.in_flight_messages).to eq([])
+    end
+
+    it 'holds every message of a killed batch worker' do
+      TestWorker.get_shoryuken_options['batch'] = true
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg, other_msg])
+
+      kill_worker_in_job
+
+      expect(subject.killed_messages).to eq([sqs_msg, other_msg])
+    end
+
+    it 'does not hold the message of a worker whose job finished' do
+      allow(Shoryuken::Processor).to receive(:process)
+
+      subject.start
+      workers.each(&:join)
+
+      expect(Shoryuken::Processor).to have_received(:process)
+      expect(subject.killed_messages).to eq([])
+    end
+
+    it 'does not hold the message of a worker whose job raised' do
+      allow(Shoryuken::Processor).to receive(:process).and_raise('processing failed')
+
+      subject.start
+      workers.each(&:join)
+
+      expect(Shoryuken::Processor).to have_received(:process)
+      expect(subject.killed_messages).to eq([])
+    end
+  end
+
   describe '#release' do
     it 'sends one request per queue and per 10 messages' do
       messages = Array.new(12) { |i| build_message("a#{i}", 'queue-a') } + [build_message('b0', 'queue-b')]
@@ -497,7 +566,7 @@ RSpec.describe Shoryuken::Manager do
       it 'calls message_processed on strategy' do
         expect(sqs_queue).to receive(:fifo?).and_return(true)
         expect(polling_strategy).to receive(:message_processed).with(queue)
-        subject.send(:processor_done, queue, double(Shoryuken::Message))
+        subject.send(:processor_done, queue, double(Shoryuken::Message), true)
       end
     end
 
@@ -505,7 +574,7 @@ RSpec.describe Shoryuken::Manager do
       it 'does not call message_processed on strategy' do
         expect(sqs_queue).to receive(:fifo?).and_return(false)
         expect(polling_strategy).to_not receive(:message_processed)
-        subject.send(:processor_done, queue, double(Shoryuken::Message))
+        subject.send(:processor_done, queue, double(Shoryuken::Message), true)
       end
     end
   end

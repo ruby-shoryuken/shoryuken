@@ -173,7 +173,9 @@ module Shoryuken
 
     # Releases the messages of killed workers once those workers stopped. Thread#kill only asks a thread to stop: a
     # worker that masks interrupts or is in a blocking call still runs, so its message stays in flight instead of
-    # reaching another consumer while the job runs. A worker removes its message from the in-flight list when it stops
+    # reaching another consumer while the job runs. A worker removes its message from the in-flight list when it stops.
+    # A worker that finished its job after the snapshot is not released: its job deleted the message or set its
+    # visibility
     #
     # @param in_flight [Array<Array(Shoryuken::Manager, Array<Shoryuken::Message>)>] each manager with the messages its
     #   workers processed before the kill
@@ -188,7 +190,7 @@ module Shoryuken
       end
 
       in_flight.zip(running).each do |(manager, messages), running_messages|
-        manager.release(messages - running_messages)
+        manager.release(messages & manager.killed_messages)
         next if running_messages.empty?
 
         logger.warn do
