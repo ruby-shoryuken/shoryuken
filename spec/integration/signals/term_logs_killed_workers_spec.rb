@@ -46,12 +46,7 @@ with_queue_and_dir(attributes: { 'VisibilityTimeout' => '30' }) do |queue, dir|
   end
 
   assert(status.success?, "the process must still exit with status 0, got #{status.inspect}: #{output}")
-  assert_includes(
-    output,
-    'WARN: Killing 2 busy workers after the 2s shutdown timeout; ' \
-    'their messages come back after the visibility timeout',
-    "got: #{output}"
-  )
+  assert_includes(output, 'WARN: Killing 2 busy workers after the 2s shutdown timeout', "got: #{output}")
 end
 
 with_queue_and_dir(attributes: { 'VisibilityTimeout' => '30' }) do |queue, dir|

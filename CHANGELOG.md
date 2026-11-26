@@ -27,8 +27,15 @@
     sent
 
 - Fix: A shutdown that kills busy workers after `timeout` logs a warning with their count, for example
-  `Killing 2 busy workers after the 8s shutdown timeout; their messages come back after the visibility timeout`
+  `Killing 2 busy workers after the 8s shutdown timeout`
   - It logged nothing: a killed job has a `started at` line but no `completed in` or `failed in` line
+
+- Fix: A shutdown that kills workers still busy after `timeout` (TERM, INT, USR1, TSTP or `Launcher#stop!`) makes
+  their messages visible again at once
+  - They stayed in flight until the queue's visibility timeout ran out
+  - A worker that still runs after the kill (masked interrupts, a blocking call) keeps its message in flight, and the
+    shutdown logs a warning; it waits up to 1 second for killed workers to stop
+  - Released messages, killed or never started, are sent in one batch request per queue and 10 messages
 
 - Fix: The default error handler of `ShoryukenConcurrentSendAdapter` logs a failed send with the job class, job id,
   queue and error, and the job arguments only when the job allows it with ActiveJob `log_arguments`

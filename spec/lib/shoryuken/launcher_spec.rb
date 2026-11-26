@@ -25,6 +25,8 @@ RSpec.describe Shoryuken::Launcher do
     allow(Shoryuken::Manager).to receive(:new).with('second_group', any_args).and_return(second_group_manager)
     allow(first_group_manager).to receive(:running?).and_return(true)
     allow(second_group_manager).to receive(:running?).and_return(true)
+    allow(first_group_manager).to receive(:killed_messages).and_return([])
+    allow(second_group_manager).to receive(:killed_messages).and_return([])
   end
 
   describe '#healthy?' do
@@ -115,8 +117,8 @@ RSpec.describe Shoryuken::Launcher do
     end
 
     it 'kills the executor when workers do not finish within the timeout' do
-      allow(first_group_manager).to receive(:busy).and_return(0)
-      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(first_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       expect(executor).to receive(:kill)
@@ -124,10 +126,87 @@ RSpec.describe Shoryuken::Launcher do
       subject.stop
     end
 
+    it 'releases the messages of the killed workers, taken before the kill' do
+      first_messages = [double(Shoryuken::Message)]
+      second_messages = [double(Shoryuken::Message), double(Shoryuken::Message)]
+      allow(first_group_manager).to receive_messages(busy: 1, in_flight_messages: first_messages, release: nil)
+      allow(second_group_manager).to receive_messages(busy: 2, in_flight_messages: second_messages, release: nil)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill) do
+        allow(first_group_manager).to receive_messages(in_flight_messages: [], killed_messages: first_messages)
+        allow(second_group_manager).to receive_messages(in_flight_messages: [], killed_messages: second_messages)
+      end
+
+      subject.stop
+
+      expect(first_group_manager).to have_received(:release).with(first_messages)
+      expect(second_group_manager).to have_received(:release).with(second_messages)
+    end
+
+    it 'does not release the message of a worker still running after the kill' do
+      stopped_msg = double(Shoryuken::Message)
+      running_msg = double(Shoryuken::Message)
+      allow(first_group_manager).to receive_messages(busy: 2, in_flight_messages: [stopped_msg, running_msg], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill) do
+        allow(first_group_manager).to receive_messages(in_flight_messages: [running_msg], killed_messages: [stopped_msg])
+      end
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+
+      subject.stop
+
+      expect(first_group_manager).to have_received(:release).with([stopped_msg])
+      expect(warnings).to include(a_string_including('1 message(s) of killed workers still running in group first_group'))
+    end
+
+    it 'releases the message of a killed worker that stops after the kill returned' do
+      killed_msg = double(Shoryuken::Message)
+      allow(first_group_manager).to receive(:in_flight_messages).and_return([killed_msg], [killed_msg], [])
+      allow(first_group_manager).to receive_messages(busy: 1, killed_messages: [killed_msg], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill)
+
+      subject.stop
+
+      expect(first_group_manager).to have_received(:release).with([killed_msg])
+    end
+
+    it 'does not release the message of a worker that finished its job before the kill' do
+      finished_msg = double(Shoryuken::Message)
+      killed_msg = double(Shoryuken::Message)
+      allow(first_group_manager).to receive_messages(busy: 2, in_flight_messages: [finished_msg, killed_msg], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(false)
+      allow(executor).to receive(:kill) do
+        allow(first_group_manager).to receive_messages(in_flight_messages: [], killed_messages: [killed_msg])
+      end
+
+      subject.stop
+
+      expect(first_group_manager).to have_received(:release).with([killed_msg])
+    end
+
+    it 'does not release messages when workers finish within the timeout' do
+      allow(first_group_manager).to receive(:release)
+      allow(executor).to receive(:shutdown)
+      allow(executor).to receive(:wait_for_termination).and_return(true)
+
+      subject.stop
+
+      expect(first_group_manager).not_to have_received(:release)
+    end
+
     it 'warns how many busy workers it kills before killing the executor' do
       Shoryuken.options[:timeout] = 3
-      allow(first_group_manager).to receive(:busy).and_return(2)
-      allow(second_group_manager).to receive(:busy).and_return(1)
+      allow(first_group_manager).to receive_messages(busy: 2, in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 1, in_flight_messages: [], release: nil)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       allow(executor).to receive(:kill)
@@ -136,17 +215,15 @@ RSpec.describe Shoryuken::Launcher do
       subject.stop
 
       expect(Shoryuken.logger).to have_received(:warn).ordered do |&block|
-        expect(block.call).to eq(
-          'Killing 3 busy workers after the 3s shutdown timeout; their messages come back after the visibility timeout'
-        )
+        expect(block.call).to eq('Killing 3 busy workers after the 3s shutdown timeout')
       end
       expect(executor).to have_received(:kill).ordered
     end
 
     it 'names a single busy worker in the singular' do
       Shoryuken.options[:timeout] = 3
-      allow(first_group_manager).to receive(:busy).and_return(1)
-      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(first_group_manager).to receive_messages(busy: 1, in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       allow(executor).to receive(:kill)
@@ -155,15 +232,13 @@ RSpec.describe Shoryuken::Launcher do
       subject.stop
 
       expect(Shoryuken.logger).to have_received(:warn) do |&block|
-        expect(block.call).to eq(
-          'Killing 1 busy worker after the 3s shutdown timeout; their messages come back after the visibility timeout'
-        )
+        expect(block.call).to eq('Killing 1 busy worker after the 3s shutdown timeout')
       end
     end
 
     it 'logs no warning but still kills the executor when no worker is busy' do
-      allow(first_group_manager).to receive(:busy).and_return(0)
-      allow(second_group_manager).to receive(:busy).and_return(0)
+      allow(first_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(busy: 0, in_flight_messages: [], release: nil)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       allow(Shoryuken.logger).to receive(:warn)
@@ -176,6 +251,8 @@ RSpec.describe Shoryuken::Launcher do
 
     it 'still kills the executor when counting the busy workers raises' do
       allow(first_group_manager).to receive(:busy).and_raise('busy failure')
+      allow(first_group_manager).to receive_messages(in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(in_flight_messages: [], release: nil)
       allow(executor).to receive(:shutdown)
       allow(executor).to receive(:wait_for_termination).and_return(false)
       allow(Shoryuken.logger).to receive(:error)
@@ -445,6 +522,8 @@ RSpec.describe Shoryuken::Launcher do
       allow(first_group_manager).to receive(:await_dispatching_in_progress)
       allow(second_group_manager).to receive(:stop_new_dispatching)
       allow(second_group_manager).to receive(:await_dispatching_in_progress)
+      allow(first_group_manager).to receive_messages(in_flight_messages: [], release: nil)
+      allow(second_group_manager).to receive_messages(in_flight_messages: [], release: nil)
 
       # Make ActiveJob present and point its adapter at our double, regardless of
       # whether active_job happens to be loaded by another spec.
