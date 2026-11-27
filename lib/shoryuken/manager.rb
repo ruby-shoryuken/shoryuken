@@ -13,6 +13,12 @@ module Shoryuken
     # @see https://github.com/ruby-shoryuken/shoryuken/issues/348#issuecomment-292847028
     MIN_DISPATCH_INTERVAL = 0.1
 
+    # Codes of a failed visibility change for a message that is no longer in flight: its job deleted it, or its
+    # visibility timeout expired. ElasticMQ gives ReceiptHandleIsInvalid, SQS MessageNotInflight or InvalidParameterValue
+    NOT_IN_FLIGHT_CODES = %w[ReceiptHandleIsInvalid MessageNotInflight InvalidParameterValue].freeze
+
+    private_constant :NOT_IN_FLIGHT_CODES
+
     # @return [String] the processing group name
     attr_reader :group
 
@@ -126,7 +132,8 @@ module Shoryuken
 
     private
 
-    # Makes up to 10 messages of one queue visible again with a single request, logging each message it fails to release
+    # Makes up to 10 messages of one queue visible again with a single request, logging each message it fails to release.
+    # A message no longer in flight is logged at debug level: there is nothing to release, e.g. a killed job deleted it
     #
     # @param queue_url [String] the URL of the queue the messages belong to
     # @param messages [Array<Shoryuken::Message>] up to 10 messages of that queue
@@ -139,8 +146,12 @@ module Shoryuken
       response = messages.first.client.change_message_visibility_batch(queue_url: queue_url, entries: entries)
 
       response.failed.each do |failure|
-        logger.error do
-          "Failed to release message #{messages[failure.id.to_i].message_id}: #{failure.code}: #{failure.message}"
+        message_id = messages[failure.id.to_i].message_id
+
+        if NOT_IN_FLIGHT_CODES.include?(failure.code)
+          logger.debug { "Message #{message_id} is no longer in flight, not released: #{failure.code}: #{failure.message}" }
+        else
+          logger.error { "Failed to release message #{message_id}: #{failure.code}: #{failure.message}" }
         end
       end
     rescue => e
