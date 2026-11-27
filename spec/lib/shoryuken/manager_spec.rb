@@ -276,14 +276,15 @@ RSpec.describe Shoryuken::Manager do
       end.new
     end
     let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+    let(:fetched) { [sqs_msg] }
 
     before do
-      allow(fetcher).to receive(:fetch).and_return([sqs_msg], [])
+      allow(fetcher).to receive(:fetch).and_return(fetched, [])
       allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(double(Shoryuken::Queue, fifo?: false))
       allow(Shoryuken::Processor).to receive(:process)
 
       subject.start
-      # Runs the posted dispatch, which takes the only processor and posts its processing and the next dispatch
+      # Runs the posted dispatch, which takes every processor and posts their processing and the next dispatch
       executor.posted.pop.call
     end
 
@@ -308,6 +309,28 @@ RSpec.describe Shoryuken::Manager do
 
       expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.2
       expect(fetcher).to have_received(:fetch).once
+    end
+
+    context 'with more than one processor' do
+      let(:concurrency) { 2 }
+      let(:other_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+      let(:fetched) { [sqs_msg, other_msg] }
+
+      it 'waits until enough processors are free to fill one receive' do
+        stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 30)
+        processings = [executor.posted.pop, executor.posted.pop]
+        dispatcher = Thread.new { executor.posted.pop.call }
+
+        Thread.pass until dispatcher.status == 'sleep'
+        processings.first.call
+
+        expect(dispatcher.join(0.3)).to be_nil, 'the dispatch did not wait for the second processor'
+
+        processings.last.call
+
+        expect(dispatcher.join(5)).to eq(dispatcher), 'the dispatch waited for MIN_DISPATCH_INTERVAL'
+        expect(fetcher).to have_received(:fetch).once
+      end
     end
   end
 

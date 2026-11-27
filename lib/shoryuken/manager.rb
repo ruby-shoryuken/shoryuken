@@ -204,13 +204,21 @@ module Shoryuken
       @max_processors - busy
     end
 
-    # Waits until a processor finishes, or for MIN_DISPATCH_INTERVAL when none does, so a freed processor gets a
-    # message at once instead of after a fixed sleep
+    # Waits until enough processors are free for one full receive, or for at most MIN_DISPATCH_INTERVAL, so freed
+    # processors get messages at once without a receive request for each of them
     #
     # @return [void]
     def wait_for_free_processor
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + MIN_DISPATCH_INTERVAL
+      wanted = [@max_processors, Fetcher::FETCH_LIMIT].min
+
       @in_flight_mutex.synchronize do
-        @processor_freed.wait(@in_flight_mutex, MIN_DISPATCH_INTERVAL) if @in_flight.size >= @max_processors
+        while @max_processors - @in_flight.size < wanted
+          remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          break if remaining <= 0
+
+          @processor_freed.wait(@in_flight_mutex, remaining)
+        end
       end
     end
 
