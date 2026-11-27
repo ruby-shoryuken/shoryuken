@@ -36,6 +36,7 @@ module Shoryuken
       @in_flight                  = {}.compare_by_identity
       @killed                     = []
       @in_flight_mutex            = Mutex.new
+      @processor_freed            = ConditionVariable.new
     end
 
     # Starts the dispatch loop
@@ -182,9 +183,14 @@ module Shoryuken
     def dispatch
       return unless running?
 
-      if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
-        return sleep(MIN_DISPATCH_INTERVAL)
+      if ready <= 0
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + MIN_DISPATCH_INTERVAL
+        return unless wait_for_free_processors(1, deadline)
       end
+
+      return sleep(MIN_DISPATCH_INTERVAL) if (queue = @polling_strategy.next_queue).nil?
+
+      wait_for_free_processors(processors_per_receive(queue), deadline) if deadline
 
       fire_event(:dispatch, false, queue_name: queue.name)
 
@@ -204,6 +210,38 @@ module Shoryuken
       @max_processors - busy
     end
 
+    # Waits until the given number of processors are free or the deadline passes, so freed processors get messages
+    # at once without a receive request for each of them
+    #
+    # @param wanted [Integer] the number of free processors to wait for
+    # @param deadline [Float] the monotonic clock time to stop waiting at
+    # @return [Boolean] true when that many processors are free
+    def wait_for_free_processors(wanted, deadline)
+      @in_flight_mutex.synchronize do
+        while @max_processors - @in_flight.size < wanted
+          remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          return false if remaining <= 0
+
+          @processor_freed.wait(@in_flight_mutex, remaining)
+        end
+
+        true
+      end
+    end
+
+    # Returns how many processors one receive from a queue can keep busy
+    #
+    # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
+    # @return [Integer] 1 for a batched queue or when the queue lookup fails, otherwise the number of messages one
+    #   receive can return
+    def processors_per_receive(queue)
+      batched_queue?(queue) ? 1 : @fetcher.receive_limit(queue, @max_processors)
+    rescue => e
+      # The fetch that follows retries the same lookup, so a transient error must not stop the manager here
+      logger.debug { "Receive limit lookup failed for #{queue.name}: #{e.message}" }
+      1
+    end
+
     # Handles completion of processor work
     #
     # @param queue [String] the queue name
@@ -214,6 +252,7 @@ module Shoryuken
       @in_flight_mutex.synchronize do
         @in_flight.delete(sqs_msg)
         @killed << sqs_msg unless finished
+        @processor_freed.signal
       end
       fire_utilization_update_event
 

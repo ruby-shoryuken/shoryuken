@@ -256,6 +256,163 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  context 'when every processor is busy' do
+    let(:executor) do
+      Class.new do
+        attr_reader :posted
+
+        def initialize
+          @posted = ::Queue.new
+        end
+
+        def post(&block)
+          @posted << block
+          true
+        end
+
+        def running?
+          true
+        end
+      end.new
+    end
+    let(:fetcher) { Shoryuken::Fetcher.new('default') }
+    let(:fifo) { false }
+    let(:messages) { Array.new(concurrency) { double(Shoryuken::Message, message_id: SecureRandom.uuid) } }
+
+    before do
+      stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 30)
+      allow(fetcher).to receive(:fetch).and_return(messages, [])
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(double(Shoryuken::Queue, fifo?: fifo, name: queue))
+      allow(Shoryuken::Processor).to receive(:process)
+    end
+
+    def occupy_processors(dispatches = 1)
+      processings = []
+      subject.start
+      next_dispatch = executor.posted.pop
+
+      dispatches.times do
+        next_dispatch.call
+        posted = Array.new(executor.posted.size) { executor.posted.pop }
+        next_dispatch = posted.pop
+        processings.concat(posted)
+      end
+
+      [processings, next_dispatch]
+    end
+
+    def expect_dispatch_once_free(free)
+      processings, next_dispatch = occupy_processors(yield)
+      dispatcher = Thread.new { next_dispatch.call }
+      Thread.pass until dispatcher.status == 'sleep' || !dispatcher.alive?
+
+      processings.first(free - 1).each(&:call)
+      expect(dispatcher.join(0.3)).to be_nil, "the dispatch did not wait for #{free} free processors" if free > 1
+
+      processings[free - 1].call
+      expect(dispatcher.join(5)).to eq(dispatcher), 'the dispatch waited for MIN_DISPATCH_INTERVAL'
+    end
+
+    it 'dispatches again as soon as a processor finishes' do
+      expect_dispatch_once_free(1) { 1 }
+    end
+
+    it 'waits up to MIN_DISPATCH_INTERVAL when no processor finishes' do
+      stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 0.2)
+      _, next_dispatch = occupy_processors
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+      next_dispatch.call
+
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.2
+      expect(fetcher).to have_received(:fetch).once
+    end
+
+    context 'with more than one processor' do
+      let(:concurrency) { 2 }
+
+      it 'waits until enough processors are free to fill one receive' do
+        expect_dispatch_once_free(2) { 1 }
+      end
+
+      it 'waits at most MIN_DISPATCH_INTERVAL in total' do
+        stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 1)
+        processings, next_dispatch = occupy_processors
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        dispatcher = Thread.new { next_dispatch.call }
+
+        sleep(0.5)
+        processings.first.call
+
+        expect(dispatcher.join(5)).to eq(dispatcher)
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be_between(1, 1.3)
+        expect(fetcher).to have_received(:fetch).twice
+      end
+
+      it 'dispatches when the queue lookup fails' do
+        allow(fetcher).to receive(:receive_limit).and_raise(Seahorse::Client::NetworkingError.new(StandardError.new))
+
+        expect_dispatch_once_free(1) { 1 }
+        expect(subject).not_to be_failed
+      end
+    end
+
+    context 'with more processors than one receive can return' do
+      let(:concurrency) { 11 }
+
+      it 'waits until FETCH_LIMIT processors are free' do
+        expect_dispatch_once_free(Shoryuken::Fetcher::FETCH_LIMIT) { 1 }
+      end
+    end
+
+    context 'with a FIFO queue' do
+      let(:concurrency) { 2 }
+      let(:fifo) { true }
+
+      it 'dispatches again as soon as a processor finishes' do
+        allow(fetcher).to receive(:fetch).and_return([messages.first], [messages.last], [])
+
+        expect_dispatch_once_free(1) { 2 }
+      end
+    end
+
+    context 'with a max_number_of_messages receive option' do
+      let(:concurrency) { 2 }
+
+      it 'waits only for that many free processors' do
+        Shoryuken.sqs_client_receive_message_opts[queue] = { max_number_of_messages: 1 }
+
+        expect_dispatch_once_free(1) { 1 }
+      end
+    end
+
+    context 'with a batched queue' do
+      let(:concurrency) { 2 }
+
+      it 'dispatches again as soon as a processor finishes' do
+        TestWorker.get_shoryuken_options['batch'] = true
+        allow(fetcher).to receive(:fetch).and_return([messages.first], [messages.last], [])
+
+        expect_dispatch_once_free(1) { 2 }
+      end
+    end
+
+    context 'with no processors' do
+      let(:concurrency) { 0 }
+
+      it 'waits MIN_DISPATCH_INTERVAL instead of spinning' do
+        stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 0.2)
+        subject.start
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+        executor.posted.pop.call
+
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.2
+        expect(fetcher).not_to have_received(:fetch)
+      end
+    end
+  end
+
   describe '#assign' do
     let(:sqs_msg) { build_message('m1') }
     let(:other_msg) { build_message('m2') }
