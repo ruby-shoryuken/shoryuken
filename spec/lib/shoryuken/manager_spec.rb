@@ -688,14 +688,31 @@ RSpec.describe Shoryuken::Manager do
 
     it 'logs each message the batch request fails to release' do
       messages = [build_message('a0', 'queue-a'), build_message('a1', 'queue-a')]
-      failure = double(id: '1', code: 'ReceiptHandleIsInvalid', message: 'invalid')
+      failure = double(id: '1', code: 'InternalError', message: 'failed')
       allow(client).to receive(:change_message_visibility_batch).and_return(double(failed: [failure]))
       allow(Shoryuken.logger).to receive(:error)
 
       subject.release(messages)
 
       expect(Shoryuken.logger).to have_received(:error).once do |&block|
-        expect(block.call).to include(messages[1].message_id, 'ReceiptHandleIsInvalid')
+        expect(block.call).to include(messages[1].message_id, 'InternalError')
+      end
+    end
+
+    %w[ReceiptHandleIsInvalid MessageNotInflight InvalidParameterValue].each do |code|
+      it "logs a message no longer in flight (#{code}) at debug level, not as an error" do
+        messages = [build_message('a0', 'queue-a')]
+        failure = double(id: '0', code: code, message: 'not in flight')
+        allow(client).to receive(:change_message_visibility_batch).and_return(double(failed: [failure]))
+        allow(Shoryuken.logger).to receive(:error)
+        allow(Shoryuken.logger).to receive(:debug)
+
+        subject.release(messages)
+
+        expect(Shoryuken.logger).not_to have_received(:error)
+        expect(Shoryuken.logger).to have_received(:debug).once do |&block|
+          expect(block.call).to include(messages[0].message_id, code)
+        end
       end
     end
 
