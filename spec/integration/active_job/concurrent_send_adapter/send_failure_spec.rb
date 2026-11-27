@@ -39,7 +39,7 @@ with_queue_and_dir do |queue, _dir|
   assert(adapter.wait_for_pending_sends(15), 'a failed send must count as finished')
   assert(
     log.string.match?(
-      /Failed to enqueue job: #<SendOutcomeJob:.*"#{missing_queue}".* due to error: The specified queue does not/
+      /Failed to enqueue job: SendOutcomeJob \(Job ID: [\w-]+\) to queue #{missing_queue} due to error: The specified/
     ),
     "the default error handler must log the failed send: #{log.string}"
   )

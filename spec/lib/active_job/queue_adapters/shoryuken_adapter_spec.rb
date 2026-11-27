@@ -7,6 +7,11 @@ require 'active_support/core_ext/numeric/time'
 RSpec.describe ActiveJob::QueueAdapters::ShoryukenAdapter do
   include_examples 'active_job_adapters'
 
+  it 'inherits from AbstractAdapter without Rails' do
+    expect(defined?(Rails)).to be_nil
+    expect(described_class.superclass).to eq(ActiveJob::QueueAdapters::AbstractAdapter)
+  end
+
   describe '#enqueue_after_transaction_commit?' do
     it 'returns true to support Rails 7.2+ transaction commit behavior' do
       adapter = described_class.new
@@ -25,5 +30,4 @@ RSpec.describe ActiveJob::QueueAdapters::ShoryukenAdapter do
       expect(described_class.instance).to be_a(described_class)
     end
   end
-
 end

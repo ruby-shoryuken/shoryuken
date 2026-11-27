@@ -40,6 +40,9 @@ module Shoryuken
         validate_daemon_options(opts)
 
         Shoryuken::Runner.instance.run(opts.freeze)
+      rescue Shoryuken::Errors::InvalidConfigurationError => e
+        say_error "[FAIL] #{e.message} (#{e.class})", :red
+        exit 1
       end
 
       desc 'check', 'Validates the configuration, queues and workers without starting to process'

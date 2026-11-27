@@ -4,8 +4,8 @@
 #
 # After INT the process logs the shutdown, exits with status 0 within the
 # configured `timeout` (plus a margin) without waiting for the busy worker, and
-# the killed worker's message is not deleted, so it becomes visible again after
-# the queue's visibility timeout.
+# the killed worker's message is not deleted and is visible again right after
+# the exit, long before the queue's visibility timeout.
 #
 # Regression: #5 - the process hung on INT instead of exiting.
 
@@ -29,7 +29,7 @@ end
 
 setup_sqs
 
-with_queue_and_dir(attributes: { 'VisibilityTimeout' => '5' }) do |queue, dir|
+with_queue_and_dir(attributes: { 'VisibilityTimeout' => '60' }) do |queue, dir|
   started = File.join(dir, 'started')
   finished = File.join(dir, 'finished')
   boot_file = write_busy_worker(dir, queue, started, finished)
@@ -48,6 +48,6 @@ with_queue_and_dir(attributes: { 'VisibilityTimeout' => '5' }) do |queue, dir|
   refute(File.exist?(finished), 'the busy worker must be killed, not awaited')
 
   queue_url = Shoryuken::Client.sqs.get_queue_url(queue_name: queue).queue_url
-  messages = Shoryuken::Client.sqs.receive_message(queue_url: queue_url, wait_time_seconds: 15).messages
-  assert_equal(['in flight'], messages.map(&:body), 'the in-flight message must come back after the visibility timeout')
+  messages = Shoryuken::Client.sqs.receive_message(queue_url: queue_url, wait_time_seconds: 5).messages
+  assert_equal(['in flight'], messages.map(&:body), 'the killed worker\'s message must be visible again at once')
 end

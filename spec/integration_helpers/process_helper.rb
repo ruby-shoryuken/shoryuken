@@ -22,23 +22,28 @@ module ProcessHelper
   end
 
   # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env) until it exits on its own,
-  # returns [status, output]
-  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {})
-    Open3.popen2e(SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, out, wait|
-      output = +''
-      reader = Thread.new { out.each_line { |line| output << line } }
+  # returns [status, output], or [status, stdout, stderr] with split: true
+  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {}, split: false)
+    popen = split ? :popen3 : :popen2e
+
+    Open3.public_send(popen, SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, *ios, wait|
+      outputs = ios.map { +'' }
+      readers = ios.zip(outputs).map { |io, output| Thread.new { io.each_line { |line| output << line } } }
 
       unless wait.join(timeout)
         Process.kill('KILL', wait.pid)
-        reader.join
-        raise IntegrationsHelper::TestFailure, "shoryuken must exit, but it kept running: #{output}"
+        readers.each(&:join)
+        raise IntegrationsHelper::TestFailure, "shoryuken must exit, but it kept running: #{outputs.join}"
       end
 
-      unless reader.join(timeout)
-        raise IntegrationsHelper::TestFailure, "shoryuken exited, but a process it left kept its output open: #{output}"
+      unless readers.all? { |reader| reader.join(timeout) }
+        raise(
+          IntegrationsHelper::TestFailure,
+          "shoryuken exited, but a process it left kept its output open: #{outputs.join}"
+        )
       end
 
-      [wait.value, output]
+      [wait.value, *outputs]
     end
   end
 

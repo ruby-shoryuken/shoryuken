@@ -6,11 +6,17 @@ module Shoryuken
   class Launcher
     include Util
 
+    # Seconds a shutdown waits for killed workers to stop before it releases their messages
+    KILLED_WORKERS_STOP_WAIT_SECONDS = 1
+
+    private_constant :KILLED_WORKERS_STOP_WAIT_SECONDS
+
     # Initializes a new Launcher with managers for each processing group
     def initialize
       @managers = create_managers
       @stopping = false
       @stopped = false
+      @stop_lock = ::Mutex.new
     end
 
     # Indicates whether the launcher is in the process of stopping.
@@ -33,48 +39,44 @@ module Shoryuken
       start_managers
     end
 
-    # Forces an immediate stop of all processing. Does nothing once a stop has completed.
+    # Forces an immediate stop of all processing. Does nothing once a stop has completed. Takes over a graceful stop
+    # ({#stop}) that is still running in another thread once it has stopped new dispatching, so that stop no longer
+    # waits for the in-progress dispatching.
     #
     # @return [void]
     def stop!
-      return if @stopped
+      @stop_lock.synchronize do
+        next if @stopping
 
-      @stopping = true
-      initiate_stop
+        @stopping = true
+        initiate_stop
 
-      # Don't await here so the timeout below is not delayed
-      stop_new_dispatching
+        # Don't await here so the timeout below is not delayed
+        stop_new_dispatching
+      end
 
-      deadline = shutdown_deadline
-      shutdown_executor
-
-      drain_pending_active_job_sends(deadline)
-
-      fire_event(:stopped)
-      @stopped = true
+      finish_stop
     end
 
-    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has completed.
+    # Gracefully stops all processing, waiting for in-flight messages. Does nothing once a stop has started.
     #
     # @return [void]
     def stop
-      return if @stopped
+      signalled_managers = @stop_lock.synchronize do
+        next if @stopping
 
-      @stopping = true
-      fire_event(:quiet, true)
+        @stopping = true
+        fire_event(:quiet, true)
 
-      initiate_stop
+        initiate_stop
 
-      signalled_managers = stop_new_dispatching
+        stop_new_dispatching
+      end
+      return unless signalled_managers
+
       await_dispatching_in_progress(signalled_managers)
 
-      deadline = shutdown_deadline
-      shutdown_executor
-
-      drain_pending_active_job_sends(deadline)
-
-      fire_event(:stopped)
-      @stopped = true
+      finish_stop
     end
 
     # Checks if all processing groups are healthy
@@ -95,6 +97,24 @@ module Shoryuken
     end
 
     private
+
+    # Shuts the executor down, drains the ActiveJob sends and fires the stopped event, once. A second caller waits for
+    # the first to finish.
+    #
+    # @return [void]
+    def finish_stop
+      @stop_lock.synchronize do
+        next if @stopped
+
+        deadline = shutdown_deadline
+        shutdown_executor
+
+        drain_pending_active_job_sends(deadline)
+
+        fire_event(:stopped)
+        @stopped = true
+      end
+    end
 
     # Stops all managers from dispatching new messages
     #
@@ -121,14 +141,71 @@ module Shoryuken
 
     # Shuts the executor down, giving in-flight workers up to the configured timeout to finish before force-killing them so
     # the process can exit. Used by both the graceful ({#stop}) and immediate ({#stop!}) shutdowns: a graceful stop still
-    # waits for workers, but must not block forever on a hung one.
+    # waits for workers, but must not block forever on a hung one. The messages of killed workers that stopped are
+    # released, so they come back at once instead of after the visibility timeout.
     #
     # @return [void]
     def shutdown_executor
       shutdown_step(:shutdown_executor) do
         executor.shutdown
-        executor.kill unless executor.wait_for_termination(Shoryuken.options[:timeout])
+        next if executor.wait_for_termination(Shoryuken.options[:timeout])
+
+        # Taken before the kill: a killed worker's ensure removes its message from the in-flight list
+        in_flight = @managers.map { |manager| [manager, manager.in_flight_messages] }
+        shutdown_step(:log_killed_workers) { log_killed_workers }
+        executor.kill
+        release_killed_workers_messages(in_flight)
       end
+    end
+
+    # Warns that the busy workers are about to be killed: a killed job logs neither "completed in" nor "failed in". With
+    # no busy worker the executor may still run an idle long poll, which loses nothing, so nothing is logged.
+    #
+    # @return [void]
+    def log_killed_workers
+      busy = @managers.sum(&:busy)
+      return unless busy.positive?
+
+      logger.warn do
+        "Killing #{busy} busy #{busy == 1 ? 'worker' : 'workers'} after the #{Shoryuken.options[:timeout]}s shutdown timeout"
+      end
+    end
+
+    # Releases the messages of killed workers once those workers stopped. Thread#kill only asks a thread to stop: a
+    # worker that masks interrupts or is in a blocking call still runs, so its message stays in flight instead of
+    # reaching another consumer while the job runs. A worker removes its message from the in-flight list when it stops.
+    # A worker that finished its job after the snapshot is not released: its job deleted the message or set its
+    # visibility
+    #
+    # @param in_flight [Array<Array(Shoryuken::Manager, Array<Shoryuken::Message>)>] each manager with the messages its
+    #   workers processed before the kill
+    # @return [void]
+    def release_killed_workers_messages(in_flight)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + KILLED_WORKERS_STOP_WAIT_SECONDS
+
+      running = still_in_flight(in_flight)
+      while running.any?(&:any?) && Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+        sleep 0.01
+        running = still_in_flight(in_flight)
+      end
+
+      in_flight.zip(running).each do |(manager, messages), running_messages|
+        manager.release(messages & manager.killed_messages)
+        next if running_messages.empty?
+
+        logger.warn do
+          "#{running_messages.size} message(s) of killed workers still running in group #{manager.group} stay in " \
+            'flight until their visibility timeout'
+        end
+      end
+    end
+
+    # Returns, per manager, the given messages its workers still process
+    #
+    # @param in_flight [Array<Array(Shoryuken::Manager, Array<Shoryuken::Message>)>] each manager with its messages
+    # @return [Array<Array<Shoryuken::Message>>] the messages still in flight, in the order of the managers
+    def still_in_flight(in_flight)
+      in_flight.map { |manager, messages| messages & manager.in_flight_messages }
     end
 
     # Runs a single shutdown step, logging instead of raising its error so that one failing step cannot skip the
