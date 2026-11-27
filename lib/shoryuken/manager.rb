@@ -232,9 +232,14 @@ module Shoryuken
     # Returns how many processors one receive from a queue can keep busy
     #
     # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
-    # @return [Integer] 1 for a batched queue, otherwise the number of messages one receive can return
+    # @return [Integer] 1 for a batched queue or when the queue lookup fails, otherwise the number of messages one
+    #   receive can return
     def processors_per_receive(queue)
       batched_queue?(queue) ? 1 : @fetcher.receive_limit(queue, @max_processors)
+    rescue => e
+      # The fetch that follows retries the same lookup, so a transient error must not stop the manager here
+      logger.debug { "Receive limit lookup failed for #{queue.name}: #{e.message}" }
+      1
     end
 
     # Handles completion of processor work

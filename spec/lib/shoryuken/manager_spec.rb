@@ -335,6 +335,27 @@ RSpec.describe Shoryuken::Manager do
       it 'waits until enough processors are free to fill one receive' do
         expect_dispatch_once_free(2) { 1 }
       end
+
+      it 'waits at most MIN_DISPATCH_INTERVAL in total' do
+        stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 1)
+        processings, next_dispatch = occupy_processors
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        dispatcher = Thread.new { next_dispatch.call }
+
+        sleep(0.5)
+        processings.first.call
+
+        expect(dispatcher.join(5)).to eq(dispatcher)
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be_between(1, 1.3)
+        expect(fetcher).to have_received(:fetch).twice
+      end
+
+      it 'dispatches when the queue lookup fails' do
+        allow(fetcher).to receive(:receive_limit).and_raise(Seahorse::Client::NetworkingError.new(StandardError.new))
+
+        expect_dispatch_once_free(1) { 1 }
+        expect(subject).not_to be_failed
+      end
     end
 
     context 'with more processors than one receive can return' do
