@@ -36,6 +36,7 @@ module Shoryuken
       @in_flight                  = {}.compare_by_identity
       @killed                     = []
       @in_flight_mutex            = Mutex.new
+      @processor_freed            = ConditionVariable.new
     end
 
     # Starts the dispatch loop
@@ -182,9 +183,8 @@ module Shoryuken
     def dispatch
       return unless running?
 
-      if ready <= 0 || (queue = @polling_strategy.next_queue).nil?
-        return sleep(MIN_DISPATCH_INTERVAL)
-      end
+      return wait_for_free_processor if ready <= 0
+      return sleep(MIN_DISPATCH_INTERVAL) if (queue = @polling_strategy.next_queue).nil?
 
       fire_event(:dispatch, false, queue_name: queue.name)
 
@@ -204,6 +204,16 @@ module Shoryuken
       @max_processors - busy
     end
 
+    # Waits until a processor finishes, or for MIN_DISPATCH_INTERVAL when none does, so a freed processor gets a
+    # message at once instead of after a fixed sleep
+    #
+    # @return [void]
+    def wait_for_free_processor
+      @in_flight_mutex.synchronize do
+        @processor_freed.wait(@in_flight_mutex, MIN_DISPATCH_INTERVAL) if @in_flight.size >= @max_processors
+      end
+    end
+
     # Handles completion of processor work
     #
     # @param queue [String] the queue name
@@ -214,6 +224,7 @@ module Shoryuken
       @in_flight_mutex.synchronize do
         @in_flight.delete(sqs_msg)
         @killed << sqs_msg unless finished
+        @processor_freed.signal
       end
       fire_utilization_update_event
 

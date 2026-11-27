@@ -256,6 +256,61 @@ RSpec.describe Shoryuken::Manager do
     end
   end
 
+  context 'when every processor is busy' do
+    let(:executor) do
+      Class.new do
+        attr_reader :posted
+
+        def initialize
+          @posted = ::Queue.new
+        end
+
+        def post(&block)
+          @posted << block
+          true
+        end
+
+        def running?
+          true
+        end
+      end.new
+    end
+    let(:sqs_msg) { double(Shoryuken::Message, message_id: SecureRandom.uuid) }
+
+    before do
+      allow(fetcher).to receive(:fetch).and_return([sqs_msg], [])
+      allow(Shoryuken::Client).to receive(:queues).with(queue).and_return(double(Shoryuken::Queue, fifo?: false))
+      allow(Shoryuken::Processor).to receive(:process)
+
+      subject.start
+      # Runs the posted dispatch, which takes the only processor and posts its processing and the next dispatch
+      executor.posted.pop.call
+    end
+
+    it 'dispatches again as soon as a processor finishes' do
+      stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 30)
+      processing = executor.posted.pop
+      dispatcher = Thread.new { executor.posted.pop.call }
+
+      Thread.pass until dispatcher.status == 'sleep'
+      processing.call
+
+      expect(dispatcher.join(5)).to eq(dispatcher), 'the dispatch waited for MIN_DISPATCH_INTERVAL'
+      expect(fetcher).to have_received(:fetch).once
+    end
+
+    it 'waits up to MIN_DISPATCH_INTERVAL when no processor finishes' do
+      stub_const("#{described_class}::MIN_DISPATCH_INTERVAL", 0.2)
+      executor.posted.pop
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+      executor.posted.pop.call
+
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.2
+      expect(fetcher).to have_received(:fetch).once
+    end
+  end
+
   describe '#assign' do
     let(:sqs_msg) { build_message('m1') }
     let(:other_msg) { build_message('m2') }

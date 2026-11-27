@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Fix: A processor that finishes while every processor of its group is busy gets its next message at once
+  - It waited for the rest of a fixed 0.1 s sleep, so short jobs ran at about 10 messages per second per processor
+  - The 0.1 s sleep when no queue is active (all paused by `delay`) stays
+
 - Fix: The instance reader `worker.shoryuken_options_hash` returns the options set on the singleton class of that
   instance (`worker.singleton_class.shoryuken_options_hash = ...`), as with Rails `class_attribute`
   - It returned the class options
