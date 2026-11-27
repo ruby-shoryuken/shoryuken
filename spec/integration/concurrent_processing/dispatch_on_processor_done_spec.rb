@@ -12,7 +12,6 @@ create_test_queue(queue)
 
 MESSAGES = 30
 
-Shoryuken.options[:delay] = 0
 Shoryuken.add_group('default', 1)
 Shoryuken.add_queue(queue, 1, 'default')
 

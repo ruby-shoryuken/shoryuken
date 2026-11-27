@@ -286,7 +286,6 @@ RSpec.describe Shoryuken::Manager do
       allow(Shoryuken::Processor).to receive(:process)
     end
 
-    # Runs that many posted dispatches, then returns the posted processing blocks and the next dispatch
     def occupy_processors(dispatches = 1)
       processings = []
       subject.start
