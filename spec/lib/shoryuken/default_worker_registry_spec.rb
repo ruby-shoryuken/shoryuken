@@ -41,6 +41,32 @@ RSpec.describe Shoryuken::DefaultWorkerRegistry do
     end
   end
 
+  describe 'a queue with several workers' do
+    let(:registry) { described_class.new }
+    let(:first_worker_class) { Class.new { include Shoryuken::Worker } }
+    let(:second_worker_class) { Class.new { include Shoryuken::Worker } }
+
+    it 'returns every worker class, the last registered one last' do
+      registry.register_worker('queue', first_worker_class)
+      registry.register_worker('queue', second_worker_class)
+      registry.register_worker('queue', first_worker_class)
+
+      expect(registry.workers('queue')).to eq([second_worker_class, first_worker_class])
+    end
+
+    it 'keeps a class redefined by a code reload only once' do
+      reloaded_worker_class = Class.new { include Shoryuken::Worker }
+      allow(first_worker_class).to receive(:name).and_return('ReloadedWorker')
+      allow(reloaded_worker_class).to receive(:name).and_return('ReloadedWorker')
+
+      registry.register_worker('queue', first_worker_class)
+      registry.register_worker('queue', second_worker_class)
+      registry.register_worker('queue', reloaded_worker_class)
+
+      expect(registry.workers('queue')).to eq([second_worker_class, reloaded_worker_class])
+    end
+  end
+
   describe 'a registry with workers is handling messages' do
     def build_message(_queue, explicit_worker = nil)
       attributes = {}

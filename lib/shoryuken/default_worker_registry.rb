@@ -4,10 +4,11 @@ module Shoryuken
   # Default implementation of the worker registry.
   # Stores and retrieves worker classes mapped to queue names.
   class DefaultWorkerRegistry < WorkerRegistry
-    # Initializes a new DefaultWorkerRegistry with an empty workers hash
+    # Initializes a new DefaultWorkerRegistry with empty workers hashes
     def initialize
       super
       @workers = Shoryuken::Helpers::AtomicHash.new
+      @all_workers = Shoryuken::Helpers::AtomicHash.new
     end
 
     # Checks if a queue is configured for batch message receiving
@@ -23,6 +24,7 @@ module Shoryuken
     # @return [void]
     def clear
       @workers.clear
+      @all_workers.clear
     end
 
     # Fetches a worker instance for processing a message
@@ -71,15 +73,16 @@ module Shoryuken
         )
       end
 
+      @all_workers[queue] = @all_workers.fetch(queue, []).reject { |registered| same_worker?(registered, clazz) } + [clazz]
       @workers[queue] = clazz
     end
 
-    # Returns all worker classes for a queue
+    # Returns all worker classes for a queue, the last registered one last
     #
     # @param queue [String] the queue name
-    # @return [Array<Class>] the registered worker classes
+    # @return [Array<Class>] the registered worker classes, a class redefined by a code reload only once
     def workers(queue)
-      [@workers.fetch(queue, [])].flatten
+      @all_workers.fetch(queue, [])
     end
 
     private

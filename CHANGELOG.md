@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+- Breaking: `shoryuken check` fails, and `shoryuken start` logs a warning, for a worker of a configured queue whose
+  `perform` cannot be called as `perform(sqs_msg, body)` (batch: `perform(sqs_msgs, bodies)`)
+  - `[FAIL] SigWorker#perform must accept (sqs_msg, body); it takes (name)` for a wrong signature, and
+    `[FAIL] TypoWorker must define perform(sqs_msg, body)` for a missing or non-public `perform`
+  - Such a worker passed `check` and failed on every message, which came back after each visibility timeout
+  - `check` now exits 1 for a worker that defines `perform` through `method_missing`; `start` still boots it
+  - Every worker of a queue is checked, except an abstract base worker (no `perform`, with a subclass) that is not
+    the last one registered for the queue
+  - `DefaultWorkerRegistry#workers` returns every worker class registered for the queue, the last registered one last,
+    not only the last one
+
 - Fix: While every processor of a group is busy, the group receives again once enough processors are free for one
   receive, not after a fixed 0.1 s sleep
   - One receive keeps 1 processor busy for a FIFO or batched queue, otherwise the lowest of the concurrency,
