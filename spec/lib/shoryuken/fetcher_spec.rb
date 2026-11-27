@@ -191,4 +191,38 @@ RSpec.describe Shoryuken::Fetcher do
       end
     end
   end
+
+  describe '#receive_limit' do
+    before do
+      allow(Shoryuken::Client).to receive(:queues).with(queue_name).and_return(queue)
+    end
+
+    it 'returns the limit' do
+      expect(subject.receive_limit(queue_config, 4)).to eq(4)
+    end
+
+    it 'caps at FETCH_LIMIT' do
+      expect(subject.receive_limit(queue_config, 11)).to eq(described_class::FETCH_LIMIT)
+    end
+
+    it 'caps at the max_number_of_messages receive option' do
+      Shoryuken.sqs_client_receive_message_opts[queue_name] = { max_number_of_messages: 2 }
+
+      expect(subject.receive_limit(queue_config, 4)).to eq(2)
+    end
+
+    it 'caps at the max_number_of_messages queue option' do
+      config = Shoryuken::Polling::QueueConfiguration.new(queue_name, max_number_of_messages: 3)
+
+      expect(subject.receive_limit(config, 4)).to eq(3)
+    end
+
+    context 'when FIFO' do
+      let(:queue) { instance_double('Shoryuken::Queue', fifo?: true, name: queue_name) }
+
+      it 'returns one' do
+        expect(subject.receive_limit(queue_config, 4)).to eq(1)
+      end
+    end
+  end
 end

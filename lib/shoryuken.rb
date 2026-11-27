@@ -53,6 +53,7 @@ module Shoryuken
     :launcher_executor,
     :launcher_executor=,
     :polling_strategy,
+    :resolve_polling_strategy,
     :start_callback,
     :start_callback=,
     :stop_callback,

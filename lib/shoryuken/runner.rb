@@ -14,6 +14,10 @@ module Shoryuken
     include Util
     include Singleton
 
+    # Written to the signal pipe by the graceful stop thread when it ends
+    GRACEFUL_STOP_DONE = 'GRACEFUL_STOP_DONE'
+    private_constant :GRACEFUL_STOP_DONE
+
     # @return [Shoryuken::Launcher, nil] the launcher instance, or nil if not yet initialized
     attr_reader :launcher
 
@@ -26,11 +30,14 @@ module Shoryuken
     # @option options [String] :config_file path to the configuration file
     # @return [void]
     def run(options)
-      self_read, self_write = IO.pipe
+      self_read, @self_write = IO.pipe
+      @graceful_stop = nil
+      @graceful_stop_done = false
+      @exit_after_graceful_stop = false
 
       %w[INT TERM USR1 TSTP TTIN].each do |sig|
         trap sig do
-          self_write.puts(sig)
+          @self_write.puts(sig)
         end
       rescue ArgumentError
         puts "Signal #{sig} not supported"
@@ -129,8 +136,8 @@ module Shoryuken
     def execute_soft_shutdown
       logger.info { 'Received USR1, will soft shutdown' }
 
-      @launcher.stop
-      exit(@launcher.failed? ? 1 : 0)
+      @exit_after_graceful_stop = true
+      start_graceful_stop
     end
 
     # Executes a terminal stop on TSTP signal
@@ -139,7 +146,31 @@ module Shoryuken
     def execute_terminal_stop
       logger.info { 'Received TSTP, will stop accepting new work' }
 
-      @launcher.stop
+      start_graceful_stop
+    end
+
+    # Runs the graceful stop in a thread, so that a TERM or INT that arrives during it is still handled at once
+    #
+    # @return [void]
+    def start_graceful_stop
+      return finish_graceful_stop if @graceful_stop_done
+
+      @graceful_stop ||= Thread.new do
+        Thread.current.report_on_exception = false
+        @launcher.stop
+      ensure
+        @self_write.puts(GRACEFUL_STOP_DONE)
+      end
+    end
+
+    # Runs on the main thread once the graceful stop has ended. Raises its error, and exits after a soft shutdown.
+    #
+    # @return [void]
+    def finish_graceful_stop
+      @graceful_stop_done = true
+      @graceful_stop.value
+
+      exit(@launcher.failed? ? 1 : 0) if @exit_after_graceful_stop
     end
 
     # Prints backtraces of all threads
@@ -168,6 +199,7 @@ module Shoryuken
       when 'USR1' then execute_soft_shutdown
       when 'TTIN' then print_threads_backtrace
       when 'TSTP' then execute_terminal_stop
+      when GRACEFUL_STOP_DONE then finish_graceful_stop
       when 'TERM', 'INT'
         logger.info { "Received #{sig}, will shutdown" }
 

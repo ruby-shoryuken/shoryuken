@@ -15,7 +15,9 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     strategy:
       matrix:
-        ruby: ['3.3', '3.4', '4.0']
+        ruby: ['3.3', '3.4', '4.0', '4.1.0-preview1']
+    # Ruby previews are informational and must not block merging
+    continue-on-error: ${{ contains(matrix.ruby, 'preview') }}
     runs-on: ubuntu-latest
     # Unit specs finish in under a minute; fail fast instead of letting a
     # wedged runner occupy the job slot for the 6-hour default
@@ -24,7 +26,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: ruby/setup-ruby@f9c4492e86def3e644ab32a0ef185eda5b0c20d0 # v1.342.0
+      - uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -59,7 +61,8 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     strategy:
       matrix:
-        ruby: ['3.3', '3.4', '4.0']
+        ruby: ['3.3', '3.4', '4.0', '4.1.0-preview1']
+    continue-on-error: ${{ contains(matrix.ruby, 'preview') }}
     runs-on: ubuntu-latest
     # Integration specs normally take ~4 minutes
     timeout-minutes: 15
@@ -79,7 +82,7 @@ jobs:
           done
           '
 
-      - uses: ruby/setup-ruby@f9c4492e86def3e644ab32a0ef185eda5b0c20d0 # v1.342.0
+      - uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true

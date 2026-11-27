@@ -36,6 +36,17 @@ module Shoryuken
       end
     end
 
+    # Returns how many messages one receive from a queue can return
+    #
+    # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
+    # @param limit [Integer] the maximum number of messages wanted
+    # @return [Integer] the maximum number of messages one receive can return
+    def receive_limit(queue, limit)
+      options = receive_options(queue).merge(queue.options)
+
+      max_number_of_messages(Shoryuken::Client.queues(queue.name), limit, options)
+    end
+
     private
 
     # Fetches with automatic retry on errors

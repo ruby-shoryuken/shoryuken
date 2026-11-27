@@ -135,8 +135,18 @@ module Shoryuken
     # @param group [String] the name of the group
     # @return [Class] the polling strategy class to use
     def polling_strategy(group)
-      strategy = groups[group].to_h[:polling_strategy] ||
-                 (group == 'default' ? options : options[:groups].to_h[group]).to_h[:polling_strategy]
+      resolve_polling_strategy(
+        groups[group].to_h[:polling_strategy] ||
+        (group == 'default' ? options : options[:groups].to_h[group]).to_h[:polling_strategy]
+      )
+    end
+
+    # Resolves a polling strategy setting to its class
+    #
+    # @param strategy [Class, String, nil] a strategy class, a built-in or constant name, or nil for the default
+    # @return [Class] the polling strategy class
+    # @raise [Errors::InvalidPollingStrategyError] if a String names no constant
+    def resolve_polling_strategy(strategy)
       case strategy
       when 'WeightedRoundRobin', nil # Default case
         Polling::WeightedRoundRobin

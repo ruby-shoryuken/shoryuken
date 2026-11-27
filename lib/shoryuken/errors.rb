@@ -17,7 +17,7 @@ module Shoryuken
     InvalidWorkerRegistrationError = Class.new(BaseError)
 
     # Raised when an invalid polling strategy is specified
-    InvalidPollingStrategyError = Class.new(BaseError)
+    InvalidPollingStrategyError = Class.new(InvalidConfigurationError)
 
     # Raised when an invalid lifecycle event name is used
     InvalidEventError = Class.new(BaseError)
@@ -27,6 +27,9 @@ module Shoryuken
 
     # Raised when a delay is used with a FIFO queue
     FifoDelayNotSupportedError = Class.new(BaseError)
+
+    # Raised when a send needs the queue option because the worker has no queue or several queues
+    QueueNotSpecifiedError = Class.new(BaseError)
 
     # Raised when an ARN format is invalid
     InvalidArnError = Class.new(BaseError)
