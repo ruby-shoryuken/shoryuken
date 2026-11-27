@@ -23,6 +23,7 @@ module Shoryuken
 
       namespace :sqs
       class_option :endpoint, aliases: '-e', type: :string, default: ENV['SHORYUKEN_SQS_ENDPOINT'], desc: 'Endpoint URL'
+      class_option :config, aliases: '-C', type: :string, desc: 'Path to config file whose aws options build the client'
 
       class << self
         protected
@@ -94,14 +95,30 @@ module Shoryuken
           }
         end
 
-        # Returns the SQS client options based on CLI options
+        # Returns the SQS client options: the aws options of the config file, with the endpoint option on top
         #
         # @return [Hash] the client options hash
         def client_options
           endpoint = options[:endpoint]
-          {}.tap do |hash|
+          config_aws_options.to_h.dup.tap do |hash|
             hash[:endpoint] = endpoint unless endpoint.to_s.empty?
           end
+        end
+
+        # Returns the aws options of the config file given with --config, else of config/shoryuken.yml when it exists
+        #
+        # @return [Hash] the aws options
+        def config_aws_options
+          return Shoryuken.shoryuken_options.aws_options unless (path = options[:config])
+
+          aws = Shoryuken::EnvironmentLoader.read_config_file(path)[:aws] || {}
+          fail_task "The aws section of #{path} must be a mapping" unless aws.is_a?(Hash)
+
+          aws
+        rescue Shoryuken::Errors::InvalidConfigurationError => e
+          fail_task e.message
+        rescue StandardError, SyntaxError => e
+          fail_task "Could not read the config file #{path}: #{e.class}: #{e.message.lines.first&.chomp}"
         end
 
         # Returns the SQS client instance

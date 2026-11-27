@@ -127,6 +127,95 @@ RSpec.describe Shoryuken::Options do
     end
   end
 
+  describe '#aws_options' do
+    let(:options) { described_class.new }
+    let(:dir) { Dir.mktmpdir }
+
+    after { FileUtils.remove_entry(dir) }
+
+    def write_config(content)
+      FileUtils.mkdir_p(File.join(dir, 'config'))
+      File.write(File.join(dir, 'config', 'shoryuken.yml'), content)
+    end
+
+    it 'reads the aws section of config/shoryuken.yml in the current directory' do
+      write_config("aws:\n  region: <%= 'eu-west-1' %>\nconcurrency: 3\n")
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq(region: 'eu-west-1')
+      expect(options.options[:concurrency]).to eq(25)
+    end
+
+    it 'reads config/shoryuken.yml under the Rails root' do
+      write_config("aws:\n  region: eu-west-1\n")
+      stub_const('Rails', double(root: Pathname.new(dir)))
+
+      expect(options.aws_options).to eq(region: 'eu-west-1')
+    end
+
+    it 'falls back to the current directory when Rails has no root yet' do
+      write_config("aws:\n  region: eu-west-1\n")
+      stub_const('Rails', double(root: nil))
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq(region: 'eu-west-1')
+    end
+
+    it 'falls back to the current directory when Rails does not respond to root' do
+      write_config("aws:\n  region: eu-west-1\n")
+      stub_const('Rails', Module.new)
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq(region: 'eu-west-1')
+    end
+
+    it 'warns and returns an empty hash when the file cannot be read' do
+      allow(options.logger).to receive(:warn)
+
+      write_config("aws:\n  region: <%= Rails.env %>\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      write_config("aws: [\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      write_config("aws: us-east-1\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      write_config("aws:\n  region: <%= 1 + %>\n")
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      expect(options.logger).to have_received(:warn).with(/Could not read .*NameError/).once
+      expect(options.logger).to have_received(:warn).with(/Could not read .*: SyntaxError/).once
+      expect(options.logger).to have_received(:warn).with(/Could not read .*Psych::SyntaxError/).once
+      expect(options.logger).to have_received(:warn).with(/aws section of .* is not a mapping/).once
+    end
+
+    it 'returns an empty hash without the file or without an aws section' do
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+
+      write_config("concurrency: 3\n")
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+    end
+
+    it 'prefers options[:aws] when it is set' do
+      write_config("aws:\n  region: eu-west-1\n")
+      options.options[:aws] = { region: 'us-east-1' }
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq(region: 'us-east-1')
+    end
+
+    it 'ignores config/shoryuken.yml once another config file was loaded' do
+      write_config("aws:\n  region: eu-west-1\n")
+      options.options[:config_file] = 'other.yml'
+
+      expect(Dir.chdir(dir) { options.aws_options }).to eq({})
+    end
+
+    it 'builds the default sqs_client from them' do
+      write_config("aws:\n  region: eu-west-1\n  stub_responses: true\n")
+
+      expect(Dir.chdir(dir) { options.sqs_client.config.region }).to eq('eu-west-1')
+    end
+  end
+
   describe '.sqs_client_receive_message_opts' do
     before do
       Shoryuken.sqs_client_receive_message_opts

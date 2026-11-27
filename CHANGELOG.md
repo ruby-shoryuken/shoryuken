@@ -1,5 +1,19 @@
 ## [Unreleased]
 
+- Breaking: The `aws` section of `config/shoryuken.yml` reaches a process that enqueues without running `shoryuken`
+  (a raw worker's `perform_async`/`perform_in`/`perform_at`, the ActiveJob adapters) and `shoryuken sqs`, not only the
+  `shoryuken -C` process
+  - Such a process that loads no config file and leaves `Shoryuken.options[:aws]` empty now takes the region,
+    endpoint and credentials set in that file over its AWS SDK settings (`AWS_REGION`, `AWS_ENDPOINT_URL_SQS`,
+    `~/.aws/config`), so it can send to another region or endpoint than before. Remove those keys from the file or
+    set `Shoryuken.sqs_client = ...` to keep the old client; a process that raised `Aws::Errors::MissingRegionError`
+    now uses the file
+  - The file is `config/shoryuken.yml` under the Rails root, else under the current directory. When it cannot be
+    read (ERB that needs Rails outside of it, such as `<%= Rails.env %>` in `shoryuken sqs`, invalid YAML, an `aws`
+    value that is not a mapping), it logs a warning and uses the AWS SDK settings, as before
+  - `shoryuken sqs` accepts `-C`/`--config <path>` to read the section from another file; `-e` overrides its
+    `endpoint`. A `-C` file that cannot be read prints one `[FAIL]` line and exits with status 1
+
 - Breaking: `shoryuken check` fails, and `shoryuken start` logs a warning, for a worker of a configured queue whose
   `perform` cannot be called as `perform(sqs_msg, body)` (batch: `perform(sqs_msgs, bodies)`)
   - `[FAIL] SigWorker#perform must accept (sqs_msg, body); it takes (name)` for a wrong signature, and

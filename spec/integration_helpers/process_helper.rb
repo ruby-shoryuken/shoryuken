@@ -21,25 +21,31 @@ module ProcessHelper
     run_shoryuken_command_until_exit('sqs', *args, '-e', SHORYUKEN_ENV['AWS_ENDPOINT_URL_SQS'], **options)
   end
 
-  # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env) until it exits on its own,
-  # returns [status, output], or [status, stdout, stderr] with split: true
-  def run_shoryuken_command_until_exit(command, *args, timeout: 30, bin: SHORYUKEN_BIN, env: {}, split: false)
+  # Runs a `bin/shoryuken` command (or another shoryuken executable, with extra env, in another directory) until it
+  # exits on its own, returns [status, output], or [status, stdout, stderr] with split: true
+  def run_shoryuken_command_until_exit(command, *args, bin: SHORYUKEN_BIN, **options)
+    run_ruby_script_until_exit(bin, command, *args, **options)
+  end
+
+  # Runs a Ruby script (with extra env, in another directory) until it exits on its own, returns [status, output], or
+  # [status, stdout, stderr] with split: true
+  def run_ruby_script_until_exit(script, *args, timeout: 30, env: {}, chdir: Dir.pwd, split: false)
     popen = split ? :popen3 : :popen2e
 
-    Open3.public_send(popen, SHORYUKEN_ENV.merge(env), RbConfig.ruby, bin, command, *args) do |_in, *ios, wait|
+    Open3.public_send(popen, SHORYUKEN_ENV.merge(env), RbConfig.ruby, script, *args, chdir: chdir) do |_in, *ios, wait|
       outputs = ios.map { +'' }
       readers = ios.zip(outputs).map { |io, output| Thread.new { io.each_line { |line| output << line } } }
 
       unless wait.join(timeout)
         Process.kill('KILL', wait.pid)
         readers.each(&:join)
-        raise IntegrationsHelper::TestFailure, "shoryuken must exit, but it kept running: #{outputs.join}"
+        raise IntegrationsHelper::TestFailure, "#{File.basename(script)} must exit, but it kept running: #{outputs.join}"
       end
 
       unless readers.all? { |reader| reader.join(timeout) }
         raise(
           IntegrationsHelper::TestFailure,
-          "shoryuken exited, but a process it left kept its output open: #{outputs.join}"
+          "#{File.basename(script)} exited, but a process it left kept its output open: #{outputs.join}"
         )
       end
 
