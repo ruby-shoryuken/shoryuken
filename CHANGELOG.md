@@ -1,7 +1,10 @@
 ## [Unreleased]
 
-- Fix: A processor that finishes while every processor of its group is busy gets its next message at once
-  - It waited for the rest of a fixed 0.1 s sleep, so short jobs ran at about 10 messages per second per processor
+- Fix: While every processor of a group is busy, the group receives again once enough processors are free for one
+  receive, not after a fixed 0.1 s sleep
+  - One receive keeps 1 processor busy for a FIFO or batched queue, otherwise the lowest of the concurrency,
+    `max_number_of_messages` and 10; the group waits at most 0.1 s for that many
+  - Short jobs ran at about 10 messages per second per processor
   - The 0.1 s sleep when no queue is active (all paused by `delay`) stays
 
 - Fix: The instance reader `worker.shoryuken_options_hash` returns the options set on the singleton class of that

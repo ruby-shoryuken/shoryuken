@@ -183,8 +183,14 @@ module Shoryuken
     def dispatch
       return unless running?
 
-      return wait_for_free_processor if ready <= 0
+      if ready <= 0
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + MIN_DISPATCH_INTERVAL
+        return unless wait_for_free_processors(1, deadline)
+      end
+
       return sleep(MIN_DISPATCH_INTERVAL) if (queue = @polling_strategy.next_queue).nil?
+
+      wait_for_free_processors(processors_per_receive(queue), deadline) if deadline
 
       fire_event(:dispatch, false, queue_name: queue.name)
 
@@ -204,22 +210,31 @@ module Shoryuken
       @max_processors - busy
     end
 
-    # Waits until enough processors are free for one full receive, or for at most MIN_DISPATCH_INTERVAL, so freed
-    # processors get messages at once without a receive request for each of them
+    # Waits until the given number of processors are free or the deadline passes, so freed processors get messages
+    # at once without a receive request for each of them
     #
-    # @return [void]
-    def wait_for_free_processor
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + MIN_DISPATCH_INTERVAL
-      wanted = [@max_processors, Fetcher::FETCH_LIMIT].min
-
+    # @param wanted [Integer] the number of free processors to wait for
+    # @param deadline [Float] the monotonic clock time to stop waiting at
+    # @return [Boolean] true when that many processors are free
+    def wait_for_free_processors(wanted, deadline)
       @in_flight_mutex.synchronize do
         while @max_processors - @in_flight.size < wanted
           remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          break if remaining <= 0
+          return false if remaining <= 0
 
           @processor_freed.wait(@in_flight_mutex, remaining)
         end
+
+        true
       end
+    end
+
+    # Returns how many processors one receive from a queue can keep busy
+    #
+    # @param queue [Shoryuken::Polling::QueueConfiguration] the queue configuration
+    # @return [Integer] 1 for a batched queue, otherwise the number of messages one receive can return
+    def processors_per_receive(queue)
+      batched_queue?(queue) ? 1 : @fetcher.receive_limit(queue, @max_processors)
     end
 
     # Handles completion of processor work
