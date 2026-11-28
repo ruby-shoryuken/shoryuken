@@ -6,8 +6,8 @@
   - A `logfile` in the config file with `-d` on the CLI is accepted; it failed with `You should set a logfile if you're
     going to daemonize`
   - `start -d` prints `[FAIL] <message> (<error class>)` and exits 1 in the launching process on an invalid option
-    value and, when there is nothing to require (`-r`), on a missing queue; it exited 0 and the error went only to the
-    logfile
+    value and, when there is nothing to require (`-r`), on a missing queue or an unknown `polling_strategy`; it exited 0
+    and the error went only to the logfile
 
 - Fix: the process removes its pidfile (`-P`, `pidfile:`) when it exits, if the file still holds its pid; a stopped or
   failed process left a dead pid in it
