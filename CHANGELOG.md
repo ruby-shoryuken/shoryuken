@@ -1,5 +1,17 @@
 ## [Unreleased]
 
+- Fix: daemon mode checks the merged options (config file and CLI) and reports startup errors before it forks
+  - `daemon: true` in the config file without a `logfile` makes `shoryuken check` fail and `shoryuken start` exit 1;
+    `start` exited 0 and the daemon crashed with a `TypeError`
+  - A `logfile` in the config file with `-d` on the CLI is accepted; it failed with `You should set a logfile if you're
+    going to daemonize`
+  - `start -d` prints `[FAIL] <message> (<error class>)` and exits 1 in the launching process on an invalid option
+    value and, when there is nothing to require (`-r`), on a missing queue or an unknown `polling_strategy`; it exited 0
+    and the error went only to the logfile
+
+- Fix: the process removes its pidfile (`-P`, `pidfile:`) when it exits, if the file still holds its pid; a stopped or
+  failed process left a dead pid in it
+
 - Breaking: The `aws` section of `config/shoryuken.yml` reaches a process that enqueues without running `shoryuken`
   (a raw worker's `perform_async`/`perform_in`/`perform_at`, the ActiveJob adapters) and `shoryuken sqs`, not only the
   `shoryuken -C` process

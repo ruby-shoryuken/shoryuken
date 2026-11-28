@@ -45,10 +45,16 @@ module Shoryuken
 
       loader = EnvironmentLoader.setup_options(options)
 
+      # A daemon checks what it can before it forks, so these errors reach the launching process. Required files may
+      # start threads that the fork would kill (#219), so it loads before the fork only when there is nothing to require.
+      load_before_fork = Shoryuken.options[:daemon] && !Shoryuken.options[:require]
+      loader.validate_daemon_options if Shoryuken.options[:daemon]
+      loader.load if load_before_fork
+
       daemonize(Shoryuken.options)
       write_pid(Shoryuken.options)
 
-      loader.load
+      loader.load unless load_before_fork
 
       initialize_concurrent_logger
 
@@ -118,7 +124,7 @@ module Shoryuken
       $stdin.reopen('/dev/null')
     end
 
-    # Writes the process ID to a file
+    # Writes the process ID to a file and removes the file at exit when it still holds that ID
     #
     # @param options [Hash] options containing the pidfile path
     # @option options [String] :pidfile path to write the PID file
@@ -126,7 +132,21 @@ module Shoryuken
     def write_pid(options)
       return unless (path = options[:pidfile])
 
+      path = File.expand_path(path)
       File.open(path, 'w') { |f| f.puts(Process.pid) }
+
+      # A process forked from this one inherits the hook, and a restarted one may already own the file
+      at_exit { remove_pid(path) }
+    end
+
+    # Removes the pidfile when it holds the ID of this process
+    #
+    # @param path [String] path of the PID file
+    # @return [void]
+    def remove_pid(path)
+      File.delete(path) if File.read(path).to_i == Process.pid
+    rescue SystemCallError
+      nil
     end
 
     # Executes a soft shutdown on USR1 signal. Exits with status 1 when a fatal dispatch error sent the signal, so a

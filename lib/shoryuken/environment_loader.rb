@@ -81,7 +81,7 @@ module Shoryuken
     # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
     # @raise [Errors::InvalidPollingStrategyError] if a polling strategy name does not resolve
     def load
-      Contracts::Options.new.validate!(Shoryuken.options)
+      validate_options
       load_queues_and_workers
       Contracts::PollingStrategies.new.validate!(Shoryuken.options)
       validate_queues
@@ -93,9 +93,11 @@ module Shoryuken
     # the message and its body
     #
     # @return [Array<String>] the problems found, empty when the configuration is valid
-    # @raise [Shoryuken::Errors::BaseError] when an option has an invalid value or a queue does not exist
+    # @raise [Shoryuken::Errors::BaseError] when an option has an invalid value, a daemon has no logfile or a queue does
+    #   not exist
     def check
-      Contracts::Options.new.validate!(Shoryuken.options)
+      validate_options
+      validate_logfile
       load_queues_and_workers
       Contracts::PollingStrategies.new.validate!(Shoryuken.options)
 
@@ -105,7 +107,38 @@ module Shoryuken
       queues_without_workers.map { |queue| "No worker supplied for #{queue}" } + worker_perform_problems
     end
 
+    # Validates what a daemon can check before it forks: the option values and its logfile
+    #
+    # @return [void]
+    # @raise [Errors::InvalidConfigurationError] when an option has an invalid value or no logfile is set
+    def validate_daemon_options
+      validate_options
+      validate_logfile
+    end
+
     private
+
+    # Validates the option values once, so a daemon that validated them before it forked does not log the unknown key
+    # warnings again
+    #
+    # @return [void]
+    # @raise [Errors::InvalidConfigurationError] if an option has an invalid value
+    def validate_options
+      return if @options_validated
+
+      Contracts::Options.new.validate!(Shoryuken.options)
+      @options_validated = true
+    end
+
+    # Checks that a daemon has a logfile to write its output to
+    #
+    # @return [void]
+    # @raise [Errors::InvalidConfigurationError] when the options ask to daemonize without a logfile
+    def validate_logfile
+      return unless Shoryuken.options[:daemon] && Shoryuken.options[:logfile].nil?
+
+      raise Errors::InvalidConfigurationError, "You should set a logfile if you're going to daemonize"
+    end
 
     # Sets up the queues and requires the workers, the part of {#load} that comes before validation
     #

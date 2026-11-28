@@ -180,6 +180,73 @@ RSpec.describe Shoryuken::EnvironmentLoader do
         expect { subject.check }.to raise_error(Shoryuken::Errors::QueueNotFoundError)
       end
     end
+
+    context 'when the options ask to daemonize without a logfile' do
+      before do
+        Shoryuken.options[:queues] = %w[queue1]
+        Shoryuken.options[:daemon] = true
+      end
+
+      it 'raises before loading the workers' do
+        expect { subject.check }
+          .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /You should set a logfile/)
+        expect(subject).not_to have_received(:require_workers)
+      end
+    end
+
+    context 'when the options ask to daemonize with a logfile' do
+      before do
+        Shoryuken.options[:queues] = %w[queue1]
+        Shoryuken.options[:daemon] = true
+        Shoryuken.options[:logfile] = '/dev/null'
+      end
+
+      it 'returns no problems' do
+        expect(subject.check).to eq([])
+      end
+    end
+  end
+
+  describe '#validate_daemon_options' do
+    it 'raises when the options ask to daemonize without a logfile' do
+      Shoryuken.options[:daemon] = true
+
+      expect { subject.validate_daemon_options }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /You should set a logfile/)
+    end
+
+    it 'accepts a daemon with a logfile' do
+      Shoryuken.options[:daemon] = true
+      Shoryuken.options[:logfile] = '/dev/null'
+
+      expect { subject.validate_daemon_options }.not_to raise_error
+    end
+
+    it 'raises when an option has an invalid value' do
+      Shoryuken.options[:daemon] = true
+      Shoryuken.options[:logfile] = '/dev/null'
+      Shoryuken.options[:concurrency] = 0
+
+      expect { subject.validate_daemon_options }
+        .to raise_error(Shoryuken::Errors::InvalidConfigurationError, /concurrency/)
+    end
+
+    it 'makes a later load validate the option values only once' do
+      Shoryuken.options[:daemon] = true
+      Shoryuken.options[:logfile] = '/dev/null'
+      Shoryuken.options[:concurency] = 1
+      allow(subject).to receive(:load_queues_and_workers)
+      allow(subject).to receive(:validate_queues)
+      allow(subject).to receive(:validate_workers)
+
+      warnings = []
+      allow(Shoryuken.logger).to receive(:warn) { |&block| warnings << block.call }
+
+      subject.validate_daemon_options
+      subject.load
+
+      expect(warnings.count("Unknown option 'concurency' is ignored; check it for a typo")).to eq(1)
+    end
   end
 
   describe 'worker perform checks' do

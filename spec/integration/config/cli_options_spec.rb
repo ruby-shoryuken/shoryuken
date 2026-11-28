@@ -9,7 +9,7 @@
 # `-q` replaces the config file queues and keeps their order and weights, so
 # StrictPriority polls the first of two equally weighted CLI queues first;
 # `-r` with a directory loads every `.rb` file under it, nested ones too; `-P`
-# writes the process pid.
+# writes the process pid and the process removes it when it exits.
 #
 # Regression: the `logfile` from the config file was ignored, the log went to
 # stdout (#296).
@@ -158,12 +158,14 @@ with_queue_and_dir do |queue, dir|
   Shoryuken::Client.queues(queue).send_message(message_body: 'pidfile')
 
   pid = nil
+  written = nil
   status, output = run_shoryuken_until('-r', boot_file, '-q', queue, '-P', pidfile) do |_log, child|
     pid = child
+    written = File.read(pidfile) if File.exist?(pidfile)
     processed(record).any?
   end
 
   assert(status.success?, "the process must exit cleanly, got #{status.inspect}: #{output}")
-  assert(File.exist?(pidfile), "the pidfile must be written, got: #{output}")
-  assert_equal(pid, File.read(pidfile).to_i, 'the pidfile must hold the process pid')
+  assert_equal("#{pid}\n", written, "the pidfile must hold the process pid, got: #{output}")
+  refute(File.exist?(pidfile), 'the process must remove its pidfile when it exits')
 end
