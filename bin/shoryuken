@@ -40,7 +40,7 @@ module Shoryuken
 
         Shoryuken::Runner.instance.run(normalized_options.freeze)
       rescue Shoryuken::Errors::BaseError => e
-        # The forked daemon also reaches this rescue; its logfile needs the backtrace of an error found after the fork
+        # The forked daemon also reaches this rescue: its logfile needs the backtrace of errors other than invalid options
         raise unless e.is_a?(Shoryuken::Errors::InvalidConfigurationError) ||
                      (Shoryuken.options[:daemon] && Process.pid == launching_pid)
 
